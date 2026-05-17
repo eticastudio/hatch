@@ -1,0 +1,58 @@
+name: ✨ Feature Request
+description: Suggest a new module, theme, integration, or improvement
+title: "[Feature] "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement! Before submitting:
+        - Check [ROADMAP.md](https://github.com/adityaarsharma/hatch/blob/main/ROADMAP.md) — it may already be planned
+        - Check [Discussions → Ideas](https://github.com/adityaarsharma/hatch/discussions/categories/ideas) for related conversations
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Feature type
+      options:
+        - New module (forms/comments/search/etc.)
+        - New theme
+        - New framework starter (Next.js / SvelteKit / etc.)
+        - WordPress plugin integration (e.g. "support Forminator")
+        - Hosting target (e.g. "support Render")
+        - Claude skill enhancement
+        - Documentation improvement
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      placeholder: "I'm trying to use Hatch with [X plugin] but [problem]..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would you like Hatch to do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What workarounds have you tried?
+
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Would you contribute this yourself?
+      options:
+        - "Yes — I want to build it"
+        - "Maybe — with guidance"
+        - "No — just suggesting"
+    validations:
+      required: true

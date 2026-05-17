@@ -1,0 +1,35 @@
+title: "[Showcase] "
+labels: ["🎨 showcase"]
+body:
+  - type: input
+    id: site
+    attributes:
+      label: Live site URL
+      placeholder: https://yourblog.com
+    validations:
+      required: true
+  - type: dropdown
+    id: theme
+    attributes:
+      label: Which Hatch theme?
+      options:
+        - Sprout
+        - Magazine
+        - Tech
+        - Agency
+        - Newsletter
+        - Custom (built my own)
+    validations:
+      required: true
+  - type: textarea
+    id: about
+    attributes:
+      label: Tell us about your site
+      placeholder: "I migrated from [previous setup] in [time]. Best part: [X]. Hardest part: [Y]."
+    validations:
+      required: true
+  - type: textarea
+    id: lighthouse
+    attributes:
+      label: Lighthouse scores (optional)
+      placeholder: "Performance: 99 / SEO: 100 / A11y: 100 / Best Practices: 100"

@@ -1,0 +1,54 @@
+---
+/**
+ * Catch-all for WP Pages.
+ *
+ * If the user visits /about, /contact, /pricing, etc., we look up a WP Page
+ * with that slug and render its content. Returns 404 if no matching Page
+ * exists (so /random-nonsense doesn't accidentally render).
+ *
+ * NOTE: this only matches paths NOT already handled by a more specific
+ * route. /blog/*, /api/*, etc. take precedence because Astro prefers
+ * literal paths over rest-parameter catch-alls.
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import HatchImage from '@/components/HatchImage.astro';
+import { getPageBySlug } from '@/lib/hatch';
+import { getFeatures, rewriteContentImages } from '@/lib/features';
+
+const { slug } = Astro.params;
+const slugStr = Array.isArray(slug) ? slug.join('/') : (slug || '');
+
+if (!slugStr) {
+  return Astro.redirect('/');
+}
+
+const [page, features] = await Promise.all([
+  getPageBySlug(slugStr),
+  getFeatures(),
+]);
+
+if (!page) {
+  return new Response('Not Found', { status: 404 });
+}
+---
+
+<PageLayout title={page.title} description={page.excerpt}>
+  <article class="max-w-4xl mx-auto px-5 sm:px-8 pt-12 pb-16">
+    {page.featuredImage && (
+      <div class="aspect-[2/1] rounded-xl overflow-hidden mb-10 bg-hatch-bg-3">
+        <HatchImage features={features} src={page.featuredImage} alt={page.featuredImageAlt || ''} width={1600} height={800} loading="eager" class="w-full h-full object-cover" />
+      </div>
+    )}
+
+    <header class="mb-10">
+      <h1 class="text-4xl sm:text-5xl font-semibold tracking-tight leading-tight">{page.title}</h1>
+      {page.modifiedAt && (
+        <p class="mt-4 text-[13px] text-hatch-fg-subtle">
+          Updated <time datetime={page.modifiedAt}>{new Date(page.modifiedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
+        </p>
+      )}
+    </header>
+
+    <div class="hatch-prose" set:html={rewriteContentImages(page.content, features)}></div>
+  </article>
+</PageLayout>

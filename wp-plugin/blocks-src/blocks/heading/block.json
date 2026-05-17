@@ -1,0 +1,29 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/heading",
+	"title": "Heading",
+	"category": "hatch",
+	"icon": "heading",
+	"description": "Headings H1–H6 with responsive sizing, weight, alignment, and color tokens.",
+	"keywords": [ "heading", "title", "h1", "h2", "h3" ],
+	"version": "0.4.0",
+	"textdomain": "hatch-blocks",
+	"supports": {
+		"html": false,
+		"anchor": true,
+		"className": false
+	},
+	"attributes": {
+		"content": { "type": "string", "source": "html", "selector": "h1,h2,h3,h4,h5,h6", "default": "" },
+		"level":   { "type": "number", "default": 2 },
+		"size":    { "type": "object", "default": { "base": "3xl", "sm": null, "md": "4xl", "lg": null, "xl": null } },
+		"weight":  { "type": "string", "default": "bold" },
+		"align":   { "type": "object", "default": { "base": "left", "sm": null, "md": null, "lg": null, "xl": null } },
+		"colorToken":  { "type": "string", "default": "" },
+		"gradient":    { "type": "string", "default": "" },
+		"letterSpacing": { "type": "string", "default": "normal" },
+		"lineHeight":    { "type": "string", "default": "tight" }
+	},
+	"editorScript": "file:./index.js"
+}

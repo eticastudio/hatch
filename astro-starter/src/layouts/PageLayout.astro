@@ -1,0 +1,141 @@
+---
+/**
+ * The single Hatch page layout. Reads site name + tagline + favicon from
+ * WP General Settings (via /hatch/v1/features), sets edge cache headers so
+ * the platform caches at 60s with stale-while-revalidate=1hr.
+ *
+ * Pages that need a different page-level cache (e.g. /api/revalidate POST)
+ * can override the response header in their own frontmatter.
+ */
+import '../styles/global.css';
+import '../styles/theme-tech.css';
+import '../styles/theme-docs.css';
+import '../styles/theme-astropaper.css';
+import '../styles/theme-astrowind.css';
+import '../styles/theme-astronano.css';
+import '../styles/theme-blog.css';
+import { ClientRouter } from 'astro:transitions';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { getFeatures } from '../lib/features';
+import { getMenus } from '../lib/hatch';
+import { designToCssVars, designFontHref } from '../lib/design';
+import { edgeCache } from '../lib/cache';
+
+interface Props {
+  title: string;
+  description?: string;
+  canonical?: string;
+  rawHead?: string;
+  ogImage?: string;
+  /** Optional: skip rendering the site header/footer chrome (e.g. landing pages). */
+  bare?: boolean;
+  /** Optional: override edge cache TTL. Default 60s. Pass 0 for no-cache. */
+  cacheTtl?: number;
+}
+
+const {
+  title,
+  description = '',
+  canonical = Astro.url.toString(),
+  rawHead = '',
+  ogImage = '',
+  bare = false,
+  cacheTtl,
+} = Astro.props;
+
+const [features, primaryMenu, footerMenu] = await Promise.all([
+  getFeatures(),
+  getMenus('primary'),
+  getMenus('footer'),
+]);
+const siteName = features.site.name || 'Hatch';
+const siteDescription = features.site.description || '';
+const lang = (features.site.language || 'en-US').split('-')[0];
+const iconUrl = features.site.icon_url || '';
+const theme = features.theme || 'blog';
+const designCssVars = designToCssVars(features.design);
+const designFonts = designFontHref(features.design);
+const colorMode = features.design?.brand?.mode || 'auto';
+
+// Compose the full <title> — page title + site name, except on homepage.
+const fullTitle = title === siteName ? siteName : `${title} — ${siteName}`;
+const metaDescription = description || siteDescription;
+
+// Edge cache: default 60s fresh + 1hr stale-while-revalidate.
+if (cacheTtl !== 0) {
+  edgeCache(Astro, { ttl: cacheTtl ?? 60, swr: 3600 });
+}
+---
+
+<!doctype html>
+<html lang={lang} data-hatch-theme={theme} data-hatch-mode={colorMode} style={designCssVars}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    {rawHead ? (
+      <Fragment set:html={rawHead} />
+    ) : (
+      <>
+        <title>{fullTitle}</title>
+        {metaDescription && <meta name="description" content={metaDescription} />}
+        <link rel="canonical" href={canonical} />
+        <meta name="robots" content="index, follow" />
+        <meta property="og:title" content={title} />
+        <meta property="og:site_name" content={siteName} />
+        {metaDescription && <meta property="og:description" content={metaDescription} />}
+        <meta property="og:url" content={canonical} />
+        <meta property="og:type" content="website" />
+        {ogImage && <meta property="og:image" content={ogImage} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={title} />
+        {metaDescription && <meta name="twitter:description" content={metaDescription} />}
+        {ogImage && <meta name="twitter:image" content={ogImage} />}
+      </>
+    )}
+
+    {/* v0.36: Site icon comes from WP General Settings → Site Icon (filtered through features.site.icon_url).
+        Falls back to an inline 🐣 SVG so every Hatch site has a visible favicon out of the box. */}
+    {iconUrl
+      ? <link rel="icon" href={iconUrl} />
+      : <link rel="icon" type="image/svg+xml" href={'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><text x="50%" y="55%" font-size="56" text-anchor="middle" dominant-baseline="middle">🐣</text></svg>')} />}
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <link rel="alternate" type="application/rss+xml" href="/rss.xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    {/* Per-theme Google Font — each theme loads only what it needs. */}
+    {theme === 'astronano' && (
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@400;500;600&display=swap" />
+    )}
+    {theme === 'astrowind' && (
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" />
+    )}
+    {theme === 'tech' && (
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:ital,opsz,wght@0,14..32,400..700;1,14..32,400..700&display=swap" />
+    )}
+    {theme === 'docs' && (
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,300..700&display=swap" />
+    )}
+    {(theme === 'astropaper' || theme === 'blog' || !['astronano','astrowind','tech','docs'].includes(theme)) && (
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,300..700&display=swap" />
+    )}
+    {designFonts && <link rel="stylesheet" href={designFonts} />}
+    {/* v0.49.3 — smooth in-place navigation between pages, no full reload. */}
+    <ClientRouter />
+
+    <style is:inline>
+      [data-hatch-theme] body { font-family: var(--hatch-font-body, "Inter"), ui-sans-serif, system-ui, sans-serif; }
+      [data-hatch-theme] h1, [data-hatch-theme] h2, [data-hatch-theme] h3, [data-hatch-theme] h4 {
+        font-family: var(--hatch-font-heading, "Inter"), ui-sans-serif, system-ui, sans-serif;
+      }
+    </style>
+  </head>
+  <body class="antialiased font-sans bg-hatch-bg text-hatch-fg flex flex-col min-h-screen">
+    {!bare && <SiteHeader features={features} menuItems={primaryMenu} />}
+    <div class="flex-1">
+      <slot />
+    </div>
+    {!bare && <SiteFooter features={features} menuItems={footerMenu} />}
+  </body>
+</html>

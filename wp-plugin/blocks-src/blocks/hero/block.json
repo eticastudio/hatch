@@ -1,0 +1,31 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/hero",
+	"title": "Hero",
+	"category": "hatch",
+	"icon": "cover-image",
+	"description": "Pre-built hero section. Eyebrow + headline + subhead + CTAs over a polished background.",
+	"keywords": [ "hero", "banner", "cover" ],
+	"version": "0.4.0",
+	"textdomain": "hatch-blocks",
+	"supports": {
+		"html": false,
+		"anchor": true,
+		"align": [ "wide", "full" ]
+	},
+	"attributes": {
+		"eyebrow":  { "type": "string", "source": "html", "selector": ".hatch-hero-eyebrow", "default": "" },
+		"heading":  { "type": "string", "source": "html", "selector": ".hatch-hero-heading", "default": "Build amazing things, fast." },
+		"subhead":  { "type": "string", "source": "html", "selector": ".hatch-hero-subhead", "default": "" },
+		"primaryCtaText":  { "type": "string", "default": "Get started" },
+		"primaryCtaUrl":   { "type": "string", "default": "#" },
+		"secondaryCtaText":{ "type": "string", "default": "" },
+		"secondaryCtaUrl": { "type": "string", "default": "" },
+		"variant":        { "type": "string", "default": "centered" },
+		"backgroundStyle":{ "type": "string", "default": "gradient-aurora" },
+		"backgroundImage":{ "type": "object", "default": null },
+		"darkText":       { "type": "boolean", "default": false }
+	},
+	"editorScript": "file:./index.js"
+}

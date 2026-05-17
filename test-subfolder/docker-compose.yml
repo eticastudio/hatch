@@ -1,0 +1,29 @@
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wordpress
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      retries: 12
+  wp:
+    image: wordpress:6-php8.2-apache
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: root
+      WORDPRESS_DB_PASSWORD: root
+      WORDPRESS_DB_NAME: wordpress
+      # SUBFOLDER install: WP_SITEURL points to /blog, WP_HOME stays at root
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_SITEURL', 'http://localhost:8820/blog');
+        define('WP_HOME',    'http://localhost:8820');
+    ports:
+      - "8820:80"
+    volumes:
+      - wp_data:/var/www/html
+volumes:
+  wp_data:

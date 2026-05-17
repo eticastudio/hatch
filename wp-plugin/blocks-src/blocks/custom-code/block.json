@@ -1,0 +1,28 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/custom-code",
+	"title": "Custom Code",
+	"category": "hatch",
+	"icon": "editor-code",
+	"description": "Drop in any HTML/CSS/JS. Three execution modes with capability gating: inline (safest), shadow DOM (scoped), iframe (sandbox).",
+	"keywords": [ "custom", "code", "html", "css", "js", "embed", "marquee", "gradient" ],
+	"version": "0.4.0",
+	"textdomain": "hatch-blocks",
+	"supports": {
+		"html": false,
+		"anchor": false,
+		"customClassName": false,
+		"reusable": true
+	},
+	"attributes": {
+		"mode": { "type": "string", "default": "inline" },
+		"html": { "type": "string", "default": "" },
+		"css":  { "type": "string", "default": "" },
+		"js":   { "type": "string", "default": "" },
+		"iframeHeight": { "type": "number", "default": 320 },
+		"snippetPreset": { "type": "string", "default": "" }
+	},
+	"editorScript": "file:./index.js",
+	"style":        "file:./style.css"
+}

@@ -1,0 +1,9 @@
+---
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle } from './_shared';
+
+const { block } = Astro.props as BlockProps;
+const cls   = blockClass( block, 'wp-block-pullquote' );
+const style = blockStyle( block );
+---
+<figure class={ cls } style={ style || undefined } set:html={ block.innerHTML } />

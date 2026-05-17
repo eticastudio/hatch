@@ -1,0 +1,17 @@
+---
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle, stripOuterTag } from './_shared';
+
+const { block } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+// Default Gutenberg heading level is 2.
+const level = typeof a.level === 'number' ? Math.min( Math.max( a.level, 1 ), 6 ) : 2;
+const Tag   = `h${ level }` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+
+const cls   = blockClass( block );
+const style = blockStyle( block );
+const text  = stripOuterTag( block.innerHTML, `h${ level }` );
+const anchor = typeof a.anchor === 'string' ? a.anchor : undefined;
+---
+<Tag id={ anchor } class={ cls } style={ style || undefined } set:html={ text } />

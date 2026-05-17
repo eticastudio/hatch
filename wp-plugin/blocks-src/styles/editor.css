@@ -1,0 +1,26 @@
+/* Hatch Blocks editor stylesheet — only affects wp-admin block editor. */
+
+/* Add gentle outline to all hatch blocks when selected, for clarity */
+.wp-block.is-selected .hatch-section,
+.wp-block.is-selected .hatch-container {
+	outline: 1px dashed rgba(37, 99, 235, 0.35);
+	outline-offset: 4px;
+	border-radius: 4px;
+}
+
+/* Responsive tab pill style */
+.hatch-blocks-responsive-tabs .components-tab-panel__tabs {
+	gap: 4px;
+	padding: 2px;
+	background: #f1f5f9;
+	border-radius: 6px;
+}
+.hatch-blocks-responsive-tabs .components-tab-panel__tabs-item {
+	font-size: 11px;
+	padding: 4px 8px;
+	border-radius: 4px;
+}
+.hatch-blocks-responsive-tabs .components-tab-panel__tabs-item.is-active {
+	background: #fff;
+	box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}

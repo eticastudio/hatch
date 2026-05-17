@@ -1,0 +1,38 @@
+---
+/**
+ * core/embed — YouTube, Twitter/X, Vimeo, Spotify, etc.
+ *
+ * WP server-renders these via oEmbed, so block.innerHTML already contains
+ * the proper iframe. We wrap with a responsive aspect-ratio container and
+ * lazy-load the iframe.
+ *
+ * The block.innerHTML from a dynamic-rendered embed is already the iframe
+ * markup (set by the WP serializer). We add loading="lazy" via a regex pass
+ * so embeds don't block the main thread on load.
+ */
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle } from './_shared';
+
+const { block } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+const provider = typeof a.providerNameSlug === 'string' ? a.providerNameSlug : 'embed';
+const aspect   = a.aspectRatio === '21/9' ? '21 / 9'
+	: a.aspectRatio === '4/3' ? '4 / 3'
+	: a.aspectRatio === '1/1' ? '1 / 1'
+	: '16 / 9';
+
+const cls   = blockClass( block, `wp-block-embed is-provider-${ provider }` );
+const base  = blockStyle( block );
+const wrap  = [ base, `aspect-ratio:${ aspect }`, 'width:100%' ].filter( Boolean ).join( ';' );
+
+// Ensure iframes are lazy + don't carry inline styles that fight the wrapper.
+let html = block.innerHTML || '';
+html = html.replace( /<iframe([^>]*)>/gi, ( _m, attrs: string ) => {
+	const cleaned = attrs.replace( /\s(loading|width|height)="[^"]*"/gi, '' );
+	return `<iframe loading="lazy" width="100%" height="100%"${ cleaned }>`;
+} );
+---
+<figure class={ cls } style={ wrap }>
+	<div class="wp-block-embed__wrapper" style="width:100%;height:100%;" set:html={ html } />
+</figure>

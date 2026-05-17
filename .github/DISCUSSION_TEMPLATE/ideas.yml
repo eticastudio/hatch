@@ -1,0 +1,20 @@
+title: "[Idea] "
+labels: ["💡 idea"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What's the idea?
+      placeholder: "Hatch could support [X] by [Y]..."
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Who would benefit + why?
+    validations:
+      required: true
+  - type: textarea
+    id: how
+    attributes:
+      label: How might it work?

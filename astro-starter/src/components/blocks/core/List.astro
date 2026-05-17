@@ -1,0 +1,14 @@
+---
+/**
+ * core/list — preserves the saved innerHTML (already a proper <ul>/<ol> tree).
+ * WP saves nested list-items as innerBlocks; the innerHTML already wraps them.
+ * Most cases: rendering innerHTML is correct + fastest.
+ */
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle } from './_shared';
+
+const { block } = Astro.props as BlockProps;
+const cls   = blockClass( block );
+const style = blockStyle( block );
+---
+<div class={ cls } style={ style || undefined } set:html={ block.innerHTML } />

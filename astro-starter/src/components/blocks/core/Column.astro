@@ -1,0 +1,19 @@
+---
+import BlockRenderer from '../BlockRenderer.astro';
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle } from './_shared';
+
+const { block, depth } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+const widthAttr = typeof a.width === 'string' ? a.width : '';
+const cls   = blockClass( block, 'wp-block-column' );
+const base  = blockStyle( block );
+
+const colStyle = widthAttr
+	? `${ base ? base + ';' : '' }flex-basis:${ widthAttr };max-width:${ widthAttr };`
+	: base;
+---
+<div class={ cls } style={ colStyle || undefined }>
+	<BlockRenderer blocks={ block.innerBlocks } depth={ depth + 1 } />
+</div>

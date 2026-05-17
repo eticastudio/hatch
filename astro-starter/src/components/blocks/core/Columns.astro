@@ -1,0 +1,24 @@
+---
+import BlockRenderer from '../BlockRenderer.astro';
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle } from './_shared';
+
+const { block, depth } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+const isStackedOnMobile = a.isStackedOnMobile !== false;
+const colCount = block.innerBlocks.length || 1;
+
+const cls   = blockClass( block, 'wp-block-columns' );
+const base  = blockStyle( block );
+
+const wrapStyle = [
+	base,
+	'display:grid',
+	`grid-template-columns:repeat(${ colCount }, minmax(0, 1fr))`,
+	'gap:1.5rem',
+].join( ';' );
+---
+<div class={ cls } style={ wrapStyle } data-stacked={ isStackedOnMobile ? 'true' : 'false' }>
+	<BlockRenderer blocks={ block.innerBlocks } depth={ depth + 1 } />
+</div>

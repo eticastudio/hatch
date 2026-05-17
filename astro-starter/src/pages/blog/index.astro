@@ -1,0 +1,124 @@
+---
+/**
+ * Blog index — listing of all published posts with category filter.
+ *
+ * URL params:
+ *   ?page=N         pagination
+ *   ?category=slug  filter by category (deprecated in favor of /blog/category/slug
+ *                   but kept for back-compat with old links)
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import PostCard from '@/components/PostCard.astro';
+import HatchEmbedForm from '@/components/HatchEmbedForm.astro';
+import { getPosts, getCategories } from '@/lib/hatch';
+import { getFeatures, hasFeature } from '@/lib/features';
+
+const url = new URL(Astro.request.url);
+const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
+const categorySlug = url.searchParams.get('category');
+
+const features = await getFeatures();
+const showCategoryTabs = hasFeature(features, 'category_tabs');
+
+// design.md template controls.
+const tmpl = features.design?.templates;
+const archiveCols = tmpl?.archive_grid === '1' ? 1 : tmpl?.archive_grid === '3' ? 3 : 2;
+const archiveGridClass = archiveCols === 1
+  ? 'grid-cols-1'
+  : archiveCols === 3
+    ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+    : 'grid-cols-1 md:grid-cols-2';
+const showExcerpt = tmpl?.archive_excerpt !== 'false';
+
+const categories = await getCategories();
+const activeCategory = categorySlug ? (categories.find((c) => c.slug === categorySlug) ?? null) : null;
+
+const { posts, total, hasMore } = await getPosts({
+  page,
+  perPage: 12,
+  category: activeCategory?.id ?? null,
+});
+
+const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
+---
+
+<PageLayout
+  title={activeCategory ? `${activeCategory.name} · Blog` : 'Blog'}
+  description={activeCategory ? `Posts in ${activeCategory.name}` : (features.site.description || 'Latest posts and updates.')}
+  canonical={`${SITE}/blog${activeCategory ? `?category=${activeCategory.slug}` : ''}`}
+>
+  <main class="max-w-6xl mx-auto px-5 sm:px-8 py-12 sm:py-16">
+
+    <header class="mb-10 sm:mb-12 pb-8 border-b border-hatch-border">
+      <h1 class="text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.05]">
+        {activeCategory ? activeCategory.name : 'Blog'}
+      </h1>
+      <p class="mt-3 text-[14.5px] text-hatch-fg-muted">
+        {total} {total === 1 ? 'post' : 'posts'}
+        {activeCategory && <> in <strong class="text-hatch-fg font-medium">{activeCategory.name}</strong></>}
+      </p>
+    </header>
+
+    {showCategoryTabs && categories.length > 0 && (
+      <nav class="mb-10 flex gap-2 overflow-x-auto pb-2 -mx-1" aria-label="Categories">
+        <a
+          href="/blog"
+          class:list={[
+            'px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors border',
+            !activeCategory
+              ? 'bg-hatch-fg text-hatch-bg border-hatch-fg'
+              : 'border-hatch-border text-hatch-fg-muted hover:border-hatch-fg hover:text-hatch-fg'
+          ]}
+        >
+          All
+        </a>
+        {categories.map((cat) => (
+          <a
+            href={`/blog/category/${cat.slug}`}
+            class:list={[
+              'px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap inline-flex items-center gap-2 transition-colors border',
+              activeCategory?.id === cat.id
+                ? 'bg-hatch-fg text-hatch-bg border-hatch-fg'
+                : 'border-hatch-border text-hatch-fg-muted hover:border-hatch-fg hover:text-hatch-fg'
+            ]}
+          >
+            <span>{cat.name}</span>
+            <span class:list={[
+              'text-[11px]',
+              activeCategory?.id === cat.id ? 'opacity-70' : 'text-hatch-fg-subtle'
+            ]}>{cat.count}</span>
+          </a>
+        ))}
+      </nav>
+    )}
+
+    {posts.length === 0 ? (
+      <p class="text-center text-hatch-fg-muted py-24">No posts yet.</p>
+    ) : (
+      <div class={`grid ${archiveGridClass} gap-x-7 gap-y-12`}>
+        {posts.map((post) => <PostCard post={post} showExcerpt={showExcerpt} />)}
+      </div>
+    )}
+
+    {hasMore && (
+      <div class="flex justify-center mt-14">
+        <a
+          href={`/blog?page=${page + 1}${activeCategory ? `&category=${activeCategory.slug}` : ''}`}
+          class="px-6 py-2.5 rounded-md text-[13.5px] font-medium border border-hatch-border hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors"
+        >
+          Load more →
+        </a>
+      </div>
+    )}
+
+    {hasFeature(features, 'forms') && features.integrations?.forms?.default_form_id ? (
+      <HatchEmbedForm
+        features={features}
+        formId={features.integrations.forms.default_form_id}
+        title="Get new posts in your inbox"
+        description="Occasional, never spammy. Unsubscribe with one click."
+      />
+    ) : null}
+
+  </main>
+</PageLayout>

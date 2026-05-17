@@ -1,0 +1,76 @@
+name: 🎨 Theme Submission
+description: Submit a community theme for review
+title: "[Theme] "
+labels: ["theme-submission", "needs-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing a theme! Submission process:
+        1. Read [Theme Contract](https://github.com/adityaarsharma/hatch/blob/main/themes/THEME-CONTRACT.md)
+        2. Build your theme in `themes/[your-theme-name]/`
+        3. Open a PR — reference this issue
+        4. CI runs the [quality gate](https://github.com/adityaarsharma/hatch/blob/main/.github/workflows/theme-quality.yml) — Lighthouse 90+, WCAG AA, full responsive
+        5. Manual aesthetic review by maintainers
+        6. Merge + publish
+
+  - type: input
+    id: theme-name
+    attributes:
+      label: Theme name
+      placeholder: portfolio
+    validations:
+      required: true
+
+  - type: input
+    id: design-vibe
+    attributes:
+      label: Design vibe (one sentence)
+      placeholder: "Awwwards-quality portfolio with case study tiles and photo-led hero"
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: Design references
+      description: List 3-5 real sites that inspired this theme
+      placeholder: |
+        - https://framer.com
+        - https://typeform.com/showcase
+        - https://reading.supply
+    validations:
+      required: true
+
+  - type: textarea
+    id: source
+    attributes:
+      label: Source
+      description: Original work or fork? If fork, link to source + license
+      placeholder: "Original. Or: forked from https://github.com/[X]/[Y] (MIT)"
+    validations:
+      required: true
+
+  - type: input
+    id: pr-link
+    attributes:
+      label: Pull request link (if open)
+      placeholder: https://github.com/adityaarsharma/hatch/pull/X
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I read the Theme Contract
+          required: true
+        - label: My theme passes Lighthouse (Performance ≥ 90, SEO 100, A11y ≥ 95)
+          required: true
+        - label: My theme is mobile-responsive (320 / 375 / 768 / 1024 / 1440 px)
+          required: true
+        - label: I include screenshots in themes/[theme-name]/screenshots/
+          required: true
+        - label: I include theme.config.json with full metadata
+          required: true
+        - label: My theme is MIT (or fork-compatible) licensed
+          required: true

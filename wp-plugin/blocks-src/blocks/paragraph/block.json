@@ -1,0 +1,26 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/paragraph",
+	"title": "Paragraph",
+	"category": "hatch",
+	"icon": "editor-paragraph",
+	"description": "Paragraph with full typography controls and prose-grade defaults.",
+	"keywords": [ "paragraph", "text", "p" ],
+	"version": "0.4.0",
+	"textdomain": "hatch-blocks",
+	"supports": {
+		"html": false,
+		"anchor": true
+	},
+	"attributes": {
+		"content":     { "type": "string", "source": "html", "selector": "p", "default": "" },
+		"size":        { "type": "object", "default": { "base": "base", "sm": null, "md": "lg", "lg": null, "xl": null } },
+		"weight":      { "type": "string", "default": "normal" },
+		"align":       { "type": "object", "default": { "base": "left", "sm": null, "md": null, "lg": null, "xl": null } },
+		"colorToken":  { "type": "string", "default": "foreground" },
+		"maxWidth":    { "type": "string", "default": "prose" },
+		"lineHeight":  { "type": "string", "default": "relaxed" }
+	},
+	"editorScript": "file:./index.js"
+}

@@ -1,0 +1,52 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/section",
+	"title": "Section",
+	"category": "hatch",
+	"icon": "screenoptions",
+	"description": "Full-width section. The outer wrapper for any page row.",
+	"keywords": [ "section", "row", "hero", "container", "wrapper" ],
+	"version": "0.4.0",
+	"textdomain": "hatch-blocks",
+	"supports": {
+		"html": false,
+		"anchor": true,
+		"align": [ "wide", "full" ],
+		"reusable": true,
+		"spacing": false
+	},
+	"attributes": {
+		"backgroundToken": { "type": "string", "default": "" },
+		"textToken":       { "type": "string", "default": "" },
+		"gradient":        { "type": "string", "default": "" },
+		"backgroundImage": { "type": "object", "default": null },
+		"backgroundSize":  { "type": "string", "default": "cover" },
+		"backgroundPosition": { "type": "string", "default": "center" },
+		"minHeight":       { "type": "object", "default": { "base": null, "sm": null, "md": null, "lg": null, "xl": null } },
+		"padding": {
+			"type": "object",
+			"default": {
+				"top":    { "base": 24, "sm": null, "md": null, "lg": null, "xl": null },
+				"right":  { "base": 4,  "sm": null, "md": 8,    "lg": null, "xl": null },
+				"bottom": { "base": 24, "sm": null, "md": null, "lg": null, "xl": null },
+				"left":   { "base": 4,  "sm": null, "md": 8,    "lg": null, "xl": null }
+			}
+		},
+		"margin": {
+			"type": "object",
+			"default": {
+				"top":    { "base": null, "sm": null, "md": null, "lg": null, "xl": null },
+				"right":  { "base": null, "sm": null, "md": null, "lg": null, "xl": null },
+				"bottom": { "base": null, "sm": null, "md": null, "lg": null, "xl": null },
+				"left":   { "base": null, "sm": null, "md": null, "lg": null, "xl": null }
+			}
+		},
+		"as": { "type": "string", "default": "section" }
+	},
+	"providesContext": {
+		"hatch/sectionTextToken": "textToken"
+	},
+	"editorScript": "file:./index.js",
+	"style":        "file:./style.css"
+}

@@ -1,0 +1,48 @@
+---
+/**
+ * core/image — uses Astro's native <Image> for automatic optimization,
+ * AVIF/WebP delivery, and lazy loading. Falls back to <img> for remote
+ * sources that don't match the configured `image.remotePatterns`.
+ */
+import { Image } from 'astro:assets';
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle } from './_shared';
+
+const { block } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+const url      = typeof a.url === 'string' ? a.url : '';
+const alt      = typeof a.alt === 'string' ? a.alt : '';
+const caption  = typeof a.caption === 'string' ? a.caption : '';
+const width    = typeof a.width === 'number' ? a.width : undefined;
+const height   = typeof a.height === 'number' ? a.height : undefined;
+const href     = typeof a.href === 'string' ? a.href : '';
+const sizeSlug = typeof a.sizeSlug === 'string' ? a.sizeSlug : 'large';
+
+const cls   = blockClass( block, `wp-block-image size-${ sizeSlug }` );
+const style = blockStyle( block );
+
+// Use Astro <Image> only when we have intrinsic dimensions; otherwise fall back
+// to <img> with lazy loading (still fast, just unoptimized).
+const useOptimized = url && width && height;
+---
+{ url && (
+	<figure class={ cls } style={ style || undefined }>
+		{ href ? (
+			<a href={ href } rel="noopener">
+				{ useOptimized ? (
+					<Image src={ url } alt={ alt } width={ width! } height={ height! } loading="lazy" decoding="async" />
+				) : (
+					<img src={ url } alt={ alt } loading="lazy" decoding="async" />
+				) }
+			</a>
+		) : (
+			useOptimized ? (
+				<Image src={ url } alt={ alt } width={ width! } height={ height! } loading="lazy" decoding="async" />
+			) : (
+				<img src={ url } alt={ alt } loading="lazy" decoding="async" />
+			)
+		) }
+		{ caption && <figcaption set:html={ caption } /> }
+	</figure>
+) }

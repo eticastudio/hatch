@@ -1,0 +1,214 @@
+/**
+ * Hatch · Tech theme — devblog aesthetic inspired by Astro Cactus.
+ *
+ * Base: github.com/chrismwilliams/astro-theme-cactus (MIT)
+ * Hatch-isms layered on top: --hatch-* CSS variables, dark default with
+ * light fallback, mono accents, sharp typography.
+ *
+ * Loaded by PageLayout when features.theme === 'tech'.
+ */
+
+/* Tech theme is always dark — developer blogs are dark-first.
+   Use data-hatch-mode="light" in design.md if you explicitly want light. */
+:root[data-hatch-theme="tech"] {
+	--hatch-font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+	--hatch-font-heading: "Inter", ui-sans-serif, system-ui, sans-serif;
+	--hatch-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+	--hatch-radius: 8px;
+	--hatch-bg: #0a0a0a;
+	--hatch-bg-2: #18181b;
+	--hatch-bg-3: #27272a;
+	--hatch-fg: #e4e4e7;
+	--hatch-fg-muted: #a1a1aa;
+	--hatch-fg-subtle: #71717a;
+	--hatch-border: #27272a;
+	--hatch-border-2: #3f3f46;
+	--hatch-primary: #22d3ee;
+	--hatch-primary-soft: rgba(34, 211, 238, 0.12);
+}
+
+/* Only apply light colors when the site owner explicitly sets mode: light */
+:root[data-hatch-theme="tech"][data-hatch-mode="light"] {
+	--hatch-bg: #ffffff;
+	--hatch-bg-2: #fafafa;
+	--hatch-bg-3: #f4f4f5;
+	--hatch-fg: #09090b;
+	--hatch-fg-muted: #52525b;
+	--hatch-fg-subtle: #71717a;
+	--hatch-border: #e4e4e7;
+	--hatch-border-2: #d4d4d8;
+	--hatch-primary: #0891b2;
+	--hatch-primary-soft: rgba(8, 145, 178, 0.1);
+}
+
+[data-hatch-theme="tech"] {
+	font-feature-settings: "ss01", "cv11", "cv02";
+}
+
+[data-hatch-theme="tech"] body {
+	background: var(--hatch-bg);
+	color: var(--hatch-fg);
+}
+
+/* Tech: more terminal, less editorial. Headings tight, mono accent. */
+[data-hatch-theme="tech"] h1,
+[data-hatch-theme="tech"] h2,
+[data-hatch-theme="tech"] h3,
+[data-hatch-theme="tech"] h4 {
+	font-family: var(--hatch-font-heading, "Inter"), ui-sans-serif, system-ui, sans-serif;
+	letter-spacing: -0.02em;
+	font-feature-settings: "ss01";
+}
+
+[data-hatch-theme="tech"] .hatch-prose pre,
+[data-hatch-theme="tech"] .hatch-prose code,
+[data-hatch-theme="tech"] code,
+[data-hatch-theme="tech"] pre {
+	font-family: var(--hatch-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+
+/* Tech-specific code block treatment — flush, full-width on mobile,
+   subtle left border the same hue as --hatch-primary. */
+[data-hatch-theme="tech"] .hatch-prose pre {
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	border-left: 3px solid var(--hatch-primary);
+	border-radius: var(--hatch-radius, 10px);
+	padding: 18px 22px;
+	font-size: 13.5px;
+	line-height: 1.7;
+	overflow-x: auto;
+}
+
+[data-hatch-theme="tech"] .hatch-prose code:not(pre code) {
+	background: var(--hatch-bg-3);
+	color: var(--hatch-fg);
+	padding: 2px 6px;
+	border-radius: 4px;
+	font-size: 0.875em;
+	border: 1px solid var(--hatch-border);
+}
+
+/* Post card override — terminal-style "filename" header instead of soft card. */
+[data-hatch-theme="tech"] .post-card {
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius, 10px);
+	padding: 22px;
+	transition: border-color .15s ease, transform .15s ease;
+}
+[data-hatch-theme="tech"] .post-card:hover {
+	border-color: var(--hatch-primary);
+	transform: translateY(-2px);
+}
+
+[data-hatch-theme="tech"] .post-card .post-date,
+[data-hatch-theme="tech"] .post-card .post-category {
+	font-family: var(--hatch-font-mono);
+	font-size: 11.5px;
+	color: var(--hatch-fg-subtle);
+	letter-spacing: 0.04em;
+	text-transform: lowercase;
+}
+
+[data-hatch-theme="tech"] .hatch-tag::before { content: "#"; color: var(--hatch-primary); }
+
+/* Sticky share / TOC: tighter, mono labels. */
+[data-hatch-theme="tech"] .hatch-toc a {
+	font-family: var(--hatch-font-mono);
+	font-size: 12.5px;
+	letter-spacing: -0.01em;
+}
+
+/* Top nav: terminal prompt vibe. */
+[data-hatch-theme="tech"] header.site-header .brand::before {
+	content: "$ ";
+	color: var(--hatch-primary);
+	font-family: var(--hatch-font-mono);
+}
+
+/* Links: underline with offset for that vercel-docs feel. */
+[data-hatch-theme="tech"] .hatch-prose a {
+	color: var(--hatch-primary);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	text-decoration-thickness: 1px;
+}
+
+/* v0.25: defensively ensure comments + forms remain visible after theme
+   switches. The HatchComments / HatchEmbedForm components inject their own
+   theme-specific tweaks; this just guarantees the section itself isn't
+   accidentally hidden by some later theme override. */
+[data-hatch-theme="tech"] .hatch-comments,
+[data-hatch-theme="tech"] .hatch-embed-form {
+	display: block !important;
+}
+[data-hatch-theme="tech"] .hatch-comments h2 { color: var(--hatch-fg); }
+
+/* v0.50.9 — pixel polish pass.
+   Original CSS implementing common devblog/terminal UX patterns from scratch. */
+
+[data-hatch-theme="tech"] {
+	--hatch-h1-size: clamp(1.875rem, 4vw, 2.5rem);
+	--hatch-h2-size: clamp(1.375rem, 2.4vw, 1.625rem);
+}
+
+/* Article H1 — tight, mono accent on first character. */
+[data-hatch-theme="tech"] article.hatch-post header h1 {
+	font-size: var(--hatch-h1-size);
+	letter-spacing: -0.025em;
+	line-height: 1.15;
+	font-weight: 700;
+	text-wrap: balance;
+}
+
+/* Inline code — neon-cyan accent, never bright-white-on-bright. */
+[data-hatch-theme="tech"] .hatch-prose code:not(pre code) {
+	color: var(--hatch-primary);
+	background: rgba(34, 211, 238, 0.08);
+	border-color: rgba(34, 211, 238, 0.18);
+}
+
+/* Pre block — subtle left-bar gradient + scroll shadow on overflow. */
+[data-hatch-theme="tech"] .hatch-prose pre {
+	background-image: linear-gradient(to right, rgba(34, 211, 238, 0.04), transparent 20%);
+	scrollbar-width: thin;
+	scrollbar-color: var(--hatch-border-2) transparent;
+}
+[data-hatch-theme="tech"] .hatch-prose pre::-webkit-scrollbar { height: 6px; }
+[data-hatch-theme="tech"] .hatch-prose pre::-webkit-scrollbar-thumb { background: var(--hatch-border-2); border-radius: 3px; }
+
+/* Terminal cursor pseudo on h2 — subtle but unmistakable. */
+[data-hatch-theme="tech"] article.hatch-post .hatch-prose h2::before {
+	content: ">";
+	color: var(--hatch-primary);
+	font-family: var(--hatch-font-mono);
+	margin-right: 0.5em;
+	opacity: 0.6;
+}
+
+/* Selection — cyan-on-graphite. */
+[data-hatch-theme="tech"] ::selection {
+	background: rgba(34, 211, 238, 0.22);
+	color: var(--hatch-fg);
+}
+
+/* Focus — neon outline, no rounded corners (matches terminal vibe). */
+[data-hatch-theme="tech"] a:focus-visible,
+[data-hatch-theme="tech"] button:focus-visible {
+	outline: 2px solid var(--hatch-primary);
+	outline-offset: 2px;
+}
+
+/* Post-card hover — primary-color border + tiny lift, no big shadow. */
+[data-hatch-theme="tech"] .post-card { transition: border-color 0.15s, transform 0.15s; }
+
+/* Reduce motion + print. */
+@media (prefers-reduced-motion: reduce) {
+	[data-hatch-theme="tech"] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+@media print {
+	[data-hatch-theme="tech"] header, [data-hatch-theme="tech"] footer { display: none; }
+	[data-hatch-theme="tech"] body { background: white; color: black; font-size: 11pt; }
+	[data-hatch-theme="tech"] .hatch-prose code:not(pre code) { color: inherit; background: #f5f5f5; }
+}

@@ -1,0 +1,10 @@
+---
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle, stripOuterTag } from './_shared';
+
+const { block } = Astro.props as BlockProps;
+const cls   = blockClass( block, 'wp-block-verse' );
+const style = blockStyle( block );
+const text  = stripOuterTag( block.innerHTML, 'pre' );
+---
+<pre class={ cls } style={ style || undefined } set:html={ text } />

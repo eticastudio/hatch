@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Question / Discussion
+    url: https://github.com/adityaarsharma/hatch/discussions
+    about: Ask the community. For "how do I X?" questions please use Discussions, not Issues.
+  - name: 📚 Documentation
+    url: https://github.com/adityaarsharma/hatch#-documentation
+    about: Check the docs first — most questions are answered there.
+  - name: 🛡️ Security vulnerability
+    url: https://github.com/adityaarsharma/hatch/blob/main/SECURITY.md
+    about: Do NOT open a public issue. Email support@adityaarsharma.com instead.
+  - name: 💼 Migration consulting
+    url: https://adityaarsharma.com/connect
+    about: Need someone to migrate your existing WordPress site for you? Aditya offers paid help.

@@ -1,0 +1,17 @@
+---
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle } from './_shared';
+
+const { block } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+const cls   = blockClass( block, 'wp-block-quote' );
+const style = blockStyle( block );
+const citation = typeof a.citation === 'string' ? a.citation : '';
+
+// innerHTML usually contains <p>...</p> + optional <cite>; preserve as-is.
+---
+<blockquote class={ cls } style={ style || undefined }>
+	<div set:html={ block.innerHTML } />
+	{ citation && <cite set:html={ citation } /> }
+</blockquote>

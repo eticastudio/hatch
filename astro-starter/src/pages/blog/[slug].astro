@@ -1,0 +1,319 @@
+---
+/**
+ * Blog post detail.
+ *
+ * Every visual section honors a Plugin → Features toggle:
+ *   progress_bar    → top reading-progress strip
+ *   breadcrumb      → home › blog › category › title trail
+ *   reading_time    → "5 min read" pill
+ *   last_updated    → "Updated <date>" line
+ *   toc_sidebar     → sticky table of contents on desktop
+ *   sticky_share    → share buttons rail on desktop
+ *   author_bio      → author card at bottom
+ *   related_posts   → 3 category-mates at bottom
+ *   next_prev_nav   → prev/next adjacent posts
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import PostCard from '@/components/PostCard.astro';
+import HatchComments from '@/components/HatchComments.astro';
+import { getPostBySlug, getAdjacent, getSeoHead, getRelatedPosts, getSchema } from '@/lib/hatch';
+import HatchSchema from '@/components/HatchSchema.astro';
+import { fetchPostBlocks } from '@/lib/blocks';
+import BlockRenderer from '@/components/blocks/BlockRenderer.astro';
+import HatchImage from '@/components/HatchImage.astro';
+import { getFeatures, hasFeature, rewriteContentImages } from '@/lib/features';
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/blog');
+
+const post = await getPostBySlug(slug);
+if (!post) return new Response('Not Found', { status: 404 });
+
+const features = await getFeatures();
+const showProgress    = hasFeature(features, 'progress_bar');
+const showBreadcrumb  = hasFeature(features, 'breadcrumb');
+const showReadingTime = hasFeature(features, 'reading_time');
+const showUpdated     = hasFeature(features, 'last_updated');
+const showTOC         = hasFeature(features, 'toc_sidebar');
+const showShare       = hasFeature(features, 'sticky_share');
+const showAuthorBio   = hasFeature(features, 'author_bio');
+const showRelated     = hasFeature(features, 'related_posts');
+const showPrevNext    = hasFeature(features, 'next_prev_nav');
+const showComments    = hasFeature(features, 'comments');
+
+const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
+const canonical = `${SITE}/blog/${slug}`;
+
+// design.md single-post template controls.
+const tmpl = features.design?.templates;
+const singleHero    = tmpl?.single_hero    ?? 'featured'; // featured | compact | none
+const singleSidebar = tmpl?.single_sidebar ?? 'right';    // right | left | none
+const singleWidth   = tmpl?.single_width   ?? 'medium';   // narrow | medium | wide
+const articleMaxW   = singleWidth === 'narrow' ? 'max-w-2xl' : singleWidth === 'wide' ? 'max-w-6xl' : 'max-w-4xl';
+const showHeroImage = singleHero !== 'none' && !!post.featuredImage;
+const heroCompact   = singleHero === 'compact';
+
+const [rawHead, schema, adjacent, related, blockData] = await Promise.all([
+  getSeoHead(slug),
+  getSchema(canonical),
+  showPrevNext ? getAdjacent(slug)               : Promise.resolve({ prev: null, next: null }),
+  showRelated  ? getRelatedPosts(post, 3)        : Promise.resolve([]),
+  fetchPostBlocks(post.id),
+]);
+
+// Extract H2/H3 headings from rendered HTML for the TOC. Server-side regex
+// pass — runs at request time so SSR pages always have a fresh TOC.
+interface TocItem { level: 2 | 3; text: string; id: string; }
+const toc: TocItem[] = [];
+if (showTOC) {
+  const html = post.content;
+  const matches = html.matchAll(/<h([23])([^>]*)>([\s\S]*?)<\/h\1>/gi);
+  for (const m of matches) {
+    const level = Number(m[1]) as 2 | 3;
+    const inner = m[3].replace(/<[^>]+>/g, '').trim();
+    if (!inner) continue;
+    const id = inner.toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .slice(0, 80);
+    toc.push({ level, text: inner, id });
+  }
+}
+
+const dateLabel = new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+const updatedDifferent = post.modifiedAt && post.publishedAt &&
+  new Date(post.modifiedAt).toDateString() !== new Date(post.publishedAt).toDateString();
+const updatedLabel = updatedDifferent
+  ? new Date(post.modifiedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  : '';
+
+const shareText = encodeURIComponent(`${post.title} — ${SITE}/blog/${slug}`);
+const shareUrl  = encodeURIComponent(`${SITE}/blog/${slug}`);
+---
+
+<PageLayout
+  title={post.title}
+  description={post.excerpt}
+  canonical={canonical}
+  rawHead={rawHead}
+  ogImage={post.featuredImage ?? undefined}
+>
+  <HatchSchema schema={schema} />
+
+  {showProgress && (
+    <div id="reading-progress" class="fixed top-0 left-0 h-[2px] bg-hatch-primary z-50 origin-left scale-x-0 w-full transition-transform" style="transform-origin:left;"></div>
+  )}
+
+  <article class={`${articleMaxW} mx-auto px-5 sm:px-8 py-10 sm:py-14`}>
+
+    {showBreadcrumb && (
+      <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[12.5px] text-hatch-fg-subtle mb-8 flex-wrap">
+        <a href="/" class="hover:text-hatch-fg transition-colors">Home</a>
+        <span class="text-hatch-fg-subtle">/</span>
+        <a href="/blog" class="hover:text-hatch-fg transition-colors">Blog</a>
+        {post.category && (
+          <>
+            <span class="text-hatch-fg-subtle">/</span>
+            <a href={`/blog/category/${post.categorySlug}`} class="hover:text-hatch-fg transition-colors">{post.category}</a>
+          </>
+        )}
+        <span class="text-hatch-fg-subtle">/</span>
+        <span class="text-hatch-fg truncate max-w-[260px] sm:max-w-none">{post.title}</span>
+      </nav>
+    )}
+
+    {/* Header — title + metadata. Left-aligned, Vercel-style. */}
+    <header class="max-w-3xl mb-10">
+      {post.category && (
+        <a href={`/blog/category/${post.categorySlug}`} class="inline-block text-[11px] uppercase tracking-wider font-medium text-hatch-primary mb-4 hover:underline">
+          {post.category}
+        </a>
+      )}
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight leading-[1.1]" set:html={post.title} />
+      <div class="mt-6 flex items-center flex-wrap gap-x-4 gap-y-2 text-[13.5px] text-hatch-fg-muted">
+        {post.author && (
+          <a href={`/blog/author/${post.author.slug}`} class="flex items-center gap-2 hover:text-hatch-fg transition-colors">
+            {post.author.avatar && <img src={post.author.avatar} alt="" width="24" height="24" class="rounded-full" loading="lazy" />}
+            <span class="font-medium">{post.author.name}</span>
+          </a>
+        )}
+        <span class="text-hatch-fg-subtle">·</span>
+        <time datetime={post.publishedAt}>{dateLabel}</time>
+        {showReadingTime && (
+          <>
+            <span class="text-hatch-fg-subtle">·</span>
+            <span>{post.readMinutes} min read</span>
+          </>
+        )}
+      </div>
+      {showUpdated && updatedDifferent && (
+        <p class="mt-2 text-[12px] text-hatch-fg-subtle italic">Last updated {updatedLabel}</p>
+      )}
+    </header>
+
+    {showHeroImage && (
+      <div class={`${heroCompact ? 'aspect-[3/1]' : 'aspect-[2/1]'} rounded-xl overflow-hidden bg-hatch-bg-3 mb-12 max-w-5xl`}>
+        <HatchImage features={features} src={post.featuredImage!} alt={post.featuredImageAlt ?? post.title} width={1600} height={heroCompact ? 533 : 800} loading="eager" class="w-full h-full object-cover" />
+      </div>
+    )}
+
+    {/* Main content + optional sidebars */}
+    <div class={`grid gap-x-10 gap-y-8 max-w-5xl ${showTOC && toc.length > 0 && singleSidebar !== 'none' ? (singleSidebar === 'left' ? 'lg:grid-cols-[240px_1fr]' : 'lg:grid-cols-[1fr_240px]') : 'grid-cols-1'}`}>
+
+      {/* Article body — content images routed through the proxy when configured. */}
+      <div class="hatch-prose min-w-0">
+        {blockData && blockData.blocks.length > 0
+          ? <BlockRenderer blocks={blockData.blocks} />
+          : <div set:html={rewriteContentImages(post.content, features)} />
+        }
+      </div>
+
+      {/* TOC sidebar — position controlled by design.md single_sidebar. Hidden on mobile always. */}
+      {showTOC && toc.length > 0 && singleSidebar !== 'none' && (
+        <aside class="hidden lg:block">
+          <div class="sticky top-20 text-[13px]">
+            <p class="text-[11px] uppercase tracking-wider font-medium text-hatch-fg-subtle mb-3">On this page</p>
+            <ul class="space-y-1.5 border-l border-hatch-border">
+              {toc.map((item) => (
+                <li>
+                  <a
+                    href={`#${item.id}`}
+                    class:list={[
+                      '-ml-px block py-1 pl-3 border-l border-transparent hover:border-hatch-fg hover:text-hatch-fg text-hatch-fg-muted transition-colors',
+                      item.level === 3 ? 'pl-5' : ''
+                    ]}
+                    data-toc-id={item.id}
+                  >
+                    {item.text}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </aside>
+      )}
+    </div>
+
+    {/* Tags */}
+    {post.tags.length > 0 && (
+      <div class="flex flex-wrap items-center gap-2 max-w-3xl pt-10 mt-12 border-t border-hatch-border">
+        {post.tags.map((tag) => (
+          <span class="px-3 py-1 rounded-full text-[12px] bg-hatch-bg-2 text-hatch-fg-muted border border-hatch-border">{tag}</span>
+        ))}
+      </div>
+    )}
+
+    {/* Share row */}
+    {showShare && (
+      <div class="flex items-center gap-2 max-w-3xl mt-8 pt-6 border-t border-hatch-border">
+        <span class="text-[12.5px] text-hatch-fg-subtle mr-2">Share</span>
+        {/* Lucide MIT icons inline — no font, no CDN, scales cleanly */}
+        <a href={`https://twitter.com/intent/tweet?text=${shareText}`} target="_blank" rel="noopener noreferrer" aria-label="Share on X" title="Share on X" class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-hatch-border text-hatch-fg-muted hover:text-hatch-fg hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors">
+          <svg viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`} target="_blank" rel="noopener noreferrer" aria-label="Share on LinkedIn" title="Share on LinkedIn" class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-hatch-border text-hatch-fg-muted hover:text-hatch-fg hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+        </a>
+        <a href={`https://wa.me/?text=${shareText}`} target="_blank" rel="noopener noreferrer" aria-label="Share on WhatsApp" title="Share on WhatsApp" class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-hatch-border text-hatch-fg-muted hover:text-hatch-fg hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg>
+        </a>
+        <button type="button" id="hatch-share-copy" data-url={`${SITE}/blog/${slug}`} aria-label="Copy link" title="Copy link" class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-hatch-border text-hatch-fg-muted hover:text-hatch-fg hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </button>
+      </div>
+    )}
+
+    {/* Author bio */}
+    {showAuthorBio && post.author?.description && (
+      <div class="max-w-3xl mt-12 p-6 rounded-xl border border-hatch-border bg-hatch-bg-2 flex gap-4 items-start">
+        {post.author.avatar && <img src={post.author.avatar} alt={post.author.name} width="48" height="48" class="rounded-full flex-shrink-0" loading="lazy" />}
+        <div class="min-w-0">
+          <a href={`/blog/author/${post.author.slug}`} class="font-semibold text-hatch-fg hover:text-hatch-primary transition-colors">{post.author.name}</a>
+          <p class="text-[14px] text-hatch-fg-muted mt-1 leading-relaxed">{post.author.description}</p>
+        </div>
+      </div>
+    )}
+
+    {/* Prev / Next */}
+    {showPrevNext && (adjacent.prev || adjacent.next) && (
+      <div class="max-w-3xl mt-14 pt-10 border-t border-hatch-border grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {adjacent.prev ? (
+          <a href={`/blog/${adjacent.prev.slug}`} class="group p-4 rounded-lg border border-hatch-border hover:border-hatch-fg transition-colors">
+            <span class="block text-[11px] uppercase tracking-wider text-hatch-fg-subtle mb-1">← Previous</span>
+            <span class="block font-medium leading-snug line-clamp-2 group-hover:text-hatch-primary transition-colors" set:html={adjacent.prev.title} />
+          </a>
+        ) : <div />}
+        {adjacent.next ? (
+          <a href={`/blog/${adjacent.next.slug}`} class="group p-4 rounded-lg border border-hatch-border hover:border-hatch-fg transition-colors sm:text-right">
+            <span class="block text-[11px] uppercase tracking-wider text-hatch-fg-subtle mb-1">Next →</span>
+            <span class="block font-medium leading-snug line-clamp-2 group-hover:text-hatch-primary transition-colors" set:html={adjacent.next.title} />
+          </a>
+        ) : <div />}
+      </div>
+    )}
+
+    {/* Related */}
+    {showRelated && related.length > 0 && (
+      <section class="mt-20 pt-12 border-t border-hatch-border">
+        <h2 class="text-xl font-semibold tracking-tight mb-8">
+          More in <span class="text-hatch-primary">{post.category}</span>
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-7 gap-y-12">
+          {related.map((entry) => <PostCard post={entry} />)}
+        </div>
+      </section>
+    )}
+
+    {/* Comments */}
+    {showComments && (
+      <HatchComments features={features} postId={post.id} postTitle={post.title} />
+    )}
+
+  </article>
+
+  {/* Client scripts: ID-inject for TOC headings + reading progress + copy link */}
+  <script is:inline define:vars={{ showProgress, tocIds: toc.map(t => t.id) }}>
+    // Add id="..." to h2/h3 inside .hatch-prose so TOC anchor links work.
+    (function() {
+      const prose = document.querySelector('.hatch-prose');
+      if (!prose) return;
+      const headings = prose.querySelectorAll('h2, h3');
+      let i = 0;
+      headings.forEach((h) => {
+        if (i < tocIds.length) { h.id = tocIds[i++]; }
+      });
+    })();
+
+    if (showProgress) {
+      const bar = document.getElementById('reading-progress');
+      if (bar) {
+        const onScroll = () => {
+          const h = document.documentElement;
+          const max = h.scrollHeight - h.clientHeight;
+          const pct = max > 0 ? h.scrollTop / max : 0;
+          bar.style.transform = `scaleX(${pct})`;
+        };
+        addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+      }
+    }
+
+    const copyBtn = document.getElementById('hatch-share-copy');
+    if (copyBtn) {
+      const linkIcon = copyBtn.innerHTML;
+      const checkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-600" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(copyBtn.dataset.url || location.href);
+          copyBtn.innerHTML = checkIcon;
+          copyBtn.setAttribute('aria-label', 'Copied');
+          setTimeout(() => {
+            copyBtn.innerHTML = linkIcon;
+            copyBtn.setAttribute('aria-label', 'Copy link');
+          }, 1500);
+        } catch {}
+      });
+    }
+  </script>
+</PageLayout>

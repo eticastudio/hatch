@@ -1,0 +1,74 @@
+---
+import type { HatchFeatures } from '../lib/features';
+import type { HatchMenuItem } from '../lib/hatch';
+import { hasFeature } from '../lib/features';
+
+interface Props {
+  features: HatchFeatures;
+  /** WP footer menu items from /hatch/v1/menus/footer. Empty = use fallback links. */
+  menuItems?: HatchMenuItem[];
+}
+
+const { features, menuItems = [] } = Astro.props;
+const siteName = features.site.name || 'Hatch';
+const tagline  = features.site.description || '';
+const logoUrl  = (features.site.logo_url || '').trim();
+const year     = new Date().getFullYear();
+const showBuiltBy = hasFeature(features, 'built_by_hatch');
+
+// Top-level items sorted by order. Fall back to hardcoded links when no menu assigned.
+const footerItems = menuItems
+  .filter((item) => item.parent === 0)
+  .sort((a, b) => a.order - b.order);
+
+const fallbackLinks = [
+  { href: '/', label: 'Home', target: '' },
+  { href: '/blog', label: 'Blog', target: '' },
+  { href: '/rss.xml', label: 'RSS', target: '' },
+  { href: '/sitemap-index.xml', label: 'Sitemap', target: '' },
+];
+
+const navLinks = footerItems.length > 0
+  ? footerItems.map((item) => ({ href: item.url, label: item.title, target: item.target }))
+  : fallbackLinks;
+---
+
+<footer class="border-t border-hatch-border mt-24 py-12">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 grid grid-cols-1 sm:grid-cols-3 gap-8 text-[13px] text-hatch-fg-subtle">
+    <div class="sm:col-span-1">
+      {logoUrl ? (
+        <a href="/" class="inline-block">
+          <img src={logoUrl} alt={siteName} height={24} class="h-6 w-auto max-w-[160px] object-contain opacity-90 hover:opacity-100 transition-opacity" loading="lazy" decoding="async" />
+        </a>
+      ) : (
+        <div class="text-hatch-fg font-semibold text-[14px]">{siteName}</div>
+      )}
+      {tagline && <p class="mt-2 leading-relaxed">{tagline}</p>}
+    </div>
+    <div class="flex flex-col gap-2 sm:items-center">
+      {navLinks.map((link) => (
+        <a
+          href={link.href}
+          target={link.target || undefined}
+          rel={link.target === '_blank' ? 'noopener noreferrer' : undefined}
+          class="hover:text-hatch-fg transition-colors"
+        >
+          {link.label}
+        </a>
+      ))}
+    </div>
+    <div class="flex flex-col gap-2 sm:items-end">
+      <span class="text-hatch-fg-muted">© {year} {siteName}</span>
+      {/* v0.36: footer credit is always shown — small, dignified, links home. */}
+      <a
+        href="https://hatch.adityaarsharma.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-1.5 text-[12.5px] text-hatch-fg-subtle hover:text-hatch-fg transition-colors group"
+      >
+        <span aria-hidden="true" class="group-hover:animate-bounce inline-block">🐣</span>
+        <span>Built by <span class="text-hatch-fg-muted font-medium group-hover:text-hatch-fg group-hover:underline">Hatch</span> — Headless WordPress</span>
+      </a>
+    </div>
+  </div>
+</footer>

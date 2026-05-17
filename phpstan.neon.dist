@@ -1,0 +1,36 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+    - vendor/phpstan/phpstan-deprecation-rules/rules.neon
+
+parameters:
+    level: 5
+    paths:
+        - wp-plugin/
+    excludePaths:
+        - wp-plugin/blocks-src/      # JS, not PHP
+        - wp-plugin/build/           # compiled output
+        - wp-plugin/node_modules/
+        - wp-plugin/vendor/
+        - wp-plugin/languages/
+    bootstrapFiles:
+        - tests/phpstan-bootstrap.php
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
+
+    ignoreErrors:
+        # WordPress-specific patterns the WP stubs don't fully cover
+        - '#Call to an undefined method WP_REST_Server::READABLE\(\)#'
+        - '#Class WP_CLI not found#'
+        # Singleton self-reference pattern is intentional
+        - '#Cannot access offset .* on array\|null#'
+        # Sodium constants depend on extension availability
+        - '#Constant SODIUM_CRYPTO_SECRETBOX_NONCEBYTES not found#'
+
+    scanDirectories:
+        - wp-plugin/
+
+    # WP-CLI types not always loaded
+    universalObjectCratesClasses:
+        - WP_REST_Request
+        - WP_REST_Response
+        - WP_Error

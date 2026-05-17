@@ -1,0 +1,30 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/button",
+	"title": "Button",
+	"category": "hatch",
+	"icon": "button",
+	"description": "Polished button with 5 variants, 4 sizes, optional icon, and full Tailwind output.",
+	"keywords": [ "button", "cta", "link" ],
+	"version": "0.4.0",
+	"textdomain": "hatch-blocks",
+	"supports": {
+		"html": false,
+		"anchor": true
+	},
+	"attributes": {
+		"text":      { "type": "string", "source": "html", "selector": ".hatch-button-label", "default": "Click me" },
+		"url":       { "type": "string", "source": "attribute", "selector": "a", "attribute": "href", "default": "#" },
+		"opensInNewTab": { "type": "boolean", "default": false },
+		"rel":       { "type": "string", "default": "" },
+		"variant":   { "type": "string", "default": "primary" },
+		"size":      { "type": "string", "default": "md" },
+		"radius":    { "type": "string", "default": "lg" },
+		"iconLeft":  { "type": "string", "default": "" },
+		"iconRight": { "type": "string", "default": "" },
+		"fullWidth": { "type": "boolean", "default": false }
+	},
+	"editorScript": "file:./index.js",
+	"style":        "file:./style.css"
+}

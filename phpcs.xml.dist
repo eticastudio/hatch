@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<ruleset name="Hatch">
+	<description>WordPress Coding Standards for the Hatch plugin.</description>
+
+	<!-- Files to scan -->
+	<file>wp-plugin</file>
+
+	<!-- Exclude built / vendor / test fixtures -->
+	<exclude-pattern>*/wp-plugin/build/*</exclude-pattern>
+	<exclude-pattern>*/wp-plugin/blocks-src/*</exclude-pattern>
+	<exclude-pattern>*/wp-plugin/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/wp-plugin/vendor/*</exclude-pattern>
+	<exclude-pattern>*/wp-plugin/languages/*</exclude-pattern>
+	<exclude-pattern>*/tests/*</exclude-pattern>
+
+	<!-- Show progress + colors + sources -->
+	<arg name="colors"/>
+	<arg name="basepath" value="."/>
+	<arg name="parallel" value="8"/>
+	<arg name="extensions" value="php"/>
+	<arg value="ps"/>
+
+	<!-- Standards -->
+	<rule ref="WordPress">
+		<!-- We use modern PHP, allow short array syntax -->
+		<exclude name="Generic.Arrays.DisallowShortArraySyntax"/>
+		<!-- File names are class-based, not snake_case file names -->
+		<exclude name="WordPress.Files.FileName.NotHyphenatedLowercase"/>
+		<exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+		<!-- Tab indent allowed and preferred -->
+	</rule>
+
+	<rule ref="WordPress-Core"/>
+	<rule ref="WordPress-Docs"/>
+	<rule ref="WordPress-Extra"/>
+
+	<!-- Text domain rule -->
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="hatch"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- PHP version compatibility -->
+	<config name="testVersion" value="7.4-"/>
+	<rule ref="PHPCompatibilityWP"/>
+
+	<!-- WP minimum version -->
+	<config name="minimum_wp_version" value="6.4"/>
+
+	<!-- Function naming: allow camelCase methods inside classes (PSR style)
+	     while still enforcing snake_case for plain functions. WPCS default
+	     is acceptable. -->
+</ruleset>
