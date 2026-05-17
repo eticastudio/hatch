@@ -256,6 +256,28 @@ footer a:hover { color: var(--fg); }
 	white-space: nowrap;
 }
 .topbar nav a:hover { color: var(--fg); background: rgba(0, 0, 0, 0.04); text-decoration: none; }
+.nav-vision { position: relative; color: var(--primary) !important; font-weight: 600 !important; }
+.nav-vision:hover { background: rgba(255, 88, 28, 0.08) !important; }
+.vision-dot {
+	display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+	background: var(--primary); margin-left: 6px; vertical-align: middle;
+	box-shadow: 0 0 0 0 rgba(255, 88, 28, 0.55);
+	animation: vision-pulse 2.2s ease-out infinite;
+}
+@keyframes vision-pulse {
+	0% { box-shadow: 0 0 0 0 rgba(255, 88, 28, 0.55); }
+	70% { box-shadow: 0 0 0 7px rgba(255, 88, 28, 0); }
+	100% { box-shadow: 0 0 0 0 rgba(255, 88, 28, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .vision-dot { animation: none; } }
+@media (max-width: 640px) {
+	.vision-grid { grid-template-columns: 1fr !important; gap: 4px 0 !important; }
+	.vision-grid > div:nth-child(odd) { color: var(--primary) !important; font-weight: 600; padding-top: 14px; border-top: 1px dashed var(--border); }
+	.vision-grid > div:nth-child(odd):first-of-type,
+	.vision-grid > div:nth-child(2) { border-top: none; padding-top: 0; }
+	.vision-grid > div:nth-child(1),
+	.vision-grid > div:nth-child(2) { display: none; }
+}
 .topbar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .topbar-star {
 	background: transparent; color: var(--fg-muted);
@@ -884,11 +906,11 @@ ${wide ? `<script type="application/ld+json">
 	<a class="brand" href="/"><span class="brand-mark" aria-hidden="true">🐣</span>Hatch</a>
 	<nav>
 		<a href="#headless-101">What is Headless?</a>
+		<a href="#why">Why Hatch</a>
 		<a href="#how">How it works</a>
 		<a href="#vs">Hatch vs Others</a>
-		<a href="#why">Why Hatch</a>
 		<a href="#faq">FAQ</a>
-		<a href="/vision">Vision</a>
+		<a href="/vision" class="nav-vision">Vision<span class="vision-dot" aria-hidden="true"></span></a>
 	</nav>
 	<div class="topbar-actions">
 		<a class="topbar-cta" href="${REPO}/releases/latest/download/hatch.zip" target="_blank" rel="noopener noreferrer">${lu('download', '')} Download free</a>
@@ -906,11 +928,11 @@ ${wide ? `<script type="application/ld+json">
 	</div>
 	<nav class="mobile-menu-links">
 		<a href="#headless-101" class="mob-link">What is Headless?</a>
+		<a href="#why" class="mob-link">Why Hatch</a>
 		<a href="#how" class="mob-link">How it works</a>
 		<a href="#vs" class="mob-link">Hatch vs Others</a>
-		<a href="#why" class="mob-link">Why Hatch</a>
 		<a href="#faq" class="mob-link">FAQ</a>
-		<a href="/vision" class="mob-link">Vision</a>
+		<a href="/vision" class="mob-link nav-vision">Vision<span class="vision-dot" aria-hidden="true"></span></a>
 	</nav>
 	<div class="mobile-menu-foot">
 		<a class="topbar-cta" href="${REPO}/releases/latest/download/hatch.zip" target="_blank" rel="noopener noreferrer">${lu('download', '')} Download Hatch, it's free</a>
@@ -1849,7 +1871,34 @@ app.get('/vision', (req, res) => {
 		<div style="max-width:680px; margin:0 auto; padding:60px 24px 80px;">
 			<a href="/" style="font-size:13px; color:var(--fg-muted); text-decoration:none; display:inline-flex; align-items:center; gap:6px; margin-bottom:40px;">← Back to Hatch</a>
 			<h1 style="font-size:clamp(28px,4vw,42px); font-weight:700; letter-spacing:-0.025em; line-height:1.1; margin:0 0 12px;">WordPress should be fast<br/>without asking you<br/>to become a developer.</h1>
-			<p style="font-size:16px; color:var(--fg-muted); margin:0 0 48px; line-height:1.6;">A note from Aditya on why Hatch exists and where it is going.</p>
+			<p style="font-size:16px; color:var(--fg-muted); margin:0 0 36px; line-height:1.6;">A note from Aditya on why Hatch exists and where it is going.</p>
+
+			<div class="vision-60s" style="background:var(--bg-3); border:1px solid var(--border); border-radius:12px; padding:24px 26px; margin:0 0 48px;">
+				<div style="font-size:11.5px; font-weight:700; letter-spacing:0.08em; color:var(--primary); text-transform:uppercase; margin:0 0 14px;">The 60-second read</div>
+				<div class="vision-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:18px 24px; font-size:14.5px; line-height:1.55;">
+					<div><strong style="color:var(--fg);">WordPress problem</strong></div>
+					<div><strong style="color:var(--fg);">How Hatch fixes it</strong></div>
+
+					<div style="color:var(--fg-muted);">Slow PHP delivery, even with caching plugins</div>
+					<div style="color:var(--fg);">Pre-rendered Astro on Cloudflare's edge — Lighthouse 100 by default</div>
+
+					<div style="color:var(--fg-muted);">Plugin stack (WP Rocket, CDN, security, scanners) just to be usable</div>
+					<div style="color:var(--fg);">None of them needed — the public site is static HTML, not PHP</div>
+
+					<div style="color:var(--fg-muted);">wp-login brute-force, xmlrpc, plugin CVEs as attack surface</div>
+					<div style="color:var(--fg);">wp-admin becomes a private origin no visitor ever reaches</div>
+
+					<div style="color:var(--fg-muted);">Hosting bills scale with traffic spikes</div>
+					<div style="color:var(--fg);">Cloudflare free tier: 100k req/day. Origin sees one hit per deploy</div>
+
+					<div style="color:var(--fg-muted);">Headless options force GraphQL, two codebases, or a new CMS</div>
+					<div style="color:var(--fg);">REST API only. Gutenberg stays. One developer can run it</div>
+
+					<div style="color:var(--fg-muted);">Editors hate "modern" stacks because they lose wp-admin</div>
+					<div style="color:var(--fg);">Editors see no change. Same dashboard, same workflow</div>
+				</div>
+			</div>
+
 			<hr style="border:none; border-top:1px solid var(--border); margin:0 0 40px;"/>
 
 			<h2 style="font-size:22px; font-weight:600; margin:0 0 14px; letter-spacing:-0.01em;">The problem, honestly stated</h2>
@@ -1864,7 +1913,7 @@ app.get('/vision', (req, res) => {
 
 			<h2 style="font-size:22px; font-weight:600; margin:0 0 14px; letter-spacing:-0.01em;">The insight behind Hatch</h2>
 			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">What if you kept WordPress exactly as it is and only replaced the delivery layer? WordPress stays as the CMS: the editor, the plugins, the user roles, the media library, all of it. The thing that renders HTML for visitors becomes Astro, running at the Cloudflare edge.</p>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">Astro was chosen deliberately. Built for content-first sites. Ships zero JavaScript by default. Outputs the fastest HTML in the framework ecosystem. Officially supports Cloudflare Workers, Vercel, and Node. Among the fastest-growing frameworks of 2024, reaching 46,000+ GitHub stars. It is the right architecture for a content site.</p>
+			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">Astro was chosen deliberately. Built for content-first sites. Ships zero JavaScript by default. Outputs the fastest HTML in the framework ecosystem. Officially supports Cloudflare Workers, Vercel, and Node. Among the fastest-growing frameworks of the last two years, with 50,000+ GitHub stars. It is the right architecture for a content site.</p>
 			<p style="font-size:16px; line-height:1.75; margin:0 0 48px;">The WordPress REST API was already there since version 4.7. Nobody needed a GraphQL layer. They needed a great Astro frontend that consumed it, an automated deployment system so non-developers could use it, and a WordPress plugin that configured the REST API securely. That is Hatch.</p>
 
 			<h2 style="font-size:22px; font-weight:600; margin:0 0 14px; letter-spacing:-0.01em;">A note from Aditya</h2>
