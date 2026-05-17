@@ -280,33 +280,61 @@ footer a:hover { color: var(--fg); }
 	.topbar { max-width: calc(100% - 24px); padding: 8px 8px 8px 16px; gap: 8px; }
 	.topbar nav { display: none; }
 }
+/* Hide desktop CTA on mobile — only hamburger shown */
+@media (max-width: 820px) { .topbar-cta { display: none !important; } }
+
+/* Hamburger button — 3-bar → X animation */
 .topbar-hamburger {
 	display: none;
+	flex-direction: column;
+	justify-content: center;
+	gap: 4px;
 	background: none;
 	border: 1.5px solid var(--border-2);
 	cursor: pointer;
-	padding: 7px 10px;
+	padding: 8px 10px;
 	border-radius: 8px;
 	color: var(--fg);
-	line-height: 1;
-	transition: background .15s;
+	transition: background .15s, border-color .15s;
 	flex-shrink: 0;
+	width: 38px; height: 38px;
 }
-.topbar-hamburger:hover { background: var(--bg-3); }
-@media (max-width: 820px) { .topbar-hamburger { display: flex; align-items: center; justify-content: center; } }
+.topbar-hamburger:hover { background: var(--bg-3); border-color: var(--border-2); }
+@media (max-width: 820px) { .topbar-hamburger { display: flex; } }
+.hbg-bar {
+	display: block; width: 16px; height: 1.8px;
+	background: currentColor; border-radius: 1px;
+	transition: transform 0.28s cubic-bezier(.4,0,.2,1), opacity 0.2s ease, width 0.28s cubic-bezier(.4,0,.2,1);
+	transform-origin: center;
+}
+.hbg-bar:nth-child(2) { width: 11px; }
+.topbar-hamburger.is-open .hbg-bar:nth-child(1) { transform: translateY(5.8px) rotate(45deg); width: 16px; }
+.topbar-hamburger.is-open .hbg-bar:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.topbar-hamburger.is-open .hbg-bar:nth-child(3) { transform: translateY(-5.8px) rotate(-45deg); }
 
-/* Mobile fullscreen menu overlay */
+/* Mobile fullscreen overlay — fade + slide in */
 .mobile-menu {
-	display: none;
+	display: flex;
+	flex-direction: column;
 	position: fixed;
 	inset: 0;
 	background: rgba(250,250,250,0.97);
-	backdrop-filter: saturate(180%) blur(16px);
-	-webkit-backdrop-filter: saturate(180%) blur(16px);
+	backdrop-filter: saturate(180%) blur(18px);
+	-webkit-backdrop-filter: saturate(180%) blur(18px);
 	z-index: 300;
-	flex-direction: column;
+	visibility: hidden;
+	opacity: 0;
+	transform: translateY(-8px);
+	pointer-events: none;
+	transition: opacity 0.24s cubic-bezier(.4,0,.2,1), transform 0.24s cubic-bezier(.4,0,.2,1), visibility 0s linear 0.24s;
 }
-.mobile-menu.open { display: flex; }
+.mobile-menu.open {
+	visibility: visible;
+	opacity: 1;
+	transform: translateY(0);
+	pointer-events: auto;
+	transition: opacity 0.24s cubic-bezier(.4,0,.2,1), transform 0.24s cubic-bezier(.4,0,.2,1), visibility 0s linear 0s;
+}
 .mobile-menu-head {
 	display: flex; align-items: center; justify-content: space-between;
 	padding: 14px 16px 14px 20px;
@@ -317,7 +345,7 @@ footer a:hover { color: var(--fg); }
 	background: none;
 	border: 1.5px solid var(--border-2);
 	border-radius: 8px;
-	font-size: 15px;
+	font-size: 14px;
 	cursor: pointer;
 	color: var(--fg);
 	padding: 7px 11px;
@@ -330,13 +358,14 @@ footer a:hover { color: var(--fg); }
 	overflow-y: auto; padding: 4px 0;
 }
 .mobile-menu-links a {
-	font-size: 19px; font-weight: 600; color: var(--fg);
-	padding: 18px 24px; border-bottom: 1px solid var(--border);
-	letter-spacing: -0.015em; display: block;
+	font-size: 20px; font-weight: 600; color: var(--fg);
+	padding: 20px 24px; border-bottom: 1px solid var(--border);
+	letter-spacing: -0.02em; display: block;
+	transition: background .12s, padding-left .18s cubic-bezier(.4,0,.2,1);
 }
-.mobile-menu-links a:hover { background: var(--bg-3); color: var(--fg); }
+.mobile-menu-links a:hover { background: var(--bg-3); padding-left: 30px; }
 .mobile-menu-foot {
-	flex-shrink: 0; padding: 20px 20px;
+	flex-shrink: 0; padding: 20px;
 	border-top: 1px solid var(--border);
 }
 .mobile-menu-foot .topbar-cta {
@@ -856,18 +885,16 @@ ${wide ? `<script type="application/ld+json">
 		<a href="#headless-101">What is Headless?</a>
 		<a href="#how">How it works</a>
 		<a href="#vs">Hatch vs Others</a>
-		<a href="#hosts">Hosting</a>
+		<a href="#why">Why Hatch</a>
 		<a href="#faq">FAQ</a>
 		<a href="/vision">Vision</a>
 	</nav>
 	<div class="topbar-actions">
 		<a class="topbar-cta" href="${REPO}/releases/latest/download/hatch.zip" target="_blank" rel="noopener noreferrer">${lu('download', '')} Download free</a>
 		<button class="topbar-hamburger" id="menu-btn" aria-label="Open navigation" aria-expanded="false" aria-controls="mobile-menu">
-			<svg width="18" height="13" viewBox="0 0 18 13" fill="none" aria-hidden="true">
-				<rect y="0" width="18" height="2" rx="1" fill="currentColor"/>
-				<rect y="5.5" width="13" height="2" rx="1" fill="currentColor"/>
-				<rect y="11" width="18" height="2" rx="1" fill="currentColor"/>
-			</svg>
+			<span class="hbg-bar" aria-hidden="true"></span>
+			<span class="hbg-bar" aria-hidden="true"></span>
+			<span class="hbg-bar" aria-hidden="true"></span>
 		</button>
 	</div>
 </div>
@@ -880,7 +907,7 @@ ${wide ? `<script type="application/ld+json">
 		<a href="#headless-101" class="mob-link">What is Headless?</a>
 		<a href="#how" class="mob-link">How it works</a>
 		<a href="#vs" class="mob-link">Hatch vs Others</a>
-		<a href="#hosts" class="mob-link">Hosting</a>
+		<a href="#why" class="mob-link">Why Hatch</a>
 		<a href="#faq" class="mob-link">FAQ</a>
 		<a href="/vision" class="mob-link">Vision</a>
 	</nav>
@@ -976,12 +1003,14 @@ ${wide ? `<script>
 		if (!btn || !menu) return;
 		function openMenu() {
 			menu.classList.add('open');
+			btn.classList.add('is-open');
 			menu.setAttribute('aria-hidden', 'false');
 			btn.setAttribute('aria-expanded', 'true');
 			document.body.style.overflow = 'hidden';
 		}
 		function closeMenu() {
 			menu.classList.remove('open');
+			btn.classList.remove('is-open');
 			menu.setAttribute('aria-hidden', 'true');
 			btn.setAttribute('aria-expanded', 'false');
 			document.body.style.overflow = '';
@@ -989,7 +1018,11 @@ ${wide ? `<script>
 		btn.addEventListener('click', openMenu);
 		if (close) close.addEventListener('click', closeMenu);
 		menu.querySelectorAll('.mob-link').forEach(function(a){
-			a.addEventListener('click', closeMenu);
+			a.addEventListener('click', function(){
+				closeMenu();
+				// let menu close before scrolling
+				setTimeout(function(){ }, 280);
+			});
 		});
 		document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMenu(); });
 	})();
