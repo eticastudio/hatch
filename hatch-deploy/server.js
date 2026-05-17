@@ -906,8 +906,8 @@ ${wide ? `<script type="application/ld+json">
 	<a class="brand" href="/"><span class="brand-mark" aria-hidden="true">🐣</span>Hatch</a>
 	<nav>
 		<a href="#headless-101">What is Headless?</a>
-		<a href="#why">Why Hatch</a>
 		<a href="#how">How it works</a>
+		<a href="#why">Why Hatch</a>
 		<a href="#vs">Hatch vs Others</a>
 		<a href="#faq">FAQ</a>
 		<a href="/vision" class="nav-vision">Vision<span class="vision-dot" aria-hidden="true"></span></a>
@@ -928,8 +928,8 @@ ${wide ? `<script type="application/ld+json">
 	</div>
 	<nav class="mobile-menu-links">
 		<a href="#headless-101" class="mob-link">What is Headless?</a>
-		<a href="#why" class="mob-link">Why Hatch</a>
 		<a href="#how" class="mob-link">How it works</a>
+		<a href="#why" class="mob-link">Why Hatch</a>
 		<a href="#vs" class="mob-link">Hatch vs Others</a>
 		<a href="#faq" class="mob-link">FAQ</a>
 		<a href="/vision" class="mob-link nav-vision">Vision<span class="vision-dot" aria-hidden="true"></span></a>
