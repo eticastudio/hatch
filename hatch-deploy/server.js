@@ -1472,12 +1472,36 @@ app.get('/', (req, res) => {
 							<td class="vs-na">N/A</td>
 						</tr>
 						<tr>
-							<td>No rebuild when you publish</td>
+							<td>Publish in wp-admin → live in ~60s (no rebuild)</td>
 							<td class="vs-hatch vs-yes">✓ SSR</td>
 							<td class="vs-warn">ISR</td>
 							<td class="vs-warn">ISR/SSR</td>
 							<td class="vs-no">✗ SSG rebuild</td>
-							<td class="vs-na">N/A</td>
+							<td class="vs-yes">✓ Native</td>
+						</tr>
+						<tr>
+							<td>Gutenberg blocks render natively on the frontend</td>
+							<td class="vs-hatch vs-yes">✓ Built-in</td>
+							<td class="vs-warn">Partial</td>
+							<td class="vs-warn">Dev work</td>
+							<td class="vs-warn">Dev work</td>
+							<td class="vs-yes">✓ Native</td>
+						</tr>
+						<tr>
+							<td>ACF / Meta Box custom fields work out of the box</td>
+							<td class="vs-hatch vs-yes">✓ via REST</td>
+							<td class="vs-warn">via WPGraphQL</td>
+							<td class="vs-warn">via WPGraphQL</td>
+							<td class="vs-warn">via WPGraphQL</td>
+							<td class="vs-yes">✓ Native</td>
+						</tr>
+						<tr>
+							<td>Themes included + one-click switch</td>
+							<td class="vs-hatch vs-yes">✓ 6 themes</td>
+							<td class="vs-no">✗</td>
+							<td class="vs-no">✗</td>
+							<td class="vs-no">✗</td>
+							<td class="vs-yes">✓ thousands</td>
 						</tr>
 						<tr>
 							<td>No WPGraphQL required</td>
@@ -1488,7 +1512,7 @@ app.get('/', (req, res) => {
 							<td class="vs-na">N/A</td>
 						</tr>
 						<tr>
-							<td>Works with existing WP site</td>
+							<td>Works with existing WP site (Bedrock, subfolder, plain perms)</td>
 							<td class="vs-hatch vs-yes">✓</td>
 							<td class="vs-warn">Dev work</td>
 							<td class="vs-warn">Dev work</td>
@@ -1496,52 +1520,28 @@ app.get('/', (req, res) => {
 							<td class="vs-yes">✓</td>
 						</tr>
 						<tr>
-							<td>Themes included out of the box</td>
-							<td class="vs-hatch vs-yes">✓ 6 themes</td>
-							<td class="vs-no">✗</td>
-							<td class="vs-no">✗</td>
-							<td class="vs-no">✗</td>
-							<td class="vs-yes">✓ thousands</td>
+							<td>Built-in security hardening (REST + xmlrpc + app-pwd)</td>
+							<td class="vs-hatch vs-yes">✓ Built-in</td>
+							<td class="vs-no">✗ DIY</td>
+							<td class="vs-no">✗ DIY</td>
+							<td class="vs-no">✗ DIY</td>
+							<td class="vs-no">✗ Plugin</td>
 						</tr>
 						<tr>
-							<td>Non-developer friendly</td>
+							<td>One codebase → Cloudflare, Vercel, or your VPS</td>
 							<td class="vs-hatch vs-yes">✓</td>
-							<td class="vs-no">✗</td>
-							<td class="vs-no">✗</td>
-							<td class="vs-no">✗</td>
-							<td class="vs-yes">✓</td>
-						</tr>
-						<tr>
-							<td>Edge delivery (global CDN)</td>
-							<td class="vs-hatch vs-yes">✓</td>
+							<td class="vs-warn">WP Engine focus</td>
 							<td class="vs-yes">✓</td>
 							<td class="vs-yes">✓</td>
-							<td class="vs-warn">Partial</td>
 							<td class="vs-no">✗ Single server</td>
 						</tr>
 						<tr>
-							<td>Open source + self-hostable</td>
+							<td>Open source · MIT · free forever</td>
 							<td class="vs-hatch vs-yes">✓ MIT</td>
 							<td class="vs-yes">✓ MIT</td>
 							<td class="vs-yes">✓</td>
 							<td class="vs-yes">✓</td>
 							<td class="vs-yes">✓ GPL</td>
-						</tr>
-						<tr>
-							<td>Free to start</td>
-							<td class="vs-hatch vs-yes">✓ $0</td>
-							<td class="vs-yes">✓</td>
-							<td class="vs-yes">✓</td>
-							<td class="vs-yes">✓</td>
-							<td class="vs-yes">✓</td>
-						</tr>
-						<tr>
-							<td>Actively maintained</td>
-							<td class="vs-hatch vs-yes">✓</td>
-							<td class="vs-yes">✓ WP Engine</td>
-							<td class="vs-yes">✓ Vercel</td>
-							<td class="vs-warn">Reduced</td>
-							<td class="vs-yes">✓</td>
 						</tr>
 					</tbody>
 				</table>
