@@ -1301,138 +1301,6 @@ app.get('/', (req, res) => {
 
 		<hr/>
 
-		<section id="vs">
-			<span class="pill brand">⚡ &nbsp; Hatch vs Others</span>
-			<h2 style="margin-top:14px;">The headless WordPress landscape.<br/>Why Hatch wins for most sites.</h2>
-			<p class="lead" style="max-width:680px;">
-				Every major headless WP approach has a deal-breaker for real teams.
-				Here's the honest picture.
-			</p>
-
-			<div class="vs-table-wrap">
-				<table class="vs-table">
-					<thead>
-						<tr>
-							<th>What you need</th>
-							<th class="vs-hatch">Hatch</th>
-							<th>Faust.js</th>
-							<th>Next.js + WPGraphQL</th>
-							<th>Gatsby + WP</th>
-							<th>Classic WP</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr>
-							<td>1-click deploy from WP admin</td>
-							<td class="vs-hatch vs-yes">✓</td>
-							<td class="vs-no">✗</td>
-							<td class="vs-no">✗</td>
-							<td class="vs-no">✗</td>
-							<td class="vs-na">N/A</td>
-						</tr>
-						<tr>
-							<td>No rebuild when you publish</td>
-							<td class="vs-hatch vs-yes">✓ SSR</td>
-							<td class="vs-warn">ISR</td>
-							<td class="vs-warn">ISR/SSR</td>
-							<td class="vs-no">✗ SSG rebuild</td>
-							<td class="vs-na">N/A</td>
-						</tr>
-						<tr>
-							<td>No WPGraphQL required</td>
-							<td class="vs-hatch vs-yes">✓ REST only</td>
-							<td class="vs-no">✗ Required</td>
-							<td class="vs-no">✗ Required</td>
-							<td class="vs-no">✗ Required</td>
-							<td class="vs-na">N/A</td>
-						</tr>
-						<tr>
-							<td>Works with existing WP site</td>
-							<td class="vs-hatch vs-yes">✓</td>
-							<td class="vs-warn">Dev work</td>
-							<td class="vs-warn">Dev work</td>
-							<td class="vs-warn">Dev work</td>
-							<td class="vs-yes">✓</td>
-						</tr>
-						<tr>
-							<td>Themes included out of the box</td>
-							<td class="vs-hatch vs-yes">✓ 6 themes</td>
-							<td class="vs-no">✗</td>
-							<td class="vs-no">✗</td>
-							<td class="vs-no">✗</td>
-							<td class="vs-yes">✓ thousands</td>
-						</tr>
-						<tr>
-							<td>Non-developer friendly</td>
-							<td class="vs-hatch vs-yes">✓</td>
-							<td class="vs-no">✗</td>
-							<td class="vs-no">✗</td>
-							<td class="vs-no">✗</td>
-							<td class="vs-yes">✓</td>
-						</tr>
-						<tr>
-							<td>Edge delivery (global CDN)</td>
-							<td class="vs-hatch vs-yes">✓</td>
-							<td class="vs-yes">✓</td>
-							<td class="vs-yes">✓</td>
-							<td class="vs-warn">Partial</td>
-							<td class="vs-no">✗ Single server</td>
-						</tr>
-						<tr>
-							<td>Open source + self-hostable</td>
-							<td class="vs-hatch vs-yes">✓ MIT</td>
-							<td class="vs-yes">✓ MIT</td>
-							<td class="vs-yes">✓</td>
-							<td class="vs-yes">✓</td>
-							<td class="vs-yes">✓ GPL</td>
-						</tr>
-						<tr>
-							<td>Free to start</td>
-							<td class="vs-hatch vs-yes">✓ $0</td>
-							<td class="vs-yes">✓</td>
-							<td class="vs-yes">✓</td>
-							<td class="vs-yes">✓</td>
-							<td class="vs-yes">✓</td>
-						</tr>
-						<tr>
-							<td>Actively maintained</td>
-							<td class="vs-hatch vs-yes">✓</td>
-							<td class="vs-yes">✓ WP Engine</td>
-							<td class="vs-yes">✓ Vercel</td>
-							<td class="vs-warn">Reduced</td>
-							<td class="vs-yes">✓</td>
-						</tr>
-					</tbody>
-				</table>
-				<p class="vs-note">Frontity is excluded — the project was archived in 2023 after joining Automattic. Faust.js data sourced from <a href="https://faustjs.org" target="_blank" rel="noopener noreferrer">faustjs.org</a> docs. ISR = Incremental Static Regeneration (rebuilds on a schedule, not on publish).</p>
-			</div>
-
-			<div class="vs-boxes">
-				<div class="vs-box">
-					<div class="vs-box-icon">🔌</div>
-					<h4>Zero GraphQL dependency</h4>
-					<p>Every other headless WP approach requires the WPGraphQL plugin. Hatch uses the native WP REST API. Less setup, less maintenance, works with older WordPress installs.</p>
-				</div>
-				<div class="vs-box">
-					<div class="vs-box-icon">⚡</div>
-					<h4>Publish in WP, live in 60 seconds</h4>
-					<p>SSG tools (Gatsby, many Next.js setups) rebuild your entire site on every publish. Hatch is SSR with a 60-second edge cache. No build queue. No waiting.</p>
-				</div>
-				<div class="vs-box">
-					<div class="vs-box-icon">🎨</div>
-					<h4>6 themes, ready to deploy</h4>
-					<p>Faust.js and custom Next.js stacks ship with zero UI. You build everything from scratch. Hatch comes with 6 production-ready Astro themes. Pick one, deploy, done.</p>
-				</div>
-				<div class="vs-box">
-					<div class="vs-box-icon">👆</div>
-					<h4>No developer required</h4>
-					<p>The WP plugin wizard handles everything. Generate the Application Password, pick your host, deploy. Faust and Next.js require a developer to set up the stack and write the data layer.</p>
-				</div>
-			</div>
-		</section>
-
-		<hr/>
-
 		<section id="hosts">
 			<span class="pill">⊕ &nbsp; Your infrastructure, your rules</span>
 			<h2 style="margin-top:14px;">Your visitors load from the nearest of 300 cities.<br/>You pick where the code runs.</h2>
@@ -1576,6 +1444,139 @@ app.get('/', (req, res) => {
 		</section>
 
 		<hr/>
+
+		<section id="vs">
+			<span class="pill brand">⚡ &nbsp; Hatch vs Others</span>
+			<h2 style="margin-top:14px;">The headless WordPress landscape.<br/>Why Hatch wins for most sites.</h2>
+			<p class="lead" style="max-width:680px;">
+				Every major headless WP approach has a deal-breaker for real teams.
+				Here's the honest picture.
+			</p>
+
+			<div class="vs-table-wrap">
+				<table class="vs-table">
+					<thead>
+						<tr>
+							<th>What you need</th>
+							<th class="vs-hatch">Hatch</th>
+							<th>Faust.js</th>
+							<th>Next.js + WPGraphQL</th>
+							<th>Gatsby + WP</th>
+							<th>Classic WP</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>1-click deploy from WP admin</td>
+							<td class="vs-hatch vs-yes">✓</td>
+							<td class="vs-no">✗</td>
+							<td class="vs-no">✗</td>
+							<td class="vs-no">✗</td>
+							<td class="vs-na">N/A</td>
+						</tr>
+						<tr>
+							<td>No rebuild when you publish</td>
+							<td class="vs-hatch vs-yes">✓ SSR</td>
+							<td class="vs-warn">ISR</td>
+							<td class="vs-warn">ISR/SSR</td>
+							<td class="vs-no">✗ SSG rebuild</td>
+							<td class="vs-na">N/A</td>
+						</tr>
+						<tr>
+							<td>No WPGraphQL required</td>
+							<td class="vs-hatch vs-yes">✓ REST only</td>
+							<td class="vs-no">✗ Required</td>
+							<td class="vs-no">✗ Required</td>
+							<td class="vs-no">✗ Required</td>
+							<td class="vs-na">N/A</td>
+						</tr>
+						<tr>
+							<td>Works with existing WP site</td>
+							<td class="vs-hatch vs-yes">✓</td>
+							<td class="vs-warn">Dev work</td>
+							<td class="vs-warn">Dev work</td>
+							<td class="vs-warn">Dev work</td>
+							<td class="vs-yes">✓</td>
+						</tr>
+						<tr>
+							<td>Themes included out of the box</td>
+							<td class="vs-hatch vs-yes">✓ 6 themes</td>
+							<td class="vs-no">✗</td>
+							<td class="vs-no">✗</td>
+							<td class="vs-no">✗</td>
+							<td class="vs-yes">✓ thousands</td>
+						</tr>
+						<tr>
+							<td>Non-developer friendly</td>
+							<td class="vs-hatch vs-yes">✓</td>
+							<td class="vs-no">✗</td>
+							<td class="vs-no">✗</td>
+							<td class="vs-no">✗</td>
+							<td class="vs-yes">✓</td>
+						</tr>
+						<tr>
+							<td>Edge delivery (global CDN)</td>
+							<td class="vs-hatch vs-yes">✓</td>
+							<td class="vs-yes">✓</td>
+							<td class="vs-yes">✓</td>
+							<td class="vs-warn">Partial</td>
+							<td class="vs-no">✗ Single server</td>
+						</tr>
+						<tr>
+							<td>Open source + self-hostable</td>
+							<td class="vs-hatch vs-yes">✓ MIT</td>
+							<td class="vs-yes">✓ MIT</td>
+							<td class="vs-yes">✓</td>
+							<td class="vs-yes">✓</td>
+							<td class="vs-yes">✓ GPL</td>
+						</tr>
+						<tr>
+							<td>Free to start</td>
+							<td class="vs-hatch vs-yes">✓ $0</td>
+							<td class="vs-yes">✓</td>
+							<td class="vs-yes">✓</td>
+							<td class="vs-yes">✓</td>
+							<td class="vs-yes">✓</td>
+						</tr>
+						<tr>
+							<td>Actively maintained</td>
+							<td class="vs-hatch vs-yes">✓</td>
+							<td class="vs-yes">✓ WP Engine</td>
+							<td class="vs-yes">✓ Vercel</td>
+							<td class="vs-warn">Reduced</td>
+							<td class="vs-yes">✓</td>
+						</tr>
+					</tbody>
+				</table>
+				<p class="vs-note">Frontity is excluded — the project was archived in 2023 after joining Automattic. Faust.js data sourced from <a href="https://faustjs.org" target="_blank" rel="noopener noreferrer">faustjs.org</a> docs. ISR = Incremental Static Regeneration (rebuilds on a schedule, not on publish).</p>
+			</div>
+
+			<div class="vs-boxes">
+				<div class="vs-box">
+					<div class="vs-box-icon">🔌</div>
+					<h4>Zero GraphQL dependency</h4>
+					<p>Every other headless WP approach requires the WPGraphQL plugin. Hatch uses the native WP REST API. Less setup, less maintenance, works with older WordPress installs.</p>
+				</div>
+				<div class="vs-box">
+					<div class="vs-box-icon">⚡</div>
+					<h4>Publish in WP, live in 60 seconds</h4>
+					<p>SSG tools (Gatsby, many Next.js setups) rebuild your entire site on every publish. Hatch is SSR with a 60-second edge cache. No build queue. No waiting.</p>
+				</div>
+				<div class="vs-box">
+					<div class="vs-box-icon">🎨</div>
+					<h4>6 themes, ready to deploy</h4>
+					<p>Faust.js and custom Next.js stacks ship with zero UI. You build everything from scratch. Hatch comes with 6 production-ready Astro themes. Pick one, deploy, done.</p>
+				</div>
+				<div class="vs-box">
+					<div class="vs-box-icon">👆</div>
+					<h4>No developer required</h4>
+					<p>The WP plugin wizard handles everything. Generate the Application Password, pick your host, deploy. Faust and Next.js require a developer to set up the stack and write the data layer.</p>
+				</div>
+			</div>
+		</section>
+
+		<hr/>
+
 
 		<section id="why-wp">
 			<span class="pill" style="background: rgba(33, 117, 155, 0.10); color: #21759b; border-color: rgba(33, 117, 155, 0.25);">
