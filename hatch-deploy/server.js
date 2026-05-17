@@ -786,10 +786,10 @@ footer a:hover { color: var(--fg); }
 	width: 380px;
 	height: 380px;
 	pointer-events: none;
-	opacity: 0.07;
 	animation: orbital-spin 40s linear infinite;
 	z-index: -1;
 	color: var(--primary);
+	overflow: visible;
 }
 @keyframes orbital-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .hero-orbital { animation: none; } }
@@ -1081,12 +1081,22 @@ app.get('/', (req, res) => {
 			</div>
 
 			<svg class="hero-orbital" viewBox="0 0 380 380" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-				<circle cx="190" cy="190" r="180" stroke="currentColor" stroke-width="1" stroke-dasharray="5 12"/>
-				<circle cx="190" cy="190" r="130" stroke="currentColor" stroke-width="0.6" stroke-dasharray="3 16"/>
-				<circle cx="190" cy="10" r="5" fill="currentColor"/>
-				<circle cx="370" cy="190" r="3.5" fill="currentColor" opacity="0.7"/>
-				<circle cx="190" cy="370" r="4" fill="currentColor" opacity="0.5"/>
-				<circle cx="10" cy="190" r="3" fill="currentColor" opacity="0.4"/>
+				<defs>
+					<path id="orb-txt-path" d="M 190,12 A 178,178 0 1,1 189.99,12"/>
+				</defs>
+				<!-- Outer dashed ring -->
+				<circle cx="190" cy="190" r="180" stroke="currentColor" stroke-width="1" stroke-dasharray="5 12" opacity="0.12"/>
+				<!-- Inner dashed ring -->
+				<circle cx="190" cy="190" r="130" stroke="currentColor" stroke-width="0.6" stroke-dasharray="3 16" opacity="0.07"/>
+				<!-- Accent dots -->
+				<circle cx="190" cy="10" r="4.5" fill="currentColor" opacity="0.55"/>
+				<circle cx="370" cy="190" r="3" fill="currentColor" opacity="0.35"/>
+				<circle cx="190" cy="370" r="3.5" fill="currentColor" opacity="0.25"/>
+				<circle cx="10" cy="190" r="2.5" fill="currentColor" opacity="0.2"/>
+				<!-- Circular text on outer ring -->
+				<text font-size="9.5" fill="currentColor" opacity="0.55" font-family="ui-sans-serif,system-ui,-apple-system,sans-serif" font-weight="600" letter-spacing="3.2">
+					<textPath href="#orb-txt-path">Headless WordPress · Edge · Open Source · 90s Deploy · Free ·&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Headless WordPress · Edge · Open Source · 90s Deploy · Free ·</textPath>
+				</text>
 			</svg>
 
 		</section>
@@ -1574,10 +1584,10 @@ app.get('/', (req, res) => {
 		<hr/>
 
 		<section id="vibe">
-			<span class="pill brand">🤖 &nbsp; The AI-era question</span>
+			<span class="pill brand">🤖 &nbsp; The AI objection, answered</span>
 			<h2 style="margin-top:14px;">"I'll just vibe-code my site<br/>with Claude. I don't need this."</h2>
 			<p class="lead" style="max-width:680px;">
-				Fair. But here's what you'll run into at week 3.
+				Fair. But you're not building it for yourself — you're handing it to someone who can't prompt their way out of a broken image gallery.
 			</p>
 
 			<div class="vibe-grid">
@@ -1594,24 +1604,24 @@ app.get('/', (req, res) => {
 				<div class="vibe-card vibe-hatch">
 					<h4>The Hatch path</h4>
 					<ul>
-						<li>Week 1: WP installed, Hatch deployed, Astro theme live.</li>
-						<li>Week 3: Client edits their blog post in WordPress. Zero messages to you.</li>
-						<li>Week 5: Client adds 20 images. WP media library handles it.</li>
-						<li>Week 8: SEO is automatic. Yoast/Rank Math pipes through unchanged.</li>
-						<li>Week 12: Client is self-sufficient. You've moved to the next project.</li>
+						<li>Week 1: WordPress installed, Hatch deployed, site live.</li>
+						<li>Week 3: Client edits their blog post themselves. Zero messages to you.</li>
+						<li>Week 5: Client uploads 20 images. Done in two minutes.</li>
+						<li>Week 8: SEO is automatic. Their existing plugin just works.</li>
+						<li>Week 12: Client is fully independent. You're already on the next job.</li>
 					</ul>
 				</div>
 			</div>
 
 			<div class="vibe-cta-block">
 				<p style="font-size:15px; color:var(--fg-muted); line-height:1.65; max-width:680px;">
-					<strong>The best combo is both:</strong> Use AI tools to customize the Hatch Astro starter exactly how you want it.
-					Use WordPress for the content that non-developers need to update.
-					Hatch is what connects those two worlds — a modern edge frontend that a developer can extend,
-					attached to a CMS that an intern can use without training.
+					<strong>Use both.</strong> Build with AI. Run on WordPress.
+					Claude can customize the Hatch theme in an afternoon — the Astro code is clean and extensible.
+					Your client never touches the code. They just write posts and upload images, the same way they always have.
+					You deliver something they can actually run without you.
 				</p>
 				<p style="margin-top:12px; font-size:14px; color:var(--fg-subtle);">
-					Headless is the future. WordPress is the present. Hatch lets you ship both, today.
+					Headless is the future. WordPress is the present. Hatch ships both, today.
 				</p>
 			</div>
 		</section>
