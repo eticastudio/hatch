@@ -658,6 +658,15 @@ footer a:hover { color: var(--fg); }
 	.compare { grid-template-columns: 1fr; }
 	.compare > div + div { border-left: 0; border-top: 1px solid var(--border); }
 }
+@media (max-width: 540px) {
+	h1 { font-size: clamp(30px, 8vw, 42px); }
+	p.lead { font-size: 16px; }
+	.hero-wrap > p:has(.btn) { display: flex; flex-direction: column; gap: 10px; }
+	.hero-wrap > p:has(.btn) .btn { text-align: center; justify-content: center; }
+	.hero-stat-row { grid-template-columns: 1fr 1fr; gap: 12px; }
+	.hero-stat .n { font-size: 22px; }
+	.hero-stat .l { font-size: 11px; }
+}
 </style>
 ${wide ? `<script type="application/ld+json">
 {
@@ -1327,49 +1336,6 @@ app.get('/', (req, res) => {
 
 		<hr/>
 
-		<section id="peace-of-mind">
-			<span class="pill">🧘 &nbsp; One less thing to worry about</span>
-			<h2 style="margin-top:14px;">The WordPress plugin tax you stop paying.</h2>
-			<p class="lead" style="max-width:760px;">
-				Classic WordPress requires a small army of maintenance plugins just to perform and stay secure.
-				Headless eliminates the need for most of them. Here is what you uninstall on Hatch day one.
-			</p>
-			<div class="grid grid-3" style="margin-top:28px;">
-				<div class="feature">
-					<h3>Cache plugins</h3>
-					<p style="margin-top:6px; font-size:13px; color:var(--fg-muted);">WP Rocket, W3 Total Cache, LiteSpeed Cache, Autoptimize, Swift Performance.</p>
-					<p style="margin-top:8px; font-size:13px; line-height:1.6;"><strong>Why gone:</strong> Visitors never hit PHP. Cloudflare edge caches HTML automatically. There is nothing left to cache on the server side.</p>
-				</div>
-				<div class="feature">
-					<h3>Security scanners</h3>
-					<p style="margin-top:6px; font-size:13px; color:var(--fg-muted);">Wordfence, Sucuri, iThemes Security, All-In-One WP Security.</p>
-					<p style="margin-top:8px; font-size:13px; line-height:1.6;"><strong>Why gone:</strong> Your wp-admin becomes a private origin nobody visits. No public login URL. No xmlrpc. REST endpoints are locked. The attack surface shrinks to near zero.</p>
-				</div>
-				<div class="feature">
-					<h3>Performance optimizers</h3>
-					<p style="margin-top:6px; font-size:13px; color:var(--fg-muted);">Smush, Imagify, Lazy Load, WP-Optimize, Asset CleanUp.</p>
-					<p style="margin-top:8px; font-size:13px; line-height:1.6;"><strong>Why gone:</strong> Astro outputs optimized HTML at build time. Images are lazy-loaded natively. There is no bloated PHP output to clean up.</p>
-				</div>
-				<div class="feature">
-					<h3>Uptime monitors</h3>
-					<p style="margin-top:6px; font-size:13px; color:var(--fg-muted);">Jetpack Protect, ManageWP, WP Umbrella (for the visitor layer).</p>
-					<p style="margin-top:8px; font-size:13px; line-height:1.6;"><strong>Why gone:</strong> The visitor-facing layer is not your server. Edge infrastructure handles uptime — if your WP origin goes down momentarily, cached pages keep serving.</p>
-				</div>
-				<div class="feature">
-					<h3>CDN plugins</h3>
-					<p style="margin-top:6px; font-size:13px; color:var(--fg-muted);">Cloudflare plugin for WP, BunnyCDN plugin, Jetpack CDN.</p>
-					<p style="margin-top:8px; font-size:13px; line-height:1.6;"><strong>Why gone:</strong> Hatch deploys your frontend directly to Cloudflare Workers. CDN is the runtime, not a plugin you bolt on afterward.</p>
-				</div>
-				<div class="feature" style="background:var(--primary-soft); border-color:var(--primary);">
-					<h3 style="color:var(--primary);">What stays?</h3>
-					<p style="margin-top:6px; font-size:13px; color:var(--fg-muted);">SEO plugins, form plugins, ACF, WooCommerce, contact forms, CRM connectors, analytics.</p>
-					<p style="margin-top:8px; font-size:13px; line-height:1.6;"><strong>Everything editorial stays.</strong> Hatch only removes the maintenance burden. The plugins that help you create content and run your business work exactly as before.</p>
-				</div>
-			</div>
-		</section>
-
-		<hr/>
-
 		<section id="why">
 			<span class="pill">↗ &nbsp; What changes for you</span>
 			<h2 style="margin-top:14px;">Keep the editor your team loves.<br/>Lose the bills, the bloat, the cache-plugin roulette.</h2>
@@ -1535,8 +1501,7 @@ app.get('/', (req, res) => {
 			<div style="max-width: 720px;">
 				<p style="margin-bottom: 16px;">When you click "Build &amp; deploy," your plugin sends your WP credentials
 				and host token to the broker over HTTPS — for the ~90-second build window only. Both are held in memory,
-				used to run <code>npm run build</code>, then dropped. <strong>Nothing written to disk.
-				No telemetry. No analytics. No cookies. No account.</strong></p>
+				used to run <code>npm run build</code>, then dropped. <strong>Nothing written to disk. Ever.</strong></p>
 				<p style="margin-bottom: 16px;">Still uncomfortable? Fair. The broker is MIT-licensed and seven files of plain Node.js.
 				Read it, fork it, self-host it. That option exists and it's documented.</p>
 				<ul>
@@ -1774,11 +1739,9 @@ app.get('/vision', (req, res) => {
 			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">Hatch is not a bet against WordPress. It is a bet that WordPress will be the best content-management backend on the internet for years to come, and that the frontend deserves to be as modern as the rest of the web. You can have both. You don't have to choose a new CMS, retrain your team, or maintain two codebases with GraphQL in the middle.</p>
 			<p style="font-size:16px; line-height:1.75; margin:0 0 48px;">A WordPress install with Hatch is, today, the fastest way to get a Lighthouse 100 content site in front of a global audience, edited by non-developers, maintained by a single developer, and owned entirely by you. That's the vision. It shipped.</p>
 
-			<div style="border-top:1px solid var(--border); padding-top:32px; display:flex; gap:14px; flex-wrap:wrap;">
-				<a class="btn primary" href="${REPO}/releases/latest/download/hatch.zip" target="_blank" rel="noopener noreferrer">📦 Download Hatch free</a>
-				<a class="btn secondary" href="${REPO}" target="_blank" rel="noopener noreferrer">⭐ Star on GitHub</a>
-				<a class="btn secondary" href="/">← Back to landing</a>
-			</div>
+			<p style="margin-top:32px; border-top:1px solid var(--border); padding-top:24px;">
+				<a href="/" style="font-size:13px; color:var(--fg-muted); text-decoration:none;">← Back to Hatch</a>
+			</p>
 		</div>
 	`));
 });
