@@ -781,15 +781,16 @@ footer a:hover { color: var(--fg); }
 /* Orbital decorative ring — hero background element */
 .hero-orbital {
 	position: absolute;
-	top: -40px;
-	right: -100px;
-	width: 380px;
-	height: 380px;
+	top: -20px;
+	right: -160px;
+	width: 280px;
+	height: 280px;
 	pointer-events: none;
-	animation: orbital-spin 40s linear infinite;
+	animation: orbital-spin 50s linear infinite;
 	z-index: -1;
 	color: var(--primary);
 	overflow: visible;
+	opacity: 0.5;
 }
 @keyframes orbital-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .hero-orbital { animation: none; } }
@@ -1085,16 +1086,16 @@ app.get('/', (req, res) => {
 					<path id="orb-txt-path" d="M 190,12 A 178,178 0 1,1 189.99,12"/>
 				</defs>
 				<!-- Outer dashed ring -->
-				<circle cx="190" cy="190" r="180" stroke="currentColor" stroke-width="1" stroke-dasharray="5 12" opacity="0.12"/>
+				<circle cx="190" cy="190" r="180" stroke="currentColor" stroke-width="1" stroke-dasharray="5 12" opacity="0.10"/>
 				<!-- Inner dashed ring -->
-				<circle cx="190" cy="190" r="130" stroke="currentColor" stroke-width="0.6" stroke-dasharray="3 16" opacity="0.07"/>
+				<circle cx="190" cy="190" r="130" stroke="currentColor" stroke-width="0.6" stroke-dasharray="3 16" opacity="0.06"/>
 				<!-- Accent dots -->
-				<circle cx="190" cy="10" r="4.5" fill="currentColor" opacity="0.55"/>
-				<circle cx="370" cy="190" r="3" fill="currentColor" opacity="0.35"/>
-				<circle cx="190" cy="370" r="3.5" fill="currentColor" opacity="0.25"/>
-				<circle cx="10" cy="190" r="2.5" fill="currentColor" opacity="0.2"/>
+				<circle cx="190" cy="10" r="4" fill="currentColor" opacity="0.22"/>
+				<circle cx="370" cy="190" r="2.5" fill="currentColor" opacity="0.14"/>
+				<circle cx="190" cy="370" r="3" fill="currentColor" opacity="0.10"/>
+				<circle cx="10" cy="190" r="2" fill="currentColor" opacity="0.08"/>
 				<!-- Circular text on outer ring -->
-				<text font-size="9.5" fill="currentColor" opacity="0.55" font-family="ui-sans-serif,system-ui,-apple-system,sans-serif" font-weight="600" letter-spacing="3.2">
+				<text font-size="9.5" fill="currentColor" opacity="0.18" font-family="ui-sans-serif,system-ui,-apple-system,sans-serif" font-weight="600" letter-spacing="3.2">
 					<textPath href="#orb-txt-path">Headless WordPress · Edge · Open Source · 90s Deploy · Free ·&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Headless WordPress · Edge · Open Source · 90s Deploy · Free ·</textPath>
 				</text>
 			</svg>
@@ -1263,7 +1264,7 @@ app.get('/', (req, res) => {
 					<div class="step-num">3</div>
 					<div>
 						<h3>Watch the build, live in ~90s</h3>
-						<p>Broker clones, npm installs, builds the Astro frontend, deploys to your host. <strong>No GitHub fork.</strong> Token used once, in memory, dropped on completion. Live <code>*.workers.dev</code> or <code>*.vercel.app</code> URL appears. Connect your custom domain when ready.</p>
+						<p>Broker clones, npm installs, builds the Astro frontend, deploys to your host. Token used once, in memory, dropped on completion. Live <code>*.workers.dev</code> or <code>*.vercel.app</code> URL appears. Connect your custom domain when ready.</p>
 					</div>
 				</div>
 				<div class="step">
@@ -1425,7 +1426,7 @@ app.get('/', (req, res) => {
 				</div>
 				<div class="feature">
 					<h3>▲ Vercel</h3>
-					<p style="margin-top:8px;">Free hobby tier. Instant rollbacks. No GitHub fork required — the broker uses <code>vercel deploy --prebuilt</code> so you keep full control of your code. A natural fit if your team is already on Vercel.</p>
+					<p style="margin-top:8px;">Free hobby tier. Instant rollbacks. The broker uses <code>vercel deploy --prebuilt</code> so you keep full control of your code. A natural fit if your team is already on Vercel.</p>
 				</div>
 				<div class="feature">
 					<h3>🖥 Your VPS</h3>
@@ -1462,7 +1463,7 @@ app.get('/', (req, res) => {
 				Your authors keep wp-admin. Your developers stop fighting cache plugins.
 				Your visitors get a Lighthouse-100 site from a global edge network.
 				Your hosting bill drops to zero on Cloudflare's free tier.
-				Nobody had to learn a new editor or fork your codebase.
+				Nobody had to learn a new editor or touch a config file.
 			</p>
 			<div class="compare">
 				<div class="pro">
@@ -1516,7 +1517,7 @@ app.get('/', (req, res) => {
 				<div class="u-card">
 					<span class="num">01</span>
 					<span class="vs">vs Faust / Frontity</span>
-					<h3>No GitHub fork on your account</h3>
+					<h3>Your codebase stays yours</h3>
 					<p>Paste a token. Broker builds from its own runner. Your repo stays yours. Tokens never live on disk.</p>
 				</div>
 				<div class="u-card">
@@ -1732,7 +1733,7 @@ app.get('/', (req, res) => {
 				</details>
 				<details class="faq-item" data-cat="perf">
 					<summary><span>Does my API token live anywhere?</span>${lu('chevron-down', 'faq-chev')}</summary>
-					<div class="faq-a">The Cloudflare or Vercel deploy token is held in memory for the roughly 90-second build window, then dropped. Nothing is stored on the broker. No GitHub fork. No persistent credential storage. The WP Application Password lives in your own WP database and is only used at deploy time.</div>
+					<div class="faq-a">The Cloudflare or Vercel deploy token is held in memory for the roughly 90-second build window, then dropped. Nothing is stored on the broker. No persistent credential storage. The WP Application Password lives in your own WP database and is only used at deploy time.</div>
 				</details>
 
 				<!-- Limits & Honest -->
