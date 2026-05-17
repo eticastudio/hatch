@@ -648,13 +648,9 @@ footer a:hover { color: var(--fg); }
 	line-height: 1.7;
 	color: var(--fg-muted);
 	max-width: 720px;
-	animation: faqSlide 0.32s cubic-bezier(.2,.8,.2,1);
 }
 .faq-item .faq-a code { font-size: 12.5px; }
-@keyframes faqSlide {
-	from { opacity: 0; transform: translateY(-6px); }
-	to   { opacity: 1; transform: translateY(0); }
-}
+.faq-item .faq-chev { will-change: transform; }
 
 
 /* Comparison table */
@@ -1795,9 +1791,78 @@ app.get('/', (req, res) => {
 			(function(){
 				var tabs = document.querySelectorAll('.faq-tab');
 				var items = document.querySelectorAll('.faq-item[data-cat]');
+
+				function closeItem(item, instant) {
+					var answer = item.querySelector('.faq-a');
+					if (!answer) { item.removeAttribute('open'); return; }
+					if (instant) {
+						item.removeAttribute('open');
+						answer.style.cssText = '';
+						return;
+					}
+					var startH = answer.scrollHeight;
+					answer.style.height = startH + 'px';
+					answer.style.overflow = 'hidden';
+					answer.style.opacity = '1';
+					answer.style.transition = 'height 0.28s cubic-bezier(.2,.8,.2,1), opacity 0.18s ease';
+					requestAnimationFrame(function(){
+						requestAnimationFrame(function(){
+							answer.style.height = '0px';
+							answer.style.opacity = '0';
+						});
+					});
+					var done = function(e){
+						if (e && e.propertyName && e.propertyName !== 'height') return;
+						item.removeAttribute('open');
+						answer.style.cssText = '';
+						answer.removeEventListener('transitionend', done);
+					};
+					answer.addEventListener('transitionend', done);
+				}
+
+				function openItem(item) {
+					var answer = item.querySelector('.faq-a');
+					item.setAttribute('open', '');
+					if (!answer) return;
+					var endH = answer.scrollHeight;
+					answer.style.height = '0px';
+					answer.style.overflow = 'hidden';
+					answer.style.opacity = '0';
+					answer.style.transition = 'height 0.32s cubic-bezier(.2,.8,.2,1), opacity 0.28s ease';
+					requestAnimationFrame(function(){
+						requestAnimationFrame(function(){
+							answer.style.height = endH + 'px';
+							answer.style.opacity = '1';
+						});
+					});
+					var done = function(e){
+						if (e && e.propertyName && e.propertyName !== 'height') return;
+						answer.style.cssText = '';
+						answer.removeEventListener('transitionend', done);
+					};
+					answer.addEventListener('transitionend', done);
+				}
+
+				items.forEach(function(item){
+					var summary = item.querySelector('summary');
+					if (!summary) return;
+					summary.addEventListener('click', function(e){
+						e.preventDefault();
+						var isOpen = item.hasAttribute('open');
+						items.forEach(function(other){
+							if (other !== item && other.hasAttribute('open')) closeItem(other);
+						});
+						if (isOpen) closeItem(item); else openItem(item);
+					});
+				});
+
 				function activate(filter) {
 					tabs.forEach(function(t){ t.classList.toggle('active', t.dataset.filter === filter); t.setAttribute('aria-selected', t.dataset.filter === filter); });
-					items.forEach(function(item){ var hide = item.dataset.cat !== filter; item.hidden = hide; if (hide && item.open) item.open = false; });
+					items.forEach(function(item){
+						var hide = item.dataset.cat !== filter;
+						item.hidden = hide;
+						if (hide && item.hasAttribute('open')) closeItem(item, true);
+					});
 				}
 				activate('start');
 				tabs.forEach(function(tab){ tab.addEventListener('click', function(){ activate(this.dataset.filter); }); });
