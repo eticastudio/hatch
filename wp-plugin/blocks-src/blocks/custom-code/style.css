@@ -1,0 +1,43 @@
+/* Editor preview affordances for the Custom Code block. */
+.hatch-custom-code-editor {
+	border: 1px dashed #cbd5e1;
+	border-radius: 8px;
+	padding: 12px;
+	background: #f8fafc;
+}
+.hatch-cc-editor-header {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 8px;
+}
+.hatch-cc-mode-pill {
+	font-size: 11px;
+	font-weight: 600;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: #1e293b;
+	color: #fff;
+	letter-spacing: 0.04em;
+}
+.hatch-cc-warning {
+	font-size: 12px;
+	color: #b45309;
+}
+.hatch-cc-preview-label {
+	font-size: 12px;
+	font-weight: 600;
+	color: #475569;
+	margin-top: 12px;
+	margin-bottom: 6px;
+}
+.hatch-cc-preview {
+	background: #fff;
+	border: 1px solid #e2e8f0;
+	border-radius: 6px;
+	padding: 12px;
+	overflow: auto;
+}
+
+/* Frontend wrapper — keep it neutral. */
+.hatch-custom-code { display: block; }

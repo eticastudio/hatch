@@ -1,0 +1,210 @@
+---
+/**
+ * SiteHeader — header with site logo (or text mark + 🐣), WP nav menu,
+ * and a mobile hamburger drawer.
+ *
+ * Logo source order:
+ *   1. features.site.logo_url (WP Customizer → Site Identity → Logo)
+ *   2. features.site.name + 🐣 mark fallback
+ *
+ * Nav source: features-provided WP nav menu items (primary location).
+ * Falls back to a single Blog link when no primary menu is assigned.
+ *
+ * Theme-agnostic — uses --hatch-* tokens so every theme styles it
+ * consistently. Mobile drawer is pure CSS + a tiny inline script,
+ * no JS framework.
+ */
+import type { HatchFeatures } from '../lib/features';
+import type { HatchMenuItem } from '../lib/hatch';
+
+interface Props {
+  features: HatchFeatures;
+  menuItems?: HatchMenuItem[];
+}
+
+const { features, menuItems = [] } = Astro.props;
+const siteName = features.site.name || 'Hatch';
+const logoUrl  = (features.site.logo_url || '').trim();
+
+// v0.50 — render submenus too. Build a {top-level item, children[]} tree.
+const topItems = menuItems
+  .filter((item) => item.parent === 0)
+  .sort((a, b) => a.order - b.order);
+
+const childrenOf = (parentId: number) =>
+  menuItems
+    .filter((item) => item.parent === parentId)
+    .sort((a, b) => a.order - b.order);
+
+const navItems = topItems.length > 0
+  ? topItems.map((item) => ({
+      href: item.url,
+      label: item.title,
+      target: item.target,
+      children: childrenOf(item.id).map((c) => ({ href: c.url, label: c.title, target: c.target })),
+    }))
+  : [{ href: '/blog', label: 'Blog', target: '', children: [] as { href: string; label: string; target: string }[] }];
+
+const currentPath = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === '/' ? currentPath === '/' : currentPath.startsWith(href);
+---
+
+<header class="hatch-header sticky top-0 z-40 border-b border-hatch-border bg-hatch-bg/95 backdrop-blur">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between gap-6">
+    {/* Brand mark — logo image OR text + 🐣 fallback */}
+    <a href="/" class="brand flex items-center gap-2 font-semibold tracking-tight text-hatch-fg hover:text-hatch-primary transition-colors min-w-0">
+      {logoUrl ? (
+        <img
+          src={logoUrl}
+          alt={siteName}
+          height={28}
+          class="h-7 w-auto max-w-[180px] object-contain"
+          loading="eager"
+          decoding="async"
+        />
+      ) : (
+        <>
+          <span class="text-lg" aria-hidden="true">🐣</span>
+          <span class="text-[15px] truncate">{siteName}</span>
+        </>
+      )}
+    </a>
+
+    {/* Desktop nav — top-level items + hover/focus dropdown for sub-items (v0.50). */}
+    <nav class="hidden md:flex items-center gap-1" aria-label="Primary">
+      {navItems.map((item) => (
+        <div class="hatch-nav-item relative group">
+          <a
+            href={item.href}
+            target={item.target || undefined}
+            rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
+            class:list={[
+              'px-3 py-1.5 rounded-md text-[13.5px] font-medium transition-colors inline-flex items-center gap-1',
+              isActive(item.href)
+                ? 'text-hatch-fg bg-hatch-bg-3'
+                : 'text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2',
+            ]}
+            aria-haspopup={item.children.length > 0 ? 'true' : undefined}
+          >
+            {item.label}
+            {item.children.length > 0 && (
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                <path d="M2.5 4l2.5 2.5L7.5 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            )}
+          </a>
+          {item.children.length > 0 && (
+            <div
+              class="absolute left-0 top-full mt-1 min-w-[200px] py-1 rounded-md border border-hatch-border bg-hatch-bg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible focus-within:opacity-100 focus-within:visible transition-opacity z-50"
+              role="menu"
+            >
+              {item.children.map((child) => (
+                <a
+                  href={child.href}
+                  target={child.target || undefined}
+                  rel={child.target === '_blank' ? 'noopener noreferrer' : undefined}
+                  class="block px-3 py-2 text-[13.5px] text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2"
+                  role="menuitem"
+                >
+                  {child.label}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </nav>
+
+    {/* Mobile hamburger toggle — pure CSS via :has() + checkbox state, no JS framework */}
+    <button
+      type="button"
+      class="hatch-hamburger md:hidden inline-flex items-center justify-center w-10 h-10 rounded-md text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2 transition-colors"
+      aria-label="Open menu"
+      aria-controls="hatch-mobile-drawer"
+      aria-expanded="false"
+    >
+      <svg class="h-5 w-5 hatch-icon-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+      <svg class="h-5 w-5 hatch-icon-close hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  {/* Mobile drawer */}
+  <div
+    id="hatch-mobile-drawer"
+    class="hatch-drawer md:hidden hidden border-t border-hatch-border bg-hatch-bg"
+  >
+    <nav class="max-w-6xl mx-auto px-5 sm:px-8 py-3 flex flex-col gap-1" aria-label="Primary mobile">
+      {navItems.map((item) => (
+        <a
+          href={item.href}
+          target={item.target || undefined}
+          rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
+          class:list={[
+            'px-3 py-3 rounded-md text-[15px] font-medium transition-colors',
+            isActive(item.href)
+              ? 'text-hatch-fg bg-hatch-bg-3'
+              : 'text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2',
+          ]}
+        >
+          {item.label}
+        </a>
+      ))}
+    </nav>
+  </div>
+</header>
+
+<style>
+  /* Drawer toggle behavior is the only JS-dependent piece. */
+  .hatch-drawer.is-open { display: block; }
+  .hatch-hamburger.is-open .hatch-icon-open { display: none; }
+  .hatch-hamburger.is-open .hatch-icon-close { display: inline-block; }
+  /* Hide scroll on body when drawer open */
+  :global(body.hatch-drawer-open) { overflow: hidden; }
+  @media (min-width: 768px) {
+    :global(body.hatch-drawer-open) { overflow: auto; }
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    var btn = document.querySelector('.hatch-hamburger');
+    var drawer = document.getElementById('hatch-mobile-drawer');
+    if (!btn || !drawer) return;
+    function close() {
+      btn.classList.remove('is-open');
+      drawer.classList.remove('is-open');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.setAttribute('aria-label', 'Open menu');
+      document.body.classList.remove('hatch-drawer-open');
+    }
+    function toggle() {
+      var open = !drawer.classList.contains('is-open');
+      if (open) {
+        btn.classList.add('is-open');
+        drawer.classList.add('is-open');
+        btn.setAttribute('aria-expanded', 'true');
+        btn.setAttribute('aria-label', 'Close menu');
+        document.body.classList.add('hatch-drawer-open');
+      } else {
+        close();
+      }
+    }
+    btn.addEventListener('click', toggle);
+    // Close on link click + escape
+    drawer.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', close); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') close();
+    });
+    // Close if resized above breakpoint
+    var mq = window.matchMedia('(min-width: 768px)');
+    (mq.addEventListener ? mq.addEventListener('change', close) : mq.addListener(close));
+  })();
+</script>

@@ -1,0 +1,13 @@
+---
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle, stripOuterTag } from './_shared';
+
+const { block } = Astro.props as BlockProps;
+const cls   = blockClass( block, 'wp-block-code' );
+const style = blockStyle( block );
+
+// WP saves as: <pre class="wp-block-code"><code>...</code></pre>
+// We rebuild it so we control classes and can add syntax-highlight hooks later.
+const inner = stripOuterTag( stripOuterTag( block.innerHTML, 'pre' ), 'code' );
+---
+<pre class={ cls } style={ style || undefined }><code set:html={ inner } /></pre>

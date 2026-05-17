@@ -1,0 +1,12 @@
+/*
+Theme Name: Hatch Companion
+Theme URI: https://hatch.adityaarsharma.com
+Author: Aditya Sharma
+Author URI: https://adityaarsharma.com
+Description: A blank, headless-first WordPress theme. The frontend lives on Astro / Next.js / Cloudflare Workers — this theme just keeps WP happy and redirects visitors who hit wp-login or the raw WP domain to the live frontend.
+Version: 1.0.0
+License: MIT
+License URI: https://opensource.org/licenses/MIT
+Text Domain: hatch-companion
+Tags: minimal, headless
+*/

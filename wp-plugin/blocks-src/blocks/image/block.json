@@ -1,0 +1,32 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/image",
+	"title": "Image",
+	"category": "hatch",
+	"icon": "format-image",
+	"description": "Responsive image with aspect ratio, focal point, rounded corners, and optional caption.",
+	"keywords": [ "image", "photo", "picture" ],
+	"version": "0.4.0",
+	"textdomain": "hatch-blocks",
+	"supports": {
+		"html": false,
+		"anchor": true
+	},
+	"attributes": {
+		"id":      { "type": "number" },
+		"url":     { "type": "string", "source": "attribute", "selector": "img", "attribute": "src", "default": "" },
+		"alt":     { "type": "string", "source": "attribute", "selector": "img", "attribute": "alt", "default": "" },
+		"width":   { "type": "number" },
+		"height":  { "type": "number" },
+		"caption": { "type": "string", "source": "html", "selector": "figcaption", "default": "" },
+		"aspectRatio": { "type": "string", "default": "auto" },
+		"objectFit":   { "type": "string", "default": "cover" },
+		"radius":      { "type": "string", "default": "lg" },
+		"shadow":      { "type": "string", "default": "none" },
+		"loading":     { "type": "string", "default": "lazy" },
+		"linkUrl":     { "type": "string", "default": "" },
+		"linkTarget":  { "type": "string", "default": "" }
+	},
+	"editorScript": "file:./index.js"
+}

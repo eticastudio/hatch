@@ -1,0 +1,422 @@
+<?php
+/**
+ * REST API surface for Hatch.
+ *
+ * All endpoints registered under /wp-json/hatch/v1/*
+ *
+ * @package Hatch
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Hatch_Rest_Api
+ */
+class Hatch_Rest_Api {
+
+	/**
+	 * @var Hatch_Rest_Api|null
+	 */
+	private static $instance = null;
+
+	/**
+	 * Singleton accessor.
+	 *
+	 * @return Hatch_Rest_Api
+	 */
+	public static function instance(): Hatch_Rest_Api {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
+
+	/**
+	 * Wire routes.
+	 */
+	private function __construct() {
+		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
+	}
+
+	/**
+	 * Register all Hatch REST routes.
+	 */
+	public function register_routes(): void {
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/info',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'route_info' ),
+				'permission_callback' => array( $this, 'permission_authenticated' ),
+			)
+		);
+
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/seo-head',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'route_seo_head' ),
+				'permission_callback' => array( $this, 'permission_authenticated' ),
+				'args'                => array(
+					'url' => array(
+						'required'          => true,
+						'sanitize_callback' => 'esc_url_raw',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/schema',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'route_schema' ),
+				'permission_callback' => array( $this, 'permission_authenticated' ),
+				'args'                => array(
+					'url' => array(
+						'required'          => true,
+						'sanitize_callback' => 'esc_url_raw',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/redirects',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'route_redirects' ),
+				'permission_callback' => array( $this, 'permission_authenticated' ),
+			)
+		);
+
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/forms',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( 'Hatch_Forms_Bridge', 'list_forms' ),
+				'permission_callback' => array( $this, 'permission_authenticated' ),
+			)
+		);
+
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/forms/(?P<id>\d+)/submit',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( 'Hatch_Forms_Bridge', 'submit_form' ),
+				'permission_callback' => '__return_true', // public — protected by Turnstile in @hatch/shield
+				'args'                => array(
+					'id' => array(
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/membership/check',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'route_membership_check' ),
+				'permission_callback' => array( $this, 'permission_authenticated' ),
+			)
+		);
+
+		// V0.2.0 — health & ops endpoints (admin capability only).
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/cpt-health',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'route_cpt_health' ),
+				'permission_callback' => array( $this, 'permission_admin' ),
+			)
+		);
+
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/acf-status',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'route_acf_status' ),
+				'permission_callback' => array( $this, 'permission_admin' ),
+			)
+		);
+
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/revalidate',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'route_revalidate' ),
+				'permission_callback' => array( $this, 'permission_admin' ),
+				'args'                => array(
+					'reason' => array(
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/diagnostic',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'route_diagnostic' ),
+				'permission_callback' => array( $this, 'permission_admin' ),
+			)
+		);
+
+		// V0.27 — nav menu passthrough.
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/menus',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'route_menus' ),
+				'permission_callback' => array( $this, 'permission_authenticated' ),
+			)
+		);
+
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/menus/(?P<location>[a-zA-Z0-9_-]+)',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'route_menu_items' ),
+				'permission_callback' => array( $this, 'permission_authenticated' ),
+				'args'                => array(
+					'location' => array(
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_key',
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Permission: any authenticated user (Application Password works).
+	 *
+	 * @return bool
+	 */
+	public function permission_authenticated(): bool {
+		return is_user_logged_in();
+	}
+
+	/**
+	 * Permission: requires `manage_options` (administrator).
+	 *
+	 * Used for health endpoints and the manual revalidate trigger — anything
+	 * that exposes site state or causes outbound webhooks should require admin.
+	 *
+	 * @return bool
+	 */
+	public function permission_admin(): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	/**
+	 * Static variant — for cross-class callable references.
+	 *
+	 * @return bool
+	 */
+	public static function permission_admin_static(): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	/**
+	 * GET /hatch/v1/info — what does this WP install offer?
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function route_info(): WP_REST_Response {
+		$report = Hatch_Detector::report();
+		$data   = array(
+			'hatch_version' => HATCH_VERSION,
+			'wp_version'    => get_bloginfo( 'version' ),
+			'site_name'     => get_bloginfo( 'name' ),
+			'site_url'      => home_url(),
+			'detected'      => $report,
+			'webhook_url'   => get_option( 'hatch_revalidate_endpoint', '' ),
+		);
+		return new WP_REST_Response( $data, 200 );
+	}
+
+	/**
+	 * GET /hatch/v1/seo-head?url=X — proxy RankMath OR Yoast getHead.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function route_seo_head( WP_REST_Request $request ) {
+		return Hatch_Seo_Bridge::get_head( $request->get_param( 'url' ) );
+	}
+
+	/**
+	 * GET /hatch/v1/schema?url=X — structured JSON-LD for the given URL.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public function route_schema( WP_REST_Request $request ): WP_REST_Response {
+		return Hatch_Seo_Bridge::get_schema( $request->get_param( 'url' ) );
+	}
+
+	/**
+	 * GET /hatch/v1/redirects — combine sources from RankMath/Yoast/Redirection.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function route_redirects(): WP_REST_Response {
+		$out = array();
+
+		// Redirection plugin.
+		if ( Hatch_Detector::is_active( 'redirection' ) && class_exists( 'Red_Item' ) ) {
+			$items = Red_Item::get_all_for_module( 0 );
+			foreach ( (array) $items as $item ) {
+				if ( ! is_object( $item ) ) {
+					continue;
+				}
+				$out[] = array(
+					'from'   => sanitize_text_field( (string) $item->get_url() ),
+					'to'     => esc_url_raw( (string) $item->get_action_data() ),
+					'status' => intval( $item->get_action_code() ),
+					'source' => 'redirection',
+				);
+			}
+		}
+
+		// RankMath redirections module.
+		if ( Hatch_Detector::is_active( 'rankmath' ) ) {
+			global $wpdb;
+			// Table name composed from $wpdb->prefix only — never user input.
+			$table = $wpdb->prefix . 'rank_math_redirections';
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table;
+			if ( $table_exists ) {
+				// $table is safe ($wpdb->prefix only) — $wpdb->prepare() can't parameterize identifiers.
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$rows = $wpdb->get_results( "SELECT sources, url_to, header_code FROM `{$table}` WHERE status = 'active' LIMIT 5000" );
+				foreach ( (array) $rows as $row ) {
+					$sources = maybe_unserialize( $row->sources );
+					foreach ( (array) $sources as $src ) {
+						$out[] = array(
+							'from'   => isset( $src['pattern'] ) ? sanitize_text_field( (string) $src['pattern'] ) : '',
+							'to'     => esc_url_raw( (string) $row->url_to ),
+							'status' => intval( $row->header_code ),
+							'source' => 'rankmath',
+						);
+					}
+				}
+			}
+		}
+
+		// Note: Yoast Premium redirects export TBD (file-based).
+
+		return new WP_REST_Response( $out, 200 );
+	}
+
+	/**
+	 * GET /hatch/v1/membership/check — verify current user has access.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function route_membership_check(): WP_REST_Response {
+		$user = wp_get_current_user();
+		return new WP_REST_Response(
+			array(
+				'is_logged_in' => $user->exists(),
+				'user_id'      => $user->ID,
+				'roles'        => $user->roles,
+				'plugin'       => Hatch_Detector::get_membership_plugin(),
+			),
+			200
+		);
+	}
+
+	/**
+	 * GET /hatch/v1/cpt-health — list CPTs and their REST exposure status.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function route_cpt_health(): WP_REST_Response {
+		return new WP_REST_Response( Hatch_Cpt_Scanner::scan(), 200 );
+	}
+
+	/**
+	 * GET /hatch/v1/acf-status — list ACF/SCF/Meta Box field group REST status.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function route_acf_status(): WP_REST_Response {
+		return new WP_REST_Response( Hatch_Acf_Bridge::get_field_group_status(), 200 );
+	}
+
+	/**
+	 * POST /hatch/v1/revalidate — manually fire a full-site revalidation webhook.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function route_revalidate( WP_REST_Request $request ) {
+		$reason = (string) $request->get_param( 'reason' );
+		if ( '' === $reason ) {
+			$reason = 'rest-manual';
+		}
+		$fired = Hatch_Revalidate::trigger( $reason );
+		if ( ! $fired ) {
+			return new WP_Error(
+				'hatch_revalidate_not_configured',
+				esc_html__( 'Revalidation endpoint or webhook secret not configured.', 'hatch' ),
+				array( 'status' => 400 )
+			);
+		}
+		return new WP_REST_Response( array( 'success' => true, 'reason' => $reason ), 200 );
+	}
+
+	/**
+	 * GET /hatch/v1/diagnostic — run preflight diagnostic.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function route_diagnostic(): WP_REST_Response {
+		return new WP_REST_Response( Hatch_Diagnostic::run(), 200 );
+	}
+
+	/**
+	 * GET /hatch/v1/menus — all registered nav menu locations.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function route_menus(): WP_REST_Response {
+		return new WP_REST_Response( Hatch_Menus_Bridge::get_locations(), 200 );
+	}
+
+	/**
+	 * GET /hatch/v1/menus/{location} — items for one nav menu location.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public function route_menu_items( WP_REST_Request $request ): WP_REST_Response {
+		$location = (string) $request->get_param( 'location' );
+		return new WP_REST_Response(
+			array(
+				'location' => $location,
+				'items'    => Hatch_Menus_Bridge::get_items( $location ),
+			),
+			200
+		);
+	}
+}

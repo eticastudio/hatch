@@ -1,0 +1,73 @@
+---
+/**
+ * 404 — Not Found. Honors design.md template `not_found_search`.
+ * SSR-rendered so the response is a proper 404, not a soft-200.
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import { getFeatures } from '@/lib/features';
+import { getPosts } from '@/lib/hatch';
+
+const features = await getFeatures();
+const showSearch = (features.design?.templates?.not_found_search ?? 'true') !== 'false';
+
+// Show 4 most recent posts as a "you might like" recovery hint.
+const { posts: recent } = await getPosts({ page: 1, perPage: 4 });
+
+Astro.response.status = 404;
+Astro.response.statusText = 'Not Found';
+---
+
+<PageLayout title="Page not found" description="The page you were looking for doesn't exist." cacheTtl={0}>
+  <main class="max-w-3xl mx-auto px-5 sm:px-8 py-20 sm:py-28">
+    <p class="text-[12px] uppercase tracking-wider font-medium text-hatch-fg-subtle mb-3">Error 404</p>
+    <h1 class="text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.05]">
+      This page doesn't exist.
+    </h1>
+    <p class="mt-4 text-[15px] text-hatch-fg-muted leading-relaxed max-w-xl">
+      The URL you tried may have moved, been deleted, or never existed in the first place.
+    </p>
+
+    {showSearch && (
+      <form action="/search" method="get" class="mt-8 flex gap-2 max-w-md">
+        <input
+          type="search"
+          name="q"
+          placeholder="Search the site…"
+          required
+          class="flex-1 px-4 py-2.5 rounded-md border border-hatch-border bg-hatch-bg text-[14px] focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none"
+        />
+        <button type="submit" class="px-5 py-2.5 rounded-md bg-hatch-primary text-white text-[13.5px] font-medium hover:opacity-90 transition-opacity">
+          Search
+        </button>
+      </form>
+    )}
+
+    <div class="mt-10 flex flex-wrap gap-3">
+      <a href="/" class="px-4 py-2 rounded-md border border-hatch-border text-[13.5px] hover:border-hatch-fg transition-colors">
+        ← Home
+      </a>
+      <a href="/blog" class="px-4 py-2 rounded-md border border-hatch-border text-[13.5px] hover:border-hatch-fg transition-colors">
+        All posts
+      </a>
+    </div>
+
+    {recent.length > 0 && (
+      <section class="mt-20 pt-10 border-t border-hatch-border">
+        <h2 class="text-lg font-semibold tracking-tight mb-6">Recent posts</h2>
+        <ul class="flex flex-col gap-3">
+          {recent.map((p) => (
+            <li>
+              <a href={`/blog/${p.slug}`} class="block py-2 group">
+                <h3 class="text-[15px] font-medium leading-snug group-hover:text-hatch-primary transition-colors line-clamp-1" set:html={p.title} />
+                <p class="mt-1 text-[12.5px] text-hatch-fg-subtle">
+                  {new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {p.category && <> · {p.category}</>}
+                </p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+  </main>
+</PageLayout>

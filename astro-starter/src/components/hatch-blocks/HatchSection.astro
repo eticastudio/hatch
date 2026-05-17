@@ -1,0 +1,29 @@
+---
+/**
+ * <HatchSection /> — optional component-mapping renderer for hatch/section.
+ * Use when you want to override the saved HTML (e.g. wrap in animation hooks).
+ */
+interface Props {
+	backgroundToken?: string;
+	textToken?: string;
+	gradient?: string;
+	as?: keyof HTMLElementTagNameMap;
+	class?: string;
+}
+const {
+	backgroundToken = '',
+	textToken = '',
+	gradient = '',
+	as = 'section',
+	class: extra = '',
+} = Astro.props as Props;
+const Tag = as;
+const classes = [
+	'hatch-section relative',
+	backgroundToken && `bg-${ backgroundToken }`,
+	textToken && `text-${ textToken }`,
+	gradient,
+	extra,
+].filter( Boolean ).join( ' ' );
+---
+<Tag class={ classes }><slot /></Tag>

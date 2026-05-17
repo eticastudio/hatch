@@ -1,0 +1,58 @@
+---
+/**
+ * core/cover — background image/video + overlay + inner content.
+ * Renders the inner blocks through BlockRenderer for full nesting support.
+ */
+import BlockRenderer from '../BlockRenderer.astro';
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle } from './_shared';
+
+const { block, depth } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+const url     = typeof a.url === 'string' ? a.url : '';
+const dimRatio = typeof a.dimRatio === 'number' ? a.dimRatio : 50;
+const overlay  = typeof a.overlayColor === 'string' ? a.overlayColor : '#000';
+const focal    = ( a.focalPoint && typeof a.focalPoint === 'object' )
+	? a.focalPoint as { x: number; y: number }
+	: { x: 0.5, y: 0.5 };
+const minHeight = typeof a.minHeight === 'number' ? `${ a.minHeight }${ a.minHeightUnit || 'px' }` : '430px';
+const isDark    = a.isDark !== false;
+
+const cls   = blockClass( block, `wp-block-cover ${ isDark ? 'is-dark' : 'is-light' }` );
+const base  = blockStyle( block );
+
+const wrapStyle = [
+	base,
+	'position:relative',
+	'display:flex',
+	'align-items:center',
+	'justify-content:center',
+	'overflow:hidden',
+	`min-height:${ minHeight }`,
+].join( ';' );
+
+const bgStyle = url
+	? [
+		'position:absolute',
+		'inset:0',
+		`background-image:url(${ url })`,
+		'background-size:cover',
+		`background-position:${ focal.x * 100 }% ${ focal.y * 100 }%`,
+	].join( ';' )
+	: '';
+
+const overlayStyle = [
+	'position:absolute',
+	'inset:0',
+	`background:${ overlay }`,
+	`opacity:${ dimRatio / 100 }`,
+].join( ';' );
+---
+<div class={ cls } style={ wrapStyle }>
+	{ url && <div aria-hidden="true" style={ bgStyle }></div> }
+	<div aria-hidden="true" style={ overlayStyle }></div>
+	<div class="wp-block-cover__inner-container" style="position:relative;z-index:1;">
+		<BlockRenderer blocks={ block.innerBlocks } depth={ depth + 1 } />
+	</div>
+</div>

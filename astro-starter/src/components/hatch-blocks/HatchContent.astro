@@ -1,0 +1,30 @@
+---
+/**
+ * <HatchContent /> — drop-in renderer for WordPress post content built with Hatch Blocks.
+ *
+ * Usage:
+ *   <HatchContent html={post.content.rendered} />
+ *
+ * Pass-through by default. The Tailwind classes baked into the saved HTML get
+ * picked up by the Astro Tailwind config (make sure content globs include
+ * `node_modules/@hatch/**` if you load patterns from npm).
+ *
+ * For interactive blocks (Custom Code shadow mode), it imports the Hatch web
+ * components bundle on demand.
+ */
+interface Props {
+	html: string;
+	hydrateInteractive?: boolean;
+}
+
+const { html, hydrateInteractive = true } = Astro.props as Props;
+
+// Detect if any interactive block is present so we only ship JS when needed.
+const needsInteractive = hydrateInteractive && /hatch-shadow-code|data-hatch-interactive/.test( html );
+---
+
+<div class="hatch-content" set:html={ html } />
+
+{ needsInteractive && (
+	<script type="module" src="/hatch-interactive.js" />
+) }

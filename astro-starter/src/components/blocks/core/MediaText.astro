@@ -1,0 +1,44 @@
+---
+import BlockRenderer from '../BlockRenderer.astro';
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle } from './_shared';
+
+const { block, depth } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+const mediaUrl  = typeof a.mediaUrl === 'string' ? a.mediaUrl : '';
+const mediaAlt  = typeof a.mediaAlt === 'string' ? a.mediaAlt : '';
+const mediaPos  = a.mediaPosition === 'right' ? 'right' : 'left';
+const mediaW    = typeof a.mediaWidth === 'number' ? a.mediaWidth : 50;
+const isStacked = a.isStackedOnMobile !== false;
+
+const cls   = blockClass( block, `wp-block-media-text has-media-on-the-${ mediaPos }` );
+const base  = blockStyle( block );
+
+const gridCols = mediaPos === 'right'
+	? `1fr ${ mediaW }%`
+	: `${ mediaW }% 1fr`;
+
+const wrapStyle = [
+	base,
+	'display:grid',
+	`grid-template-columns:${ gridCols }`,
+	'gap:1.5rem',
+	'align-items:center',
+].join( ';' );
+---
+<div class={ cls } style={ wrapStyle } data-stacked={ isStacked ? 'true' : 'false' }>
+	{ mediaPos === 'left' && mediaUrl && (
+		<figure class="wp-block-media-text__media">
+			<img src={ mediaUrl } alt={ mediaAlt } loading="lazy" decoding="async" />
+		</figure>
+	) }
+	<div class="wp-block-media-text__content">
+		<BlockRenderer blocks={ block.innerBlocks } depth={ depth + 1 } />
+	</div>
+	{ mediaPos === 'right' && mediaUrl && (
+		<figure class="wp-block-media-text__media">
+			<img src={ mediaUrl } alt={ mediaAlt } loading="lazy" decoding="async" />
+		</figure>
+	) }
+</div>

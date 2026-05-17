@@ -1,0 +1,22 @@
+---
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle } from './_shared';
+
+const { block } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+const src     = typeof a.src === 'string' ? a.src : '';
+const loop    = a.loop === true;
+const autoplay = a.autoplay === true;
+const preload = typeof a.preload === 'string' ? a.preload : 'metadata';
+const caption = typeof a.caption === 'string' ? a.caption : '';
+
+const cls   = blockClass( block, 'wp-block-audio' );
+const style = blockStyle( block );
+---
+{ src && (
+	<figure class={ cls } style={ style || undefined }>
+		<audio src={ src } controls autoplay={ autoplay } loop={ loop } preload={ preload } />
+		{ caption && <figcaption set:html={ caption } /> }
+	</figure>
+) }

@@ -1,0 +1,20 @@
+---
+/**
+ * core/details — native <details>/<summary>. Zero JS needed.
+ */
+import BlockRenderer from '../BlockRenderer.astro';
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle } from './_shared';
+
+const { block, depth } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+const summary = typeof a.summary === 'string' ? a.summary : 'Details';
+const showContent = a.showContent === true;
+const cls   = blockClass( block, 'wp-block-details' );
+const style = blockStyle( block );
+---
+<details class={ cls } style={ style || undefined } open={ showContent || undefined }>
+	<summary set:html={ summary } />
+	<BlockRenderer blocks={ block.innerBlocks } depth={ depth + 1 } />
+</details>

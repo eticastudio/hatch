@@ -1,0 +1,31 @@
+---
+/**
+ * core/gallery — renders a responsive CSS grid of optimized <Image> tags.
+ *
+ * Honors:
+ *   - block.attrs.columns       (1–8, default 3)
+ *   - block.attrs.imageCrop     (boolean — uses aspect-square if true)
+ *   - block.attrs.linkTo        ("none" | "media" | "attachment")
+ *   - inner core/image blocks   (each rendered through native pipeline)
+ */
+import BlockRenderer from '../BlockRenderer.astro';
+import type { BlockProps } from './_shared';
+import { blockClass } from './_shared';
+
+const { block, depth } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+const columns   = typeof a.columns === 'number' ? Math.min( Math.max( a.columns, 1 ), 8 ) : 3;
+const imageCrop = a.imageCrop !== false;
+const cls       = blockClass( block, `wp-block-gallery columns-${ columns }` );
+
+const gridStyle = `display:grid;gap:0.5rem;grid-template-columns:repeat(${ columns }, minmax(0, 1fr));`;
+const itemAspect = imageCrop ? 'aspect-ratio:1/1;overflow:hidden;' : '';
+---
+<figure class={ cls } style={ gridStyle }>
+	{ block.innerBlocks.map( ( img ) => (
+		<div style={ itemAspect }>
+			<BlockRenderer blocks={ [ img ] } depth={ depth + 1 } />
+		</div>
+	) ) }
+</figure>

@@ -1,0 +1,11 @@
+---
+import type { BlockProps } from './_shared';
+import { blockClass } from './_shared';
+
+const { block } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+const height = typeof a.height === 'string' ? a.height : '100px';
+const cls    = blockClass( block, 'wp-block-spacer' );
+---
+<div class={ cls } aria-hidden="true" style={ `height:${ height };` }></div>

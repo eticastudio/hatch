@@ -1,0 +1,22 @@
+---
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle } from './_shared';
+
+const { block } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+const url      = typeof a.url === 'string' ? a.url : '#';
+const text     = typeof a.text === 'string' ? a.text : '';
+const linkTarget = typeof a.linkTarget === 'string' ? a.linkTarget : undefined;
+const rel        = typeof a.rel === 'string' ? a.rel : ( linkTarget === '_blank' ? 'noopener' : undefined );
+const isOutline  = ( typeof a.className === 'string' && a.className.includes( 'is-style-outline' ) );
+
+const cls   = blockClass( block, `wp-block-button ${ isOutline ? 'is-style-outline' : '' }` );
+const style = blockStyle( block );
+
+// Fallback: if attrs didn't parse, use innerHTML.
+const label = text || ( block.innerHTML ? block.innerHTML.replace( /<[^>]+>/g, '' ).trim() : 'Button' );
+---
+<div class={ cls } style={ style || undefined }>
+	<a class="wp-block-button__link" href={ url } target={ linkTarget } rel={ rel }>{ label }</a>
+</div>
