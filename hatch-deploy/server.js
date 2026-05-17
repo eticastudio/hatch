@@ -653,19 +653,37 @@ footer a:hover { color: var(--fg); }
 .status-bar.fail { background: #fef2f2; color: #b91c1c; }
 .status-bar .spinner { width:14px; height:14px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 820px) {
+	h2 { font-size: 24px; }
+	p.lead { font-size: 18px; }
+	hr { margin: 48px 0; }
+}
 @media (max-width: 720px) {
 	main { padding: 32px 18px 60px; }
+	h2 { font-size: 22px; margin-top: 40px; }
+	p.lead { font-size: 17px; }
 	.compare { grid-template-columns: 1fr; }
 	.compare > div + div { border-left: 0; border-top: 1px solid var(--border); }
+	hr { margin: 40px 0; }
 }
 @media (max-width: 540px) {
-	h1 { font-size: clamp(30px, 8vw, 42px); }
-	p.lead { font-size: 16px; }
+	h1 { font-size: clamp(28px, 8vw, 40px); }
+	h2 { font-size: 20px; margin-top: 32px; line-height: 1.25; }
+	h3 { font-size: 15px; }
+	p { font-size: 14.5px; }
+	p.lead { font-size: 16px; line-height: 1.6; }
+	hr { margin: 32px 0; }
 	.hero-wrap > p:has(.btn) { display: flex; flex-direction: column; gap: 10px; }
 	.hero-wrap > p:has(.btn) .btn { text-align: center; justify-content: center; }
 	.hero-stat-row { grid-template-columns: 1fr 1fr; gap: 12px; }
 	.hero-stat .n { font-size: 22px; }
 	.hero-stat .l { font-size: 11px; }
+	.unique-grid { grid-template-columns: 1fr; }
+	.community-wrap { flex-direction: column; }
+	.vs-table { font-size: 12px; }
+	.vs-table th, .vs-table td { padding: 8px 10px; }
+	.feature { padding: 16px; }
+	.u-card { padding: 18px; }
 }
 
 /* Orbital decorative ring — hero background element */
@@ -885,7 +903,7 @@ app.get('/', (req, res) => {
 				&nbsp;
 				<a class="btn secondary" href="${REPO}" target="_blank" rel="noopener noreferrer">${lu('github', '')} Star on GitHub</a>
 			</p>
-			<p style="margin-top:14px; font-size:13px; color: var(--fg-subtle);">
+			<p style="margin-top:14px; font-size:14px; font-weight:500; color: var(--fg-muted);">
 				<span class="live-dot"></span>&nbsp; Free forever · No SaaS, no account, no telemetry. 1-click deploy to Cloudflare Workers, Vercel, or your VPS
 			</p>
 
@@ -1260,30 +1278,16 @@ app.get('/', (req, res) => {
 				</div>
 			</div>
 			<p style="margin-top:18px; font-size:13.5px; color:var(--fg-subtle);">Also runs on Netlify, Render, Fly.io, AWS Amplify — anywhere Astro SSR is supported. Switch anytime. Costs nothing to move.</p>
-		</section>
 
-		<hr/>
-
-		<section id="dynamic">
-			<span class="pill">⚡ &nbsp; The thing nobody else does</span>
-			<h2 style="margin-top:14px;">Publish a post. See it live in 60 seconds.<br/>No rebuild. No deploy hook. No wait.</h2>
-			<p class="lead" style="margin-bottom: 8px;">
-				Most headless WP setups make you fix a typo, push to git, watch a 4-minute Vercel rebuild,
-				spot another typo, repeat. Your content team will hate you in a week.
-				Hatch kills that loop. Publish in Gutenberg, refresh the live site, it's there.
-			</p>
-
-			<div class="sync-vis" role="img" aria-label="How content goes live in Hatch">
+			<!-- Inline sync diagram — folded from former #dynamic section -->
+			<div class="sync-vis" role="img" aria-label="How content goes live in Hatch" style="margin-top: 32px;">
 				<div class="col">
 					<div class="label">In WordPress</div>
 					<div class="row"><b>Author hits Publish</b></div>
 					<div class="row">→ <span style="color:var(--fg-subtle)">REST exposes new post</span></div>
 					<div class="row">→ <span style="color:var(--fg-subtle)">Cache invalidated</span></div>
 				</div>
-				<div class="arrow">
-					→
-					<span class="a-dur">~60s</span>
-				</div>
+				<div class="arrow">→ <span class="a-dur">~60s</span></div>
 				<div class="col">
 					<div class="label">On the live edge</div>
 					<div class="row"><span class="live-dot"></span> &nbsp;<b>SSR fetch revalidates</b></div>
@@ -1291,83 +1295,7 @@ app.get('/', (req, res) => {
 					<div class="row">→ <span style="color:var(--fg-subtle)">Cached for next visitors</span></div>
 				</div>
 			</div>
-
-			<div class="q-block">
-				<p style="margin:0; font-size:14.5px;"><strong>How is it different?</strong> Faust, Frontity, and most
-				other headless WP starters build the site as static HTML at deploy time. You pay the rebuild cost every
-				time you touch a comma. Hatch is <strong>Astro-first</strong> and runs SSR at the edge. Content is
-				fetched live, then held in a 60-second cache. The cache buys you Lighthouse 100. The fetch buys you
-				live content. Best of both shapes.</p>
-			</div>
-		</section>
-
-		<hr/>
-
-		<section id="plugins">
-			<span class="pill">🔌 &nbsp; Plugin compatibility</span>
-			<h2 style="margin-top:14px;">Your existing plugins. Wired up.<br/>You don't touch a thing.</h2>
-			<p class="lead">Rank Math, Fluent Forms, ACF, WooCommerce. Already installed? Hatch detects them, wires them to the headless frontend, and gets out of your way. No config screens. No re-installs.</p>
-			<div class="grid grid-3" style="margin-top: 28px;">
-				<div class="feature">
-					<h3>✅ SEO</h3>
-					<p style="margin-top:6px; font-size:13.5px;"><strong>Rank Math, Yoast, SEOPress, AIOSEO.</strong></p>
-					<p style="margin-top:8px; font-size:12.5px; color:var(--fg-muted);">Full <code>&lt;head&gt;</code> + JSON-LD graph piped through to the rendered HTML. Schema, OG tags, sitemaps: everything your SEO plugin produces is what visitors and Google see.</p>
-				</div>
-				<div class="feature">
-					<h3>✅ Forms</h3>
-					<p style="margin-top:6px; font-size:13.5px;"><strong>Fluent Forms, WPForms.</strong></p>
-					<p style="margin-top:8px; font-size:12.5px; color:var(--fg-muted);">Live submit through the form plugin's native REST endpoint. Newsletter integrations (Mailchimp, ConvertKit, FluentCRM, Brevo) work through Fluent Forms' built-in connectors — no separate CRM bridge needed.</p>
-				</div>
-				<div class="feature">
-					<h3>✅ Custom fields</h3>
-					<p style="margin-top:6px; font-size:13.5px;"><strong>ACF, ACF Pro, Secure Custom Fields, Meta Box, Pods.</strong></p>
-					<p style="margin-top:8px; font-size:12.5px; color:var(--fg-muted);">One-click bulk-expose to REST. Custom fields ride along on every <code>/wp/v2/posts</code> response. Meta Box + Pods get tailored exposure instructions for their own UIs.</p>
-				</div>
-				<div class="feature">
-					<h3>✅ Redirects</h3>
-					<p style="margin-top:6px; font-size:13.5px;"><strong>Redirection (recommended), Rank Math redirects.</strong></p>
-					<p style="margin-top:8px; font-size:12.5px; color:var(--fg-muted);">Rules pulled live from your redirect plugin and applied at the Astro edge. 301/302 with the right status code, not soft redirects.</p>
-				</div>
-				<div class="feature">
-					<h3>✅ Anti-spam</h3>
-					<p style="margin-top:6px; font-size:13.5px;"><strong>Cloudflare Turnstile (built-in).</strong></p>
-					<p style="margin-top:8px; font-size:12.5px; color:var(--fg-muted);">Free, privacy-friendly. Wraps comments + form submissions. Site key + secret in the Integrations tab — Hatch handles the verification flow.</p>
-				</div>
-				<div class="feature">
-					<h3>🟡 WooCommerce</h3>
-					<p style="margin-top:6px; font-size:13.5px;"><strong>Products read-only (v0.34+).</strong></p>
-					<p style="margin-top:8px; font-size:12.5px; color:var(--fg-muted);">Browse-only headless: <code>/hatch/v1/store/products</code> + variations + categories. Hybrid checkout (browse Astro, checkout WP) on the roadmap.</p>
-				</div>
-				<div class="feature">
-					<h3>✅ Gutenberg blocks</h3>
-					<p style="margin-top:6px; font-size:13.5px;"><strong>All core blocks supported.</strong></p>
-					<p style="margin-top:8px; font-size:12.5px; color:var(--fg-muted);">Every Gutenberg core block renders via the block-serializer. Paragraph, Image, Gallery, Columns, Query Loop, Custom HTML, and more. Patterns and templates included.</p>
-				</div>
-				<div class="feature">
-					<h3>📭 Coming soon</h3>
-					<p style="margin-top:6px; font-size:13.5px;"><strong>Polylang/WPML, EDD, Events Calendar.</strong></p>
-					<p style="margin-top:8px; font-size:12.5px; color:var(--fg-muted);">Bridges planned for v0.40+, based on user demand. Open a GitHub issue if your stack needs one of these first.</p>
-				</div>
-			</div>
-
-			<div style="margin-top:24px; background:#f0fdf4; border:1px solid #bbf7d0; border-left:4px solid var(--green); border-radius:10px; padding:18px 22px; margin-bottom:12px;">
-				<h4 style="margin:0 0 8px; font-size:14px; color:var(--green);">Works on your existing WordPress site</h4>
-				<p style="margin:0; font-size:13px; color:var(--fg-muted); line-height:1.7;">
-					Already have a WordPress site? Install Hatch, connect your host, and your existing posts, pages, menus, ACF fields, SEO settings, and redirects all carry over automatically.
-					You don't start from scratch. Hatch reads your existing content structure and wires it to the new frontend.
-					<strong style="color:var(--fg);">Partial headless is also valid:</strong> headless your blog and landing pages, keep WP for WooCommerce checkout or membership areas.
-				</p>
-			</div>
-			<div style="margin-top:0; background:#fafafa; border:1px solid var(--border); border-left:4px solid #e5e7eb; border-radius:10px; padding:18px 22px;">
-				<h4 style="margin:0 0 8px; font-size:14px; color:var(--fg-muted);">Not the right tool if…</h4>
-				<p style="margin:0; font-size:13px; color:var(--fg-muted); line-height:1.7;">
-					<strong style="color:var(--fg);">Your site is built on Elementor, Divi, Bricks, or WPBakery.</strong>
-					Page builders render via PHP at request time. That output doesn't translate to a headless frontend. Hatch works with Gutenberg (the default WordPress editor). If you're builder-heavy, stay on classic WP for now.
-					<br/><br/>
-					<strong style="color:var(--fg);">Cache plugins (WP Rocket, W3TC, LiteSpeed, Autoptimize).</strong>
-					Not needed with Hatch — and should be deactivated. Your visitors never hit PHP, so there's nothing to cache server-side. Edge caching is built in.
-				</p>
-			</div>
+			<p style="margin-top:10px; font-size:13px; color:var(--fg-subtle);">Unlike static headless (Gatsby, SSG) — no rebuild on every publish. SSR at the edge: fetched live, cached for speed.</p>
 		</section>
 
 		<hr/>
@@ -1405,52 +1333,66 @@ app.get('/', (req, res) => {
 					</ul>
 				</div>
 			</div>
-		</section>
 
-		<hr/>
+			<!-- Plugin compat strip — formerly standalone #plugins section -->
+			<div style="margin-top: 32px; padding: 22px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px;">
+				<p style="margin: 0 0 14px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-subtle);">Works with your existing plugins</p>
+				<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
+					<span class="pill" style="font-size:12px;">✅ Rank Math</span>
+					<span class="pill" style="font-size:12px;">✅ Yoast SEO</span>
+					<span class="pill" style="font-size:12px;">✅ SEOPress</span>
+					<span class="pill" style="font-size:12px;">✅ ACF / ACF Pro</span>
+					<span class="pill" style="font-size:12px;">✅ Meta Box</span>
+					<span class="pill" style="font-size:12px;">✅ Fluent Forms</span>
+					<span class="pill" style="font-size:12px;">✅ WPForms</span>
+					<span class="pill" style="font-size:12px;">✅ Redirection</span>
+					<span class="pill" style="font-size:12px;">✅ Cloudflare Turnstile</span>
+					<span class="pill" style="font-size:12px;">✅ WooCommerce (browse)</span>
+					<span class="pill" style="font-size:12px;">✅ All Gutenberg core blocks</span>
+					<span class="pill" style="font-size:12px; opacity:0.65;">🟡 WooCommerce checkout (roadmap)</span>
+				</div>
+				<p style="margin: 0; font-size: 12.5px; color: var(--fg-subtle);">
+					<strong style="color:var(--fg);">Not compatible:</strong> Elementor, Divi, Bricks, WPBakery (PHP page builders). Cache plugins (WP Rocket, W3TC, LiteSpeed) should be deactivated — edge caching is built in.
+				</p>
+			</div>
 
-		<section id="unique">
-			<span class="pill">⊙ &nbsp; The Hatch difference</span>
-			<h2 style="margin-top:14px;">The six headless-WP problems<br/>nobody else fixes. All fixed.</h2>
-			<p class="lead">Every team that tries headless WordPress hits the same wall: GitHub forks, ACF that disappears,
-			rebuild loops, image-proxy DIY. Hatch ships the solution to each, in code, on day one.</p>
-
-			<div class="unique-grid">
+			<!-- Differentiator cards — formerly standalone #unique section -->
+			<div class="unique-grid" style="margin-top: 28px;">
 				<div class="u-card">
 					<span class="num">01</span>
 					<span class="vs">vs Faust / Frontity</span>
 					<h3>No GitHub fork on your account</h3>
-					<p>Paste a token. Broker clones, builds, and pushes from its own runner. Your repo stays yours. Your tokens never live on disk.</p>
+					<p>Paste a token. Broker builds from its own runner. Your repo stays yours. Tokens never live on disk.</p>
 				</div>
 				<div class="u-card">
 					<span class="num">02</span>
 					<span class="vs">vs WPGraphQL stacks</span>
-					<h3>REST-only, no GraphQL plugin needed</h3>
-					<p>Hatch uses native WP REST + a tiny <code>/hatch/v1</code> namespace. Editors don't need to learn a new query layer. Updates don't break on WP upgrades.</p>
+					<h3>REST-only, no GraphQL needed</h3>
+					<p>Native WP REST + a tiny <code>/hatch/v1</code> namespace. No new query layer. Updates don't break on WP upgrades.</p>
 				</div>
 				<div class="u-card">
 					<span class="num">03</span>
-					<span class="vs">vs DIY headless stacks</span>
-					<h3>Auto-detects what you already use</h3>
-					<p>Yoast / Rank Math / SEOPress / AIOSEO. Fluent Forms / WPForms. FluentCRM lists. ACF + custom CPTs. Hatch reads your stack, no config files.</p>
+					<span class="vs">vs DIY headless</span>
+					<h3>Auto-detects your stack</h3>
+					<p>Yoast / Rank Math / ACF / Fluent Forms. Hatch reads what you have installed and wires it up. No config files.</p>
 				</div>
 				<div class="u-card">
 					<span class="num">04</span>
-					<span class="vs">vs every "static" headless tool</span>
+					<span class="vs">vs static headless</span>
 					<h3>Comments + Forms feel native</h3>
-					<p>Real WordPress comments rendered on the frontend, gated by Cloudflare Turnstile. Headless form block routes to Fluent Forms / WPForms / FluentCRM. Your choice.</p>
+					<p>Real WP comments on the frontend, spam-gated by Turnstile. Forms post to Fluent Forms / WPForms REST endpoints.</p>
 				</div>
 				<div class="u-card">
 					<span class="num">05</span>
 					<span class="vs">vs vendor-locked tools</span>
-					<h3>One-click portability</h3>
-					<p>Same Astro starter ships to Cloudflare Workers, Vercel, or your own VPS. Move hosts in a single click. No code change, no DNS panic.</p>
+					<h3>One-click host portability</h3>
+					<p>Same Astro starter on Cloudflare, Vercel, or VPS. Move in one click. No code change, no DNS panic.</p>
 				</div>
 				<div class="u-card">
 					<span class="num">06</span>
 					<span class="vs">vs everyone</span>
 					<h3>One plugin. Batteries included.</h3>
-					<p>REST hardening, login obfuscation, App Password generator, ACF bridge, SEO bridge, deploy broker, Gutenberg block library, Companion theme. Stop installing five plugins.</p>
+					<p>REST hardening, App Password wizard, ACF bridge, SEO bridge, Gutenberg block library. Stop installing five plugins.</p>
 				</div>
 			</div>
 		</section>
