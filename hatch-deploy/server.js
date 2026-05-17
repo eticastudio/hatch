@@ -280,6 +280,69 @@ footer a:hover { color: var(--fg); }
 	.topbar { max-width: calc(100% - 24px); padding: 8px 8px 8px 16px; gap: 8px; }
 	.topbar nav { display: none; }
 }
+.topbar-hamburger {
+	display: none;
+	background: none;
+	border: 1.5px solid var(--border-2);
+	cursor: pointer;
+	padding: 7px 10px;
+	border-radius: 8px;
+	color: var(--fg);
+	line-height: 1;
+	transition: background .15s;
+	flex-shrink: 0;
+}
+.topbar-hamburger:hover { background: var(--bg-3); }
+@media (max-width: 820px) { .topbar-hamburger { display: flex; align-items: center; justify-content: center; } }
+
+/* Mobile fullscreen menu overlay */
+.mobile-menu {
+	display: none;
+	position: fixed;
+	inset: 0;
+	background: rgba(250,250,250,0.97);
+	backdrop-filter: saturate(180%) blur(16px);
+	-webkit-backdrop-filter: saturate(180%) blur(16px);
+	z-index: 300;
+	flex-direction: column;
+}
+.mobile-menu.open { display: flex; }
+.mobile-menu-head {
+	display: flex; align-items: center; justify-content: space-between;
+	padding: 14px 16px 14px 20px;
+	border-bottom: 1px solid var(--border);
+	flex-shrink: 0;
+}
+.mobile-menu-close {
+	background: none;
+	border: 1.5px solid var(--border-2);
+	border-radius: 8px;
+	font-size: 15px;
+	cursor: pointer;
+	color: var(--fg);
+	padding: 7px 11px;
+	line-height: 1;
+	transition: background .15s;
+}
+.mobile-menu-close:hover { background: var(--bg-3); }
+.mobile-menu-links {
+	flex: 1; display: flex; flex-direction: column;
+	overflow-y: auto; padding: 4px 0;
+}
+.mobile-menu-links a {
+	font-size: 19px; font-weight: 600; color: var(--fg);
+	padding: 18px 24px; border-bottom: 1px solid var(--border);
+	letter-spacing: -0.015em; display: block;
+}
+.mobile-menu-links a:hover { background: var(--bg-3); color: var(--fg); }
+.mobile-menu-foot {
+	flex-shrink: 0; padding: 20px 20px;
+	border-top: 1px solid var(--border);
+}
+.mobile-menu-foot .topbar-cta {
+	display: flex; width: 100%; justify-content: center;
+	font-size: 15.5px; padding: 14px 20px; border-radius: 14px;
+}
 .step { display: flex; gap: 14px; align-items: flex-start; padding: 12px 0; }
 .step-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--bg-3); color: var(--fg); display: grid; place-items: center; font-weight: 700; font-size: 12.5px; font-family: var(--mono); }
 .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 16px 0; }
@@ -673,8 +736,8 @@ footer a:hover { color: var(--fg); }
 	p { font-size: 14.5px; }
 	p.lead { font-size: 16px; line-height: 1.6; }
 	hr { margin: 32px 0; }
-	.hero-wrap > p:has(.btn) { display: flex; flex-direction: column; gap: 10px; }
-	.hero-wrap > p:has(.btn) .btn { text-align: center; justify-content: center; }
+	.hero-cta-row { flex-direction: column !important; gap: 8px !important; margin-top: 20px !important; }
+	.hero-cta-row .btn { text-align: center; justify-content: center; width: 100%; }
 	.hero-stat-row { grid-template-columns: 1fr 1fr; gap: 12px; }
 	.hero-stat .n { font-size: 22px; }
 	.hero-stat .l { font-size: 11px; }
@@ -799,6 +862,30 @@ ${wide ? `<script type="application/ld+json">
 	</nav>
 	<div class="topbar-actions">
 		<a class="topbar-cta" href="${REPO}/releases/latest/download/hatch.zip" target="_blank" rel="noopener noreferrer">${lu('download', '')} Download free</a>
+		<button class="topbar-hamburger" id="menu-btn" aria-label="Open navigation" aria-expanded="false" aria-controls="mobile-menu">
+			<svg width="18" height="13" viewBox="0 0 18 13" fill="none" aria-hidden="true">
+				<rect y="0" width="18" height="2" rx="1" fill="currentColor"/>
+				<rect y="5.5" width="13" height="2" rx="1" fill="currentColor"/>
+				<rect y="11" width="18" height="2" rx="1" fill="currentColor"/>
+			</svg>
+		</button>
+	</div>
+</div>
+<div class="mobile-menu" id="mobile-menu" role="dialog" aria-modal="true" aria-label="Navigation" aria-hidden="true">
+	<div class="mobile-menu-head">
+		<a class="brand" href="/"><span class="brand-mark" aria-hidden="true">🐣</span>Hatch</a>
+		<button class="mobile-menu-close" id="menu-close" aria-label="Close navigation">✕</button>
+	</div>
+	<nav class="mobile-menu-links">
+		<a href="#headless-101" class="mob-link">What is Headless?</a>
+		<a href="#how" class="mob-link">How it works</a>
+		<a href="#vs" class="mob-link">Hatch vs Others</a>
+		<a href="#hosts" class="mob-link">Hosting</a>
+		<a href="#faq" class="mob-link">FAQ</a>
+		<a href="/vision" class="mob-link">Vision</a>
+	</nav>
+	<div class="mobile-menu-foot">
+		<a class="topbar-cta" href="${REPO}/releases/latest/download/hatch.zip" target="_blank" rel="noopener noreferrer">${lu('download', '')} Download Hatch, it's free</a>
 	</div>
 </div>` : ''}<main>${body}</main>
 ${wide ? `<script>
@@ -880,6 +967,32 @@ ${wide ? `<script>
 			history.replaceState(null, '', '#' + id);
 		});
 	});
+
+	// Mobile hamburger menu
+	(function(){
+		var btn   = document.getElementById('menu-btn');
+		var menu  = document.getElementById('mobile-menu');
+		var close = document.getElementById('menu-close');
+		if (!btn || !menu) return;
+		function openMenu() {
+			menu.classList.add('open');
+			menu.setAttribute('aria-hidden', 'false');
+			btn.setAttribute('aria-expanded', 'true');
+			document.body.style.overflow = 'hidden';
+		}
+		function closeMenu() {
+			menu.classList.remove('open');
+			menu.setAttribute('aria-hidden', 'true');
+			btn.setAttribute('aria-expanded', 'false');
+			document.body.style.overflow = '';
+		}
+		btn.addEventListener('click', openMenu);
+		if (close) close.addEventListener('click', closeMenu);
+		menu.querySelectorAll('.mob-link').forEach(function(a){
+			a.addEventListener('click', closeMenu);
+		});
+		document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMenu(); });
+	})();
 })();
 </script>` : ''}
 </body></html>`;
@@ -898,9 +1011,8 @@ app.get('/', (req, res) => {
 				Visitors get a global-edge frontend that loads in under 100ms, from whichever city they're in.
 				No rebuild. No new CMS. No learning curve.
 			</p>
-			<p style="margin-top: 28px;">
+			<p class="hero-cta-row" style="margin-top: 28px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
 				<a class="btn primary glow" href="${REPO}/releases/latest/download/hatch.zip" target="_blank" rel="noopener noreferrer">${lu('download', '')} Download Hatch, it's free</a>
-				&nbsp;
 				<a class="btn secondary" href="${REPO}" target="_blank" rel="noopener noreferrer">${lu('github', '')} Star on GitHub</a>
 			</p>
 			<p style="margin-top:14px; font-size:14px; font-weight:500; color: var(--fg-muted);">
@@ -988,7 +1100,7 @@ app.get('/', (req, res) => {
 						<div class="objection-q"><h3>"I'll use Sanity / Contentful / Strapi."</h3></div>
 						<div class="objection-a">
 							<strong>Pricing scales. WordPress doesn't.</strong>
-							Headless CMS platforms charge per seat, per API call, per environment. WordPress is free, refined for 22 years, and has 60k plugins. Hatch closes the speed gap, for free.
+							Headless CMS platforms charge per seat, per API call, per environment. WordPress is free, refined for 23 years, and has 60k plugins. Hatch closes the speed gap, for free.
 						</div>
 					</div>
 
@@ -1060,8 +1172,8 @@ app.get('/', (req, res) => {
 				<div style="background:var(--bg-3); border-radius:10px; padding:18px 20px;">
 					<h4 style="margin:0 0 6px; font-size:14px;">Why WordPress stays?</h4>
 					<p style="margin:0; font-size:13px; color:var(--fg-muted); line-height:1.6;">
-						22 years of plugin ecosystem. 60,000 plugins. Your client already knows the editor.
-						Your team does not want to learn Contentful ($99/mo per team) or Sanity or anything else.
+						23 years of plugin ecosystem. 60,000 plugins. Your client already knows the editor.
+						Your team does not want to learn Contentful ($300+/mo) or Sanity ($99+/mo) or anything else.
 						WordPress's editorial layer is genuinely good. The PHP delivery layer is the problem.
 						Hatch replaces only the part that needed replacing.
 					</p>
@@ -1071,7 +1183,7 @@ app.get('/', (req, res) => {
 					<p style="margin:0; font-size:13px; color:var(--fg-muted); line-height:1.6;">
 						Astro ships zero JavaScript by default. Built specifically for content-first sites,
 						not apps. Outputs the fastest possible HTML. Runs on any host: Cloudflare Workers,
-						Vercel, Node, Netlify, Fly.io. Reached 47,000+ GitHub stars and ranked among the
+						Vercel, Node, Netlify, Fly.io. Reached 46,000+ GitHub stars and ranked among the
 						fastest-growing JS frameworks by weekly downloads in 2024.
 					</p>
 				</div>
@@ -1413,7 +1525,7 @@ app.get('/', (req, res) => {
 			<div class="grid grid-3" style="margin-top: 28px;">
 				<div class="feature">
 					<h3 style="color: var(--green, #16a34a);">✓ What you keep with WordPress</h3>
-					<p style="margin-top:6px; font-size:13.5px;">22 years of plugin ecosystem · Gutenberg block editor · ACF, Yoast, WooCommerce, Fluent Forms · zero retraining for your team · zero rewriting your content.</p>
+					<p style="margin-top:6px; font-size:13.5px;">23 years of plugin ecosystem · Gutenberg block editor · ACF, Yoast, WooCommerce, Fluent Forms · zero retraining for your team · zero rewriting your content.</p>
 				</div>
 				<div class="feature">
 					<h3 style="color: var(--green, #16a34a);">✓ What Hatch adds on top</h3>
@@ -1703,12 +1815,12 @@ app.get('/vision', (req, res) => {
 
 			<h2 style="font-size:22px; font-weight:600; margin:0 0 14px; letter-spacing:-0.01em;">Why existing solutions made it worse</h2>
 			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">The headless WordPress market tried to solve this with WPGraphQL and Next.js or Nuxt. The result: you now maintain two codebases, need to understand GraphQL, and lose the REST API compatibility your plugins rely on. Every time a developer leaves, the headless layer becomes a mystery no one wants to touch.</p>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">The other option was switching CMSes entirely. Contentful. Sanity. Hygraph. The problem: your marketing team spent three years learning Gutenberg. Your client knows how to bold a word. Nobody wants to re-learn everything and migrate content into a system that costs $99 per month per editor at scale.</p>
+			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">The other option was switching CMSes entirely. Contentful. Sanity. Hygraph. The problem: your marketing team spent three years learning Gutenberg. Your client knows how to bold a word. Nobody wants to re-learn everything and migrate content into a system that costs $99–$300+/month once your team grows.</p>
 			<p style="font-size:16px; line-height:1.75; margin:0 0 48px;">Both paths asked for too much. Neither was the answer for the vast majority of teams.</p>
 
 			<h2 style="font-size:22px; font-weight:600; margin:0 0 14px; letter-spacing:-0.01em;">The insight behind Hatch</h2>
 			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">What if you kept WordPress exactly as it is and only replaced the delivery layer? WordPress stays as the CMS: the editor, the plugins, the user roles, the media library, all of it. The thing that renders HTML for visitors becomes Astro, running at the Cloudflare edge.</p>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">Astro was chosen deliberately. Built for content-first sites. Ships zero JavaScript by default. Outputs the fastest HTML in the framework ecosystem. Officially supports Cloudflare Workers, Vercel, and Node. Among the fastest-growing frameworks of 2024, reaching 47,000+ GitHub stars. It is the right architecture for a content site.</p>
+			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">Astro was chosen deliberately. Built for content-first sites. Ships zero JavaScript by default. Outputs the fastest HTML in the framework ecosystem. Officially supports Cloudflare Workers, Vercel, and Node. Among the fastest-growing frameworks of 2024, reaching 46,000+ GitHub stars. It is the right architecture for a content site.</p>
 			<p style="font-size:16px; line-height:1.75; margin:0 0 48px;">The WordPress REST API was already there since version 4.7. Nobody needed a GraphQL layer. They needed a great Astro frontend that consumed it, an automated deployment system so non-developers could use it, and a WordPress plugin that configured the REST API securely. That is Hatch.</p>
 
 			<h2 style="font-size:22px; font-weight:600; margin:0 0 14px; letter-spacing:-0.01em;">A note from Aditya</h2>
