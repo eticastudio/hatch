@@ -1061,7 +1061,7 @@ ${wide ? `<script>
 app.get('/', (req, res) => {
 	res.type('html').send(html('Hatch — Headless WordPress that actually feels live', `
 		<section class="hero-wrap">
-			<h1>The fastest way <em class="accent">to WordPress.</em><br/><span class="hero-kicker">Headless. Edge-delivered. Live in 90 seconds.</span></h1>
+			<h1>The fastest way to <em class="accent">WordPress</em>.<br/><em class="accent">Headless</em>. Edge-delivered. Live in <em class="accent">90 seconds</em>.</h1>
 			<p class="lead">
 				Hatch replaces the one slow part of WordPress: PHP on every visitor request.
 				Your editor stays. Your plugins stay. Your content stays.
