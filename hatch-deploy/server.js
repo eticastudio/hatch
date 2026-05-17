@@ -1762,27 +1762,27 @@ app.get('/', (req, res) => {
 
 				<!-- Limits & Honest -->
 				<details class="faq-item" data-cat="honest">
-					<summary><span>"Headless WP is just a worse Next.js setup."</span>${lu('chevron-down', 'faq-chev')}</summary>
+					<summary><span>Isn't Headless WP just a worse Next.js setup?</span>${lu('chevron-down', 'faq-chev')}</summary>
 					<div class="faq-a">Raw Next.js plus WPGraphQL: yes, it's slower to ship, has more surface area to break, and two stacks to maintain. Hatch is not that. The Astro starter is purpose-built for content sites with SSR, edge cache, and a block serializer. Zero glue code. The shape of the problem is different.</div>
 				</details>
 				<details class="faq-item" data-cat="honest">
-					<summary><span>"WordPress's REST API is incomplete."</span>${lu('chevron-down', 'faq-chev')}</summary>
+					<summary><span>Is WordPress's REST API complete enough for a real site?</span>${lu('chevron-down', 'faq-chev')}</summary>
 					<div class="faq-a">The base REST is solid for posts, pages, users, and taxonomies. The gaps are real for ACF, menus, comments, and schema. Hatch fills all of them in <code>/hatch/v1/*</code>. ACF gets one-click expose. Menus get a dedicated endpoint. Comments are public-by-design. The complaint disappears with the plugin installed.</div>
 				</details>
 				<details class="faq-item" data-cat="honest">
-					<summary><span>"You'll end up maintaining two stacks."</span>${lu('chevron-down', 'faq-chev')}</summary>
+					<summary><span>Will I end up maintaining two stacks?</span>${lu('chevron-down', 'faq-chev')}</summary>
 					<div class="faq-a">Classic WordPress already has multiple layers to maintain: the theme, the cache plugin, the security plugin, the optimization plugin, all needing updates. Headless collapses the visitor-facing layer into one Astro project. The new stack is smaller than what it replaces.</div>
 				</details>
 				<details class="faq-item" data-cat="honest">
-					<summary><span>"Headless rebuild times kill it on launch day."</span>${lu('chevron-down', 'faq-chev')}</summary>
+					<summary><span>Do rebuild times slow things down on launch day?</span>${lu('chevron-down', 'faq-chev')}</summary>
 					<div class="faq-a">True for static-site headless (Gatsby, classic Next.js SSG). Hatch is SSR. No build happens on publish. Hit Publish, wait 60 seconds for the edge cache to flush, done. Launch days are when SSR shines.</div>
 				</details>
 				<details class="faq-item" data-cat="honest">
-					<summary><span>"It's overkill for a blog."</span>${lu('chevron-down', 'faq-chev')}</summary>
+					<summary><span>Is Hatch overkill for a small blog?</span>${lu('chevron-down', 'faq-chev')}</summary>
 					<div class="faq-a">A small blog on shared hosting doesn't need it. Headless pays off when you have 1000+ posts, traffic spikes, a content team that needs WP admin access, or when bounce rate correlates with slow TTFB. If your hosting bill is under $20/month and you post weekly, classic WP is correct. If you're on WP Engine or Kinsta at $100/month for speed, Hatch gets you faster performance with a smaller bill.</div>
 				</details>
 				<details class="faq-item" data-cat="honest">
-					<summary><span>"Why should I trust your broker with my tokens?"</span>${lu('chevron-down', 'faq-chev')}</summary>
+					<summary><span>Why should I trust your broker with my tokens?</span>${lu('chevron-down', 'faq-chev')}</summary>
 					<div class="faq-a">You don't have to. The broker is <a href="${REPO}/tree/main/hatch-deploy" target="_blank" rel="noopener noreferrer">open-source MIT</a>. Self-host it on your own VPS in under 10 minutes. Or skip the broker entirely and use the VPS install path. The shared broker is convenience, not a requirement. Tokens live in memory for roughly 90 seconds, dropped after the build completes.</div>
 				</details>
 				<details class="faq-item" data-cat="honest">
