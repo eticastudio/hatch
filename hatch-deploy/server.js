@@ -667,6 +667,32 @@ footer a:hover { color: var(--fg); }
 	.hero-stat .n { font-size: 22px; }
 	.hero-stat .l { font-size: 11px; }
 }
+
+/* Orbital decorative ring — hero background element */
+.hero-orbital {
+	position: absolute;
+	top: -40px;
+	right: -100px;
+	width: 380px;
+	height: 380px;
+	pointer-events: none;
+	opacity: 0.07;
+	animation: orbital-spin 40s linear infinite;
+	z-index: -1;
+	color: var(--primary);
+}
+@keyframes orbital-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .hero-orbital { animation: none; } }
+@media (max-width: 820px) { .hero-orbital { display: none; } }
+
+/* Community section */
+.community-wrap { display: flex; gap: 20px; flex-wrap: wrap; margin: 28px 0 0; }
+.community-card { flex: 1; min-width: 220px; padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; transition: border-color .15s, transform .15s; text-decoration: none; color: inherit; display: block; }
+.community-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+.community-card-icon { font-size: 26px; margin-bottom: 10px; }
+.community-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--fg); }
+.community-card p { font-size: 13px; color: var(--fg-muted); margin: 0; line-height: 1.6; }
+.community-card .cta-link { font-size: 13px; color: var(--primary); font-weight: 600; margin-top: 12px; display: block; }
 </style>
 ${wide ? `<script type="application/ld+json">
 {
@@ -890,6 +916,15 @@ app.get('/', (req, res) => {
 					<span class="t-item"><img src="https://cdn.simpleicons.org/github/181717"  alt="" loading="lazy" decoding="async" aria-hidden="true" /><span class="t-label">Open source</span></span>
 				</div>
 			</div>
+
+			<svg class="hero-orbital" viewBox="0 0 380 380" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+				<circle cx="190" cy="190" r="180" stroke="currentColor" stroke-width="1" stroke-dasharray="5 12"/>
+				<circle cx="190" cy="190" r="130" stroke="currentColor" stroke-width="0.6" stroke-dasharray="3 16"/>
+				<circle cx="190" cy="10" r="5" fill="currentColor"/>
+				<circle cx="370" cy="190" r="3.5" fill="currentColor" opacity="0.7"/>
+				<circle cx="190" cy="370" r="4" fill="currentColor" opacity="0.5"/>
+				<circle cx="10" cy="190" r="3" fill="currentColor" opacity="0.4"/>
+			</svg>
 
 		</section>
 
@@ -1203,27 +1238,28 @@ app.get('/', (req, res) => {
 		<hr/>
 
 		<section id="hosts">
-			<span class="pill">⊕ &nbsp; Your site, your infrastructure</span>
-			<h2 style="margin-top:14px;">Deploy anywhere. Switch in one click. Never rewrite.</h2>
+			<span class="pill">⊕ &nbsp; Your infrastructure, your rules</span>
+			<h2 style="margin-top:14px;">Your visitors load from the nearest of 300 cities.<br/>You pick where the code runs.</h2>
 			<p style="max-width:640px; margin-bottom: 24px;">
-				You pick the host. Hatch handles the deploy. Same Astro frontend, same content, same one click.
-				Outgrow a host? Switch in 90 seconds with zero code changes.
+				Most hosting decisions lock you in the moment you write host-specific code. Hatch doesn't.
+				One Astro codebase, identical on all three targets.
+				Outgrow your host? Switch in 90 seconds — one click in the plugin, zero code changes.
 			</p>
 			<div class="grid grid-3">
 				<div class="feature">
 					<h3>⚡ Cloudflare Workers <span class="pill green" style="margin-left:8px;">Recommended</span></h3>
-					<p style="margin-top:8px;">Free tier (100k req/day), global edge in 300+ cities, 99.9% uptime on paid. Paste one API token — Hatch builds, uploads, and deploys. Live in 90 seconds.</p>
+					<p style="margin-top:8px;">300+ cities. Free for 100,000 requests per day. Your visitors hit the closest edge node — under 50ms globally on the free tier. Paste your API token, Hatch handles the rest. Live in 90 seconds.</p>
 				</div>
 				<div class="feature">
 					<h3>▲ Vercel</h3>
-					<p style="margin-top:8px;">Free hobby tier, instant rollbacks, great DX. One access token — no GitHub fork needed. Broker uses <code>vercel deploy --prebuilt</code> so you keep full control.</p>
+					<p style="margin-top:8px;">Free hobby tier. Instant rollbacks. No GitHub fork required — the broker uses <code>vercel deploy --prebuilt</code> so you keep full control of your code. A natural fit if your team is already on Vercel.</p>
 				</div>
 				<div class="feature">
 					<h3>🖥 Your VPS</h3>
-					<p style="margin-top:8px;">Hetzner, DigitalOcean, RunCloud, Coolify, Dokploy — any Linux box. One curl command installs Node, builds the Astro starter, and hands off to your panel.</p>
+					<p style="margin-top:8px;">Hetzner, DigitalOcean, RunCloud, Coolify, Dokploy — any Linux box with Node 22. One curl command installs everything locally. No broker involved. Fully self-contained on hardware you control.</p>
 				</div>
 			</div>
-			<p style="margin-top:18px; font-size:13.5px; color:var(--fg-subtle);">Also works on Netlify, Render, Fly.io, AWS Amplify — anything that runs Astro SSR.</p>
+			<p style="margin-top:18px; font-size:13.5px; color:var(--fg-subtle);">Also runs on Netlify, Render, Fly.io, AWS Amplify — anywhere Astro SSR is supported. Switch anytime. Costs nothing to move.</p>
 		</section>
 
 		<hr/>
@@ -1497,19 +1533,16 @@ app.get('/', (req, res) => {
 
 		<section id="privacy">
 			<span class="pill">🛡 &nbsp; Nothing to hide</span>
-			<h2 style="margin-top:14px;">Handing tokens to a third-party tool is uncomfortable.<br/>Here's exactly what happens to yours.</h2>
+			<h2 style="margin-top:14px;">Giving a deploy token to any tool is uncomfortable.<br/>Here is exactly what happens to yours — and how to skip the broker entirely.</h2>
 			<div style="max-width: 720px;">
-				<p style="margin-bottom: 16px;">When you click "Build &amp; deploy," your plugin sends your WP credentials
-				and host token to the broker over HTTPS — for the ~90-second build window only. Both are held in memory,
-				used to run <code>npm run build</code>, then dropped. <strong>Nothing written to disk. Ever.</strong></p>
-				<p style="margin-bottom: 16px;">Still uncomfortable? Fair. The broker is MIT-licensed and seven files of plain Node.js.
-				Read it, fork it, self-host it. That option exists and it's documented.</p>
+				<p style="margin-bottom: 16px;"><strong>The short version:</strong> When you click "Build &amp; deploy," your WP credentials and host token travel to the broker over HTTPS. They live in memory for the ~90-second build window while <code>npm run build</code> runs. Then they're gone. <strong>Nothing written to disk. Nothing logged. No database. Ever.</strong></p>
+				<p style="margin-bottom: 16px;">Don't want to trust a third-party broker at all? Good instinct. The broker is <a href="${REPO}/tree/main/hatch-deploy" target="_blank" rel="noopener noreferrer">MIT-licensed — 7 files of plain Node.js</a>. Fork it, self-host it on any VPS in under 10 minutes, point the plugin at your own instance. Or use the VPS install path and skip the cloud entirely — no broker involved.</p>
 				<ul>
-					<li>✓ No long-term token storage. Vercel/CF tokens are used once and forgotten</li>
-					<li>✓ Your content never passes through the broker. Astro fetches WP REST directly at runtime</li>
-					<li>✓ Self-hostable. Set <code>HATCH_DEPLOY_BROKER_URL</code> to your own instance</li>
-					<li>✓ Optional. The plugin works without it (manual deploy guides in <a href="${REPO}/tree/main/docs" target="_blank" rel="noopener noreferrer">docs</a>)</li>
-					<li>✓ Open source. Every broker line is at <a href="${REPO}/tree/main/hatch-deploy" target="_blank" rel="noopener noreferrer">hatch-deploy/</a>. Audit before you trust</li>
+					<li>✓ No long-term token storage — Vercel/CF tokens are used once and forgotten</li>
+					<li>✓ Your content never passes through the broker — Astro fetches WP REST directly at runtime</li>
+					<li>✓ Self-hostable — set <code>HATCH_DEPLOY_BROKER_URL</code> to your own instance</li>
+					<li>✓ Broker-optional — the VPS path installs everything locally, zero third-party</li>
+					<li>✓ Open source — every broker line is public. Read it at <a href="${REPO}/tree/main/hatch-deploy" target="_blank" rel="noopener noreferrer">hatch-deploy/</a>. Audit before you trust</li>
 				</ul>
 			</div>
 		</section>
@@ -1649,6 +1682,40 @@ app.get('/', (req, res) => {
 			})();
 			</script>
 		</section>
+		<hr/>
+
+		<section id="community">
+			<span class="pill">🌱 &nbsp; Built in public</span>
+			<h2 style="margin-top:14px;">Open source. No roadmap behind a paywall.<br/>Join where the project gets built.</h2>
+			<p style="max-width:640px; margin-bottom:28px;">
+				Hatch is MIT licensed. The code is public. The roadmap is public.
+				Questions, bugs, and ideas go in GitHub Discussions — not a locked Slack, not a Discord you have to apply to join.
+			</p>
+			<div class="community-wrap">
+				<a class="community-card" href="https://github.com/adityaarsharma/hatch/discussions" target="_blank" rel="noopener noreferrer">
+					<div class="community-card-icon">💬</div>
+					<h3>GitHub Discussions</h3>
+					<p>Ask questions, share what you built, report bugs, vote on roadmap ideas. The main hub — open to everyone.</p>
+					<span class="cta-link">Join the conversation →</span>
+				</a>
+				<a class="community-card" href="https://github.com/adityaarsharma/hatch/issues" target="_blank" rel="noopener noreferrer">
+					<div class="community-card-icon">🐛</div>
+					<h3>GitHub Issues</h3>
+					<p>Found a bug or a rough edge with your host setup? Open an issue. Clear reproductions get fast responses.</p>
+					<span class="cta-link">File an issue →</span>
+				</a>
+				<a class="community-card" href="https://x.com/adityaarsharma" target="_blank" rel="noopener noreferrer">
+					<div class="community-card-icon" style="font-family:monospace; font-size:22px; font-weight:700;">𝕏</div>
+					<h3>Follow the build</h3>
+					<p>Releases, behind-the-scenes on what's shipping next, and honest notes on what isn't working yet. No hype.</p>
+					<span class="cta-link">Follow @adityaarsharma →</span>
+				</a>
+			</div>
+			<p style="margin-top:20px; font-size:13px; color:var(--fg-subtle);">MIT licensed · No commercial community tier · No "Pro community" upsell · Just the project, open</p>
+		</section>
+
+		<hr/>
+
 		<!-- v0.51 — final CTA close. Single decisive primary action, mini-minimalist, lots of air. -->
 		<section class="closer" aria-label="Get started with Hatch">
 			<div class="closer-inner">
