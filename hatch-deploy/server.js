@@ -182,7 +182,7 @@ body {
 main { ${wide ? 'max-width: 980px;' : 'max-width: 720px;'} margin: 0 auto; padding: ${wide ? '40px 24px 96px' : '48px 24px 80px'}; }
 h1 { font-size: ${wide ? 'clamp(36px, 4.6vw, 56px)' : '32px'}; font-weight: 700; margin: 0 0 18px; letter-spacing: -0.03em; line-height: 1.08; max-width: 880px; }
 h1 .accent { color: var(--primary); font-style: normal; }
-h1 .hero-kicker { display: inline-block; margin-top: 14px; font-size: 0.42em; font-weight: 500; letter-spacing: -0.005em; color: var(--fg-muted); line-height: 1.4; }
+h1 .hero-kicker { display: inline-block; margin-top: 12px; font-size: 0.5em; font-weight: 700; letter-spacing: -0.025em; color: var(--fg); line-height: 1.15; }
 h1 .emoji { font-size: 0.85em; vertical-align: -3px; margin-right: 8px; }
 h2 { font-size: ${wide ? '28px' : '20px'}; font-weight: 600; margin: ${wide ? '56px' : '32px'} 0 14px; letter-spacing: -0.015em; line-height: 1.2; }
 h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
