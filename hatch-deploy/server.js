@@ -1060,11 +1060,12 @@ ${wide ? `<script>
 app.get('/', (req, res) => {
 	res.type('html').send(html('Hatch — Headless WordPress that actually feels live', `
 		<section class="hero-wrap">
-			<h1>Slow WordPress. Hacked WordPress.<br/><em class="accent">Plugin-broke-my-site WordPress.</em><br/>All three end here.</h1>
+			<h1>Slow WordPress. Hacked WordPress.<br/>Plugin-broke-my-site WordPress.<br/><em class="accent">All three end here.</em></h1>
 			<p class="lead">
-				Hatch makes WordPress Headless in 90 seconds. Visitors load from the global edge, not your server —
-				so cache plugins, hosting bills, and most of the attack surface just disappear.
-				Your editor, your plugins, your content all stay exactly the way they are.
+				Hatch replaces the one slow part of WordPress: PHP on every visitor request.
+				Your editor stays. Your plugins stay. Your content stays.
+				Visitors get a global-edge frontend that loads in under 100ms, from whichever city they're in.
+				No rebuild. No new CMS. No learning curve.
 			</p>
 			<p class="hero-cta-row" style="margin-top: 28px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
 				<a class="btn primary glow" href="${REPO}/releases/latest/download/hatch.zip" target="_blank" rel="noopener noreferrer">${lu('download', '')} Download Hatch, it's free</a>
