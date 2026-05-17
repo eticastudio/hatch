@@ -182,6 +182,7 @@ body {
 main { ${wide ? 'max-width: 980px;' : 'max-width: 720px;'} margin: 0 auto; padding: ${wide ? '40px 24px 96px' : '48px 24px 80px'}; }
 h1 { font-size: ${wide ? 'clamp(36px, 4.6vw, 56px)' : '32px'}; font-weight: 700; margin: 0 0 18px; letter-spacing: -0.03em; line-height: 1.08; max-width: 880px; }
 h1 .accent { color: var(--primary); font-style: normal; }
+h1 .hero-kicker { display: inline-block; margin-top: 14px; font-size: 0.42em; font-weight: 500; letter-spacing: -0.005em; color: var(--fg-muted); line-height: 1.4; }
 h1 .emoji { font-size: 0.85em; vertical-align: -3px; margin-right: 8px; }
 h2 { font-size: ${wide ? '28px' : '20px'}; font-weight: 600; margin: ${wide ? '56px' : '32px'} 0 14px; letter-spacing: -0.015em; line-height: 1.2; }
 h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
@@ -1060,11 +1061,12 @@ ${wide ? `<script>
 app.get('/', (req, res) => {
 	res.type('html').send(html('Hatch — Headless WordPress that actually feels live', `
 		<section class="hero-wrap">
-			<h1>The fastest way<br/><em class="accent">to WordPress.</em></h1>
+			<h1>The fastest way <em class="accent">to WordPress.</em><br/><span class="hero-kicker">Headless. Edge-delivered. Live in 90 seconds.</span></h1>
 			<p class="lead">
-				Headless. Edge-delivered. Live in 90 seconds.
-				Hatch keeps your editor, your plugins, your content — and replaces the one slow part of WordPress: PHP on every visitor request.
-				Visitors load from the global edge in under 100ms. No rebuild. No new CMS. No learning curve.
+				Hatch replaces the one slow part of WordPress: PHP on every visitor request.
+				Your editor stays. Your plugins stay. Your content stays.
+				Visitors get a global-edge frontend that loads in under 100ms, from whichever city they're in.
+				No rebuild. No new CMS. No learning curve.
 			</p>
 			<p class="hero-cta-row" style="margin-top: 28px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
 				<a class="btn primary glow" href="${REPO}/releases/latest/download/hatch.zip" target="_blank" rel="noopener noreferrer">${lu('download', '')} Download Hatch, it's free</a>
