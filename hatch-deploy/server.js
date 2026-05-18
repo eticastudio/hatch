@@ -624,6 +624,9 @@ footer a:hover { color: var(--fg); }
 .vs-table td:first-child { font-weight: 500; color: var(--fg); }
 .vs-hatch { background: rgba(255, 107, 0, 0.04); }
 .vs-table th.vs-hatch { color: var(--primary); background: rgba(255,107,0,0.06); border-bottom-color: var(--primary); }
+.tick-list { list-style: none; padding-left: 0; margin: 0; }
+.tick-list li { position: relative; padding-left: 26px; margin-bottom: 8px; line-height: 1.6; }
+.tick-list li::before { content: "✓"; position: absolute; left: 0; top: 0; color: var(--green, #16a34a); font-weight: 700; font-size: 15px; }
 .vs-yes { color: var(--green); font-weight: 500; }
 .vs-no { color: #dc2626; font-weight: 500; }
 .vs-warn { color: #d97706; font-weight: 500; }
@@ -1524,12 +1527,12 @@ app.get('/', (req, res) => {
 			<div style="max-width: 720px;">
 				<p style="margin-bottom: 16px;"><strong>The short version:</strong> When you click "Build &amp; deploy," your WP credentials and host token travel to the broker over HTTPS. They live in memory for the ~90-second build window while <code>npm run build</code> runs. Then they're gone. <strong>Nothing written to disk. Nothing logged. No database. Ever.</strong></p>
 				<p style="margin-bottom: 16px;">Don't want to trust a third-party broker at all? Good instinct. The broker is <a href="${REPO}/tree/main/hatch-deploy" target="_blank" rel="noopener noreferrer">MIT-licensed — 7 files of plain Node.js</a>. Fork it, self-host it on any VPS in under 10 minutes, point the plugin at your own instance. Or use the VPS install path and skip the cloud entirely — no broker involved.</p>
-				<ul>
-					<li>✓ No long-term token storage — Vercel/CF tokens are used once and forgotten</li>
-					<li>✓ Your content never passes through the broker — Astro fetches WP REST directly at runtime</li>
-					<li>✓ Self-hostable — set <code>HATCH_DEPLOY_BROKER_URL</code> to your own instance</li>
-					<li>✓ Broker-optional — the VPS path installs everything locally, zero third-party</li>
-					<li>✓ Open source — every broker line is public. Read it at <a href="${REPO}/tree/main/hatch-deploy" target="_blank" rel="noopener noreferrer">hatch-deploy/</a>. Audit before you trust</li>
+				<ul class="tick-list">
+					<li>No long-term token storage — Vercel/CF tokens are used once and forgotten</li>
+					<li>Your content never passes through the broker — Astro fetches WP REST directly at runtime</li>
+					<li>Self-hostable — set <code>HATCH_DEPLOY_BROKER_URL</code> to your own instance</li>
+					<li>Broker-optional — the VPS path installs everything locally, zero third-party</li>
+					<li>Open source — every broker line is public. Read it at <a href="${REPO}/tree/main/hatch-deploy" target="_blank" rel="noopener noreferrer">hatch-deploy/</a>. Audit before you trust</li>
 				</ul>
 			</div>
 		</section>
