@@ -1123,79 +1123,6 @@ app.get('/', (req, res) => {
 
 		<hr/>
 
-		<section id="convince">
-			<div class="convince-wrap">
-				<span class="pill" style="background: rgba(245, 158, 11, 0.12); color: #d97706; border-color: rgba(245, 158, 11, 0.3);">🤔 &nbsp; Hold on. Do I even need WordPress?</span>
-				<h2 style="margin-top:14px;">"Just build it in Next.js."<br/>The 6-month story we've all lived.</h2>
-				<p class="lead" style="max-width: 680px;">
-					Week 1: Excited. Week 4: building a markdown CMS for the marketing intern. Week 12:
-					rolling your own image upload UI. Week 24: your co-founder asks how to bold a word and you remember
-					WordPress exists. <strong>43% of the web stays on WP</strong> for the reason you're about to remember.
-				</p>
-
-				<div class="objection-grid">
-
-					<div class="objection">
-						<div class="objection-q"><h3>"I'm on Webflow. Why switch?"</h3></div>
-						<div class="objection-a">
-							<strong>Webflow charges per site. WordPress doesn't.</strong>
-							Ten Webflow client sites = $150–$400/mo in hosting alone. Hatch on Cloudflare's free tier starts at $0. Same scores. No lock-in. If the invoice was your sign, here it is.
-						</div>
-					</div>
-
-					<div class="objection">
-						<div class="objection-q"><h3>"WordPress is bloated and slow."</h3></div>
-						<div class="objection-a">
-							<strong>That's exactly what headless fixes.</strong>
-							PHP bloat lives in the delivery layer, not the CMS. Hatch replaces that layer with a 30KB Astro edge frontend. WordPress's bloat never touches your visitor.
-						</div>
-					</div>
-
-					<div class="objection">
-						<div class="objection-q"><h3>"I'll write Markdown and use Next.js."</h3></div>
-						<div class="objection-a">
-							<strong>Then you become the editor. Forever.</strong>
-							Every typo = git commit. Every image = build cycle. Your content team revolts in week 4. Hatch gives your developers the modern frontend, your editors the WordPress they already love.
-						</div>
-					</div>
-
-					<div class="objection">
-						<div class="objection-q"><h3>"I'll use Sanity / Contentful / Strapi."</h3></div>
-						<div class="objection-a">
-							<strong>Pricing scales. WordPress doesn't.</strong>
-							Headless CMS platforms charge per seat, per API call, per environment. WordPress is free, refined for 23 years, and has 60k plugins. Hatch closes the speed gap, for free.
-						</div>
-					</div>
-
-					<div class="objection">
-						<div class="objection-q"><h3>"WordPress is insecure."</h3></div>
-						<div class="objection-a">
-							<strong>Headless WP is the most locked-down WP.</strong>
-							Hatch ships REST hardening, login obfuscation, xmlrpc disabled, user-enum blocked. Your wp-admin is invisible to the public. Attack surface drops by 90%.
-						</div>
-					</div>
-
-					<div class="objection">
-						<div class="objection-q"><h3>"Headless WordPress is a rebuild-loop nightmare."</h3></div>
-						<div class="objection-a">
-							<strong>For static headless, yes. Hatch is SSR.</strong>
-							Faust, Gatsby, and Next.js SSG all rebuild on publish. Hatch runs SSR at the edge with a 60-second cache that flushes itself. Hit Publish, refresh, it's live.
-						</div>
-					</div>
-
-				</div>
-
-				<div class="convince-summary">
-					<div class="summary-emoji" aria-hidden="true">🐣</div>
-					<div>
-						<h3>The honest pitch.</h3>
-						<p>Don't ditch WordPress. Ditch the WordPress <strong>frontend</strong>. Keep the editor your team already knows. Add the speed everyone wants. That's the entire job of Hatch. It does it in one zip file.</p>
-					</div>
-				</div>
-			</div>
-		</section>
-
-		<hr/>
 
 		<section id="headless-101">
 			<span class="pill">🌐 &nbsp; What is Headless?</span>
@@ -1220,10 +1147,10 @@ app.get('/', (req, res) => {
 				<div class="feature" style="background:var(--primary-soft); border-color:var(--primary);">
 					<h3 style="color:var(--primary); margin-bottom:10px;">WordPress + Hatch</h3>
 					<div style="font-family:var(--mono); font-size:12px; color:var(--fg-muted); background:rgba(255,107,0,0.07); padding:10px 12px; border-radius:6px; margin-bottom:12px; line-height:1.9;">
-						Editor saves<br/>↓ WP REST API<br/>↓ Astro SSR<br/>↓ 300 edge cities globally
+						Editor saves<br/>↓ WP REST API<br/>↓ Astro SSR<br/>↓ 330+ edge cities globally
 					</div>
 					<ul style="margin:0; padding-left:18px; font-size:13px; color:var(--fg-muted); line-height:2;">
-						<li>300 edge locations worldwide</li>
+						<li>330+ edge locations worldwide</li>
 						<li>Astro renders HTML, not PHP</li>
 						<li>No cache plugin. Edge handles it.</li>
 						<li>WP admin is a private origin nobody visits</li>
@@ -1309,7 +1236,7 @@ app.get('/', (req, res) => {
 			<div class="grid grid-3">
 				<div class="feature">
 					<h3>⚡ Cloudflare Workers <span class="pill green" style="margin-left:8px;">Recommended</span></h3>
-					<p style="margin-top:8px;">300+ cities. Free for 100,000 requests per day. Your visitors hit the closest edge node — under 50ms globally on the free tier. Paste your API token, Hatch handles the rest. Live in 90 seconds.</p>
+					<p style="margin-top:8px;">330+ cities. Free for 100,000 requests per day. Your visitors hit the closest edge node — under 50ms globally on the free tier. Paste your API token, Hatch handles the rest. Live in 90 seconds.</p>
 				</div>
 				<div class="feature">
 					<h3>▲ Vercel</h3>
@@ -1545,7 +1472,7 @@ app.get('/', (req, res) => {
 						</tr>
 					</tbody>
 				</table>
-				<p class="vs-note">Frontity is excluded — the project was archived in 2023 after joining Automattic. Faust.js data sourced from <a href="https://faustjs.org" target="_blank" rel="noopener noreferrer">faustjs.org</a> docs. ISR = Incremental Static Regeneration (rebuilds on a schedule, not on publish).</p>
+				<p class="vs-note">Frontity is excluded — the project was archived in February 2025 after the team joined Automattic. Faust.js data sourced from <a href="https://faustjs.org" target="_blank" rel="noopener noreferrer">faustjs.org</a> docs. ISR = Incremental Static Regeneration (rebuilds on a schedule, not on publish).</p>
 			</div>
 
 			<div class="vs-boxes">
@@ -1934,91 +1861,21 @@ app.get('/', (req, res) => {
 // GET /vision — founder story and product philosophy
 app.get('/vision', (req, res) => {
 	const REPO = 'https://github.com/adityaarsharma/hatch';
-	res.type('html').send(html('Vision — Why Hatch exists', `
+	res.type('html').send(html('Vision — A note from Aditya', `
 		<div style="max-width:680px; margin:0 auto; padding:60px 24px 80px;">
 			<a href="/" style="font-size:13px; color:var(--fg-muted); text-decoration:none; display:inline-flex; align-items:center; gap:6px; margin-bottom:40px;">← Back to Hatch</a>
-			<h1 style="font-size:clamp(28px,4vw,42px); font-weight:700; letter-spacing:-0.025em; line-height:1.1; margin:0 0 12px;">WordPress should be fast<br/>without asking you<br/>to become a developer.</h1>
-			<p style="font-size:16px; color:var(--fg-muted); margin:0 0 36px; line-height:1.6;">A note from Aditya on why Hatch exists and where it is going.</p>
-
-			<div class="vision-60s" style="background:var(--bg-3); border:1px solid var(--border); border-radius:12px; padding:24px 26px; margin:0 0 48px;">
-				<div style="font-size:11.5px; font-weight:700; letter-spacing:0.08em; color:var(--primary); text-transform:uppercase; margin:0 0 14px;">The 60-second read</div>
-				<div class="vision-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:18px 24px; font-size:14.5px; line-height:1.55;">
-					<div><strong style="color:var(--fg);">WordPress problem</strong></div>
-					<div><strong style="color:var(--fg);">How Hatch fixes it</strong></div>
-
-					<div style="color:var(--fg-muted);">Slow PHP delivery, even with caching plugins</div>
-					<div style="color:var(--fg);">Pre-rendered Astro on Cloudflare's edge — Lighthouse 100 by default</div>
-
-					<div style="color:var(--fg-muted);">Plugin stack (WP Rocket, CDN, security, scanners) just to be usable</div>
-					<div style="color:var(--fg);">None of them needed — the public site is static HTML, not PHP</div>
-
-					<div style="color:var(--fg-muted);">wp-login brute-force, xmlrpc, plugin CVEs as attack surface</div>
-					<div style="color:var(--fg);">wp-admin becomes a private origin no visitor ever reaches</div>
-
-					<div style="color:var(--fg-muted);">Hosting bills scale with traffic spikes</div>
-					<div style="color:var(--fg);">Cloudflare free tier: 100k req/day. Origin sees one hit per deploy</div>
-
-					<div style="color:var(--fg-muted);">Headless options force GraphQL, two codebases, or a new CMS</div>
-					<div style="color:var(--fg);">REST API only. Gutenberg stays. One developer can run it</div>
-
-					<div style="color:var(--fg-muted);">Editors hate "modern" stacks because they lose wp-admin</div>
-					<div style="color:var(--fg);">Editors see no change. Same dashboard, same workflow</div>
-				</div>
-			</div>
-
+			<h1 style="font-size:clamp(28px,4vw,42px); font-weight:700; letter-spacing:-0.025em; line-height:1.1; margin:0 0 14px;">WordPress should be fast<br/>without asking you<br/>to become a developer.</h1>
+			<p style="font-size:16px; color:var(--fg-muted); margin:0 0 40px; line-height:1.6;">A note from Aditya on why Hatch exists.</p>
 			<hr style="border:none; border-top:1px solid var(--border); margin:0 0 40px;"/>
 
-			<h2 style="font-size:22px; font-weight:600; margin:0 0 14px; letter-spacing:-0.01em;">The problem, honestly stated</h2>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">WordPress powers 43% of the web. Most of those sites are slow. Not because WordPress is a bad piece of software. Because WordPress was designed in 2003 to do something specific: render HTML on a PHP server and send it to the visitor. That architecture made total sense then. It does not make total sense now that Cloudflare has 300 edge cities and a free tier.</p>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">The typical WordPress site in 2026 runs W3 Total Cache or WP Rocket, a CDN plugin, a security scanner, a performance optimizer, an uptime monitor, and a database cleaner. None of those plugins do anything genuinely useful. They exist to patch the fact that PHP runs on one server and sends every visitor through the same slow pipe. Remove the PHP delivery layer and you do not need any of them. You get Lighthouse 100 for free. A hardened server for free. Global edge delivery for free.</p>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 48px;">That is what headless WordPress is. Not a philosophy. Not a trend. A practical observation: the editor is not the problem. The delivery layer is.</p>
-
-			<h2 style="font-size:22px; font-weight:600; margin:0 0 14px; letter-spacing:-0.01em;">Why existing solutions made it worse</h2>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">The headless WordPress market tried to solve this with WPGraphQL and Next.js or Nuxt. The result: you now maintain two codebases, need to understand GraphQL, and lose the REST API compatibility your plugins rely on. Every time a developer leaves, the headless layer becomes a mystery no one wants to touch.</p>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">The other option was switching CMSes entirely. Contentful. Sanity. Hygraph. The problem: your marketing team spent three years learning Gutenberg. Your client knows how to bold a word. Nobody wants to re-learn everything and migrate content into a system that costs $99–$300+/month once your team grows.</p>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 48px;">Both paths asked for too much. Neither was the answer for the vast majority of teams.</p>
-
-			<h2 style="font-size:22px; font-weight:600; margin:0 0 14px; letter-spacing:-0.01em;">The insight behind Hatch</h2>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">What if you kept WordPress exactly as it is and only replaced the delivery layer? WordPress stays as the CMS: the editor, the plugins, the user roles, the media library, all of it. The thing that renders HTML for visitors becomes Astro, running at the Cloudflare edge.</p>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">Astro was chosen deliberately. Built for content-first sites. Ships zero JavaScript by default. Outputs the fastest HTML in the framework ecosystem. Officially supports Cloudflare Workers, Vercel, and Node. Among the fastest-growing frameworks of the last two years, with 50,000+ GitHub stars. It is the right architecture for a content site.</p>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 48px;">The WordPress REST API was already there since version 4.7. Nobody needed a GraphQL layer. They needed a great Astro frontend that consumed it, an automated deployment system so non-developers could use it, and a WordPress plugin that configured the REST API securely. That is Hatch.</p>
-
-			<h2 style="font-size:22px; font-weight:600; margin:0 0 14px; letter-spacing:-0.01em;">A note from Aditya</h2>
-			<div style="background:var(--bg-3); border-radius:12px; padding:24px 28px; margin:0 0 48px;">
-				<p style="font-size:15.5px; line-height:1.8; margin:0 0 16px; color:var(--fg);">I have been building WordPress products for years at POSIMYTH — The Plus Addons for Elementor, NexterWP, tools that hundreds of thousands of WordPress users rely on. Throughout that time I watched the same conversation happen everywhere: "We need to make this site faster." Then: WP Rocket, LiteSpeed, CDN plugin, three support tickets, one month of work, Lighthouse score improves from 38 to 52. Still slow.</p>
-				<p style="font-size:15.5px; line-height:1.8; margin:0 0 16px; color:var(--fg);">I wanted WordPress to be modern, fast, and sleek without making people ditch what they know. Non-technical marketers should not need to learn a new CMS to get edge performance. Developers should not need to maintain two stacks. Site owners should not need $200/year in plugins to patch a 2003 architecture decision.</p>
-				<p style="font-size:15.5px; line-height:1.8; margin:0 0 16px; color:var(--fg);">The security situation is also getting worse. AI-generated plugins with no audit. Zero-day exploits on popular plugins. Sites going down because one update broke something. With headless, your WordPress admin becomes a private origin nobody visits. There is no login URL to brute-force. No xmlrpc. Most of the attack surface disappears. That is something no Wordfence subscription gives you.</p>
-				<p style="font-size:15.5px; line-height:1.8; margin:0; color:var(--fg);">Hatch is MIT-licensed and free because the people who most need this are agencies and freelancers building sites for clients, not well-funded engineering teams at tech companies. The goal was to make headless WordPress accessible to anyone who can install a plugin and paste an API token. That goal has not changed.</p>
-				<p style="font-size:13px; color:var(--fg-muted); margin:16px 0 0;">Aditya Sharma &middot; Founder, Hatch &middot; <a href="https://adityaarsharma.com" style="color:var(--primary);">adityaarsharma.com</a></p>
+			<div style="background:var(--bg-3); border-radius:12px; padding:28px 30px; margin:0 0 40px;">
+				<p style="font-size:15.5px; line-height:1.8; margin:0 0 18px; color:var(--fg);">I have been building WordPress products for years at POSIMYTH — The Plus Addons for Elementor, NexterWP, tools that hundreds of thousands of WordPress users rely on. Throughout that time I watched the same conversation happen everywhere: "We need to make this site faster." Then: WP Rocket, LiteSpeed, CDN plugin, three support tickets, one month of work, Lighthouse score improves from 38 to 52. Still slow.</p>
+				<p style="font-size:15.5px; line-height:1.8; margin:0 0 18px; color:var(--fg);">I wanted WordPress to be modern, fast, and sleek without making people ditch what they know. Non-technical marketers should not need to learn a new CMS to get edge performance. Developers should not need to maintain two stacks. Site owners should not need $200/year in plugins to patch a 2003 architecture decision.</p>
+				<p style="font-size:15.5px; line-height:1.8; margin:0 0 18px; color:var(--fg);">The security situation is also getting worse. AI-generated plugins with no audit. Zero-day exploits on popular plugins. Sites going down because one update broke something. With headless, your WordPress admin becomes a private origin nobody visits. There is no login URL to brute-force. No xmlrpc. Most of the attack surface disappears. That is something no Wordfence subscription gives you.</p>
+				<p style="font-size:15.5px; line-height:1.8; margin:0 0 18px; color:var(--fg);">Hatch is MIT-licensed and free because the people who most need this are agencies and freelancers building sites for clients, not well-funded engineering teams at tech companies. The goal was to make headless WordPress accessible to anyone who can install a plugin and paste an API token. That goal has not changed.</p>
+				<p style="font-size:15.5px; line-height:1.8; margin:0; color:var(--fg);">If Hatch helps your WordPress site stop being slow, stop getting hacked, and stop breaking on plugin updates — without asking your team to learn anything new — then it did its job. That is the whole vision.</p>
+				<p style="font-size:13px; color:var(--fg-muted); margin:20px 0 0;">— Aditya Sharma &middot; Founder, Hatch &middot; <a href="https://adityaarsharma.com" style="color:var(--primary);">adityaarsharma.com</a></p>
 			</div>
-
-			<h2 style="font-size:22px; font-weight:600; margin:0 0 14px; letter-spacing:-0.01em;">What Hatch is not</h2>
-			<ul style="font-size:15.5px; line-height:2.2; color:var(--fg-muted); padding-left:20px; margin:0 0 48px;">
-				<li>Not a SaaS. No account. No subscription. No vendor lock-in.</li>
-				<li>Not a framework you learn. Install the plugin, paste a token, click deploy.</li>
-				<li>Not WPGraphQL plus Next.js. That stack is complex, brittle, and developer-heavy.</li>
-				<li>Not a page builder replacement. Hatch works with Gutenberg. Elementor and Divi are explicitly out of scope.</li>
-				<li>Not a hosted service. The broker is open-source. Hatch can run entirely on your infrastructure.</li>
-			</ul>
-
-			<h2 style="font-size:22px; font-weight:600; margin:0 0 14px; letter-spacing:-0.01em;">Where this is going</h2>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">The current version handles the full deployment loop for Cloudflare Workers, Vercel, and any Linux VPS. Six themes ship out of the box. All core Gutenberg blocks render. ACF, WooCommerce (browse mode), Fluent Forms, Rank Math, Yoast, and Redirection all work. Comments work. Anti-spam works. REST hardening works. 27 automated tests pass.</p>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">Coming: WooCommerce hybrid checkout. Polylang and WPML for multilingual. A Hatch CLI. A live Lighthouse dashboard. A visual theme editor.</p>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 48px;">The longer mission: WordPress should be the best editorial tool for content teams and the best-performing frontend for visitors. It can be both. Hatch is the bridge.</p>
-
-			<h2 style="font-size:22px; font-weight:600; margin:0 0 14px; letter-spacing:-0.01em;">"I'll just vibe-code my site with Claude. I don't need this."</h2>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">Fair point. Claude and similar tools can generate a full website in a day. You can prompt your way to a beautiful landing page, a working blog, a custom design. If you're a solo developer building a one-time project for yourself, you might genuinely not need Hatch.</p>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">But here's where vibe-coding runs into walls in the real world. Week 1: the site looks great. Week 3: a client wants to update a blog post. You write a prompt. The AI rewrites the wrong section. Week 5: the image gallery breaks after a content change. Week 8: you need SEO metadata on every post. You hand-craft it in markdown. Week 12: the client hires someone else because nobody can maintain the files.</p>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">The problem isn't the AI. The problem is that AI-generated sites have no editorial layer. Content updates require a developer. SEO requires manual work. Images need code changes. There's no admin for the client to use.</p>
-			<div style="background:#fff3e8; border:1px solid rgba(255,107,0,0.2); border-radius:12px; padding:20px 24px; margin:0 0 48px;">
-				<p style="font-size:15.5px; line-height:1.75; margin:0; color:#0a0a0a;">The best combo is both. Use AI to customize the Hatch Astro starter exactly how you want it. Use WordPress for the content that non-developers need to update. Hatch is what connects those two worlds: a modern edge frontend a developer can extend with AI, attached to a CMS that an intern can use without training.</p>
-			</div>
-
-			<h2 style="font-size:22px; font-weight:600; margin:0 0 14px; letter-spacing:-0.01em;">Headless is the future. WordPress is the present. Hatch ships both, today.</h2>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">The web is converging on edge delivery. Every major framework is adding edge runtime support. Cloudflare, Vercel, Deno Deploy, Fastly — they all agree on the direction. JavaScript at the edge, serving pre-rendered HTML, no origin server in the hot path. That is what headless WordPress is when done right.</p>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">WordPress is not going away. It powers too much of the web, has too deep a talent pool, and has earned too much trust from non-technical people to be displaced by a new CMS. The editorial experience in Gutenberg is genuinely good now. The plugin ecosystem is genuinely useful. The problem has always been delivery, not editing.</p>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 16px;">Hatch is not a bet against WordPress. It is a bet that WordPress will be the best content-management backend on the internet for years to come, and that the frontend deserves to be as modern as the rest of the web. You can have both. You don't have to choose a new CMS, retrain your team, or maintain two codebases with GraphQL in the middle.</p>
-			<p style="font-size:16px; line-height:1.75; margin:0 0 48px;">A WordPress install with Hatch is, today, the fastest way to get a Lighthouse 100 content site in front of a global audience, edited by non-developers, maintained by a single developer, and owned entirely by you. That's the vision. It shipped.</p>
 
 			<p style="margin-top:32px; border-top:1px solid var(--border); padding-top:24px;">
 				<a href="/" style="font-size:13px; color:var(--fg-muted); text-decoration:none;">← Back to Hatch</a>
