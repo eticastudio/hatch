@@ -191,7 +191,7 @@ p { color: var(--fg-muted); margin: 0 0 12px; font-size: 15px; }
 p.lead { font-size: ${wide ? '20px' : '17px'}; color: var(--fg-muted); max-width: 680px; line-height: 1.55; }
 a { color: var(--primary); text-decoration: none; }
 a:hover { text-decoration: none; }
-.faq-a a:hover, .convince-summary a:hover, footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.faq-a a:hover, footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .card { background: var(--surface); border:1px solid var(--border); border-radius: 14px; padding: 22px; margin: 14px 0; }
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 999px; font-weight: 600; background: var(--fg); color: var(--surface); font-size: 14px; transition: opacity .15s, transform .08s; }
 .btn:hover { text-decoration: none; opacity: .88; transform: translateY(-1px); }
@@ -496,68 +496,6 @@ footer a:hover { color: var(--fg); }
 .q-block { padding: 18px 22px; border-left: 3px solid var(--primary); background: var(--bg-3); border-radius: 0 10px 10px 0; margin: 18px 0; }
 .q-block strong { color: var(--fg); }
 
-.convince-wrap { max-width: 1100px; }
-.objection-grid {
-	display: grid; gap: 18px;
-	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-	margin-top: 36px;
-}
-.objection {
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: 14px;
-	padding: 22px 24px;
-	transition: transform .25s cubic-bezier(.2,.8,.2,1), border-color .25s, box-shadow .25s;
-}
-.objection:hover {
-	transform: translateY(-2px);
-	border-color: rgba(245, 158, 11, 0.4);
-	box-shadow: 0 12px 32px -16px rgba(245, 158, 11, 0.25);
-}
-.objection-q { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
-.objection-q h3 {
-	font-size: 16.5px;
-	margin: 0;
-	line-height: 1.35;
-	color: var(--fg-muted);
-	font-style: italic;
-	font-weight: 500;
-}
-.o-x {
-	display: inline-flex; align-items: center; justify-content: center;
-	flex: 0 0 26px; height: 26px;
-	background: rgba(220, 38, 38, 0.1);
-	color: #dc2626;
-	border-radius: 50%;
-	font-weight: 700; font-size: 14px;
-	margin-top: 1px;
-}
-.objection-a {
-	font-size: 14px; line-height: 1.65;
-	color: var(--fg); padding-left: 38px;
-}
-.objection-a strong { color: var(--green, #16a34a); display: block; margin-bottom: 4px; font-size: 14.5px; }
-
-.convince-summary {
-	display: flex; align-items: center; gap: 24px;
-	margin-top: 40px;
-	padding: 28px 32px;
-	background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.02) 60%);
-	border: 1px solid rgba(245, 158, 11, 0.18);
-	border-radius: 16px;
-}
-.summary-emoji {
-	font-size: 56px; line-height: 1;
-	flex: 0 0 auto;
-	animation: gentleBob 4s ease-in-out infinite;
-}
-@keyframes gentleBob {
-	0%, 100% { transform: translateY(0); }
-	50%      { transform: translateY(-4px); }
-}
-.convince-summary h3 { margin: 0 0 6px; font-size: 19px; }
-.convince-summary p { margin: 0; font-size: 14.5px; color: var(--fg-muted); line-height: 1.6; max-width: 720px; }
-
 /* Subtle live-dot pulse on first paint */
 .live-dot {
 	animation: livePulse 2.4s ease-in-out infinite;
@@ -565,11 +503,6 @@ footer a:hover { color: var(--fg); }
 @keyframes livePulse {
 	0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
 	50%      { box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
-}
-
-@media (max-width: 640px) {
-	.convince-summary { flex-direction: column; text-align: center; }
-	.objection-a { padding-left: 0; }
 }
 
 /* Icon system — uniform 16-20px stroke icons */
@@ -695,26 +628,6 @@ footer a:hover { color: var(--fg); }
 .faq-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 .faq-item[hidden] { display: none; }
 
-.objection {
-	position: relative;
-	background: var(--surface);
-	z-index: 1;
-}
-.objection::before,
-.objection::after {
-	content: "";
-	position: absolute;
-	inset: 0;
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: 14px;
-	z-index: -1;
-	transition: transform .35s cubic-bezier(.2,.8,.2,1), opacity .35s;
-}
-.objection::before { transform: translate(4px, 4px) rotate(0.6deg);  opacity: 0.55; }
-.objection::after  { transform: translate(8px, 8px) rotate(1.2deg);  opacity: 0.28; }
-.objection:hover::before { transform: translate(6px, 6px) rotate(0.9deg);  opacity: 0.7; }
-.objection:hover::after  { transform: translate(12px,12px) rotate(1.8deg); opacity: 0.4; }
 
 .reveal {
 	opacity: 0;
