@@ -37,43 +37,34 @@ function buildSvg() {
 	<circle cx="1060" cy="100" r="160" fill="none" stroke="${BRAND}" stroke-opacity="0.10" stroke-width="1"/>
 	<circle cx="1060" cy="100" r="220" fill="url(#ringGrad)"/>
 
-	<!-- Brand mark (top-left) -->
-	<g transform="translate(70, 70)">
-		<text x="0" y="44" font-size="48" font-family="${FONT}" font-weight="700" fill="${FG}">
-			<tspan>🐣</tspan>
-			<tspan dx="12">Hatch</tspan>
-		</text>
+	<!-- Brand mark (top-left): vector chick + wordmark (no emoji font dependency) -->
+	<g transform="translate(70, 80)">
+		<!-- Chick body -->
+		<ellipse cx="32" cy="34" rx="28" ry="26" fill="#FFD25A"/>
+		<!-- Tuft on head -->
+		<path d="M 22 10 Q 24 4 28 8 Q 30 4 34 8 Q 38 4 42 10 Z" fill="#FFD25A"/>
+		<!-- Wing -->
+		<path d="M 16 36 Q 22 28 30 36 Q 22 44 16 36 Z" fill="#F5B82E"/>
+		<!-- Beak -->
+		<polygon points="56,32 68,30 56,38" fill="${BRAND}"/>
+		<!-- Eye -->
+		<circle cx="40" cy="26" r="3.5" fill="#0a0a0a"/>
+		<circle cx="41" cy="25" r="1" fill="#ffffff"/>
+		<!-- Wordmark -->
+		<text x="78" y="48" font-size="46" font-family="${FONT}" font-weight="800" letter-spacing="-1" fill="${FG}">Hatch</text>
 	</g>
 
 	<!-- Headline block -->
-	<g transform="translate(70, 220)">
-		<text x="0" y="0" font-family="${FONT}" font-weight="800" font-size="78" letter-spacing="-2.5" fill="${FG}">
-			<tspan>The fastest way to </tspan><tspan fill="${BRAND}">WordPress</tspan><tspan>.</tspan>
-		</text>
-		<text x="0" y="100" font-family="${FONT}" font-weight="800" font-size="78" letter-spacing="-2.5" fill="${FG}">
-			<tspan fill="${BRAND}">Headless</tspan><tspan>. Edge-delivered.</tspan>
-		</text>
-		<text x="0" y="200" font-family="${FONT}" font-weight="800" font-size="78" letter-spacing="-2.5" fill="${FG}">
-			<tspan>Live in </tspan><tspan fill="${BRAND}">90 seconds</tspan><tspan>.</tspan>
-		</text>
+	<g transform="translate(70, 240)">
+		<text xml:space="preserve" x="0" y="0" font-family="${FONT}" font-weight="800" font-size="78" letter-spacing="-2.5" fill="${FG}"><tspan>The fastest way to </tspan><tspan fill="${BRAND}">WordPress</tspan><tspan>.</tspan></text>
+		<text xml:space="preserve" x="0" y="100" font-family="${FONT}" font-weight="800" font-size="78" letter-spacing="-2.5" fill="${FG}"><tspan fill="${BRAND}">Headless</tspan><tspan>. Edge-delivered.</tspan></text>
+		<text xml:space="preserve" x="0" y="200" font-family="${FONT}" font-weight="800" font-size="78" letter-spacing="-2.5" fill="${FG}"><tspan>Live in </tspan><tspan fill="${BRAND}">90 seconds</tspan><tspan>.</tspan></text>
 	</g>
 
 	<!-- Footer URL + tagline -->
 	<g transform="translate(70, 560)">
-		<text x="0" y="0" font-family="${FONT}" font-weight="600" font-size="22" fill="${MUTED}">
-			hatch.adityaarsharma.com
-		</text>
-		<text x="0" y="32" font-family="${FONT}" font-weight="500" font-size="18" fill="${MUTED}" letter-spacing="0.3">
-			Open source · MIT · Headless WordPress engine
-		</text>
-	</g>
-
-	<!-- Bottom-right accent pill -->
-	<g transform="translate(${W - 70}, 565)">
-		<rect x="-220" y="-30" width="220" height="50" rx="25" ry="25" fill="${BRAND}"/>
-		<text x="-110" y="3" font-family="${FONT}" font-weight="700" font-size="20" fill="#ffffff" text-anchor="middle">
-			Lighthouse 100 · Free
-		</text>
+		<text x="0" y="0" font-family="${FONT}" font-weight="600" font-size="22" fill="${MUTED}">hatch.adityaarsharma.com</text>
+		<text x="0" y="32" font-family="${FONT}" font-weight="500" font-size="18" fill="${MUTED}" letter-spacing="0.3">Open source · MIT · Headless WordPress engine</text>
 	</g>
 
 	<!-- Bottom border accent -->
