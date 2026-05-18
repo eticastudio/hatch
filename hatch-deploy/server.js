@@ -29,6 +29,7 @@ import { fileURLToPath } from 'node:url';
 import { deployToVercel }     from './lib/vercel-deploy.js';
 import { deployToCloudflare } from './lib/cloudflare-deploy.js';
 import { registerImgProxy }   from './lib/img-proxy.js';
+import { registerOgImage }    from './lib/og-image.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -150,14 +151,41 @@ const lu = (name, extraClass = '') => {
 // --------------------------------------------------------------------------
 const html = (title, body, opts = {}) => {
 	const wide = opts.wide === true;
+	const siteUrl    = 'https://hatch.adityaarsharma.com';
+	const ogImage    = `${siteUrl}/og.png`;
+	const ogTitle    = opts.ogTitle    || `${title} · Hatch`;
+	const ogDesc     = opts.ogDesc     || 'The fastest way to WordPress. Headless. Edge-delivered. Live in 90 seconds. Open-source plugin + Astro starter — MIT, vendor-neutral, REST-only.';
+	const canonical  = opts.canonical  || siteUrl;
 	return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>${title} · Hatch</title>
-<meta name="description" content="Hatch — the open-source headless WordPress engine. WordPress plugin + Astro starter, 1-click deploy to Cloudflare or Vercel. MIT, vendor-neutral, REST-only."/>
+<meta name="description" content="${ogDesc}"/>
+<link rel="canonical" href="${canonical}"/>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🐣%3C/text%3E%3C/svg%3E"/>
+
+<!-- Open Graph -->
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="Hatch"/>
+<meta property="og:title" content="${ogTitle}"/>
+<meta property="og:description" content="${ogDesc}"/>
+<meta property="og:url" content="${canonical}"/>
+<meta property="og:image" content="${ogImage}"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta property="og:image:alt" content="Hatch — The fastest way to WordPress. Headless. Edge-delivered. Live in 90 seconds."/>
+<meta property="og:locale" content="en_US"/>
+
+<!-- Twitter / X card -->
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="${ogTitle}"/>
+<meta name="twitter:description" content="${ogDesc}"/>
+<meta name="twitter:image" content="${ogImage}"/>
+<meta name="twitter:image:alt" content="Hatch — Headless WordPress in 90 seconds"/>
+<meta name="twitter:creator" content="@adityaarsharma"/>
+<meta name="twitter:site" content="@adityaarsharma"/>
 <link rel="preconnect" href="https://rsms.me"/>
 <link rel="stylesheet" href="https://rsms.me/inter/inter.css"/>
 <style>
@@ -1794,7 +1822,11 @@ app.get('/vision', (req, res) => {
 				<a href="/" style="font-size:13px; color:var(--fg-muted); text-decoration:none;">← Back to Hatch</a>
 			</p>
 		</div>
-	`));
+	`, {
+		canonical: 'https://hatch.adityaarsharma.com/vision',
+		ogTitle: 'Vision — Why Hatch exists · A note from Aditya',
+		ogDesc: 'WordPress should be fast without asking you to become a developer. A founder note on why Hatch exists.'
+	}));
 });
 
 // GET /deploy/redeem?ticket=… — WP plugin redeems the completed ticket.
@@ -2213,6 +2245,11 @@ app.get(['/icon.svg', '/logo.svg'], (req, res) => {
 // GET /img — WebP/AVIF image optimization proxy (sharp)
 // --------------------------------------------------------------------------
 registerImgProxy(app);
+
+// --------------------------------------------------------------------------
+// GET /og.png — Open Graph / Twitter card image (1200×630, brand)
+// --------------------------------------------------------------------------
+registerOgImage(app);
 
 // --------------------------------------------------------------------------
 // GET /health — RunCloud / monitoring check
