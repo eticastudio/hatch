@@ -624,9 +624,10 @@ footer a:hover { color: var(--fg); }
 .vs-table td:first-child { font-weight: 500; color: var(--fg); }
 .vs-hatch { background: rgba(255, 107, 0, 0.04); }
 .vs-table th.vs-hatch { color: var(--primary); background: rgba(255,107,0,0.06); border-bottom-color: var(--primary); }
-.vs-yes { color: var(--green); font-weight: 700; }
-.vs-no { color: #dc2626; font-weight: 700; }
-.vs-warn { color: #d97706; font-weight: 600; }
+.vs-yes { color: var(--green); font-weight: 500; }
+.vs-no { color: #dc2626; font-weight: 500; }
+.vs-warn { color: #d97706; font-weight: 500; }
+.vs-table td.vs-hatch.vs-yes, .vs-table td.vs-hatch.vs-no, .vs-table td.vs-hatch.vs-warn { font-weight: 700; }
 .vs-na { color: var(--fg-subtle); }
 .vs-note { font-size: 12px; color: var(--fg-subtle); margin-top: 14px; line-height: 1.6; }
 .vs-note a { color: var(--fg-muted); }
@@ -1451,8 +1452,8 @@ app.get('/', (req, res) => {
 			<p class="lead" style="max-width: 720px;">
 				Because <strong>your client just figured out how to bold a word</strong>. Because the writer you hired
 				on Tuesday already knows the editor. Because 60,000 plugins exist for the thing you're about to
-				rebuild from scratch. Because the licensing math on Sanity becomes <strong>$99/month</strong> the
-				moment your team grows past three editors.
+				rebuild from scratch. Because the licensing math on Sanity, Contentful and Hygraph starts billing <strong>per seat, per API call, per environment</strong>
+				the moment your team grows.
 			</p>
 			<div class="grid grid-3" style="margin-top: 28px;">
 				<div class="feature">
