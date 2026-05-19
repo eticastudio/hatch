@@ -18,7 +18,17 @@ export default function Design({ state, onDirty, setSetting }) {
 
 	const theme = (state.design?.theme || 'astropaper').toLowerCase();
 	const brand = state.design?.brand || { primary: '#ff6b00', secondary: '#0a0a0a', accent: '#6366f1', background: '#fafafa' };
-	const layout = state.design?.layout || { density: 'Comfortable', roundness: 'Default', maxWidth: '1160px', buttonStyle: 'Pill' };
+	// v0.50.14 — Canonical IDs (lowercase, no units) are the contract between
+	// WP and the Astro frontend. Display labels stay pretty in the UI but the
+	// values written via setSetting() are what the regenerator + Astro consume.
+	// Migration tolerant: previously-saved capitalized labels are still
+	// recognised by the comparison below until the user re-clicks.
+	const layout = state.design?.layout || { density: 'comfortable', rounded: 'smooth', max_width: '1160', button_style: 'pill' };
+	const isActiveLayout = (saved, id) => {
+		if (saved == null) return false;
+		const s = String(saved).toLowerCase().replace('px', '').replace(/\s+/g, '_');
+		return s === id || s === id.replace('_', '');
+	};
 	const fontHead = state.design?.font_heading || 'Inter';
 	const fontBody = state.design?.font_body || 'Inter';
 	const mode = state.design?.mode || 'auto';
@@ -175,32 +185,32 @@ export default function Design({ state, onDirty, setSetting }) {
 					<div>
 						<div style={{ fontSize: 12, fontWeight: 600, color: 'var(--hx-muted)', marginBottom: 8 }}>Density</div>
 						<div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-							{['Compact', 'Comfortable', 'Spacious'].map((o) => (
-								<Chip key={o} label={o} active={layout.density === o} onClick={() => { setSetting('design.layout.density', o); onDirty(); }} />
+							{[{id: 'compact', label: 'Compact'}, {id: 'comfortable', label: 'Comfortable'}, {id: 'spacious', label: 'Spacious'}].map((o) => (
+								<Chip key={o.id} label={o.label} active={isActiveLayout(layout.density, o.id)} onClick={() => { setSetting('design.layout.density', o.id); onDirty(); }} />
 							))}
 						</div>
 					</div>
 					<div>
 						<div style={{ fontSize: 12, fontWeight: 600, color: 'var(--hx-muted)', marginBottom: 8 }}>Roundness</div>
 						<div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-							{['Sharp', 'Default', 'Extra round'].map((o) => (
-								<Chip key={o} label={o} active={layout.roundness === o} onClick={() => { setSetting('design.layout.roundness', o); onDirty(); }} />
+							{[{id: 'sharp', label: 'Sharp'}, {id: 'smooth', label: 'Default'}, {id: 'extra', label: 'Extra round'}].map((o) => (
+								<Chip key={o.id} label={o.label} active={isActiveLayout(layout.rounded ?? layout.roundness, o.id)} onClick={() => { setSetting('design.layout.rounded', o.id); onDirty(); }} />
 							))}
 						</div>
 					</div>
 					<div>
 						<div style={{ fontSize: 12, fontWeight: 600, color: 'var(--hx-muted)', marginBottom: 8 }}>Max content width</div>
 						<div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-							{['720px', '1160px', '1320px'].map((o) => (
-								<Chip key={o} label={o} active={layout.maxWidth === o} onClick={() => { setSetting('design.layout.maxWidth', o); onDirty(); }} />
+							{[{id: '720', label: '720px'}, {id: '1160', label: '1160px'}, {id: '1320', label: '1320px'}].map((o) => (
+								<Chip key={o.id} label={o.label} active={isActiveLayout(layout.max_width ?? layout.maxWidth, o.id)} onClick={() => { setSetting('design.layout.max_width', o.id); onDirty(); }} />
 							))}
 						</div>
 					</div>
 					<div>
 						<div style={{ fontSize: 12, fontWeight: 600, color: 'var(--hx-muted)', marginBottom: 8 }}>Button style</div>
 						<div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-							{['Pill', 'Rounded', 'Sharp'].map((o) => (
-								<Chip key={o} label={o} active={layout.buttonStyle === o} onClick={() => { setSetting('design.layout.buttonStyle', o); onDirty(); }} />
+							{[{id: 'pill', label: 'Pill'}, {id: 'rounded', label: 'Rounded'}, {id: 'sharp', label: 'Sharp'}].map((o) => (
+								<Chip key={o.id} label={o.label} active={isActiveLayout(layout.button_style ?? layout.buttonStyle, o.id)} onClick={() => { setSetting('design.layout.button_style', o.id); onDirty(); }} />
 							))}
 						</div>
 					</div>

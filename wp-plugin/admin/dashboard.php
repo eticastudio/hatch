@@ -221,13 +221,16 @@ function hatch_react_boot_state(): array {
 						'background' => '#fafafa',
 					)
 				),
+				// v0.50.14 — canonical lowercase IDs. The React UI writes these
+				// directly via setSetting() and the Astro frontend reads them
+				// verbatim. Pretty display labels live in the JSX.
 				'layout'       => wp_parse_args(
 					(array) get_option( 'hatch_design_layout', array() ),
 					array(
-						'density'     => 'Comfortable',
-						'roundness'   => 'Default',
-						'maxWidth'    => '1160px',
-						'buttonStyle' => 'Pill',
+						'density'      => 'comfortable',
+						'rounded'      => 'smooth',
+						'max_width'    => '1160',
+						'button_style' => 'pill',
 					)
 				),
 				'font_heading' => (string) get_option( 'hatch_design_font_heading', 'Inter' ),
