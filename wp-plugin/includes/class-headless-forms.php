@@ -28,6 +28,13 @@ class Hatch_Headless_Forms {
 	const SUBMISSIONS_CPT = 'hatch_submission';
 
 	public static function register_routes(): void {
+		// v0.50.13 — gated by Content tab "Enable form bridge" toggle. Default
+		// is on (true) so existing installs are unaffected; if a user explicitly
+		// turns it off, neither the submit nor the embed route registers.
+		$flags = (array) get_option( 'hatch_content_flags', array() );
+		if ( isset( $flags['forms_enabled'] ) && ! $flags['forms_enabled'] ) {
+			return;
+		}
 		register_rest_route( HATCH_REST_NAMESPACE, '/forms/submit', array(
 			'methods'             => WP_REST_Server::CREATABLE,
 			'callback'            => array( __CLASS__, 'route_submit' ),

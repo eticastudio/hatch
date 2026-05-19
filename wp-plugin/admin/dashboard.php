@@ -306,11 +306,13 @@ function hatch_react_boot_state(): array {
 				'hero' => true, 'faq' => true, 'cta' => true,
 				'testimonial' => false, 'gallery' => false, 'pricing' => false,
 			) ),
-			'turnstile'      => (array) get_option( 'hatch_turnstile', array(
-				'enabled'    => false,
-				'site_key'   => '',
-				'secret_key' => '',
-			) ),
+			// v0.50.13 — read Turnstile from the authoritative source
+			// (`hatch_integrations`). The earlier `hatch_turnstile` key was a
+			// dispatcher artifact that no consumer read, so the UI showed
+			// "Keys missing" even after the user typed them in.
+			'turnstile'      => class_exists( 'Hatch_Integrations' )
+				? (array) ( Hatch_Integrations::get_all()['turnstile'] ?? array() )
+				: array( 'enabled' => false, 'site_key' => '', 'secret_key' => '' ),
 			'menus'          => hatch_react_menus_summary(),
 			'forms'          => hatch_react_forms_summary(),
 			'pluginBridge'   => hatch_react_plugin_bridge(),
@@ -700,7 +702,10 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 		'breakpoints.'     => 'hatch_design_breakpoints',
 		'content.'         => 'hatch_content_flags',
 		'hatchBlocks.'     => 'hatch_blocks_enabled',
-		'turnstile.'       => 'hatch_turnstile',
+		// v0.50.13 — DO NOT add 'turnstile.' here. Turnstile flows through
+		// `Hatch_Integrations` (option key `hatch_integrations`) because that's
+		// what `verify_turnstile()` and the frontend payload both read. The
+		// dedicated handler below routes turnstile.* paths to save_group().
 	);
 	$top_bool = array(
 		'show_credit' => 'hatch_show_credit',
@@ -795,6 +800,39 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 			update_option( $top_bool[ $path ], (bool) $value, false );
 			$applied[ $path ] = (bool) $value;
 			continue;
+		}
+
+		// v0.50.13 — Turnstile keys and sub-toggles route through
+		// `Hatch_Integrations` (option `hatch_integrations`) because that's
+		// what verify_turnstile() and the public /features payload both read.
+		// Writing to a new key (`hatch_turnstile`) made saves a no-op.
+		// `enabled` flips on automatically when keys + any sub-toggle present.
+		if ( 0 === strpos( $path, 'turnstile.' ) && class_exists( 'Hatch_Integrations' ) ) {
+			$sub  = substr( $path, 10 );
+			$all  = Hatch_Integrations::get_all();
+			$ts   = (array) ( $all['turnstile'] ?? array() );
+			if ( in_array( $sub, array( 'site_key', 'secret_key' ), true ) ) {
+				$ts[ $sub ] = sanitize_text_field( (string) $value );
+			}
+			// Auto-enable when both keys present, regardless of UI surface.
+			$ts['enabled'] = ! empty( $ts['site_key'] ) && ! empty( $ts['secret_key'] );
+			Hatch_Integrations::save_group( 'turnstile', $ts );
+			$applied[ $path ] = $ts[ $sub ] ?? null;
+			continue;
+		}
+		if ( ( 'content.comments_turnstile' === $path || 'content.forms_turnstile' === $path )
+		     && class_exists( 'Hatch_Integrations' ) ) {
+			// Mirror the sub-toggle into hatch_integrations so the verifier sees it,
+			// then fall through to also persist in hatch_content_flags (UI state).
+			$all = Hatch_Integrations::get_all();
+			if ( 'content.comments_turnstile' === $path ) {
+				$c = (array) ( $all['comments'] ?? array() );
+				$c['turnstile'] = (bool) $value;
+				Hatch_Integrations::save_group( 'comments', $c );
+			}
+			// Form Turnstile is currently only consumed via the global Turnstile
+			// enabled flag + verify_turnstile(); no per-group flag in defaults.
+			// Falling through writes to hatch_content_flags for UI persistence.
 		}
 
 		// Nested groups (prefix match).
@@ -934,12 +972,17 @@ function hatch_react_status_snapshot(): array {
 			),
 		),
 		array(
+			// v0.50.13 — read the actual option keys the React Security tab
+			// writes to. The old `hatch_block_rest` / `hatch_disable_xmlrpc` /
+			// `hatch_block_enum` / `hatch_noindex_cms` were legacy keys from
+			// before the rebuild; nothing writes to them anymore, so the
+			// Status tab badges were stuck at "off" forever.
 			'label' => __( 'Security', 'hatch' ),
 			'rows'  => array(
-				array( 'label' => 'REST API hardening', 'type' => get_option( 'hatch_block_rest' ) ? 'on' : 'off' ),
-				array( 'label' => 'XML-RPC disabled',   'type' => get_option( 'hatch_disable_xmlrpc' ) ? 'on' : 'off' ),
-				array( 'label' => 'User enum blocked',  'type' => get_option( 'hatch_block_enum' ) ? 'on' : 'off' ),
-				array( 'label' => 'Site noindex',       'type' => get_option( 'hatch_noindex_cms' ) ? 'on' : 'off' ),
+				array( 'label' => 'REST API hardening', 'type' => get_option( 'hatch_security_harden_rest' ) ? 'on' : 'off' ),
+				array( 'label' => 'XML-RPC disabled',   'type' => get_option( 'hatch_security_disable_xmlrpc' ) ? 'on' : 'off' ),
+				array( 'label' => 'User enum blocked',  'type' => get_option( 'hatch_security_block_user_enum' ) ? 'on' : 'off' ),
+				array( 'label' => 'Site noindex',       'type' => get_option( 'hatch_security_force_noindex' ) ? 'on' : 'off' ),
 			),
 		),
 		array(

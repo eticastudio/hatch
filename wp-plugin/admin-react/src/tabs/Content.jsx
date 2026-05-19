@@ -11,6 +11,29 @@ export default function Content({ state, onDirty, setSetting }) {
 	const onToggle = (path) => (v) => { setSetting(path, v); onDirty(); };
 	const onText   = (path) => (e) => { setSetting(path, e.target.value); onDirty(); };
 
+	// Turnstile gating — a user toggling Turnstile ON without keys is meaningless
+	// (the frontend widget never renders, the server side never verifies). Instead
+	// of letting the save succeed and break silently, refuse the flip, scroll to
+	// the key inputs, and flash the section so it's obvious where to go next.
+	const hasKeys = !!(ts.site_key && ts.secret_key);
+	const guardTurnstile = (path) => (v) => {
+		if (v && !hasKeys) {
+			const el = document.getElementById('hatch-turnstile-keys');
+			if (el) {
+				el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				el.classList.remove('hatch-flash');
+				// force reflow so the animation restarts on repeated clicks
+				void el.offsetWidth;
+				el.classList.add('hatch-flash');
+				const input = el.querySelector('input:not([type="password"])');
+				if (input) setTimeout(() => input.focus(), 350);
+			}
+			return; // do NOT flip the toggle, do NOT mark dirty
+		}
+		setSetting(path, v);
+		onDirty();
+	};
+
 	// Plugin Bridge — capability-based. Each entry is a frontend feature; Hatch
 	// auto-detects which WordPress plugin (if any) is providing it. Server can
 	// override via `state.pluginBridge` (each item: {feature, providers[], detected, providerName}).
@@ -39,10 +62,7 @@ export default function Content({ state, onDirty, setSetting }) {
 					desc="WordPress core capabilities Hatch bridges to your headless frontend. Each toggle wires its REST endpoint and registers the frontend route."
 				/>
 
-				{/* Comments — sub-toggles only render when parent is enabled.
-				    Showing Turnstile-on-comments while comments are off was meaningless
-				    config UX (the REST endpoint /hatch/v1/comments is gated by
-				    comments_enabled — Turnstile has nothing to gate). */}
+				{/* Comments — sub-toggles only render when parent is enabled. */}
 				<HxGL>Comments</HxGL>
 				<HxRow
 					label="Enable headless comments"
@@ -53,7 +73,10 @@ export default function Content({ state, onDirty, setSetting }) {
 				</HxRow>
 				{content.comments_enabled && (
 					<HxRow label="Turnstile on comment submissions" desc="Cloudflare Turnstile bot check before a comment posts." last>
-						<HxToggle on={!!content.comments_turnstile} onChange={onToggle('content.comments_turnstile')} />
+						<HxToggle
+							on={!!content.comments_turnstile && hasKeys}
+							onChange={guardTurnstile('content.comments_turnstile')}
+						/>
 					</HxRow>
 				)}
 
@@ -84,7 +107,10 @@ export default function Content({ state, onDirty, setSetting }) {
 				</HxRow>
 				{content.forms_enabled && (
 					<HxRow label="Turnstile on form submissions" desc="Bot check applied to every bridged form before it submits." last>
-						<HxToggle on={!!content.forms_turnstile} onChange={onToggle('content.forms_turnstile')} />
+						<HxToggle
+							on={!!content.forms_turnstile && hasKeys}
+							onChange={guardTurnstile('content.forms_turnstile')}
+						/>
 					</HxRow>
 				)}
 
@@ -206,7 +232,7 @@ export default function Content({ state, onDirty, setSetting }) {
 				</div>
 
 				<HxGL>Cloudflare Turnstile</HxGL>
-				<div style={{ paddingTop: 4 }}>
+				<div id="hatch-turnstile-keys" style={{ paddingTop: 4, padding: 12, margin: '-12px', borderRadius: 10, transition: 'box-shadow .25s var(--hx-ease), background .25s var(--hx-ease)' }}>
 					<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
 						<div style={{ fontSize: 12, color: 'var(--hx-subtle)' }}>
 							One key pair, used by Comments / Forms / any future surface.
