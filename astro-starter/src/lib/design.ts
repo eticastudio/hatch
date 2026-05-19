@@ -7,22 +7,45 @@
  */
 import type { HatchDesign } from './features';
 
-const DENSITY_SPACE: Record<HatchDesign['layout']['density'], string> = {
+const DENSITY_SPACE: Record<string, string> = {
   compact: '0.75',
   comfortable: '1',
   spacious: '1.25',
 };
 
-const ROUNDED_RADIUS: Record<HatchDesign['layout']['rounded'], string> = {
+const ROUNDED_RADIUS: Record<string, string> = {
   sharp: '4px',
   smooth: '10px',
   extra: '20px',
 };
 
+// Per-element button radius — separate from container radius because users
+// often want sharp cards but pill buttons (or vice-versa).
+const BUTTON_RADIUS: Record<string, string> = {
+  pill: '9999px',
+  rounded: '10px',
+  sharp: '4px',
+};
+
+// Tolerate legacy values coming from older `hatch_design_layout` rows that
+// were written by the pre-v0.50.14 admin (capitalised labels with units).
+const norm = (v: unknown): string => String(v ?? '').toLowerCase().replace(/px$/, '').replace(/\s+/g, '');
+const normRounded = (v: unknown): string => {
+  const x = norm(v);
+  if (x === 'default') return 'smooth';
+  if (x === 'extraround') return 'extra';
+  return x;
+};
+
 export function designToCssVars(design: HatchDesign | null | undefined): string {
   if (!design) return '';
   const b = design.brand;
-  const l = design.layout;
+  const l: any = design.layout;
+
+  const density     = DENSITY_SPACE[norm(l.density)] || DENSITY_SPACE.comfortable;
+  const radius      = ROUNDED_RADIUS[normRounded(l.rounded ?? l.roundness)] || ROUNDED_RADIUS.smooth;
+  const maxWidth    = norm(l.max_width ?? l.maxWidth) || '1160';
+  const buttonStyle = BUTTON_RADIUS[norm(l.button_style ?? l.buttonStyle)] || BUTTON_RADIUS.pill;
 
   const vars: Record<string, string> = {
     '--hatch-primary': b.primary,
@@ -32,9 +55,10 @@ export function designToCssVars(design: HatchDesign | null | undefined): string 
     '--hatch-font-heading': `"${b.font_heading}", ui-sans-serif, system-ui, -apple-system, sans-serif`,
     '--hatch-font-body': `"${b.font_body}", ui-sans-serif, system-ui, -apple-system, sans-serif`,
     '--hatch-font-mono': `"${b.font_mono}", ui-monospace, SFMono-Regular, Menlo, monospace`,
-    '--hatch-density': DENSITY_SPACE[l.density],
-    '--hatch-radius': ROUNDED_RADIUS[l.rounded],
-    '--hatch-max-width': `${l.max_width}px`,
+    '--hatch-density': density,
+    '--hatch-radius': radius,
+    '--hatch-button-radius': buttonStyle,
+    '--hatch-max-width': `${maxWidth}px`,
   };
 
   return Object.entries(vars)
