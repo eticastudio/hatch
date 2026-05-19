@@ -35,18 +35,11 @@ class Hatch_Options_Rest {
 	}
 
 	public static function register_routes(): void {
-		register_rest_route( HATCH_REST_NAMESPACE, '/options', array(
-			array(
-				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( __CLASS__, 'route_get' ),
-				'permission_callback' => array( __CLASS__, 'require_admin' ),
-			),
-			array(
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( __CLASS__, 'route_post' ),
-				'permission_callback' => array( __CLASS__, 'require_admin' ),
-			),
-		) );
+		// v0.50.11 — /options was a legacy whitelist-based handler (10 keys).
+		// Superseded by hatch_react_options_save() in admin/dashboard.php which
+		// handles the React dispatcher's dot-path schema with the full key set.
+		// Registering both at the same priority shadowed the new handler and
+		// silently dropped every option not in the legacy whitelist. Removed.
 
 		register_rest_route( HATCH_REST_NAMESPACE, '/self-update', array(
 			'methods'             => WP_REST_Server::CREATABLE,

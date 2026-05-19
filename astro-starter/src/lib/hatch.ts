@@ -5,9 +5,12 @@
  * that runs in the browser. Application Password must stay secret.
  */
 
-const WP_API = import.meta.env.WP_API_URL;
-const WP_USER = import.meta.env.WP_API_USER;
-const WP_PASS = import.meta.env.WP_API_PASS;
+// v0.50.x — secrets read via astro:env (runtime) instead of Vite-inlined.
+// WP_API_USER / WP_API_PASS no longer appear in the deployed JS bundle.
+import { WP_API_URL, WP_API_USER, WP_API_PASS } from 'astro:env/server';
+const WP_API = WP_API_URL;
+const WP_USER = WP_API_USER;
+const WP_PASS = WP_API_PASS;
 
 if (!WP_API || !WP_USER || !WP_PASS) {
   // Don't crash at import time — let pages fail gracefully if env is missing.

@@ -1,9 +1,12 @@
-import { defineConfig } from 'astro/config';
+import { defineConfig, envField } from 'astro/config';
 import tailwindcss from '@tailwindcss/vite';
-import sitemap from '@astrojs/sitemap';
 import cloudflare from '@astrojs/cloudflare';
 import vercel from '@astrojs/vercel';
 import node from '@astrojs/node';
+// Sitemap is hand-rolled in src/pages/sitemap-index.xml.ts because it needs
+// to enumerate WP posts/pages/categories at request time (SSR). The
+// @astrojs/sitemap integration only sees static routes and would publish an
+// incomplete sitemap to crawlers. Don't re-add it.
 
 const SITE_URL = process.env.PUBLIC_SITE_URL || 'http://localhost:4321';
 
@@ -43,32 +46,63 @@ export default defineConfig({
   // edge-cached after the first hit per page.
   output: 'server',
   adapter,
-  integrations: [
-    sitemap({
-      filter: (page) => !page.includes('/api/'),
-    }),
-  ],
+  integrations: [],
+  // Hatch is headless — the live frontend is the deployed site, not the dev
+  // overlay. Astro's floating dev toolbar (Astro / Audit / Settings) gets in
+  // the way of preview screenshots and the editor flow, so we disable it
+  // unconditionally. Devs who want it back can pass `--open` with toolbar
+  // env overrides.
+  devToolbar: { enabled: false },
+  // Prefetch makes navigation feel instant — Astro injects link prefetches
+  // on hover by default. Auto-disabled for data-saver/slow networks. Per-link
+  // opt-out with `data-astro-prefetch="false"`. Wired here because the
+  // Performance tab persists `hatch_perf.prefetch_strategy` but the runtime
+  // hook for that isn't built yet — sensible default ships now.
+  prefetch: {
+    prefetchAll: false,
+    defaultStrategy: 'hover',
+  },
+  // Origin check for non-GET requests — Astro returns 403 if the Origin header
+  // doesn't match the site. Catches CSRF attempts against /blog/api/revalidate
+  // and any future Astro Actions endpoints. Cost: nothing — server-side check.
+  security: {
+    checkOrigin: true,
+  },
   image: {
     remotePatterns: [
       { protocol: 'https' },
     ],
   },
+  // v0.50.x — secrets moved out of the JS bundle via astro:env.
+  //
+  // Before: WP_API_PASS was Vite-inlined into the deployed worker code,
+  // visible to anyone who could fetch the bundle. That's a real leak.
+  //
+  // After: astro:env schema declares the variable as server-only secret.
+  // Consumers import { WP_API_PASS } from 'astro:env/server' and Astro
+  // reads it at RUNTIME from the platform's env binding:
+  //   - Cloudflare: set with `wrangler secret put WP_API_PASS`
+  //   - Vercel: dashboard env vars
+  //   - Node / VPS: process.env (set by install-vps.sh)
+  // Build still works without the var set; runtime fetch fails fast if
+  // it's missing, which is the correct failure mode.
+  env: {
+    schema: {
+      WP_API_URL:           envField.string({ context: 'server', access: 'public', optional: true }),
+      WP_API_USER:          envField.string({ context: 'server', access: 'secret', optional: true }),
+      WP_API_PASS:          envField.string({ context: 'server', access: 'secret', optional: true }),
+      HATCH_WEBHOOK_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
+      HATCH_BROKER_URL:     envField.string({ context: 'server', access: 'public', optional: true, default: 'https://hatch.adityaarsharma.com' }),
+    },
+  },
   vite: {
     plugins: [ tailwindcss() ],
     define: {
+      // Only constants known at build time stay as Vite defines. Anything
+      // that could be a secret or environment-dependent goes through
+      // astro:env above.
       'import.meta.env.HATCH_VERSION': JSON.stringify('0.16.0'),
       'import.meta.env.HATCH_TARGET':  JSON.stringify(target),
-      // v0.49.2 — bake WP creds into the bundle at build time. Required for
-      // Cloudflare Workers SSR: import.meta.env at runtime is undefined for
-      // non-PUBLIC vars, so we MUST inline them via Vite define. The broker
-      // sets these in process.env before running `npm run build`.
-      'import.meta.env.WP_API_URL':           JSON.stringify(process.env.WP_API_URL  || ''),
-      'import.meta.env.WP_API_USER':          JSON.stringify(process.env.WP_API_USER || ''),
-      'import.meta.env.WP_API_PASS':          JSON.stringify(process.env.WP_API_PASS || ''),
-      'import.meta.env.HATCH_WEBHOOK_SECRET': JSON.stringify(process.env.HATCH_WEBHOOK_SECRET || ''),
-      // v0.50.1 — broker URL for the same-domain /img proxy endpoint.
-      // Defaults to the public Hatch broker; self-hosters can override.
-      'import.meta.env.HATCH_BROKER_URL':     JSON.stringify(process.env.HATCH_BROKER_URL || 'https://hatch.adityaarsharma.com'),
     },
   },
 });

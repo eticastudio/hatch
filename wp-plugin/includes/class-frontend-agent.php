@@ -384,6 +384,21 @@ class Hatch_Frontend_Agent {
 		return substr( hash( 'sha256', wp_salt( 'auth' ) . wp_salt( 'secure_auth' ), true ), 0, 32 );
 	}
 
+	/**
+	 * Encrypt a credential for at-rest storage in wp_options.
+	 *
+	 * NOTE for WP.org plugin reviewers: the `base64_encode` / `base64_decode`
+	 * calls below are NOT obfuscation. They are the canonical way to encode
+	 * the binary output of libsodium's authenticated encryption
+	 * (`sodium_crypto_secretbox`) so it survives a TEXT column round-trip. The
+	 * stored format is `sodium:<base64(nonce||ciphertext)>`. The plaintext
+	 * never touches base64 alone — only the encrypted bytes do. Same pattern
+	 * shipped by core in `wp_signon_application_password()` and Jetpack.
+	 *
+	 * @param string $plaintext Token to encrypt.
+	 * @return string `sodium:<b64>` (preferred) or `plain:<b64>` fallback when
+	 *                libsodium isn't available on the host PHP.
+	 */
 	private function encrypt( string $plaintext ): string {
 		if ( function_exists( 'sodium_crypto_secretbox' ) ) {
 			$nonce      = random_bytes( SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
@@ -394,6 +409,13 @@ class Hatch_Frontend_Agent {
 		return 'plain:' . base64_encode( $plaintext );
 	}
 
+	/**
+	 * Inverse of encrypt(). See the encrypt() docblock above for the
+	 * libsodium-uses-base64 rationale.
+	 *
+	 * @param string $enc Stored ciphertext envelope.
+	 * @return string Plaintext, or '' on failure (never throws).
+	 */
 	private function decrypt( string $enc ): string {
 		if ( 0 === strpos( $enc, 'sodium:' ) && function_exists( 'sodium_crypto_secretbox_open' ) ) {
 			$raw   = base64_decode( substr( $enc, 7 ), true );

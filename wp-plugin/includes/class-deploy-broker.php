@@ -260,6 +260,16 @@ class Hatch_Deploy_Broker {
 		// the public frontend URL.
 		update_option( 'hatch_frontend_url', esc_url_raw( $project_url ), false );
 
+		// Flip the site into headless mode automatically — install (if needed)
+		// and activate the companion theme so the WP frontend immediately
+		// 302-redirects to the new project URL. The setup wizard warns users
+		// about this before they hit the deploy button. Failures here are
+		// non-fatal (the deploy already succeeded); users can manually
+		// activate the companion theme from the Connector tab if needed.
+		if ( class_exists( 'Hatch_Companion_Theme_Installer' ) ) {
+			Hatch_Companion_Theme_Installer::install_and_activate();
+		}
+
 		// Auto-fill revalidate endpoint with the new project URL (only if not
 		// already set — don't clobber a custom one).
 		$existing = (string) get_option( 'hatch_revalidate_endpoint', '' );
@@ -285,7 +295,7 @@ class Hatch_Deploy_Broker {
 			array( 'type' => $type, 'message' => $message ),
 			HOUR_IN_SECONDS
 		);
-		wp_safe_redirect( admin_url( 'tools.php?page=hatch&tab=connector' ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=hatch#connection' ) );
 		exit;
 	}
 }

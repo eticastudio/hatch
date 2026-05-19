@@ -203,6 +203,112 @@ class Hatch_Rest_Api {
 				),
 			)
 		);
+
+		// Code injection snippets — public read (the snippets end up in every
+		// visitor's HTML head, so there's nothing to gate). The Astro frontend
+		// fetches this on each request and renders the slots via set:html.
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/code-snippets',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'route_code_snippets' ),
+				'permission_callback' => '__return_true',
+			)
+		);
+
+		// SEO bridge: robots.txt content + GSC verification meta tag. Sourced
+		// from the active SEO plugin (RankMath > Yoast > native fallback).
+		// Public read — search engines need both.
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/seo-meta',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'route_seo_meta' ),
+				'permission_callback' => '__return_true',
+			)
+		);
+	}
+
+	/**
+	 * GET /hatch/v1/seo-meta — public read. Returns:
+	 *   - robots_txt:  the body for /robots.txt (RankMath > Yoast > native fallback)
+	 *   - verification: array of {provider, content} for <meta> verification tags
+	 *                   (google, bing, yandex, pinterest, baidu — populated from
+	 *                   whichever SEO plugin is active)
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function route_seo_meta(): WP_REST_Response {
+		$robots_txt   = '';
+		$verification = array();
+
+		// RankMath ----------------------------------------------------------
+		if ( Hatch_Detector::is_active( 'rankmath' ) && class_exists( 'RankMath\\Helper' ) ) {
+			$rm_robots = get_option( 'rank_math_robots_txt' );
+			if ( is_string( $rm_robots ) && '' !== trim( $rm_robots ) ) {
+				$robots_txt = $rm_robots;
+			}
+			$rm_titles = (array) get_option( 'rank-math-options-titles', array() );
+			foreach ( array( 'google' => 'google_verify', 'bing' => 'bing_verify', 'yandex' => 'yandex_verify', 'pinterest' => 'pinterest_verify', 'baidu' => 'baidu_verify' ) as $provider => $key ) {
+				if ( ! empty( $rm_titles[ $key ] ) ) {
+					$verification[] = array( 'provider' => $provider, 'content' => (string) $rm_titles[ $key ] );
+				}
+			}
+		}
+
+		// Yoast -------------------------------------------------------------
+		if ( '' === $robots_txt && Hatch_Detector::is_active( 'wordpress-seo' ) ) {
+			// Yoast doesn't store robots.txt content directly but does store
+			// site-wide options. Verification keys land in wpseo['*_verify'].
+			$wpseo = (array) get_option( 'wpseo', array() );
+			foreach ( array( 'google' => 'googleverify', 'bing' => 'msverify', 'yandex' => 'yandexverify', 'pinterest' => 'pinterestverify', 'baidu' => 'baiduverify' ) as $provider => $key ) {
+				if ( ! empty( $wpseo[ $key ] ) && empty( array_filter( $verification, fn( $v ) => $v['provider'] === $provider ) ) ) {
+					$verification[] = array( 'provider' => $provider, 'content' => (string) $wpseo[ $key ] );
+				}
+			}
+		}
+
+		// Native fallback ---------------------------------------------------
+		if ( '' === $robots_txt ) {
+			$home = trailingslashit( home_url( '/' ) );
+			$robots_txt = "User-agent: *\nDisallow: /wp-admin/\nAllow: /wp-admin/admin-ajax.php\n\nSitemap: " . $home . 'sitemap-index.xml';
+		}
+
+		return new WP_REST_Response( array(
+			'robots_txt'   => $robots_txt,
+			'verification' => $verification,
+		), 200, array(
+			'Cache-Control' => 'public, max-age=300, stale-while-revalidate=3600',
+		) );
+	}
+
+	/**
+	 * GET /hatch/v1/code-snippets — public read.
+	 *
+	 * Returns the raw head/body_start/body_end HTML alongside the analytics
+	 * IDs. The frontend builds the actual GA4/GTM/Plausible/Pixel snippets
+	 * from the IDs so injection patterns can evolve without WP changes.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function route_code_snippets(): WP_REST_Response {
+		$opt = (array) get_option( 'hatch_code_snippets', array() );
+		$g = static function ( $k ) use ( $opt ) { return isset( $opt[ $k ] ) ? (string) $opt[ $k ] : ''; };
+		return new WP_REST_Response( array(
+			'head'             => $g( 'head' ),
+			'body_start'       => $g( 'body_start' ),
+			'body_end'         => $g( 'body_end' ),
+			'ga4_id'           => $g( 'ga4_id' ),
+			'gtm_id'           => $g( 'gtm_id' ),
+			'plausible_domain' => $g( 'plausible_domain' ),
+			'pixel_id'         => $g( 'pixel_id' ),
+		), 200, array(
+			// Short cache — snippets are looked up per request but Astro
+			// can hold the response for ~60s without losing freshness.
+			'Cache-Control' => 'public, max-age=60, stale-while-revalidate=300',
+		) );
 	}
 
 	/**

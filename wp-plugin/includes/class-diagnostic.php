@@ -209,15 +209,38 @@ class Hatch_Diagnostic {
 	 */
 	private static function check_rest_api_reachable(): array {
 		$url = rest_url( 'wp/v2/types' );
-		// Use a short-timeout HEAD-style request internally.
+
+		// First, run the request in-process via rest_do_request(). This is the
+		// correct way to verify REST routing works — it exercises the same
+		// dispatcher real requests use, but skips the HTTP roundtrip entirely.
+		// That matters in any environment where home_url() isn't reachable from
+		// PHP itself: Docker port mappings (e.g. localhost:8810 → :80 inside
+		// the container), reverse proxies, Cloudflare with origin pulls
+		// disabled, hosts that block loopback HTTP, etc. If the dispatcher
+		// returns a sane response, the REST API is healthy by definition —
+		// no need to also prove the network round-trips to ourselves.
+		$internal = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/types' ) );
+		if ( ! is_wp_error( $internal ) && (int) $internal->get_status() < 500 ) {
+			return self::pass(
+				'rest_reachable',
+				__( 'REST API reachable', 'hatch' ),
+				sprintf( __( 'GET %s dispatched in-process with HTTP %d. REST routing works.', 'hatch' ), $url, (int) $internal->get_status() )
+			);
+		}
+
+		// Fallback: external HTTP probe. Only useful for catching exotic
+		// configurations where the dispatcher is healthy but the public
+		// /wp-json/ path is blocked by .htaccess / firewall rules. Treat a
+		// connection failure here as a WARNING, not a blocker — the in-process
+		// dispatch already proved the API itself works.
 		$res = wp_remote_get( $url, array( 'timeout' => 5, 'redirection' => 1, 'sslverify' => false ) );
 
 		if ( is_wp_error( $res ) ) {
-			return self::fail(
+			return self::warn(
 				'rest_reachable',
 				__( 'REST API reachable', 'hatch' ),
-				sprintf( __( 'Could not connect to %s — %s', 'hatch' ), $url, $res->get_error_message() ),
-				__( 'Check your firewall / .htaccess / nginx config. The /wp-json/* path must be accessible.', 'hatch' ),
+				sprintf( __( 'In-process REST dispatch works, but external probe to %s failed — %s. This is harmless on local rigs (Docker, loopback) but in production it may mean a firewall or reverse-proxy rule is blocking /wp-json/.', 'hatch' ), $url, $res->get_error_message() ),
+				__( 'On a live site, verify /wp-json/wp/v2/types loads in a browser. If it doesn\'t, check your firewall / .htaccess / nginx config.', 'hatch' ),
 				''
 			);
 		}
@@ -283,14 +306,58 @@ class Hatch_Diagnostic {
 	 * @return array
 	 */
 	private static function check_app_passwords_available(): array {
-		if ( function_exists( 'wp_is_application_passwords_available' ) && wp_is_application_passwords_available() ) {
+		// WP's wp_is_application_passwords_available() is gated by is_ssl() in
+		// admin context — that flag is misleading on http:// rigs where APs
+		// genuinely work (Hatch installs a runtime REST-only override in
+		// Hatch_Security::enable_app_passwords_for_rest_basic_auth). Check the
+		// real signals instead: (a) WP_Application_Passwords class exists,
+		// (b) APs are not hard-disabled by constant, (c) the runtime override
+		// is loaded OR HTTPS is on. The strongest signal — and the one that
+		// matters in practice — is whether the current user can already pull
+		// an AP-authenticated REST response. If yes, APs work.
+		if ( ! class_exists( 'WP_Application_Passwords' ) ) {
+			return self::fail(
+				'app_passwords',
+				__( 'Application Passwords', 'hatch' ),
+				__( 'WP_Application_Passwords is missing. This WordPress is too old or has APs disabled in core.', 'hatch' ),
+				__( 'Upgrade to WordPress 5.6 or later.', 'hatch' ),
+				''
+			);
+		}
+		if ( defined( 'WP_APPLICATION_PASSWORDS_AVAILABLE' ) && ! WP_APPLICATION_PASSWORDS_AVAILABLE ) {
+			return self::fail(
+				'app_passwords',
+				__( 'Application Passwords', 'hatch' ),
+				__( 'Application Passwords are explicitly disabled via WP_APPLICATION_PASSWORDS_AVAILABLE.', 'hatch' ),
+				__( 'Remove the define( "WP_APPLICATION_PASSWORDS_AVAILABLE", false ) from wp-config.php.', 'hatch' ),
+				''
+			);
+		}
+
+		$wp_says_available  = function_exists( 'wp_is_application_passwords_available' ) && wp_is_application_passwords_available();
+		$hatch_override_on  = has_filter( 'wp_is_application_passwords_available', array( Hatch_Security::instance(), 'enable_app_passwords_for_rest_basic_auth' ) );
+
+		if ( $wp_says_available ) {
 			return self::pass( 'app_passwords', __( 'Application Passwords', 'hatch' ), __( 'Application Passwords are enabled.', 'hatch' ) );
 		}
+
+		if ( $hatch_override_on ) {
+			// The runtime override only fires during REST + Basic-Auth requests,
+			// which is exactly the path the headless frontend uses. Admin-side
+			// callers still see false, but functionally APs work for the only
+			// caller that matters.
+			return self::pass(
+				'app_passwords',
+				__( 'Application Passwords', 'hatch' ),
+				__( 'Application Passwords are gated by HTTPS for browsers but enabled for the REST API by Hatch. Headless frontend auth works.', 'hatch' )
+			);
+		}
+
 		return self::fail(
 			'app_passwords',
 			__( 'Application Passwords', 'hatch' ),
 			__( 'Application Passwords are disabled or unavailable.', 'hatch' ),
-			__( 'Define in wp-config.php: define( "WP_APPLICATION_PASSWORDS_AVAILABLE", true ); — or remove a plugin that disabled them.', 'hatch' ),
+			__( 'Enable HTTPS, or define( "WP_APPLICATION_PASSWORDS_AVAILABLE", true ) in wp-config.php — or remove a plugin that disabled them.', 'hatch' ),
 			''
 		);
 	}

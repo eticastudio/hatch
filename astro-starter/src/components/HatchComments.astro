@@ -14,6 +14,7 @@
  * fallback, but JS upgrades to an inline fetch with success/error UI.
  */
 import type { HatchFeatures } from '../lib/features';
+import { WP_API_URL } from 'astro:env/server';
 
 interface Props {
   features: HatchFeatures;
@@ -23,7 +24,7 @@ interface Props {
 
 const { features, postId, postTitle = 'this post' } = Astro.props;
 
-const WP_API = import.meta.env.WP_API_URL || '';
+const WP_API = WP_API_URL || '';
 const base = WP_API.replace(/\/wp\/v2\/?$/, '');
 
 const integ = features.integrations;

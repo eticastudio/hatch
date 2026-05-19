@@ -21,6 +21,7 @@
  *   - title / description: optional wrapper copy
  */
 import type { HatchFeatures } from '../lib/features';
+import { WP_API_URL } from 'astro:env/server';
 
 interface Props {
   features: HatchFeatures;
@@ -31,7 +32,7 @@ interface Props {
 
 const { features, formId, title, description } = Astro.props;
 
-const WP_API = import.meta.env.WP_API_URL || '';
+const WP_API = WP_API_URL || '';
 const base = WP_API.replace(/\/wp\/v2\/?$/, '');
 
 interface EmbedPayload {

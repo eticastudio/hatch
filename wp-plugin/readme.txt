@@ -1,14 +1,13 @@
 === Hatch — Headless WordPress ===
 Contributors: adityaarsharma
-Tags: headless, blocks, astro, nextjs, rest-api, gutenberg
+Tags: headless, astro, rest-api, gutenberg, security
 Requires at least: 6.4
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 0.4.0
-License: MIT
-License URI: https://opensource.org/licenses/MIT
-
-The complete headless WordPress engine: REST hardening, security, app password generator, hosting connector, and 8 headless-first Gutenberg blocks with Tailwind utility output. One plugin.
+Stable tag: 0.50.11
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Turn WordPress into a headless CMS with an Astro frontend. One-click deploy, security hardening, image proxy, REST bridge, React admin.
 
 == Description ==
 

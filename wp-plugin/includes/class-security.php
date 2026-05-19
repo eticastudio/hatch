@@ -150,6 +150,8 @@ class Hatch_Security {
 			'#^/hatch/v1/seo-head$#',
 			'#^/hatch/v1/schema$#',
 			'#^/hatch/v1/redirects$#',
+			'#^/hatch/v1/code-snippets$#',
+			'#^/hatch/v1/seo-meta$#',
 		);
 		foreach ( $public_patterns as $re ) {
 			if ( preg_match( $re, $route ) ) return $result;

@@ -2,23 +2,25 @@
 /**
  * Plugin Name:       Hatch — Headless WordPress
  * Plugin URI:        https://github.com/adityaarsharma/hatch
- * Description:       Turn WordPress into a headless CMS, with an Astro-first frontend stack. Bundled: REST hardening, ACF/CPT/Login health, App Password generator, hosting Connector, Integrations (SEO/Forms/Turnstile), headless Comments + Forms, Design.md, Companion theme, and 8 headless-first Gutenberg blocks with Tailwind utility output.
- * Version:           0.50.10
+ * Description:       Turn WordPress into a headless CMS with an Astro frontend. One-click deploy to Cloudflare / Vercel / VPS, security hardening, image proxy, REST bridge, and a React admin.
+ * Version:           0.50.11
  * Requires at least: 6.4
+ * Tested up to:      6.9
  * Requires PHP:      7.4
  * Author:            Aditya Sharma
  * Author URI:        https://adityaarsharma.com
- * License:           MIT
- * License URI:       https://opensource.org/licenses/MIT
+ * License:           GPLv2 or later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       hatch
  * Domain Path:       /languages
+ * Update URI:        https://github.com/adityaarsharma/hatch
  *
  * @package Hatch
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'HATCH_VERSION', '0.50.10' );
+define( 'HATCH_VERSION', '0.50.11' );
 define( 'HATCH_PLUGIN_FILE', __FILE__ );
 define( 'HATCH_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'HATCH_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -46,17 +48,32 @@ if ( ! defined( 'DISALLOW_FILE_EDIT' ) ) {
  * not on wp-admin, not even via a 302 through the WP origin.
  */
 /**
- * v0.49.4 — Same-tab View/Preview from row actions and the editor toolbar.
- * Previous v0.35 behaviour forced new tab; user feedback was that returning to
- * WP via back-button is the expected editor flow. We keep the link rewrite
- * (post_link → frontend) but no longer inject target="_blank". The "Visit
- * live site" / "Open hosted domain" entry-points (Connector tab + admin bar)
- * still open in a new tab — those are explicit "go look at the site"
- * actions, not part of the editor flow.
+ * v0.50.12 — Every WP link that points at the headless frontend opens in a
+ * new tab. Rationale: in headless mode the frontend lives on a different
+ * origin (Cloudflare / Vercel / VPS), so following it in the same tab kicks
+ * the user out of wp-admin and they have to navigate back manually. Keeping
+ * WP open in the background is the editor flow people actually want.
+ *
+ * Applies to: post/page/CPT row actions ("View"), Quick Edit "Preview",
+ * editor toolbar "View" / "Preview" arrow, admin bar "Visit Site".
  */
 function hatch_force_view_links_new_tab( array $actions, $post ): array {
-	return $actions; // intentionally a no-op — same-tab is the default WP behavior.
+	if ( '' === hatch_frontend_origin() ) return $actions;
+	foreach ( array( 'view', 'preview' ) as $key ) {
+		if ( empty( $actions[ $key ] ) ) continue;
+		// Inject target/rel into the <a> tag without re-parsing. WP row actions
+		// are always a single <a ...>label</a> — safe to regex.
+		$actions[ $key ] = preg_replace(
+			'/<a\b(?![^>]*\btarget=)/i',
+			'<a target="_blank" rel="noopener noreferrer"',
+			$actions[ $key ],
+			1
+		);
+	}
+	return $actions;
 }
+add_filter( 'post_row_actions', 'hatch_force_view_links_new_tab', 99, 2 );
+add_filter( 'page_row_actions', 'hatch_force_view_links_new_tab', 99, 2 );
 
 /**
  * v0.49.4 — Admin bar "Visit Site" → new tab. The site root in headless mode
@@ -128,6 +145,38 @@ add_filter( 'author_link',               'hatch_rewrite_to_frontend', 20 );
 add_filter( 'day_link',                  'hatch_rewrite_to_frontend', 20 );
 add_filter( 'month_link',                'hatch_rewrite_to_frontend', 20 );
 add_filter( 'year_link',                 'hatch_rewrite_to_frontend', 20 );
+
+/**
+ * v0.50.12 — Editor toolbar "View Post" / "Preview" → new tab. The Gutenberg
+ * editor renders these as plain <a> tags read from the REST `link` field; we
+ * inject a small JS that flips them to target="_blank" once mounted, plus the
+ * classic editor's #post-preview / #view-post-btn anchors.
+ */
+add_action( 'admin_footer', 'hatch_force_editor_view_new_tab' );
+function hatch_force_editor_view_new_tab(): void {
+	if ( '' === hatch_frontend_origin() ) return;
+	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+	if ( ! $screen || ! in_array( $screen->base, array( 'post', 'edit' ), true ) ) return;
+	?>
+	<script>
+	(function () {
+		var apply = function () {
+			document.querySelectorAll(
+				'a#view-post-btn, a#post-preview, ' +
+				'.editor-post-preview-dropdown__button-external, ' +
+				'a.components-button[href*="<?php echo esc_js( wp_parse_url( hatch_frontend_origin(), PHP_URL_HOST ) ); ?>"]'
+			).forEach(function (a) {
+				if (a.target === '_blank') return;
+				a.target = '_blank';
+				a.rel = (a.rel ? a.rel + ' ' : '') + 'noopener';
+			});
+		};
+		apply();
+		new MutationObserver(apply).observe(document.body, { childList: true, subtree: true });
+	})();
+	</script>
+	<?php
+}
 
 /**
  * v0.40 — REST safety: silence display_errors during REST so PHP notices
@@ -222,6 +271,8 @@ require_once HATCH_PLUGIN_DIR . 'includes/class-detector.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-security.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-rest-api.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-revalidate.php';
+require_once HATCH_PLUGIN_DIR . 'includes/class-media-rewriter.php';
+require_once HATCH_PLUGIN_DIR . 'includes/class-hardening.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-seo-bridge.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-forms-bridge.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-rankready-bridge.php';
@@ -259,6 +310,10 @@ require_once HATCH_PLUGIN_DIR . 'includes/class-integrations.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-headless-comments.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-headless-forms.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-companion-theme-installer.php';
+// v0.50.x — periodic HEAD probe for CF/Vercel project URLs so the heartbeat
+// panel in Status shows liveness parity across all three providers (VPS uses
+// its own agent-based heartbeat; this fills the gap for stateless serverless).
+require_once HATCH_PLUGIN_DIR . 'includes/class-cloud-heartbeat.php';
 // V0.23 — design.md loader (brand tokens flow to the frontend as CSS variables).
 require_once HATCH_PLUGIN_DIR . 'includes/class-design-loader.php';
 // V0.25 — Turnstile on wp-login + classic comment form (WP-side anti-spam).
@@ -364,12 +419,18 @@ final class Hatch {
 		add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_editor_assets' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
 
-		// Admin-only.
+		// dashboard.php + setup-wizard.php must load on EVERY request, not
+		// only is_admin(), because the React admin POSTs to /wp-json/hatch/v1/options
+		// which is frontend context. If we only loaded these in is_admin(), the
+		// REST dispatcher would never register and saves would silently fail
+		// (legacy whitelist handler took over). v0.50.11 fix.
+		require_once HATCH_PLUGIN_DIR . 'admin/dashboard.php';
+		require_once HATCH_PLUGIN_DIR . 'admin/setup-wizard.php';
+
+		// Truly admin-only services stay gated.
 		if ( is_admin() ) {
 			Hatch_Acf_Bridge::instance();
 			Hatch_Cpt_Scanner::instance();
-			require_once HATCH_PLUGIN_DIR . 'admin/dashboard.php';
-			require_once HATCH_PLUGIN_DIR . 'admin/setup-wizard.php';
 		}
 
 		// i18n.
