@@ -55,7 +55,15 @@ class Hatch_Media_Rewriter {
 	}
 
 	public static function frontend_base(): string {
-		return untrailingslashit( (string) get_option( 'hatch_image_proxy_url', '' ) );
+		// v0.50.13 — image proxy URL silently defaults to the configured
+		// frontend URL. The earlier behaviour required setting BOTH
+		// `hatch_image_proxy_url` and `hatch_frontend_url`; setups that left
+		// proxy blank produced un-rewritten URLs, and setups that had a stale
+		// proxy URL produced 404s (e.g. test-frontend.example.com hangover
+		// from a fixture). Explicit non-empty override still wins.
+		$explicit = untrailingslashit( (string) get_option( 'hatch_image_proxy_url', '' ) );
+		if ( '' !== $explicit ) return $explicit;
+		return untrailingslashit( (string) get_option( 'hatch_frontend_url', '' ) );
 	}
 
 	/**

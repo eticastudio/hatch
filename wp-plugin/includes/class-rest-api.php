@@ -84,30 +84,40 @@ class Hatch_Rest_Api {
 			)
 		);
 
-		register_rest_route(
-			HATCH_REST_NAMESPACE,
-			'/redirects',
-			array(
-				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $this, 'route_redirects' ),
-				'permission_callback' => array( $this, 'permission_authenticated' ),
-			)
-		);
+		// v0.50.13 — gate each route by its corresponding Content tab toggle
+		// (hatch_content_flags). Default-true preserves behaviour for any
+		// existing install that hasn't opened the React admin yet.
+		$content_flags = (array) get_option( 'hatch_content_flags', array() );
+		$redirects_on  = ! isset( $content_flags['redirects_enabled'] ) || $content_flags['redirects_enabled'];
+		$forms_on      = ! isset( $content_flags['forms_enabled'] )     || $content_flags['forms_enabled'];
 
-		register_rest_route(
-			HATCH_REST_NAMESPACE,
-			'/forms',
-			array(
-				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( 'Hatch_Forms_Bridge', 'list_forms' ),
-				'permission_callback' => array( $this, 'permission_authenticated' ),
-			)
-		);
+		if ( $redirects_on ) {
+			register_rest_route(
+				HATCH_REST_NAMESPACE,
+				'/redirects',
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'route_redirects' ),
+					'permission_callback' => array( $this, 'permission_authenticated' ),
+				)
+			);
+		}
 
-		register_rest_route(
-			HATCH_REST_NAMESPACE,
-			'/forms/(?P<id>\d+)/submit',
-			array(
+		if ( $forms_on ) {
+			register_rest_route(
+				HATCH_REST_NAMESPACE,
+				'/forms',
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( 'Hatch_Forms_Bridge', 'list_forms' ),
+					'permission_callback' => array( $this, 'permission_authenticated' ),
+				)
+			);
+
+			register_rest_route(
+				HATCH_REST_NAMESPACE,
+				'/forms/(?P<id>\d+)/submit',
+				array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( 'Hatch_Forms_Bridge', 'submit_form' ),
 				'permission_callback' => '__return_true', // public — protected by Turnstile in @hatch/shield
@@ -117,8 +127,9 @@ class Hatch_Rest_Api {
 						'sanitize_callback' => 'absint',
 					),
 				),
-			)
-		);
+				)
+			);
+		}
 
 		register_rest_route(
 			HATCH_REST_NAMESPACE,
