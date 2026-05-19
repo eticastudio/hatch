@@ -35,35 +35,37 @@ export default function Content({ state, onDirty, setSetting }) {
 	};
 
 	// Plugin Bridge — capability-based. Each entry is a frontend feature; Hatch
-	// auto-detects which WordPress plugin (if any) is providing it. Server can
-	// override via `state.pluginBridge` (each item: {feature, providers[], detected, providerName}).
+	// auto-detects which WordPress plugin is providing it. Server overrides via
+	// `state.pluginBridge`. Forms / SEO / Sitemap live here (not as their own
+	// Hatch routes) because the established WP plugins already do these well
+	// — Hatch's job is to surface them, not duplicate them.
 	const featureBridges = plugins.length > 0 ? plugins : [
-		{ feature: 'eCommerce',       providers: ['WooCommerce', 'Easy Digital Downloads', 'WP EasyCart'],     detected: false, providerName: null, d: 'Products, cart, and checkout on the frontend.' },
-		{ feature: 'Custom Fields',   providers: ['ACF', 'Meta Box', 'Pods', 'JetEngine'],                      detected: false, providerName: null, d: 'Custom field values exposed in REST + post meta.' },
-		{ feature: 'Email Newsletter',providers: ['FluentCRM', 'Mailchimp for WP', 'Newsletter', 'MailPoet'],   detected: false, providerName: null, d: 'Opt-in forms and subscriber lists bridged to the frontend.' },
-		{ feature: 'Memberships',     providers: ['MemberPress', 'Paid Memberships Pro', 'Restrict Content Pro'], detected: false, providerName: null, d: 'Gated content, member-only routes, paid tiers.' },
-		{ feature: 'Code Snippets',   providers: ['WPCode', 'Code Snippets', 'Advanced Scripts'],               detected: false, providerName: null, d: 'Inject your snippets globally without editing theme files.' },
-		{ feature: 'Data Tables',     providers: ['TablePress', 'wpDataTables', 'Posts Table Pro'],             detected: false, providerName: null, d: 'Responsive tables rendered as frontend components.' },
+		{ feature: 'Forms',           providers: ['Fluent Forms', 'Gravity Forms', 'WPForms', 'Contact Form 7'],  detected: false, providerName: null, d: 'Form rendering + submissions handled by the form plugin itself; Hatch just relays the embed shortcode.' },
+		{ feature: 'SEO + Sitemap',   providers: ['RankMath', 'Yoast SEO', 'AIOSEO'],                              detected: false, providerName: null, d: 'sitemap.xml, rss.xml, robots.txt, and JSON-LD schema all sourced from your SEO plugin.' },
+		{ feature: 'Redirects',       providers: ['RankMath', 'Yoast Premium', 'Redirection'],                     detected: false, providerName: null, d: 'Redirect rules pulled live so the Astro middleware honors them.' },
+		{ feature: 'eCommerce',       providers: ['WooCommerce', 'Easy Digital Downloads', 'WP EasyCart'],         detected: false, providerName: null, d: 'Products, cart, and checkout on the frontend.' },
+		{ feature: 'Custom Fields',   providers: ['ACF', 'Meta Box', 'Pods', 'JetEngine'],                         detected: false, providerName: null, d: 'Custom field values exposed in REST + post meta.' },
+		{ feature: 'Email Newsletter',providers: ['FluentCRM', 'Mailchimp for WP', 'Newsletter', 'MailPoet'],      detected: false, providerName: null, d: 'Opt-in forms and subscriber lists bridged to the frontend.' },
+		{ feature: 'Memberships',     providers: ['MemberPress', 'Paid Memberships Pro', 'Restrict Content Pro'],  detected: false, providerName: null, d: 'Gated content, member-only routes, paid tiers.' },
+		{ feature: 'Code Snippets',   providers: ['WPCode', 'Code Snippets', 'Advanced Scripts'],                  detected: false, providerName: null, d: 'Inject your snippets globally without editing theme files.' },
+		{ feature: 'Data Tables',     providers: ['TablePress', 'wpDataTables', 'Posts Table Pro'],                detected: false, providerName: null, d: 'Responsive tables rendered as frontend components.' },
 	];
 
 	return (
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-			{/* Core integrations — merged: Comments, Forms, Redirects, Sitemap/RSS/robots */}
+			{/* Comments — the only real Hatch-owned content bridge.
+			    Form embedding, SEO/sitemap/RSS/robots are handled by their
+			    respective WP plugins (visible in Plugin Bridge below). */}
 			<HxCard>
 				<HxHead
 					iconChildren={<>
-						<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
-						<polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-						<line x1="12" y1="22.08" x2="12" y2="12" />
+						<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
 					</>}
 					iconColor="#0d9488"
-					title="Core integrations"
-					desc="WordPress core capabilities Hatch bridges to your headless frontend. Each toggle wires its REST endpoint and registers the frontend route."
+					title="Comments"
+					desc="The only Hatch-owned content bridge. Frontend reads a flat comment tree from /hatch/v1/comments. Disable to remove the route entirely."
 				/>
-
-				{/* Comments — sub-toggles only render when parent is enabled. */}
-				<HxGL>Comments</HxGL>
 				<HxRow
 					label="Enable headless comments"
 					desc="Server-rendered on first load, progressively enhanced via /hatch/v1/comments."
@@ -72,80 +74,13 @@ export default function Content({ state, onDirty, setSetting }) {
 					<HxToggle on={!!content.comments_enabled} onChange={onToggle('content.comments_enabled')} />
 				</HxRow>
 				{content.comments_enabled && (
-					<HxRow label="Turnstile on comment submissions" desc="Cloudflare Turnstile bot check before a comment posts." last>
+					<HxRow label="Turnstile on comment submissions" desc="Cloudflare Turnstile bot check before a comment posts. Requires keys below." last>
 						<HxToggle
 							on={!!content.comments_turnstile && hasKeys}
 							onChange={guardTurnstile('content.comments_turnstile')}
 						/>
 					</HxRow>
 				)}
-
-				{/* Forms — same conditional pattern: bridge first, Turnstile only if bridge on. */}
-				<HxGL>Forms</HxGL>
-				<div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0 10px' }}>
-					{forms.detected ? (
-						<>
-							<HxIcon size={14} color="#16a34a" sw={2.5}>
-								<polyline points="20 6 9 17 4 12" />
-							</HxIcon>
-							<span style={{ fontSize: 12, color: 'var(--hx-muted)' }}>
-								{forms.plugin} detected, {forms.count} form{forms.count === 1 ? '' : 's'} available.
-							</span>
-						</>
-					) : (
-						<span style={{ fontSize: 12, color: 'var(--hx-subtle)' }}>
-							No form plugin detected. Install Fluent Forms, Gravity Forms, WPForms, or CF7 to enable.
-						</span>
-					)}
-				</div>
-				<HxRow
-					label="Enable form bridge"
-					desc="Exposes forms via /hatch/v1/forms. Submissions POST back to WordPress."
-					last={!content.forms_enabled}
-				>
-					<HxToggle on={!!content.forms_enabled} onChange={onToggle('content.forms_enabled')} />
-				</HxRow>
-				{content.forms_enabled && (
-					<HxRow label="Turnstile on form submissions" desc="Bot check applied to every bridged form before it submits." last>
-						<HxToggle
-							on={!!content.forms_turnstile && hasKeys}
-							onChange={guardTurnstile('content.forms_turnstile')}
-						/>
-					</HxRow>
-				)}
-
-				{/* When either Comments or Forms Turnstile is on, just show a one-line
-				    pointer. Actual keys live in the Third-party services card below. */}
-				{(content.comments_turnstile || content.forms_turnstile) && (
-					<div style={{ paddingTop: 10, marginTop: 4, borderTop: '1px solid var(--hx-border)', fontSize: 12, color: 'var(--hx-subtle)', lineHeight: 1.55 }}>
-						{(ts.site_key && ts.secret_key)
-							? <>Turnstile keys are configured below. <span style={{ color: 'var(--hx-success)' }}>✓</span></>
-							: <>Add your Cloudflare Turnstile keys below in <strong style={{ color: 'var(--hx-fg)', fontWeight: 600 }}>Third-party services</strong> to activate the bot check.</>
-						}
-					</div>
-				)}
-
-				{/* Redirects */}
-				<HxGL>Redirects</HxGL>
-				<HxRow
-					label="Enable redirect bridge"
-					desc="Pulls redirect rules from RankMath, Yoast, or the Redirection plugin. Applied at the Astro middleware layer."
-					last
-				>
-					<HxToggle on={!!content.redirects_enabled} onChange={onToggle('content.redirects_enabled')} />
-				</HxRow>
-
-				{/* Sitemap & Feeds */}
-				<HxGL>Sitemap, feeds, robots</HxGL>
-				<HxRow label="XML sitemap (sitemap-index.xml)" desc="SSR sitemap with all published posts, pages, and custom post types.">
-					<HxToggle on={!!content.sitemap_enabled} onChange={onToggle('content.sitemap_enabled')} />
-				</HxRow>
-				<HxRow label="RSS feed (rss.xml)" desc="Full-content RSS feed generated from WordPress posts.">
-					<HxToggle on={!!content.rss_enabled} onChange={onToggle('content.rss_enabled')} />
-				</HxRow>
-				<HxRow label="robots.txt from SEO plugin" desc="Source robots.txt from RankMath or Yoast SEO." last>
-					<HxToggle on={!!content.robots_from_seo} onChange={onToggle('content.robots_from_seo')} />
-				</HxRow>
 			</HxCard>
 
 

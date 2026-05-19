@@ -289,17 +289,15 @@ function hatch_react_boot_state(): array {
 				)
 				: array(),
 			'snippets'       => (array) get_option( 'hatch_code_snippets', array() ),
+			// v0.50.14 — content_flags slimmed to just Comments. Forms /
+			// sitemap / RSS / robots / redirects all routed through their
+			// respective WP plugins (Plugin Bridge auto-detects); having
+			// Hatch-side toggles for them was duplicate config + dead UX.
 			'content'        => wp_parse_args(
 				(array) get_option( 'hatch_content_flags', array() ),
 				array(
 					'comments_enabled'   => true,
 					'comments_turnstile' => false,
-					'forms_enabled'      => true,
-					'forms_turnstile'    => false,
-					'redirects_enabled'  => true,
-					'sitemap_enabled'    => true,
-					'rss_enabled'        => true,
-					'robots_from_seo'    => true,
 				)
 			),
 			'hatchBlocks'    => (array) get_option( 'hatch_blocks_enabled', array(
@@ -383,6 +381,38 @@ function hatch_react_plugin_bridge(): array {
 	// Hatch can bridge; `providers` lists known plugin slugs + their display
 	// name, ordered by recommendation. First detected provider wins.
 	$catalog = array(
+		// v0.50.14 — Forms / SEO / Redirects moved here from Content tab
+		// "Core integrations". Hatch doesn't reinvent these; it surfaces
+		// whichever WP plugin is providing the capability so the user can
+		// trust the existing tool.
+		array(
+			'feature'   => 'Forms',
+			'd'         => 'Form rendering + submissions handled by the form plugin\'s own REST endpoints — Hatch surfaces detection only.',
+			'providers' => array(
+				'Fluent Forms'             => array( 'fluentform/fluentform.php' ),
+				'Gravity Forms'            => array( 'gravityforms/gravityforms.php' ),
+				'WPForms'                  => array( 'wpforms/wpforms.php', 'wpforms-lite/wpforms.php' ),
+				'Contact Form 7'           => array( 'contact-form-7/wp-contact-form-7.php' ),
+			),
+		),
+		array(
+			'feature'   => 'SEO + Sitemap',
+			'd'         => 'sitemap.xml, rss.xml, robots.txt, and JSON-LD schema all sourced from your SEO plugin.',
+			'providers' => array(
+				'RankMath'                 => array( 'seo-by-rank-math/rank-math.php' ),
+				'Yoast SEO'                => array( 'wordpress-seo/wp-seo.php', 'wordpress-seo-premium/wp-seo-premium.php' ),
+				'AIOSEO'                   => array( 'all-in-one-seo-pack/all_in_one_seo_pack.php', 'all-in-one-seo-pack-pro/all_in_one_seo_pack.php' ),
+			),
+		),
+		array(
+			'feature'   => 'Redirects',
+			'd'         => 'Redirect rules pulled from your SEO plugin or Redirection so the Astro middleware honors them. No Hatch toggle — present iff a provider plugin is active.',
+			'providers' => array(
+				'RankMath'                 => array( 'seo-by-rank-math/rank-math.php' ),
+				'Yoast SEO Premium'        => array( 'wordpress-seo-premium/wp-seo-premium.php' ),
+				'Redirection'              => array( 'redirection/redirection.php' ),
+			),
+		),
 		array(
 			'feature'   => 'eCommerce',
 			'd'         => 'Products, cart, and checkout on the frontend.',
@@ -820,19 +850,15 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 			$applied[ $path ] = $ts[ $sub ] ?? null;
 			continue;
 		}
-		if ( ( 'content.comments_turnstile' === $path || 'content.forms_turnstile' === $path )
-		     && class_exists( 'Hatch_Integrations' ) ) {
-			// Mirror the sub-toggle into hatch_integrations so the verifier sees it,
-			// then fall through to also persist in hatch_content_flags (UI state).
+		// v0.50.14 — comments_turnstile sub-toggle mirrors into
+		// hatch_integrations.comments.turnstile so verify_turnstile() sees it.
+		// Forms removed entirely (no Hatch-owned form bridge anymore).
+		if ( 'content.comments_turnstile' === $path && class_exists( 'Hatch_Integrations' ) ) {
 			$all = Hatch_Integrations::get_all();
-			if ( 'content.comments_turnstile' === $path ) {
-				$c = (array) ( $all['comments'] ?? array() );
-				$c['turnstile'] = (bool) $value;
-				Hatch_Integrations::save_group( 'comments', $c );
-			}
-			// Form Turnstile is currently only consumed via the global Turnstile
-			// enabled flag + verify_turnstile(); no per-group flag in defaults.
-			// Falling through writes to hatch_content_flags for UI persistence.
+			$c   = (array) ( $all['comments'] ?? array() );
+			$c['turnstile'] = (bool) $value;
+			Hatch_Integrations::save_group( 'comments', $c );
+			// Fall through so the UI-state copy in hatch_content_flags also persists.
 		}
 
 		// Nested groups (prefix match).
