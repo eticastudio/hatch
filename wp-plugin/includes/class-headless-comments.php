@@ -16,6 +16,14 @@ defined( 'ABSPATH' ) || exit;
 class Hatch_Headless_Comments {
 
 	public static function register_routes(): void {
+		// v0.50.13 — gated by the Content tab "Enable headless comments"
+		// toggle (stored as content.comments_enabled inside the hatch_content_flags
+		// nested option). If it's off, the route doesn't register and the
+		// frontend component gracefully falls back to "comments disabled".
+		$flags = (array) get_option( 'hatch_content_flags', array() );
+		if ( isset( $flags['comments_enabled'] ) && ! $flags['comments_enabled'] ) {
+			return;
+		}
 		register_rest_route( HATCH_REST_NAMESPACE, '/comments', array(
 			array(
 				'methods'             => WP_REST_Server::READABLE,

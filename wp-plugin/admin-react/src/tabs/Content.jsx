@@ -39,16 +39,25 @@ export default function Content({ state, onDirty, setSetting }) {
 					desc="WordPress core capabilities Hatch bridges to your headless frontend. Each toggle wires its REST endpoint and registers the frontend route."
 				/>
 
-				{/* Comments */}
+				{/* Comments — sub-toggles only render when parent is enabled.
+				    Showing Turnstile-on-comments while comments are off was meaningless
+				    config UX (the REST endpoint /hatch/v1/comments is gated by
+				    comments_enabled — Turnstile has nothing to gate). */}
 				<HxGL>Comments</HxGL>
-				<HxRow label="Enable headless comments" desc="Server-rendered on first load, progressively enhanced via /hatch/v1/comments.">
+				<HxRow
+					label="Enable headless comments"
+					desc="Server-rendered on first load, progressively enhanced via /hatch/v1/comments."
+					last={!content.comments_enabled}
+				>
 					<HxToggle on={!!content.comments_enabled} onChange={onToggle('content.comments_enabled')} />
 				</HxRow>
-				<HxRow label="Turnstile on comment submissions" desc="Cloudflare Turnstile bot check before a comment posts." last>
-					<HxToggle on={!!content.comments_turnstile} onChange={onToggle('content.comments_turnstile')} />
-				</HxRow>
+				{content.comments_enabled && (
+					<HxRow label="Turnstile on comment submissions" desc="Cloudflare Turnstile bot check before a comment posts." last>
+						<HxToggle on={!!content.comments_turnstile} onChange={onToggle('content.comments_turnstile')} />
+					</HxRow>
+				)}
 
-				{/* Forms */}
+				{/* Forms — same conditional pattern: bridge first, Turnstile only if bridge on. */}
 				<HxGL>Forms</HxGL>
 				<div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0 10px' }}>
 					{forms.detected ? (
@@ -66,12 +75,18 @@ export default function Content({ state, onDirty, setSetting }) {
 						</span>
 					)}
 				</div>
-				<HxRow label="Enable form bridge" desc="Exposes forms via /hatch/v1/forms. Submissions POST back to WordPress.">
+				<HxRow
+					label="Enable form bridge"
+					desc="Exposes forms via /hatch/v1/forms. Submissions POST back to WordPress."
+					last={!content.forms_enabled}
+				>
 					<HxToggle on={!!content.forms_enabled} onChange={onToggle('content.forms_enabled')} />
 				</HxRow>
-				<HxRow label="Turnstile on form submissions" desc="Bot check applied to every bridged form before it submits." last>
-					<HxToggle on={!!content.forms_turnstile} onChange={onToggle('content.forms_turnstile')} />
-				</HxRow>
+				{content.forms_enabled && (
+					<HxRow label="Turnstile on form submissions" desc="Bot check applied to every bridged form before it submits." last>
+						<HxToggle on={!!content.forms_turnstile} onChange={onToggle('content.forms_turnstile')} />
+					</HxRow>
+				)}
 
 				{/* When either Comments or Forms Turnstile is on, just show a one-line
 				    pointer. Actual keys live in the Third-party services card below. */}
