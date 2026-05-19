@@ -206,41 +206,60 @@ function hatch_react_boot_state(): array {
 				array_keys( (array) Hatch_Features::themes() ),
 				(array) Hatch_Features::themes()
 			) : array(),
+			// v0.50.13 — wp_parse_args defaults so partial saves don't strip sibling
+			// keys. Earlier shape returned only what was saved (e.g. {primary})
+			// which made the React UI render only one color picker. Defaults
+			// ALWAYS merge in now; user-saved keys win.
 			'design'         => array(
 				'theme'        => class_exists( 'Hatch_Features' ) ? (string) Hatch_Features::get_theme() : '',
-				'brand'        => (array) get_option( 'hatch_design_brand', array(
-					'primary'    => '#ff6b00',
-					'secondary'  => '#0a0a0a',
-					'accent'     => '#6366f1',
-					'background' => '#fafafa',
-				) ),
-				'layout'       => (array) get_option( 'hatch_design_layout', array(
-					'density'     => 'Comfortable',
-					'roundness'   => 'Default',
-					'maxWidth'    => '1160px',
-					'buttonStyle' => 'Pill',
-				) ),
+				'brand'        => wp_parse_args(
+					(array) get_option( 'hatch_design_brand', array() ),
+					array(
+						'primary'    => '#ff6b00',
+						'secondary'  => '#0a0a0a',
+						'accent'     => '#6366f1',
+						'background' => '#fafafa',
+					)
+				),
+				'layout'       => wp_parse_args(
+					(array) get_option( 'hatch_design_layout', array() ),
+					array(
+						'density'     => 'Comfortable',
+						'roundness'   => 'Default',
+						'maxWidth'    => '1160px',
+						'buttonStyle' => 'Pill',
+					)
+				),
 				'font_heading' => (string) get_option( 'hatch_design_font_heading', 'Inter' ),
 				'font_body'    => (string) get_option( 'hatch_design_font_body', 'Inter' ),
 				'font_mono'    => (string) get_option( 'hatch_design_font_mono', 'JetBrains Mono' ),
 				'mode'         => (string) get_option( 'hatch_design_mode', 'auto' ),
 			),
-			'voice'          => (array) get_option( 'hatch_design_voice', array( 'tone' => 'professional', 'pronouns' => 'we' ) ),
-			'identity'       => (array) get_option( 'hatch_design_identity', array(
-				'logo_url'     => '',
-				'favicon_url'  => '',
-				'og_image_url' => '',
-				'site_title'   => get_bloginfo( 'name' ),
-				'tagline'      => get_bloginfo( 'description' ),
-			) ),
-			'templates'      => (array) get_option( 'hatch_design_templates', array(
-				'single_sidebar'   => 'right',
-				'single_hero'      => 'featured',
-				'single_width'     => 'medium',
-				'archive_grid'     => '2',
-				'archive_excerpt'  => true,
-				'not_found_search' => true,
-			) ),
+			'voice'          => wp_parse_args(
+				(array) get_option( 'hatch_design_voice', array() ),
+				array( 'tone' => 'professional', 'pronouns' => 'we' )
+			),
+			'identity'       => wp_parse_args(
+				(array) get_option( 'hatch_design_identity', array() ),
+				array(
+					'logo_url'     => '',
+					'favicon_url'  => '',
+					'og_image_url' => '',
+					'site_title'   => get_bloginfo( 'name' ),
+					'tagline'      => get_bloginfo( 'description' ),
+				)
+			),
+			'templates'      => wp_parse_args(
+				(array) get_option( 'hatch_design_templates', array() ),
+				array(
+					'single_sidebar'   => 'right',
+					'single_hero'      => 'featured',
+					'single_width'     => 'medium',
+					'archive_grid'     => '2',
+					'archive_excerpt'  => true,
+					'not_found_search' => true,
+				)
+			),
 			'borders'        => (array) get_option( 'hatch_design_borders', array( 'color' => '#e5e5e5', 'shadow' => 'soft' ) ),
 			'breakpoints'    => (array) get_option( 'hatch_design_breakpoints', array( 'mobile' => 640, 'tablet' => 1024, 'desktop' => 1280 ) ),
 			'show_credit'    => (bool) get_option( 'hatch_show_credit', true ),
@@ -270,16 +289,19 @@ function hatch_react_boot_state(): array {
 				)
 				: array(),
 			'snippets'       => (array) get_option( 'hatch_code_snippets', array() ),
-			'content'        => (array) get_option( 'hatch_content_flags', array(
-				'comments_enabled'   => true,
-				'comments_turnstile' => false,
-				'forms_enabled'      => true,
-				'forms_turnstile'    => false,
-				'redirects_enabled'  => true,
-				'sitemap_enabled'    => true,
-				'rss_enabled'        => true,
-				'robots_from_seo'    => true,
-			) ),
+			'content'        => wp_parse_args(
+				(array) get_option( 'hatch_content_flags', array() ),
+				array(
+					'comments_enabled'   => true,
+					'comments_turnstile' => false,
+					'forms_enabled'      => true,
+					'forms_turnstile'    => false,
+					'redirects_enabled'  => true,
+					'sitemap_enabled'    => true,
+					'rss_enabled'        => true,
+					'robots_from_seo'    => true,
+				)
+			),
 			'hatchBlocks'    => (array) get_option( 'hatch_blocks_enabled', array(
 				'hero' => true, 'faq' => true, 'cta' => true,
 				'testimonial' => false, 'gallery' => false, 'pricing' => false,
