@@ -28,13 +28,14 @@ class Hatch_Headless_Forms {
 	const SUBMISSIONS_CPT = 'hatch_submission';
 
 	public static function register_routes(): void {
-		// v0.50.13 — gated by Content tab "Enable form bridge" toggle. Default
-		// is on (true) so existing installs are unaffected; if a user explicitly
-		// turns it off, neither the submit nor the embed route registers.
-		$flags = (array) get_option( 'hatch_content_flags', array() );
-		if ( isset( $flags['forms_enabled'] ) && ! $flags['forms_enabled'] ) {
-			return;
-		}
+		// v0.50.14 — Hatch does not bridge form submissions anymore. Form
+		// plugins (Fluent / Gravity / WPForms / CF7) expose their own REST
+		// endpoints and the Astro frontend talks to them directly. Surfacing
+		// "/hatch/v1/forms/*" was a duplicate path that confused users about
+		// which endpoint to call. Plugin Bridge in the Content tab still
+		// auto-detects whichever form plugin is installed so the user knows
+		// the integration works — just not via this class.
+		return;
 		register_rest_route( HATCH_REST_NAMESPACE, '/forms/submit', array(
 			'methods'             => WP_REST_Server::CREATABLE,
 			'callback'            => array( __CLASS__, 'route_submit' ),

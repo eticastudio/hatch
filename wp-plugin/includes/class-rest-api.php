@@ -84,52 +84,26 @@ class Hatch_Rest_Api {
 			)
 		);
 
-		// v0.50.13 — gate each route by its corresponding Content tab toggle
-		// (hatch_content_flags). Default-true preserves behaviour for any
-		// existing install that hasn't opened the React admin yet.
-		$content_flags = (array) get_option( 'hatch_content_flags', array() );
-		$redirects_on  = ! isset( $content_flags['redirects_enabled'] ) || $content_flags['redirects_enabled'];
-		$forms_on      = ! isset( $content_flags['forms_enabled'] )     || $content_flags['forms_enabled'];
+		// v0.50.14 — `/redirects` reads whatever RankMath / Yoast Premium /
+		// Redirection plugin already exposes. No toggle: if none of those is
+		// installed the callback returns an empty list, harmless. Plugin
+		// Bridge in the Content tab shows the user which plugin (if any)
+		// provided the data.
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/redirects',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'route_redirects' ),
+				'permission_callback' => array( $this, 'permission_authenticated' ),
+			)
+		);
 
-		if ( $redirects_on ) {
-			register_rest_route(
-				HATCH_REST_NAMESPACE,
-				'/redirects',
-				array(
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $this, 'route_redirects' ),
-					'permission_callback' => array( $this, 'permission_authenticated' ),
-				)
-			);
-		}
-
-		if ( $forms_on ) {
-			register_rest_route(
-				HATCH_REST_NAMESPACE,
-				'/forms',
-				array(
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( 'Hatch_Forms_Bridge', 'list_forms' ),
-					'permission_callback' => array( $this, 'permission_authenticated' ),
-				)
-			);
-
-			register_rest_route(
-				HATCH_REST_NAMESPACE,
-				'/forms/(?P<id>\d+)/submit',
-				array(
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( 'Hatch_Forms_Bridge', 'submit_form' ),
-				'permission_callback' => '__return_true', // public — protected by Turnstile in @hatch/shield
-				'args'                => array(
-					'id' => array(
-						'required'          => true,
-						'sanitize_callback' => 'absint',
-					),
-				),
-				)
-			);
-		}
+		// v0.50.14 — `/forms` + `/forms/{id}/submit` removed. Form plugins
+		// expose their own REST endpoints (Gravity: `/gf/v2/...`,
+		// Fluent Forms: `/fluentform/v1/...`, WPForms: their own GET handler).
+		// Astro talks to those directly. Duplicating them under /hatch/v1/
+		// caused integration confusion and a doubled Turnstile attack surface.
 
 		register_rest_route(
 			HATCH_REST_NAMESPACE,
