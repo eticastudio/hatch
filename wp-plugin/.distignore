@@ -1,0 +1,65 @@
+# .distignore — what's excluded from the production zip.
+# wp dist-archive + WP.org SVN deploys honor this file.
+
+# Source / build infra
+admin-react/src
+blocks-src
+node_modules
+package.json
+package-lock.json
+yarn.lock
+webpack.config.js
+postcss.config.js
+tailwind.config.js
+
+# Dev tooling
+.git
+.github
+.gitignore
+.gitattributes
+.distignore
+.editorconfig
+.vscode
+.idea
+.cursor
+
+# Composer / PHP CI
+composer.json
+composer.lock
+vendor
+phpcs.xml.dist
+phpstan.neon.dist
+phpunit.xml.dist
+phpstan-bootstrap.php
+
+# Tests
+tests
+test
+*.spec.ts
+*.spec.js
+playwright.config.ts
+
+# Logs + maps + temp
+*.log
+*.map
+.DS_Store
+*.bak
+*.tmp
+
+# Docs that are repo-local, not bundled with the plugin
+ARCHITECTURE.md
+HANDOFF.md
+HANDOFF-*.md
+AUDIT.md
+ROADMAP.md
+PRODUCT.md
+DESIGN.md
+SECURITY.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+docs
+
+# Other workspace clutter
+scripts/dev-*
+.claude
+*.zip

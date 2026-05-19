@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { HATCH_WEBHOOK_SECRET } from 'astro:env/server';
 
 /**
  * Revalidation endpoint hit by the Hatch WP plugin webhook on post events.
@@ -16,7 +17,7 @@ import type { APIRoute } from 'astro';
  */
 export const POST: APIRoute = async ({ request, url }) => {
   const secret = url.searchParams.get('secret');
-  const expected = import.meta.env.HATCH_WEBHOOK_SECRET;
+  const expected = HATCH_WEBHOOK_SECRET;
 
   if (!expected || secret !== expected) {
     return new Response(JSON.stringify({ ok: false, error: 'Invalid secret' }), {

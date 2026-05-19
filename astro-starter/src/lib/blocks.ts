@@ -8,9 +8,10 @@
  * @package HatchAstro
  */
 
-const WP_API  = import.meta.env.WP_API_URL  || '';
-const WP_USER = import.meta.env.WP_API_USER || '';
-const WP_PASS = import.meta.env.WP_API_PASS || '';
+import { WP_API_URL, WP_API_USER, WP_API_PASS } from 'astro:env/server';
+const WP_API  = WP_API_URL  || '';
+const WP_USER = WP_API_USER || '';
+const WP_PASS = WP_API_PASS || '';
 
 /**
  * A normalized Hatch block, mirroring the WP serializer output.

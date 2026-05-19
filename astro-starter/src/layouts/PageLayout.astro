@@ -21,6 +21,7 @@ import { getFeatures } from '../lib/features';
 import { getMenus } from '../lib/hatch';
 import { designToCssVars, designFontHref } from '../lib/design';
 import { edgeCache } from '../lib/cache';
+import { getCodeSnippets } from '../lib/code-snippets';
 
 interface Props {
   title: string;
@@ -44,10 +45,11 @@ const {
   cacheTtl,
 } = Astro.props;
 
-const [features, primaryMenu, footerMenu] = await Promise.all([
+const [features, primaryMenu, footerMenu, codeSnippets] = await Promise.all([
   getFeatures(),
   getMenus('primary'),
   getMenus('footer'),
+  getCodeSnippets(),
 ]);
 const siteName = features.site.name || 'Hatch';
 const siteDescription = features.site.description || '';
@@ -130,12 +132,21 @@ if (cacheTtl !== 0) {
         font-family: var(--hatch-font-heading, "Inter"), ui-sans-serif, system-ui, sans-serif;
       }
     </style>
+
+    {/* Code injection — head slot. Auto-generated GA4/GTM/Plausible/Pixel
+        snippets from configured IDs + any raw HTML pasted in the admin.
+        Source: /wp-admin → Hatch → Content → Code injection. */}
+    {codeSnippets.head && <Fragment set:html={codeSnippets.head} />}
   </head>
   <body class="antialiased font-sans bg-hatch-bg text-hatch-fg flex flex-col min-h-screen">
+    {/* Code injection — body-start slot. GTM noscript fallback + any custom HTML. */}
+    {codeSnippets.bodyStart && <Fragment set:html={codeSnippets.bodyStart} />}
     {!bare && <SiteHeader features={features} menuItems={primaryMenu} />}
     <div class="flex-1">
       <slot />
     </div>
     {!bare && <SiteFooter features={features} menuItems={footerMenu} />}
+    {/* Code injection — body-end slot. Chat widgets, late-bound scripts. */}
+    {codeSnippets.bodyEnd && <Fragment set:html={codeSnippets.bodyEnd} />}
   </body>
 </html>

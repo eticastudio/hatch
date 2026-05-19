@@ -50,20 +50,49 @@ class Hatch_Companion_Theme_Installer {
 		}
 		check_admin_referer( self::ACTION );
 
-		$src  = HATCH_PLUGIN_DIR . 'companion-theme';
-		$dest = get_theme_root() . '/' . self::SLUG;
-
-		$result = self::copy_dir( $src, $dest );
+		$result = self::install_files();
 		if ( is_wp_error( $result ) ) {
 			set_transient( 'hatch_companion_install_error', $result->get_error_message(), 60 );
-			wp_safe_redirect( admin_url( 'tools.php?page=hatch&tab=connector&companion=fail' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=hatch#connection&companion=fail' ) );
 			exit;
 		}
 
 		switch_theme( self::SLUG );
 
-		wp_safe_redirect( admin_url( 'tools.php?page=hatch&tab=connector&companion=ok' ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=hatch#connection&companion=ok' ) );
 		exit;
+	}
+
+	/**
+	 * Copy the bundled companion theme into wp-content/themes/ without
+	 * activating it. Safe to call multiple times (no-op if already present).
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function install_files() {
+		if ( self::is_installed() ) {
+			return true;
+		}
+		$src  = HATCH_PLUGIN_DIR . 'companion-theme';
+		$dest = get_theme_root() . '/' . self::SLUG;
+		return self::copy_dir( $src, $dest );
+	}
+
+	/**
+	 * Install (if missing) and activate the companion theme. Used by the
+	 * deploy broker to flip a freshly-deployed site into headless mode.
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function install_and_activate() {
+		$result = self::install_files();
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		if ( ! self::is_active() ) {
+			switch_theme( self::SLUG );
+		}
+		return true;
 	}
 
 	/**

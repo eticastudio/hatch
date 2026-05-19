@@ -106,9 +106,61 @@ ASTRO STARTER  (astro-starter/)
 
 ---
 
-## WP Plugin — Current State (v0.8.0) **← truth**
+## WP Plugin — Current State (v0.50.12) **← latest truth, 2026-05-19**
 
-> Shipped May 14, 2026. This supersedes the v0.1 section below (kept as history).
+> Supersedes the v0.8 block below (which is kept as history for the WooCommerce / serializer subsystems that haven't changed). Read v0.8 too for those still-current details.
+
+### What's live in v0.50.12
+
+| Subsystem | Where | Status |
+|---|---|---|
+| **React admin SPA** | `admin-react/src/{index,components,tabs}.jsx` | All 6 tabs (Connection / Design / Content / Performance / Security / Status) rebuilt on `@wordpress/scripts` + design primitives (HxCard / HxBtn / HxToggle / HxRow / HxInp). No PHP UI left in `admin/dashboard.php` — that file is now just bootstrap + REST dispatcher. |
+| **Unified save dispatcher** | `admin/dashboard.php` `hatch_options_endpoint()` | One REST route (`POST /hatch/v1/options`) takes a dot-path map (`{"design.theme": "tech", ...}`) and dispatches to `hatch_*` option keys via per-key whitelists. Returns `{ok, applied}`. Triggers `Hatch_Revalidate` on every save. |
+| **Frontend artifact regeneration** | `hatch_regenerate_design_artifacts()` / `hatch_regenerate_blocks_state()` | Any save under `design.*` / `voice.*` / `templates.*` / `borders.*` / `breakpoints.*` / `identity.*` / `theme` consolidates into `hatch_design_parsed` + `hatch_design_md`. Same for `hatchBlocks.*` → blocks state. This is what `/hatch/v1/features` reads. |
+| **Setup wizard** | `admin/setup-wizard.php` + `admin-react/src/setup/SetupApp.jsx` | React-driven 3-step flow. Broker integration at `hatch.adityaarsharma.com` (`includes/class-deploy-broker.php`). |
+| **Hardening / Fortress** | `includes/class-hardening.php` | `DISALLOW_FILE_EDIT`, security headers, 2FA detection (WP 2FA, Two-Factor, miniOrange, Wordfence, Solid Security). |
+| **Media rewriter** | `includes/class-media-rewriter.php` + Astro `pages/hatch-media/[...path].ts` | `wp-content/uploads/` → `<frontend>/hatch-media/` in `the_content`, `the_excerpt`, REST responses, attachment URLs, srcset. Astro proxy serves AVIF/WebP via Accept-header negotiation. |
+| **Companion theme installer** | `includes/class-companion-theme-installer.php` | One-click install + activate from Connection tab. Companion theme 302-redirects every WP frontend hit to the headless frontend. |
+| **Open-in-new-tab everywhere** | `hatch.php` `hatch_force_view_links_new_tab` + admin footer JS | Post / page / CPT row "View", Quick Edit "Preview", editor toolbar "View"/"Preview", admin bar "Visit Site" — all open in new tab when a headless frontend is configured. WP admin stays open behind. |
+
+### End-to-end round-trip verified (2026-05-19)
+
+| You change in WP admin | → Where it lands on the frontend |
+|---|---|
+| `design.theme` | `<html data-hatch-theme="...">` + theme CSS file |
+| `design.brand.primary/accent/fg/bg` | `<html style="--hatch-primary: ...">` CSS vars |
+| `design.brand.mode` (auto/light/dark) | `<html data-hatch-mode="...">` |
+| `design.font_heading/body/mono` | `--hatch-font-*` vars + Google Fonts `<link>` injection |
+| `design.layout.*` (density / rounded / max_width / buttonStyle) | layout CSS vars |
+| `design.voice.*`, `design.templates.*`, `identity.*` | Consumed by `SiteHeader` / block renderers at request time |
+| `hatchBlocks.*` per-block toggles | `hatch_blocks_state` option → Astro block registry |
+| Anything saved | `Hatch_Revalidate::trigger()` POSTs the frontend revalidate webhook; frontend's in-memory `getFeatures()` cache (60s TTL) clears on next request |
+
+### Test infrastructure
+
+| Spec | What it covers |
+|---|---|
+| `test/e2e/10-react-admin-smoke.spec.ts` | 14 smoke tests — every tab mounts, REST endpoints respond, sentinel persistence |
+| `test/e2e/11-user-flow-save.spec.ts` | 7 user-flow round-trips — security toggle, brand color, GTM input, partytown, sitemap, theme picker, dirty-state across tab switch |
+| `test/e2e/12-every-button-every-save.spec.ts` | 8 tests — for every tab, every visible `<button>` is enabled + has a working handler; save bar round-trips for security/performance/content toggles; `Hatch_Revalidate` fires + `design.mode` reaches live state |
+
+Run with `npx playwright test` from `test/`. Target is `qwp_wordpress` Docker container at port 8810 (NOT `docker-wordpress-1` at 8080 — that's a different stack). Auth seeded by `global-setup.ts` (admin / `hatch-test-2026`).
+
+### Known gotchas — do not re-trip
+
+| Gotcha | Why it bit us |
+|---|---|
+| **Wrong container** | `docker ps` shows two WP installs. `qwp_wordpress:8810` is the one the tests + dev frontend point at. `docker-wordpress-1:8080` is unrelated. Always verify `docker port <name>` before `docker cp`-ing the plugin. |
+| **`dashboard.php` must load outside `is_admin()`** | The REST dispatcher is registered there. REST context is NOT `is_admin()`, so gating dashboard.php behind `is_admin()` silently drops every save through the legacy `Hatch_Options_Rest` whitelist. Fixed at `hatch.php:380`. |
+| **Legacy `/options` whitelist route removed** | `class-options-rest.php` used to register a competing `/options` route with a 10-key whitelist that shadowed the unified dispatcher. Removed — `class-options-rest.php` now only owns `/self-update`, `/version`, `/refresh-cache`. |
+| **Admin boot state shape ≠ `/features` shape** | `hatch_react_boot_state()` returns `state.design.mode` (sibling of `brand`); the public `/hatch/v1/features` returns `design.brand.mode` (nested under brand). React reads the boot state; Astro reads `/features`. Don't confuse the two in tests. |
+| **Playwright toggle locators** | `page.locator('#root', { hasText: 'label' }).locator('[role="switch"]').first()` matches the entire root and grabs the first switch on the whole page — NOT the one next to the label. Use `getByText(label).locator('xpath=ancestor::*[.//*[@role="switch"]][1]').locator('[role="switch"]')` instead. |
+| **Astro frontend cache** | `getFeatures()` in-memory caches for 60s. Saves from the admin trigger `Hatch_Revalidate` which POSTs a webhook to the frontend, but a manual `curl http://localhost:4321/` may show stale tokens for up to 60s if the webhook didn't reach. Restart `astro dev` to force-clear. |
+| **Astro dev toolbar** | Disabled via `devToolbar: { enabled: false }` in `astro.config.mjs`. The floating Astro/Audit/Settings widget gets in the way of screenshots + the editor flow. Don't re-enable. |
+
+---
+
+## WP Plugin — v0.8.0 history (kept for serializer + WooCommerce + health widget specifics)
 
 ### What v0.8 adds on top of v0.7
 

@@ -1,6 +1,8 @@
 <?php
 /**
- * Deploy Hooks — Triggers a frontend rebuild when WordPress content changes.
+ * Deploy Hooks — Triggers frontend revalidation when WordPress content changes.
+ * (SSR + edge cache flow — no full site rebuild required; the worker
+ *  re-fetches WP REST on the next request and the edge cache invalidates.)
  *
  * Supports three providers out of the box:
  *   - Cloudflare Pages  (https://api.cloudflare.com/.../pages/projects/.../deployments)
