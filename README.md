@@ -12,7 +12,7 @@ Activate Hatch. Run the 3-step wizard. Paste a token (or a single curl line for 
 [![WordPress 6.4+](https://img.shields.io/badge/WordPress-6.4+-21759b?style=flat-square)](https://wordpress.org)
 [![Latest Release](https://img.shields.io/github/v/release/adityaarsharma/hatch?color=8b5cf6&style=flat-square)](https://github.com/adityaarsharma/hatch/releases/latest)
 
-### 📦 [**Download Hatch v0.1.2 (latest) →**](https://github.com/adityaarsharma/hatch/releases/latest/download/hatch.zip)
+### 📦 [**Download Hatch v0.1.3 (latest) →**](https://github.com/adityaarsharma/hatch/releases/latest/download/hatch.zip)
 
 _Drop into `wp-content/plugins/`. Activate. The setup wizard auto-launches._
 
@@ -264,6 +264,6 @@ MIT. Built by [Aditya Sharma](https://adityaarsharma.com).
 
 **Hatch — The Headless Engine for WordPress.**
 
-[Download v0.1.2 (latest)](https://github.com/adityaarsharma/hatch/releases/latest/download/hatch.zip) · [Star on GitHub](https://github.com/adityaarsharma/hatch)
+[Download v0.1.3 (latest)](https://github.com/adityaarsharma/hatch/releases/latest/download/hatch.zip) · [Star on GitHub](https://github.com/adityaarsharma/hatch)
 
 </div>
