@@ -2,6 +2,14 @@
 
 All notable changes to Hatch are recorded here. Format adheres loosely to [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.2] — 2026-05-20
+
+Cloudflare Workers deploy fix — top-level `setInterval` in middleware was rejected by the CF Workers v2 runtime ("Disallowed operation called within global scope", error 10021). Replaced with a lazy in-handler bucket sweep at most once per minute. Same behavior on Node; CF deploys now succeed.
+
+- `astro-starter/src/middleware.ts` — removed module-level `setInterval`, added `sweepExpiredBuckets()` called once per rate-limited request.
+
+No other behavior changes. Node + CF + Vercel builds all verified green.
+
 ## [0.1.1] — 2026-05-20
 
 Post-launch polish — five hollow / mislabeled toggles fixed, repo cleaned, README rewritten to match shipped reality.

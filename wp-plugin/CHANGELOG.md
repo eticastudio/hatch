@@ -1,5 +1,9 @@
 # Hatch WordPress Plugin — Changelog
 
+## [0.1.2] — 2026-05-20
+
+Cloudflare Workers deploy fix. The Astro starter's middleware had a top-level `setInterval` that the CF Workers v2 runtime rejects (error 10021). Removed; lazy in-handler sweep now keeps the rate-limiter bounded. No plugin-side changes — version bumped to keep the pair in sync.
+
 ## [0.1.1] — 2026-05-20
 
 Post-launch polish — see the root `CHANGELOG.md` for the full release notes.

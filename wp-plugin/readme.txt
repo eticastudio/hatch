@@ -4,7 +4,7 @@ Tags: headless, astro, rest-api, security
 Requires at least: 6.4
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Turn WordPress into a headless CMS with an Astro frontend. One plugin, one wizard, one deploy.
@@ -52,6 +52,9 @@ Yes. Self-hosted is the default — `HATCH_TARGET=node` ships an Astro app any V
 Plugin Bridge auto-detects RankMath, Yoast, AIOSEO, WPForms, Fluent Forms, Gravity, CF7, WooCommerce, EDD, MemberPress, ACF, Meta Box, and more. If a provider is installed, Hatch surfaces it. If not, Hatch tells you what to install.
 
 == Changelog ==
+
+= 0.1.2 — Cloudflare Workers deploy fix =
+* Astro middleware: removed top-level setInterval that CF Workers v2 rejects. Lazy in-handler sweep keeps the rate-limiter bounded on Node + CF.
 
 = 0.1.1 — Post-launch polish =
 * Security toggles — code now matches every label. /xmlrpc.php hard-403s, ?author=N returns 404, robots.txt emits Disallow: / when "Hide WP from Google" is on.

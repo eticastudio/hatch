@@ -169,11 +169,23 @@ function clientIp(request: Request): string {
       || 'unknown';
 }
 
+// Lazy bucket sweep — CF Workers v2 forbids top-level setInterval / fetch /
+// random (10021 "Disallowed operation in global scope"). We sweep
+// opportunistically inside rateLimit() at most once per minute. Node + CF
+// both stay bounded just as well as a background tick would.
+let lastSweep = 0;
+function sweepExpiredBuckets(now: number): void {
+  if (now - lastSweep < 60_000) return;
+  lastSweep = now;
+  for (const [k, b] of buckets) if (b.resetAt < now) buckets.delete(k);
+}
+
 function rateLimit(request: Request, path: string): Response | null {
   const cfg = LIMITS[path];
   if (!cfg) return null;
   const key = `${path}:${clientIp(request)}`;
   const now = Date.now();
+  sweepExpiredBuckets(now);
   const b = buckets.get(key);
   if (!b || b.resetAt < now) {
     buckets.set(key, { count: 1, resetAt: now + cfg.windowMs });
@@ -192,15 +204,6 @@ function rateLimit(request: Request, path: string): Response | null {
   }
   b.count++;
   return null;
-}
-
-// Periodic cleanup so the map doesn't grow unbounded under sustained load.
-// CF Workers garbage-collect cold-start anyway; this is for long-running Node.
-if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
-    const now = Date.now();
-    for (const [k, b] of buckets) if (b.resetAt < now) buckets.delete(k);
-  }, 60_000);
 }
 
 const CSP = [
