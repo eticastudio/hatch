@@ -150,6 +150,9 @@ class Hatch_Security {
 			return $result;
 		}
 		// Hatch public routes (more reliable than path-string scan on REQUEST_URI).
+		// Every route here ONLY exposes already-public data — published posts,
+		// rendered SEO meta, public menus, etc. Adding routes here keeps the
+		// REST-lock toggle safe to flip on without 404'ing the Astro frontend.
 		$public_patterns = array(
 			'#^/hatch/v1/comments$#',
 			'#^/hatch/v1/forms/[^/]+/embed$#',
@@ -162,6 +165,14 @@ class Hatch_Security {
 			'#^/hatch/v1/redirects$#',
 			'#^/hatch/v1/code-snippets$#',
 			'#^/hatch/v1/seo-meta$#',
+			// Universal post/page/CPT resolver — `route_content_by_slug` only
+			// returns post_status=publish. The Astro frontend hits this for
+			// every render; without it in the allowlist, REST-lock=ON 404s
+			// every page on the headless site.
+			'#^/hatch/v1/content$#',
+			// Block tree (used by per-block Astro components). The handler
+			// enforces context=edit auth internally; context=view is public.
+			'#^/hatch/v1/post/\d+/blocks$#',
 		);
 		foreach ( $public_patterns as $re ) {
 			if ( preg_match( $re, $route ) ) return $result;

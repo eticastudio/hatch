@@ -2,6 +2,19 @@
 
 All notable changes to Hatch are recorded here. Format adheres loosely to [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.3] — 2026-05-20
+
+Fixed: enabling "Lock the REST API" 404'd every page on the headless frontend.
+
+The Astro starter fetches every render via `/hatch/v1/content?slug=…` (the universal post / page / CPT resolver). That route was missing from the REST-lock public allowlist, so anonymous requests from the Astro frontend got 401 → Astro had no content → returned 404 to the visitor.
+
+Added two routes to the public allowlist in `Hatch_Security::block_rest_unauthenticated_dispatch`:
+
+- `/hatch/v1/content` — universal content resolver. Already enforces `post_status: publish` internally, so making it public exposes nothing that wasn't already public.
+- `/hatch/v1/post/{id}/blocks` — block tree endpoint. Handler enforces `context=edit` auth internally; `context=view` (the public default) is safe.
+
+REST API stays locked for `/wp/v2/*` — the Astro frontend authenticates those with its Application Password. Only the Hatch namespace's intentionally-public reads are now reachable anonymously.
+
 ## [0.1.2] — 2026-05-20
 
 Cloudflare Workers deploy fix — top-level `setInterval` in middleware was rejected by the CF Workers v2 runtime ("Disallowed operation called within global scope", error 10021). Replaced with a lazy in-handler bucket sweep at most once per minute. Same behavior on Node; CF deploys now succeed.

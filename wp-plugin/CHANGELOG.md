@@ -1,5 +1,9 @@
 # Hatch WordPress Plugin — Changelog
 
+## [0.1.3] — 2026-05-20
+
+Fixed: REST-lock toggle 404'd the headless frontend. `/hatch/v1/content` and `/hatch/v1/post/{id}/blocks` are now in the public allowlist alongside `/features`, `/menus`, `/seo-meta` — they only return already-public data so the toggle stays safe to flip on.
+
 ## [0.1.2] — 2026-05-20
 
 Cloudflare Workers deploy fix. The Astro starter's middleware had a top-level `setInterval` that the CF Workers v2 runtime rejects (error 10021). Removed; lazy in-handler sweep now keeps the rate-limiter bounded. No plugin-side changes — version bumped to keep the pair in sync.
