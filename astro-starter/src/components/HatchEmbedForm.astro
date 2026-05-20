@@ -1,0 +1,122 @@
+---
+/**
+ * HatchEmbedForm — renders ANY supported WordPress form plugin (Fluent Forms
+ * first; WPForms / Gravity if Fluent isn't installed) by asking the plugin
+ * to render its own shortcode, then dropping the result into the page.
+ *
+ * Why: we want to stop reinventing the form UI on the headless side. The
+ * form plugin's own renderer already handles validation, multi-step flows,
+ * conditional logic, file uploads, payments, and a long tail of niceties.
+ * Hatch just passes through.
+ *
+ * Submissions still go to the plugin's own endpoint (which is REST and CORS-
+ * safe), so the JS shipped by Fluent Forms / WPForms keeps working.
+ *
+ * Server-renders at SSR time. The plugin's CSS + JS are loaded on demand —
+ * one fetch per form ID, edge-cached by the platform.
+ *
+ * Pass-through:
+ *   - features: getFeatures() result (for the WP API URL)
+ *   - formId:   form ID inside the source plugin (Fluent Forms / WPForms / Gravity)
+ *   - title / description: optional wrapper copy
+ */
+import type { HatchFeatures } from '../lib/features';
+import { WP_API_URL } from 'astro:env/server';
+
+interface Props {
+  features: HatchFeatures;
+  formId: number;
+  title?: string;
+  description?: string;
+}
+
+const { features, formId, title, description } = Astro.props;
+
+const WP_API = WP_API_URL || '';
+const base = WP_API.replace(/\/wp\/v2\/?$/, '');
+
+interface EmbedPayload {
+  ok: boolean;
+  backend: string;
+  form_id: number;
+  html: string;
+  scripts: string[];
+  styles: string[];
+  message?: string;
+}
+
+let payload: EmbedPayload | null = null;
+let errorMsg = '';
+
+if (base && formId > 0) {
+  try {
+    const res = await fetch(`${base}/hatch/v1/forms/${formId}/embed`, { cache: 'no-store' });
+    if (res.ok) {
+      payload = (await res.json()) as EmbedPayload;
+    } else {
+      errorMsg = `Embed endpoint returned HTTP ${res.status}`;
+    }
+  } catch (e) {
+    errorMsg = (e as Error).message || 'fetch failed';
+  }
+} else if (!base) {
+  errorMsg = 'WP_API_URL is not set in .env';
+} else {
+  errorMsg = 'formId is required';
+}
+
+const hasEmbed = !!payload && payload.ok && payload.html;
+const headingFallback = 'Get in touch';
+const heading = title ?? headingFallback;
+---
+
+<section class="hatch-embed-form my-12 p-6 sm:p-8 rounded-xl border border-hatch-border bg-hatch-bg-2">
+  {(heading || description) && (
+    <header class="mb-5">
+      {heading && <h3 class="text-lg sm:text-xl font-semibold tracking-tight">{heading}</h3>}
+      {description && <p class="mt-1 text-[13.5px] text-hatch-fg-muted">{description}</p>}
+    </header>
+  )}
+
+  {hasEmbed ? (
+    <Fragment>
+      <div class="hatch-form-host" set:html={payload!.html}></div>
+
+      {payload!.styles.map((href) => (
+        <link rel="stylesheet" href={href} />
+      ))}
+      {payload!.scripts.map((src) => (
+        <script is:inline src={src} defer></script>
+      ))}
+    </Fragment>
+  ) : (
+    <div class="text-[13.5px] text-hatch-fg-muted leading-relaxed">
+      <p><strong>Form not loaded.</strong> {errorMsg || (payload && payload.message) || 'No supported form plugin detected.'}</p>
+      <p class="mt-2 text-hatch-fg-subtle">
+        Install <a href="https://wordpress.org/plugins/fluentform/" target="_blank" rel="noopener noreferrer" class="text-hatch-primary hover:underline">Fluent Forms (free)</a> in WordPress, paste the form ID here, and reload — that's all.
+      </p>
+    </div>
+  )}
+</section>
+
+<style>
+  /* Inherit the design.md radius + font for any input/textarea/button the
+     form plugin renders, so headless forms feel native to the theme. */
+  .hatch-embed-form :where(input, select, textarea, button) {
+    border-radius: var(--hatch-radius, 6px);
+    font-family: var(--hatch-font-body, inherit);
+  }
+  .hatch-embed-form :where(.frm-fluent-form, .wpforms-container, .gform_wrapper) {
+    max-width: 100%;
+  }
+
+  /* Tech / docs themes: subtler form chrome. */
+  [data-hatch-theme="tech"] .hatch-embed-form {
+    background: var(--hatch-bg-2);
+    border-color: var(--hatch-border);
+  }
+  [data-hatch-theme="docs"] .hatch-embed-form {
+    background: var(--hatch-bg);
+    border-color: var(--hatch-border);
+  }
+</style>

@@ -1,0 +1,322 @@
+---
+import type { HatchFeatures } from '../lib/features';
+import type { HatchMenuItem } from '../lib/hatch';
+import { hasFeature } from '../lib/features';
+import HatchCredit from './HatchCredit.astro';
+
+interface Props {
+  features: HatchFeatures;
+  /** WP footer menu items from /hatch/v1/menus/footer. Empty = use fallback links. */
+  menuItems?: HatchMenuItem[];
+}
+
+const { features, menuItems = [] } = Astro.props;
+const siteName = features.site.name || 'Hatch';
+const tagline  = features.site.description || '';
+const logoUrl  = (features.site.logo_url || '').trim();
+const year     = new Date().getFullYear();
+const showBuiltBy = hasFeature(features, 'built_by_hatch');
+const theme    = (features.theme || 'blog').toLowerCase();
+
+// Top-level items sorted by order. Fall back to hardcoded links when no menu assigned.
+const footerItems = menuItems
+  .filter((item) => item.parent === 0)
+  .sort((a, b) => a.order - b.order);
+
+const fallbackLinks = [
+  { href: '/', label: 'Home', target: '' },
+  { href: '/blog', label: 'Blog', target: '' },
+  { href: '/rss.xml', label: 'RSS', target: '' },
+  { href: '/sitemap-index.xml', label: 'Sitemap', target: '' },
+];
+
+const navLinks = footerItems.length > 0
+  ? footerItems.map((item) => ({ href: item.url, label: item.title, target: item.target }))
+  : fallbackLinks;
+
+// v0.50.22 — Per-theme footer with genuinely distinct LAYOUTS, not just CSS
+// tweaks. Each theme renders its own markup branch tuned to its visual
+// language. Falls back to the classic 3-col when an unknown theme is set.
+
+---
+
+{theme === 'blog' && (
+  <footer class="hatch-footer mt-24">
+    {/* v0.50.31 — Removed inline `border-top` here. The blog theme CSS at
+        theme-blog.css:287 already declares the footer border on the outer
+        `<footer class="hatch-footer">` element. Having it ALSO on this
+        inner div produced a visible double-line (one at the top of the
+        footer element, one above the inner padding). One source of truth. */}
+    <div class="mx-auto px-5 sm:px-8 py-10" style="max-width: var(--hatch-max-width, 1160px);">
+      <div class="text-center">
+        {logoUrl ? (
+          <a href="/" class="inline-block mb-4">
+            <img src={logoUrl} alt={siteName} class="h-8 w-auto mx-auto opacity-90" loading="lazy" />
+          </a>
+        ) : (
+          <h2 class="text-[20px] font-semibold tracking-tight mb-1" style="font-family: var(--hatch-font-heading);">{siteName}</h2>
+        )}
+        {tagline && <p class="text-[13px] text-hatch-fg-muted mb-5 max-w-md mx-auto">{tagline}</p>}
+        <nav class="flex flex-wrap justify-center gap-x-5 gap-y-2 mb-5 text-[13px]">
+          {navLinks.map((link) => (
+            <a href={link.href} target={link.target || undefined} class="text-hatch-fg-muted hover:text-hatch-fg transition-colors">{link.label}</a>
+          ))}
+        </nav>
+        <div class="text-[12px] text-hatch-fg-subtle">{`© ${year} ${siteName}`}</div>
+        <div class="mt-2"><HatchCredit show={showBuiltBy} /></div>
+      </div>
+    </div>
+  </footer>
+)}
+
+{theme === 'tech' && (
+  <footer class="hatch-footer hatch-footer-tech mt-24">
+    {/* v0.50.32 — Terminal sign-off footer. Top: thin --hatch-primary
+        stripe. Then a `> ls ./` directory listing of nav links with mono
+        markers, then a status line at bottom: `~/site $ exit 0` style.
+        Mono is used only on labels, markers, and the prompt — not body. */}
+    <div class="hatch-tech-stripe" aria-hidden="true"></div>
+    <div class="mx-auto px-5 sm:px-8 py-10" style="max-width: var(--hatch-max-width, 1160px);">
+      <div class="hatch-tech-foot-grid">
+        <div>
+          <div class="hatch-tech-foot-brand">
+            {logoUrl
+              ? <img src={logoUrl} alt={siteName} class="h-6 w-auto mb-3" loading="lazy" />
+              : <span class="hatch-tech-brand"><span class="hatch-tech-prompt" aria-hidden="true">~/</span><span class="hatch-tech-name">{siteName}</span><span class="hatch-tech-caret" aria-hidden="true">$</span></span>}
+          </div>
+          {tagline && <p class="hatch-tech-foot-desc">{tagline}</p>}
+        </div>
+        <div>
+          <div class="hatch-tech-foot-h">
+            <span class="hatch-tech-foot-h-arrow" aria-hidden="true">$</span>
+            <span>ls ./</span>
+          </div>
+          <nav class="hatch-tech-foot-nav" aria-label="Footer">
+            {navLinks.map((link) => (
+              <a href={link.href} target={link.target || undefined}>
+                <span class="hatch-tech-foot-bullet" aria-hidden="true">›</span>{link.label}
+              </a>
+            ))}
+          </nav>
+        </div>
+        <div>
+          <div class="hatch-tech-foot-h">
+            <span class="hatch-tech-foot-h-arrow" aria-hidden="true">$</span>
+            <span>cat status</span>
+          </div>
+          <dl class="hatch-tech-foot-meta">
+            <div>
+              <dt>build</dt>
+              <dd>v{features.version || '1'}</dd>
+            </div>
+            <div>
+              <dt>uptime</dt>
+              <dd>{year}</dd>
+            </div>
+            <div>
+              <dt>health</dt>
+              <dd><span class="hatch-tech-status-dot" aria-hidden="true"></span>online</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+      <div class="hatch-tech-foot-bottom">
+        <span class="hatch-tech-foot-prompt">
+          <span class="hatch-tech-prompt" aria-hidden="true">~/{siteName.toLowerCase().replace(/\s+/g, '-')}</span>
+          <span class="hatch-tech-caret" aria-hidden="true">$</span>
+          <span> exit 0</span>
+        </span>
+        <span class="hatch-tech-foot-right">
+          <span>{`© ${year} ${siteName}`}</span>
+          <HatchCredit show={showBuiltBy} />
+        </span>
+      </div>
+    </div>
+  </footer>
+)}
+
+{theme === 'docs' && (() => {
+  // v0.50.32 — Docs footer: dense, info-rich. Three columns of nav grouped
+  // by 1/3 splits of the available links (Documentation / Resources / More).
+  // Headings are small caps with --hatch-fg-subtle. Bottom strip has the
+  // brand + version badge + © + Built-by-Hatch.
+  const third = Math.max(1, Math.ceil(navLinks.length / 3));
+  const colA = navLinks.slice(0, third);
+  const colB = navLinks.slice(third, third * 2);
+  const colC = navLinks.slice(third * 2);
+  const columns = [
+    { title: 'Documentation', links: colA },
+    { title: 'Resources', links: colB },
+    { title: 'More', links: colC },
+  ].filter((c) => c.links.length > 0);
+  return (
+  <footer class="hatch-footer hatch-footer-docs mt-16">
+    <div class="mx-auto px-5 sm:px-8 py-10" style="max-width: var(--hatch-max-width, 1160px);">
+      <div class="hatch-docs-foot-grid">
+        <div class="hatch-docs-foot-brand">
+          {logoUrl
+            ? <a href="/"><img src={logoUrl} alt={siteName} class="h-6 w-auto mb-3" loading="lazy" /></a>
+            : <a href="/" class="hatch-docs-foot-name">{siteName}</a>}
+          {tagline && <p class="hatch-docs-foot-tagline">{tagline}</p>}
+          <span class="hatch-docs-badge" aria-hidden="true">v{features.version || '1'}</span>
+        </div>
+        {columns.map((col) => (
+          <div>
+            <h3 class="hatch-docs-foot-h">{col.title}</h3>
+            <nav class="hatch-docs-foot-nav" aria-label={col.title}>
+              {col.links.map((link) => (
+                <a href={link.href} target={link.target || undefined}>{link.label}</a>
+              ))}
+            </nav>
+          </div>
+        ))}
+      </div>
+      <div class="hatch-docs-foot-bottom">
+        <span>{`© ${year} ${siteName}`}</span>
+        <HatchCredit show={showBuiltBy} />
+      </div>
+    </div>
+  </footer>
+  );
+})()}
+
+{theme === 'astropaper' && (
+  <footer class="hatch-footer hatch-footer-astropaper mt-24">
+    {/* v0.50.32 — Editorial colophon. Double rule on top, masthead-style
+        wordmark, tagline italicized, kicker links in small caps, edition
+        line at the bottom in the style of "VOL. XX · NO. YY". */}
+    <div class="hatch-ap-foot mx-auto px-5 sm:px-8 py-12 text-center" style="max-width: var(--hatch-max-width, 1160px);">
+      {logoUrl ? (
+        <a href="/" class="inline-block mb-4"><img src={logoUrl} alt={siteName} class="h-10 w-auto mx-auto" loading="lazy" /></a>
+      ) : (
+        <a href="/" class="hatch-ap-foot-wordmark block mb-3">{siteName}</a>
+      )}
+      {tagline && <p class="hatch-ap-foot-tagline">{tagline}</p>}
+      <div class="hatch-ap-rule-mini" aria-hidden="true"></div>
+      <nav class="hatch-ap-foot-nav" aria-label="Footer">
+        {navLinks.map((link, i) => (
+          <Fragment>
+            {i > 0 && <span class="hatch-ap-foot-sep" aria-hidden="true">·</span>}
+            <a href={link.href} target={link.target || undefined}>{link.label}</a>
+          </Fragment>
+        ))}
+      </nav>
+      <div class="hatch-ap-foot-edition">
+        <span>Vol. {year - 2000}</span>
+        <span class="hatch-ap-dot" aria-hidden="true">·</span>
+        <span>No. {Math.ceil(((new Date().getTime() - new Date(year, 0, 1).getTime()) / 86400000) / 7)}</span>
+        <span class="hatch-ap-dot" aria-hidden="true">·</span>
+        <span>{`© ${year} ${siteName}`}</span>
+      </div>
+      <div class="hatch-ap-foot-credit"><HatchCredit show={showBuiltBy} /></div>
+    </div>
+  </footer>
+)}
+
+{theme === 'astrowind' && (() => {
+  // v0.50.32 — Marketing footer with a hero CTA band at the top, then a
+  // structured 4-column nav (brand / Product / Resources / Company), then
+  // a polished bottom strip. CTA links to /blog + /rss.xml — real surfaces,
+  // not a fake form.
+  const third = Math.max(1, Math.ceil(navLinks.length / 3));
+  return (
+  <footer class="hatch-footer hatch-footer-astrowind mt-32">
+    <div class="mx-auto px-5 sm:px-8" style="max-width: var(--hatch-max-width, 1160px);">
+      <div class="hatch-aw-foot-cta">
+        <div class="hatch-aw-foot-cta-text">
+          <span class="hatch-aw-eyebrow">Stay in the loop</span>
+          <h2>Follow new posts and product updates.</h2>
+          <p>Read the latest writing, or subscribe via the RSS feed for delivery into any reader.</p>
+        </div>
+        <div class="hatch-aw-foot-cta-actions">
+          <a href="/blog" class="hatch-aw-cta hatch-aw-cta-lg">
+            <span>Read the blog</span>
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
+          <a href="/rss.xml" class="hatch-aw-cta-ghost">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+            <span>Subscribe via RSS</span>
+          </a>
+        </div>
+      </div>
+      <div class="hatch-aw-foot-grid">
+        <div class="hatch-aw-foot-brand">
+          {logoUrl
+            ? <a href="/" class="inline-block mb-3"><img src={logoUrl} alt={siteName} class="h-8 w-auto" loading="lazy" /></a>
+            : <a href="/" class="hatch-aw-foot-name">
+                <span class="hatch-aw-brand-badge" aria-hidden="true">{siteName.charAt(0).toUpperCase()}</span>
+                <span>{siteName}</span>
+              </a>}
+          {tagline && <p class="hatch-aw-foot-tagline">{tagline}</p>}
+        </div>
+        <div>
+          <h3 class="hatch-aw-foot-h">Product</h3>
+          <nav class="hatch-aw-foot-nav" aria-label="Product">
+            {navLinks.slice(0, third).map((link) => (
+              <a href={link.href} target={link.target || undefined}>{link.label}</a>
+            ))}
+          </nav>
+        </div>
+        <div>
+          <h3 class="hatch-aw-foot-h">Resources</h3>
+          <nav class="hatch-aw-foot-nav" aria-label="Resources">
+            {navLinks.slice(third, third * 2).map((link) => (
+              <a href={link.href} target={link.target || undefined}>{link.label}</a>
+            ))}
+          </nav>
+        </div>
+        <div>
+          <h3 class="hatch-aw-foot-h">Company</h3>
+          <nav class="hatch-aw-foot-nav" aria-label="Company">
+            {navLinks.slice(third * 2).map((link) => (
+              <a href={link.href} target={link.target || undefined}>{link.label}</a>
+            ))}
+          </nav>
+        </div>
+      </div>
+      <div class="hatch-aw-foot-bottom">
+        <span>{`© ${year} ${siteName}. All rights reserved.`}</span>
+        <HatchCredit show={showBuiltBy} />
+      </div>
+    </div>
+  </footer>
+  );
+})()}
+
+{theme === 'astronano' && (
+  <footer class="hatch-footer hatch-footer-astronano mt-24">
+    {/* v0.50.32 — Single restrained line: © year sitename, plain-text
+        nav (max 3 links), credit. No borders, no boxes, no chrome. */}
+    <div class="mx-auto px-5 sm:px-8 py-8 flex flex-wrap items-center justify-between gap-4" style="max-width: var(--hatch-max-width, 1160px);">
+      <span class="hatch-nano-foot-copy">{`© ${year} ${siteName.toLowerCase()}`}</span>
+      <nav class="hatch-nano-foot-nav" aria-label="Footer">
+        {navLinks.slice(0, 3).map((link) => (
+          <a href={link.href} target={link.target || undefined}>{link.label}</a>
+        ))}
+      </nav>
+      <HatchCredit show={showBuiltBy} />
+    </div>
+  </footer>
+)}
+
+{!['blog','tech','docs','astropaper','astrowind','astronano'].includes(theme) && (
+  <footer class="hatch-footer border-t border-hatch-border mt-24 py-12">
+    <div class="mx-auto px-5 sm:px-8 grid grid-cols-1 sm:grid-cols-3 gap-8 text-[13px] text-hatch-fg-subtle" style="max-width: var(--hatch-max-width, 1160px)">
+      <div>
+        {logoUrl
+          ? <a href="/" class="inline-block"><img src={logoUrl} alt={siteName} class="h-6 w-auto opacity-90" loading="lazy" /></a>
+          : <div class="text-hatch-fg font-semibold text-[14px]">{siteName}</div>}
+        {tagline && <p class="mt-2 leading-relaxed">{tagline}</p>}
+      </div>
+      <div class="flex flex-col gap-2 sm:items-center">
+        {navLinks.map((link) => (
+          <a href={link.href} target={link.target || undefined} class="hover:text-hatch-fg transition-colors">{link.label}</a>
+        ))}
+      </div>
+      <div class="flex flex-col gap-2 sm:items-end">
+        <span class="text-hatch-fg-muted">{`© ${year} ${siteName}`}</span>
+        <HatchCredit show={showBuiltBy} />
+      </div>
+    </div>
+  </footer>
+)}

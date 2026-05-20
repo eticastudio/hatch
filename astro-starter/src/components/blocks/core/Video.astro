@@ -1,0 +1,35 @@
+---
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle } from './_shared';
+
+const { block } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+const src      = typeof a.src === 'string' ? a.src : '';
+const poster   = typeof a.poster === 'string' ? a.poster : undefined;
+const autoplay = a.autoplay === true;
+const loop     = a.loop === true;
+const muted    = a.muted === true;
+const controls = a.controls !== false;
+const playsInline = a.playsInline === true;
+const preload  = typeof a.preload === 'string' ? a.preload : 'metadata';
+const caption  = typeof a.caption === 'string' ? a.caption : '';
+
+const cls   = blockClass( block, 'wp-block-video' );
+const style = blockStyle( block );
+---
+{ src && (
+	<figure class={ cls } style={ style || undefined }>
+		<video
+			src={ src }
+			poster={ poster }
+			controls={ controls }
+			autoplay={ autoplay }
+			loop={ loop }
+			muted={ muted }
+			playsinline={ playsInline }
+			preload={ preload }
+		/>
+		{ caption && <figcaption set:html={ caption } /> }
+	</figure>
+) }

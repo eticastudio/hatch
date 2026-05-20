@@ -1,0 +1,448 @@
+/**
+ * Hatch · Astro Nano theme — ultra-minimal personal writing.
+ *
+ * Base: github.com/charca/astro-nano (MIT)
+ * Just words. No chrome. No distraction. Serif body, small palette.
+ * Loaded by PageLayout when features.theme === 'astronano'.
+ */
+
+:root[data-hatch-theme="astronano"] {
+	--hatch-font-body: "Lora", Georgia, "Times New Roman", serif;
+	--hatch-font-heading: "Inter", ui-sans-serif, system-ui, sans-serif;
+	--hatch-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+	--hatch-radius: 4px;
+	--hatch-bg: #ffffff;
+	--hatch-bg-2: #fafaf9;
+	--hatch-bg-3: #f5f5f4;
+	--hatch-fg: #1c1917;
+	--hatch-fg-muted: #57534e;
+	--hatch-fg-subtle: #a8a29e;
+	--hatch-border: #e7e5e4;
+	--hatch-border-2: #d6d3d1;
+	--hatch-primary: #1c1917;
+	--hatch-primary-soft: rgba(28, 25, 23, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root[data-hatch-theme="astronano"][data-hatch-mode="auto"],
+	:root[data-hatch-theme="astronano"][data-hatch-mode="dark"] {
+		--hatch-bg: #18181b;
+		--hatch-bg-2: #1f1f23;
+		--hatch-bg-3: #26262b;
+		--hatch-fg: #fafaf9;
+		--hatch-fg-muted: #a8a29e;
+		--hatch-fg-subtle: #78716c;
+		--hatch-border: #26262b;
+		--hatch-border-2: #3f3f46;
+		--hatch-primary: #fafaf9;
+		--hatch-primary-soft: rgba(250, 250, 249, 0.08);
+	}
+}
+
+:root[data-hatch-theme="astronano"][data-hatch-mode="dark"] {
+	--hatch-bg: #18181b;
+	--hatch-bg-2: #1f1f23;
+	--hatch-bg-3: #26262b;
+	--hatch-fg: #fafaf9;
+	--hatch-fg-muted: #a8a29e;
+	--hatch-fg-subtle: #78716c;
+	--hatch-border: #26262b;
+	--hatch-border-2: #3f3f46;
+	--hatch-primary: #fafaf9;
+	--hatch-primary-soft: rgba(250, 250, 249, 0.08);
+}
+
+[data-hatch-theme="astronano"] body {
+	background: var(--hatch-bg);
+	color: var(--hatch-fg);
+	max-width: 680px;
+	margin: 0 auto;
+	padding: 2rem 1.5rem;
+}
+
+/* Nano: serif body for long-form reading */
+[data-hatch-theme="astronano"] .hatch-prose,
+[data-hatch-theme="astronano"] article {
+	font-family: var(--hatch-font-body, "Lora", Georgia, serif);
+	font-size: 1.125rem;
+	line-height: 1.85;
+}
+
+[data-hatch-theme="astronano"] h1,
+[data-hatch-theme="astronano"] h2,
+[data-hatch-theme="astronano"] h3,
+[data-hatch-theme="astronano"] h4 {
+	font-family: var(--hatch-font-heading, "Inter"), ui-sans-serif, system-ui, sans-serif;
+	font-weight: 600;
+	letter-spacing: -0.015em;
+	line-height: 1.25;
+}
+
+[data-hatch-theme="astronano"] h1 { font-size: 1.75rem; }
+[data-hatch-theme="astronano"] h2 { font-size: 1.375rem; }
+[data-hatch-theme="astronano"] h3 { font-size: 1.125rem; }
+
+/* v0.50.30 — Legacy `footer a { font-size: 0.875rem }` removed. It was
+   overriding the inline `text-[12px]` on the footer wrapper and making
+   links render at 14px instead of 12px — visually jarring next to the
+   © line + credit. Header nav rule kept (font-size inherited from
+   parent now, so legacy was redundant anyway). */
+[data-hatch-theme="astronano"] header nav a {
+	text-decoration: none;
+	color: var(--hatch-fg-muted);
+}
+[data-hatch-theme="astronano"] header nav a:hover {
+	color: var(--hatch-fg);
+}
+
+/* Prose link: underline only */
+[data-hatch-theme="astronano"] .hatch-prose a {
+	color: var(--hatch-fg);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	text-decoration-thickness: 1px;
+}
+
+[data-hatch-theme="astronano"] .hatch-prose blockquote {
+	border-left: 2px solid var(--hatch-fg-subtle);
+	padding-left: 1.25rem;
+	margin-left: 0;
+	color: var(--hatch-fg-muted);
+	font-style: italic;
+}
+
+/* No card chrome — flat list of posts */
+[data-hatch-theme="astronano"] .hatch-post-card {
+	border: none;
+	border-radius: 0;
+	background: transparent;
+	padding: 0.75rem 0;
+	border-bottom: 1px solid var(--hatch-border);
+}
+
+[data-hatch-theme="astronano"] .hatch-post-card:hover {
+	background: transparent;
+}
+
+/* v0.50.5 — single-column reading depth. Personal-writer aesthetic.
+   Common minimalist patterns implemented from scratch. */
+
+/* Constrain everything to a narrow reading column. */
+[data-hatch-theme="astronano"] .hatch-shell,
+[data-hatch-theme="astronano"] main,
+[data-hatch-theme="astronano"] article {
+	max-width: 680px;
+	margin: 0 auto;
+	padding: 0 1.25rem;
+}
+
+/* Header — minimal: text-only brand left, tiny links right, thin rule below. */
+[data-hatch-theme="astronano"] header.site-header {
+	border-bottom: 1px solid var(--hatch-border);
+	padding: 1.5rem 0;
+	margin-bottom: 3rem;
+}
+[data-hatch-theme="astronano"] header.site-header .brand {
+	font-family: var(--hatch-font-heading);
+	font-size: 1rem;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+	color: var(--hatch-fg);
+	text-decoration: none;
+}
+[data-hatch-theme="astronano"] header.site-header nav {
+	gap: 1.25rem;
+	font-size: 0.875rem;
+}
+
+/* Post-card list — minimal flat list with date + title only, no chrome. */
+[data-hatch-theme="astronano"] .hatch-post-card .post-meta time {
+	font-family: var(--hatch-font-heading);
+	font-size: 0.75rem;
+	color: var(--hatch-fg-subtle);
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	display: block;
+	margin-bottom: 0.25rem;
+}
+[data-hatch-theme="astronano"] .hatch-post-card h2 a {
+	font-family: var(--hatch-font-heading);
+	color: var(--hatch-fg);
+	text-decoration: none;
+	font-size: 1.125rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+[data-hatch-theme="astronano"] .hatch-post-card h2 a:hover {
+	text-decoration: underline;
+	text-underline-offset: 4px;
+	text-decoration-thickness: 1px;
+}
+[data-hatch-theme="astronano"] .hatch-post-card .post-excerpt { display: none; }
+
+/* Article — quiet typography, generous leading, drop-cap optional. */
+[data-hatch-theme="astronano"] article.hatch-post header {
+	margin-bottom: 2.5rem;
+	padding-bottom: 1.5rem;
+	border-bottom: 1px solid var(--hatch-border);
+}
+[data-hatch-theme="astronano"] article.hatch-post header h1 {
+	font-family: var(--hatch-font-heading);
+	font-size: 1.875rem;
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	line-height: 1.2;
+	margin-bottom: 0.5rem;
+}
+[data-hatch-theme="astronano"] article.hatch-post header time {
+	font-family: var(--hatch-font-heading);
+	font-size: 0.8125rem;
+	color: var(--hatch-fg-subtle);
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+[data-hatch-theme="astronano"] .hatch-prose h2 {
+	font-family: var(--hatch-font-heading);
+	font-size: 1.375rem;
+	font-weight: 600;
+	margin-top: 3rem;
+	margin-bottom: 1rem;
+	letter-spacing: -0.01em;
+}
+[data-hatch-theme="astronano"] .hatch-prose h3 {
+	font-family: var(--hatch-font-heading);
+	font-size: 1.125rem;
+	font-weight: 600;
+	margin-top: 2rem;
+}
+[data-hatch-theme="astronano"] .hatch-prose hr {
+	border: none;
+	height: 1px;
+	background: var(--hatch-border);
+	margin: 2.5rem auto;
+	width: 60%;
+}
+[data-hatch-theme="astronano"] .hatch-prose img {
+	margin: 2rem -1.25rem; /* bleed slightly past the column */
+	max-width: calc(100% + 2.5rem);
+	border-radius: var(--hatch-radius, 4px);
+}
+
+/* v0.50.30 — Legacy `footer.site-footer` rule removed. The selector
+   never matched the current markup (footer uses `.hatch-footer` class,
+   not `.site-footer`) but was cluttering the cascade. Footer styling
+   now lives entirely in the `.hatch-footer` rules further down. */
+
+/* v0.50.9 — pixel polish pass.
+   Original CSS implementing common minimalist-essayist UX patterns from scratch. */
+
+/* Drop-cap on first paragraph of an article (subtle, classic editorial). */
+[data-hatch-theme="astronano"] article.hatch-post .hatch-prose > p:first-of-type::first-letter {
+	font-family: var(--hatch-font-body);
+	font-size: 3.5em;
+	font-weight: 600;
+	float: left;
+	line-height: 0.9;
+	padding: 0.1em 0.1em 0 0;
+	color: var(--hatch-fg);
+}
+
+/* Smart-quote spacing on blockquotes — original handling, not borrowed. */
+[data-hatch-theme="astronano"] blockquote {
+	border-left: 2px solid var(--hatch-fg-subtle);
+	padding-left: 1.25rem;
+	font-style: italic;
+	color: var(--hatch-fg-muted);
+	margin: 1.5rem 0;
+	font-family: var(--hatch-font-body);
+}
+[data-hatch-theme="astronano"] blockquote p { margin-bottom: 0; }
+[data-hatch-theme="astronano"] blockquote cite {
+	display: block;
+	margin-top: 0.5rem;
+	font-style: normal;
+	font-size: 0.875rem;
+	color: var(--hatch-fg-subtle);
+	font-family: var(--hatch-font-heading);
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+[data-hatch-theme="astronano"] blockquote cite::before { content: "— "; }
+
+/* Refined image bleed math — exact column edge alignment. */
+[data-hatch-theme="astronano"] article.hatch-post .hatch-prose figure {
+	margin: 2.5rem -1.5rem;
+	max-width: calc(100% + 3rem);
+}
+[data-hatch-theme="astronano"] article.hatch-post .hatch-prose figcaption {
+	margin: 0.5rem 1.5rem 0;
+	font-size: 0.8125rem;
+	color: var(--hatch-fg-subtle);
+	font-family: var(--hatch-font-heading);
+	letter-spacing: 0.02em;
+	text-align: center;
+}
+
+/* HR — narrow centered rule, classic. */
+[data-hatch-theme="astronano"] .hatch-prose hr {
+	border: none;
+	height: 1px;
+	background: var(--hatch-border);
+	width: 40%;
+	margin: 2.5rem auto;
+	display: block;
+}
+
+/* Selection — black on cream, no harsh OS blue. */
+[data-hatch-theme="astronano"] ::selection {
+	background: var(--hatch-fg);
+	color: var(--hatch-bg);
+}
+
+/* Code — quiet inline + restrained block. */
+[data-hatch-theme="astronano"] .hatch-prose code:not(pre code) {
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	padding: 0.1em 0.35em;
+	border-radius: 3px;
+	font-size: 0.85em;
+	font-family: var(--hatch-font-mono);
+}
+[data-hatch-theme="astronano"] .hatch-prose pre {
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	padding: 1rem 1.25rem;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	line-height: 1.65;
+	overflow-x: auto;
+	font-family: var(--hatch-font-mono);
+	margin: 1.5rem -0.5rem;
+}
+
+/* Focus accessibility — minimal but visible. */
+[data-hatch-theme="astronano"] a:focus-visible {
+	outline: 1px solid var(--hatch-fg);
+	outline-offset: 2px;
+	border-radius: 1px;
+}
+
+/* Reduce motion. */
+@media (prefers-reduced-motion: reduce) {
+	[data-hatch-theme="astronano"] * {
+		transition-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+	}
+}
+
+/* Print-friendly — read on paper. */
+@media print {
+	[data-hatch-theme="astronano"] header,
+	[data-hatch-theme="astronano"] footer { display: none; }
+	[data-hatch-theme="astronano"] body { font-size: 11pt; line-height: 1.6; }
+	[data-hatch-theme="astronano"] .hatch-prose img { max-width: 100%; box-shadow: none; }
+	[data-hatch-theme="astronano"] .hatch-prose > p:first-of-type::first-letter { font-size: 2.5em; }
+}
+
+/* v0.50.32 — Astro Nano: ultra-minimal text-only chrome. Tiny lowercase
+   wordmark, plain-text nav, no chrome, generous vertical air. */
+[data-hatch-theme="astronano"] .hatch-header {
+	border-bottom: none;
+	background: transparent;
+	padding-top: 28px;
+	padding-bottom: 28px;
+}
+[data-hatch-theme="astronano"] .hatch-header > div {
+	min-height: 0;
+	font-size: 14px;
+}
+
+[data-hatch-theme="astronano"] .hatch-nano-brand {
+	font-family: var(--hatch-font-heading);
+	font-size: 14px;
+	font-weight: 500;
+	letter-spacing: -0.01em;
+	color: var(--hatch-fg);
+	text-decoration: none;
+	transition: color 0.15s;
+}
+[data-hatch-theme="astronano"] .hatch-nano-brand:hover { color: var(--hatch-fg-muted); }
+
+[data-hatch-theme="astronano"] .hatch-nano-link {
+	font-family: var(--hatch-font-heading);
+	font-size: 14px;
+	color: var(--hatch-fg-subtle);
+	text-decoration: none;
+	transition: color 0.15s;
+}
+[data-hatch-theme="astronano"] .hatch-nano-link:hover { color: var(--hatch-fg); }
+[data-hatch-theme="astronano"] .hatch-nano-link.is-active {
+	color: var(--hatch-fg);
+}
+
+[data-hatch-theme="astronano"] .hatch-nano-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	background: transparent;
+	border: none;
+	color: var(--hatch-fg-subtle);
+	cursor: pointer;
+	transition: color 0.15s;
+	padding: 0;
+}
+[data-hatch-theme="astronano"] .hatch-nano-toggle:hover { color: var(--hatch-fg); }
+
+/* Footer — single line, no border, no chrome. */
+[data-hatch-theme="astronano"] .hatch-footer.hatch-footer-astronano {
+	border-top: none;
+	background: transparent;
+	padding-top: 0;
+	padding-bottom: 0;
+	font-size: 13px;
+	color: var(--hatch-fg-subtle);
+}
+[data-hatch-theme="astronano"] .hatch-footer.hatch-footer-astronano > div {
+	grid-template-columns: 1fr;
+	gap: 16px;
+	text-align: left;
+}
+[data-hatch-theme="astronano"] .hatch-nano-foot-copy {
+	font-family: var(--hatch-font-heading);
+	font-size: 13px;
+	color: var(--hatch-fg-subtle);
+	letter-spacing: -0.005em;
+}
+[data-hatch-theme="astronano"] .hatch-nano-foot-nav {
+	display: inline-flex;
+	gap: 18px;
+}
+[data-hatch-theme="astronano"] .hatch-nano-foot-nav a {
+	font-family: var(--hatch-font-heading);
+	font-size: 13px;
+	color: var(--hatch-fg-subtle);
+	text-decoration: none;
+	transition: color 0.15s;
+}
+[data-hatch-theme="astronano"] .hatch-nano-foot-nav a:hover { color: var(--hatch-fg); }
+
+/* v0.50.23 — Astro Nano single-post body: ultra-minimal, no decoration */
+[data-hatch-theme="astronano"] .hatch-prose {
+	font-size: 16px;
+	line-height: 1.65;
+	color: var(--hatch-fg);
+}
+[data-hatch-theme="astronano"] .hatch-prose h2 { font-size: 1.3em; margin-top: 2em; margin-bottom: 0.4em; font-weight: 500; }
+[data-hatch-theme="astronano"] .hatch-prose h3 { font-size: 1.1em; margin-top: 1.5em; font-weight: 500; }
+[data-hatch-theme="astronano"] .hatch-prose p { margin-block: 0.95em; }
+[data-hatch-theme="astronano"] .hatch-prose a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+[data-hatch-theme="astronano"] .hatch-prose blockquote { padding-left: 14px; border-left: 1px solid var(--hatch-fg-subtle); color: var(--hatch-fg-muted); font-style: normal; margin: 1em 0; }
+
+/* v0.50.24 — Astro Nano PostCard: text-only row */
+[data-hatch-theme="astronano"] .post-card { padding: 6px 0; border: none; }
+[data-hatch-theme="astronano"] .post-card .aspect-\[16\/10\] { display: none; }
+[data-hatch-theme="astronano"] .post-card h3 { font-size: 14px; font-weight: 400; }
+[data-hatch-theme="astronano"] .post-card .uppercase { display: none; }

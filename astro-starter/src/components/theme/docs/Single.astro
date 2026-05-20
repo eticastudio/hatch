@@ -1,0 +1,108 @@
+---
+/**
+ * Docs theme single — category sidebar + tight technical chrome.
+ *
+ * v0.50.31 — Sidebar is no longer hardcoded to the left. The Sidebar chip
+ * in Design tab (`design.templates.single_sidebar`) is the dominant control
+ * and decides the position for every theme uniformly:
+ *   'none'  → no sidebar, single column
+ *   'left'  → DocsSidebar on the left
+ *   'right' → DocsSidebar on the right
+ * Docs theme always puts a DocsSidebar (category nav) in the column, even
+ * when the post has no h2/h3 headings — this is the whole point of a docs
+ * layout, so docs has its own "content available" check.
+ */
+import ShareRow from '../ShareRow.astro';
+import DocsSidebar from '../../DocsSidebar.astro';
+import HatchImage from '../../HatchImage.astro';
+
+interface Props {
+  post: any; features: any; toc: any[]; related: any[]; adjacent: any;
+  dateLabel: string; updatedLabel: string; canonical: string; bodyHtml: string; flags: any;
+}
+const { post, features, toc, adjacent, dateLabel, updatedLabel, canonical, bodyHtml, flags } = Astro.props;
+const sidebarSide = flags.sidebarSide || 'left';
+const showSidebar = sidebarSide !== 'none';
+const gridCols = !showSidebar
+  ? 'lg:grid-cols-[1fr]'
+  : sidebarSide === 'right'
+    ? 'lg:grid-cols-[1fr_220px]'
+    : 'lg:grid-cols-[220px_1fr]';
+---
+<div class={`mx-auto px-5 sm:px-8 grid gap-x-10 gap-y-8 ${gridCols}`} style="max-width: var(--hatch-max-width, 1160px);">
+  {showSidebar && sidebarSide === 'left' && (
+    <DocsSidebar activeCategorySlug={post.category?.slug || null} />
+  )}
+
+  <article class="py-8 sm:py-12 min-w-0">
+    {flags.showBreadcrumb && (
+      <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[12px] text-hatch-fg-subtle mb-5 flex-wrap">
+        <a href="/blog" class="hover:text-hatch-fg transition-colors">Docs</a>
+        {post.category && <><span>{flags.breadcrumbSep}</span><a href={`/blog/category/${post.category.slug}`} class="hover:text-hatch-fg transition-colors">{post.category.name}</a></>}
+        <span>{flags.breadcrumbSep}</span>
+        <span class="text-hatch-fg truncate">{post.title}</span>
+      </nav>
+    )}
+
+    <header class="mb-8">
+      <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight leading-[1.15]" style="font-family: var(--hatch-font-heading);">{post.title}</h1>
+      <div class="mt-3 flex items-center flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-hatch-fg-muted">
+        {post.author && <a href={`/blog/author/${post.author.slug}`} class="hover:text-hatch-fg transition-colors">{post.author.name}</a>}
+        <span class="text-hatch-fg-subtle">·</span>
+        <time datetime={post.publishedAt}>{dateLabel}</time>
+        {flags.showReadingTime && <><span class="text-hatch-fg-subtle">·</span><span>{flags.readingTimeText(post.readMinutes)}</span></>}
+      </div>
+      {flags.showUpdated && updatedLabel && <p class="mt-2 text-[12px] text-hatch-fg-subtle">Updated {updatedLabel}</p>}
+    </header>
+
+    {flags.showHeroImage && (
+      <div class="aspect-[2/1] rounded-md overflow-hidden bg-hatch-bg-3 mb-8 border border-hatch-border">
+        <HatchImage src={post.featuredImage} alt={post.title} class="w-full h-full object-cover" width={1200} height={600} />
+      </div>
+    )}
+
+    <div class="hatch-prose">
+      <div set:html={bodyHtml} />
+    </div>
+
+    {flags.showShare && (
+      <div class="mt-10 pt-6 border-t border-hatch-border">
+        <ShareRow features={features} title={post.title} url={canonical} />
+      </div>
+    )}
+
+    {flags.showAuthorBio && post.author?.description && (
+      <div class="mt-10 p-5 rounded-md border border-hatch-border bg-hatch-bg-2 flex gap-4 items-start">
+        {post.author.avatar && <img src={post.author.avatar} alt={post.author.name} width="44" height="44" class={`${flags.avatarShape} flex-shrink-0`} loading="lazy" />}
+        <div class="min-w-0">
+          <a href={`/blog/author/${post.author.slug}`} class="font-semibold text-hatch-fg hover:text-hatch-primary text-[14px]">{post.author.name}</a>
+          <p class="text-[13.5px] text-hatch-fg-muted mt-1 leading-relaxed">{post.author.description}</p>
+        </div>
+      </div>
+    )}
+
+    {flags.showPrevNext && (adjacent.prev || adjacent.next) && (
+      <nav class="mt-10 pt-6 border-t border-hatch-border grid grid-cols-1 sm:grid-cols-2 gap-3" aria-label="Doc navigation">
+        {adjacent.prev && (
+          <a href={`/blog/${adjacent.prev.slug}`} class="group p-4 rounded-md border border-hatch-border hover:border-hatch-primary transition-colors">
+            <span class="text-[11px] uppercase tracking-wider text-hatch-primary">← Previous</span>
+            <div class="mt-1 text-[14px] text-hatch-fg group-hover:text-hatch-primary line-clamp-2">{adjacent.prev.title}</div>
+          </a>
+        )}
+        {adjacent.next && (
+          <a href={`/blog/${adjacent.next.slug}`} class="group p-4 rounded-md border border-hatch-border hover:border-hatch-primary transition-colors sm:text-right">
+            <span class="text-[11px] uppercase tracking-wider text-hatch-primary">Next →</span>
+            <div class="mt-1 text-[14px] text-hatch-fg group-hover:text-hatch-primary line-clamp-2">{adjacent.next.title}</div>
+          </a>
+        )}
+      </nav>
+    )}
+
+    <slot name="related" />
+    <slot name="comments" />
+  </article>
+
+  {showSidebar && sidebarSide === 'right' && (
+    <DocsSidebar activeCategorySlug={post.category?.slug || null} />
+  )}
+</div>

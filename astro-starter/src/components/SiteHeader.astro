@@ -1,0 +1,575 @@
+---
+/**
+ * SiteHeader — header with site logo (or text mark + 🐣), WP nav menu,
+ * and a mobile hamburger drawer.
+ *
+ * Logo source order:
+ *   1. features.site.logo_url (WP Customizer → Site Identity → Logo)
+ *   2. features.site.name + 🐣 mark fallback
+ *
+ * Nav source: features-provided WP nav menu items (primary location).
+ * Falls back to a single Blog link when no primary menu is assigned.
+ *
+ * Theme-agnostic — uses --hatch-* tokens so every theme styles it
+ * consistently. Mobile drawer is pure CSS + a tiny inline script,
+ * no JS framework.
+ */
+import type { HatchFeatures } from '../lib/features';
+import type { HatchMenuItem } from '../lib/hatch';
+
+interface Props {
+  features: HatchFeatures;
+  menuItems?: HatchMenuItem[];
+}
+
+const { features, menuItems = [] } = Astro.props;
+const siteName = features.site.name || 'Hatch';
+const logoUrl  = (features.site.logo_url || '').trim();
+
+// v0.50.15 — aesthetic header controls
+const headerCfg = features.aesthetic.header;
+const headerStickyClass =
+  headerCfg.sticky === 'static' ? 'relative' :
+  headerCfg.sticky === 'hide_on_scroll' ? 'sticky top-0 hatch-header-hide-on-scroll' :
+  'sticky top-0';
+const headerBgClass = headerCfg.blur ? 'bg-hatch-bg/95 backdrop-blur' : 'bg-hatch-bg';
+const showColorModeBtn = headerCfg.color_mode_button;
+const brandMark = headerCfg.brand_mark;
+
+// v0.50.31 — Brand display resolution. Auto = old behavior (logo if uploaded,
+// else text). The three explicit modes let users override that decision per
+// site without removing the logo from WP Customizer.
+const brandDisplay = headerCfg.brand_display || 'auto';
+const showLogo = !!logoUrl && (brandDisplay === 'logo' || brandDisplay === 'both' || (brandDisplay === 'auto' && !!logoUrl));
+const showText = brandDisplay === 'text' || brandDisplay === 'both' || (brandDisplay === 'auto' && !logoUrl);
+
+// v0.50 — render submenus too. Build a {top-level item, children[]} tree.
+const topItems = menuItems
+  .filter((item) => item.parent === 0)
+  .sort((a, b) => a.order - b.order);
+
+const childrenOf = (parentId: number) =>
+  menuItems
+    .filter((item) => item.parent === parentId)
+    .sort((a, b) => a.order - b.order);
+
+const navItems = topItems.length > 0
+  ? topItems.map((item) => ({
+      href: item.url,
+      label: item.title,
+      target: item.target,
+      children: childrenOf(item.id).map((c) => ({ href: c.url, label: c.title, target: c.target })),
+    }))
+  : [{ href: '/blog', label: 'Blog', target: '', children: [] as { href: string; label: string; target: string }[] }];
+
+const currentPath = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === '/' ? currentPath === '/' : currentPath.startsWith(href);
+
+// v0.50.22 — Per-theme header layouts. Each branch renders its own visible
+// chrome; the mobile drawer + color-mode + hide-on-scroll JS at the bottom
+// is shared across all themes (no point duplicating behavior).
+const theme = (features.theme || 'blog').toLowerCase();
+---
+
+{/* v0.50.22 — Brand mark snippet (theme-aware via brandMark setting). */}
+{(false) /* never rendered — Astro requires the variable to be referenced at top-level; brand mark is inlined per theme below */}
+
+{theme === 'tech' && (
+  <header class={`hatch-header hatch-header-tech ${headerStickyClass} z-40`}>
+    {/* v0.50.32 — Terminal masthead. Flat (not pill) with a thin accent
+        stripe on top in --hatch-primary. Brand uses ~/$ shell-prompt vibe
+        (mono only where semantic). Nav labels use JetBrains Mono with
+        ─ separators between items. Status pill on the right shows a tiny
+        green dot ("online"). */}
+    <div class="hatch-tech-stripe" aria-hidden="true"></div>
+    <div class="mx-auto px-5 sm:px-8 h-14 flex items-center justify-between gap-6" style="max-width: var(--hatch-max-width, 1160px);">
+      <a href="/" class="brand flex items-center gap-2 text-hatch-fg hover:text-hatch-primary transition-colors min-w-0">
+        {showLogo && <img src={logoUrl} alt={siteName} class="h-6 w-auto max-w-[150px] object-contain" loading="eager" />}
+        {showText && (
+          <span class="hatch-tech-brand">
+            <span class="hatch-tech-prompt" aria-hidden="true">~/</span><span class="hatch-tech-name">{siteName}</span><span class="hatch-tech-caret" aria-hidden="true">$</span>
+          </span>
+        )}
+      </a>
+      <nav class="hidden md:flex items-center" aria-label="Primary">
+        {navItems.map((item, i) => (
+          <Fragment>
+            {i > 0 && <span class="hatch-tech-sep" aria-hidden="true">─</span>}
+            <a href={item.href} target={item.target || undefined} class:list={['hatch-tech-link', isActive(item.href) ? 'is-active' : '']}>
+              <span class="hatch-tech-link-arrow" aria-hidden="true">{isActive(item.href) ? '> ' : ''}</span>{item.label}
+            </a>
+          </Fragment>
+        ))}
+      </nav>
+      <div class="hidden md:inline-flex items-center gap-3">
+        <span class="hatch-tech-status">
+          <span class="hatch-tech-status-dot" aria-hidden="true"></span>
+          <span class="hatch-tech-status-label">online</span>
+        </span>
+        {showColorModeBtn && (
+          <button id="hatch-color-mode-btn" type="button" aria-label="Toggle color mode" class="inline-flex items-center justify-center w-8 h-8 text-hatch-fg-muted hover:text-hatch-fg transition-colors" style="border: 1px solid var(--hatch-border); border-radius: 4px;">
+            <svg class="hatch-cm-sun w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <svg class="hatch-cm-moon w-4 h-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+        )}
+      </div>
+      <button type="button" class="hatch-hamburger md:hidden inline-flex items-center justify-center w-9 h-9 text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2" aria-label="Open menu" aria-controls="hatch-mobile-drawer" aria-expanded="false" style="border: 1px solid var(--hatch-border); border-radius: 4px;">
+        <svg class="h-4 w-4 hatch-icon-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        <svg class="h-4 w-4 hatch-icon-close hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+)}
+
+{theme === 'astropaper' && (
+  <header class={`hatch-header hatch-header-astropaper ${headerStickyClass} z-40 ${headerBgClass}`}>
+    {/* v0.50.32 — Editorial masthead. Top row: tiny edition label (date) +
+        centered serif-style wordmark + nav on the right. Below the wordmark,
+        a double rule and a byline strip with tagline. Layout mirrors a
+        Sunday-edition newspaper front page. Mobile collapses to wordmark +
+        hamburger. */}
+    <div class="hatch-ap-masthead mx-auto px-5 sm:px-8" style="max-width: var(--hatch-max-width, 1160px);">
+      <div class="hatch-ap-row hidden md:grid items-center gap-4">
+        <div class="hatch-ap-edition">
+          <span>{new Date().toLocaleDateString(features.site.language || 'en-US', { weekday: 'long' })}</span>
+          <span class="hatch-ap-dot" aria-hidden="true">·</span>
+          <span>{new Date().toLocaleDateString(features.site.language || 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        </div>
+        <a href="/" class="hatch-ap-brand brand min-w-0 inline-flex items-center justify-center gap-2 text-hatch-fg hover:text-hatch-primary transition-colors">
+          {showLogo
+            ? <img src={logoUrl} alt={siteName} class="h-9 w-auto max-w-[220px]" loading="eager" />
+            : <span class="hatch-ap-wordmark">{siteName}</span>}
+        </a>
+        <div class="hatch-ap-actions inline-flex items-center justify-end gap-3">
+          {showColorModeBtn && (
+            <button id="hatch-color-mode-btn" type="button" aria-label="Toggle color mode" class="inline-flex items-center justify-center w-9 h-9 text-hatch-fg-muted hover:text-hatch-fg">
+              <svg class="hatch-cm-sun w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+              <svg class="hatch-cm-moon w-4 h-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
+          )}
+        </div>
+      </div>
+      {/* Mobile compact row */}
+      <div class="md:hidden flex items-center justify-between py-3">
+        <a href="/" class="brand inline-flex items-center gap-2 text-hatch-fg min-w-0">
+          {showLogo
+            ? <img src={logoUrl} alt={siteName} class="h-7 w-auto max-w-[160px]" loading="eager" />
+            : <span class="hatch-ap-wordmark" style="font-size: 20px;">{siteName}</span>}
+        </a>
+        <button type="button" class="hatch-hamburger inline-flex items-center justify-center w-10 h-10 text-hatch-fg-muted hover:text-hatch-fg" aria-label="Open menu" aria-controls="hatch-mobile-drawer" aria-expanded="false">
+          <svg class="h-5 w-5 hatch-icon-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          <svg class="h-5 w-5 hatch-icon-close hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="hatch-ap-rule" aria-hidden="true"></div>
+    <div class="hatch-ap-byline mx-auto px-5 sm:px-8 hidden md:flex items-center justify-between gap-6" style="max-width: var(--hatch-max-width, 1160px);">
+      <nav class="flex items-center gap-5 flex-wrap" aria-label="Primary">
+        {navItems.map((item) => (
+          <a href={item.href} target={item.target || undefined} class:list={['hatch-ap-link', isActive(item.href) ? 'is-active' : '']}>{item.label}</a>
+        ))}
+      </nav>
+      {features.site.description && (
+        <span class="hatch-ap-tagline">{features.site.description}</span>
+      )}
+    </div>
+  </header>
+)}
+
+{theme === 'astrowind' && (
+  <header class={`hatch-header hatch-header-astrowind ${headerStickyClass} z-40 ${headerBgClass}`}>
+    {/* v0.50.32 — Marketing header: brand block (rounded badge or logo) on
+        left, centered nav, prominent gradient CTA + color toggle on right.
+        The CTA points at the LAST nav item (typically Contact / Get
+        started) and falls back to /blog when no menu is assigned — same
+        link surface, just visually elevated. */}
+    <div class="mx-auto px-5 sm:px-8 h-16 flex items-center justify-between gap-4" style="max-width: var(--hatch-max-width, 1160px);">
+      <a href="/" class="brand flex items-center gap-2.5 text-hatch-fg hover:text-hatch-primary transition-colors min-w-0">
+        {showLogo
+          ? <img src={logoUrl} alt={siteName} class="h-9 w-auto max-w-[200px] object-contain" loading="eager" />
+          : <span class="hatch-aw-brand-badge" aria-hidden="true">{siteName.charAt(0).toUpperCase()}</span>}
+        <span class="hatch-aw-brand-name truncate">{siteName}</span>
+      </a>
+      <nav class="hidden lg:flex items-center gap-1 mx-auto" aria-label="Primary">
+        {navItems.map((item) => (
+          <a href={item.href} target={item.target || undefined} class:list={['hatch-aw-nav-link', isActive(item.href) ? 'is-active' : '']}>{item.label}</a>
+        ))}
+      </nav>
+      <div class="hidden md:inline-flex items-center gap-2 shrink-0">
+        {showColorModeBtn && (
+          <button id="hatch-color-mode-btn" type="button" aria-label="Toggle color mode" class="inline-flex items-center justify-center w-10 h-10 rounded-lg text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2 transition-colors">
+            <svg class="hatch-cm-sun w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <svg class="hatch-cm-moon w-4 h-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+        )}
+        <a href={navItems[navItems.length - 1]?.href || '/blog'} class="hatch-aw-cta">
+          <span>Get started</span>
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+      </div>
+      <button type="button" class="hatch-hamburger lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-md text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2" aria-label="Open menu" aria-controls="hatch-mobile-drawer" aria-expanded="false">
+        <svg class="h-5 w-5 hatch-icon-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        <svg class="h-5 w-5 hatch-icon-close hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+)}
+
+{theme === 'astronano' && (
+  <header class={`hatch-header hatch-header-astronano ${headerStickyClass} z-40`}>
+    {/* v0.50.32 — Ultra-minimal: tiny lowercase wordmark left, plain-text
+        nav right, no chrome, no border, no badge. Generous vertical
+        whitespace. Color toggle is a small text link, not a button. */}
+    <div class="mx-auto px-5 sm:px-8 flex items-center justify-between gap-6" style="max-width: var(--hatch-max-width, 1160px);">
+      <a href="/" class="hatch-nano-brand brand min-w-0">
+        {showLogo && <img src={logoUrl} alt={siteName} class="h-5 w-auto max-w-[120px]" loading="eager" />}
+        {showText && <span>{siteName.toLowerCase()}</span>}
+      </a>
+      <nav class="hidden md:flex items-center gap-5" aria-label="Primary">
+        {navItems.map((item) => (
+          <a href={item.href} target={item.target || undefined} class:list={['hatch-nano-link', isActive(item.href) ? 'is-active' : '']}>{item.label}</a>
+        ))}
+        {showColorModeBtn && (
+          <button id="hatch-color-mode-btn" type="button" aria-label="Toggle color mode" class="hatch-nano-toggle">
+            <svg class="hatch-cm-sun w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <svg class="hatch-cm-moon w-3.5 h-3.5 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+        )}
+      </nav>
+      <button type="button" class="hatch-hamburger md:hidden inline-flex items-center justify-center w-8 h-8 text-hatch-fg-subtle hover:text-hatch-fg" aria-label="Open menu" aria-controls="hatch-mobile-drawer" aria-expanded="false">
+        <svg class="h-4 w-4 hatch-icon-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        <svg class="h-4 w-4 hatch-icon-close hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+)}
+
+{theme === 'docs' && (() => {
+  // v0.50.32 — Derive a tiny breadcrumb trail from the URL path. We don't
+  // have section data from WP for arbitrary pages, so we surface what we DO
+  // know: the path segments themselves. Single segment ("/blog") shows
+  // "Home / Blog"; deeper paths chain. Skips trailing slash and the empty
+  // root (homepage shows no trail).
+  const pathSegments = currentPath.split('/').filter(Boolean);
+  const crumbs = pathSegments.map((seg, i) => ({
+    label: decodeURIComponent(seg).replace(/-/g, ' ').replace(/^\w/, (c) => c.toUpperCase()),
+    href: '/' + pathSegments.slice(0, i + 1).join('/'),
+  }));
+  return (
+  <header class={`hatch-header hatch-header-docs ${headerStickyClass} z-40 ${headerBgClass}`}>
+    <div class="mx-auto px-5 sm:px-8 h-14 flex items-center gap-4 text-[13px]" style="max-width: var(--hatch-max-width, 1160px);">
+      <a href="/" class="brand flex items-center gap-2.5 text-hatch-fg hover:text-hatch-primary transition-colors min-w-0 shrink-0">
+        {showLogo && <img src={logoUrl} alt={siteName} class="h-5 w-auto max-w-[140px]" loading="eager" />}
+        {showText && <span class="font-semibold tracking-tight">{siteName}</span>}
+        <span class="hatch-docs-badge" aria-hidden="true">Docs</span>
+      </a>
+      {crumbs.length > 0 && (
+        <nav class="hatch-docs-crumbs hidden lg:flex items-center gap-1.5 min-w-0" aria-label="Breadcrumb">
+          <span class="hatch-docs-crumb-sep" aria-hidden="true">/</span>
+          {crumbs.map((c, i) => (
+            <Fragment>
+              {i > 0 && <span class="hatch-docs-crumb-sep" aria-hidden="true">/</span>}
+              {i === crumbs.length - 1
+                ? <span class="hatch-docs-crumb is-current">{c.label}</span>
+                : <a href={c.href} class="hatch-docs-crumb">{c.label}</a>}
+            </Fragment>
+          ))}
+        </nav>
+      )}
+      <div class="flex-1"></div>
+      <button type="button" class="hatch-docs-search hidden md:inline-flex items-center gap-2" aria-label="Search documentation (coming soon)" disabled>
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <span class="hatch-docs-search-label">Search docs…</span>
+        <span class="hatch-docs-kbd" aria-hidden="true">⌘K</span>
+      </button>
+      <nav class="hidden md:flex items-center gap-4 shrink-0" aria-label="Primary">
+        {navItems.map((item) => (
+          <a href={item.href} target={item.target || undefined} class:list={['hatch-docs-nav-link', isActive(item.href) ? 'is-active' : '']}>{item.label}</a>
+        ))}
+      </nav>
+      <div class="flex items-center gap-2">
+        {showColorModeBtn && (
+          <button id="hatch-color-mode-btn" type="button" aria-label="Toggle color mode" class="hidden md:inline-flex items-center justify-center w-8 h-8 rounded text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2 transition-colors">
+            <svg class="hatch-cm-sun w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <svg class="hatch-cm-moon w-3.5 h-3.5 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+        )}
+        <button type="button" class="hatch-hamburger md:hidden inline-flex items-center justify-center w-8 h-8 rounded text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2" aria-label="Open menu" aria-controls="hatch-mobile-drawer" aria-expanded="false">
+          <svg class="h-4 w-4 hatch-icon-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          <svg class="h-4 w-4 hatch-icon-close hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+  );
+})()}
+
+{(theme === 'blog' || !['tech','astropaper','astrowind','astronano','docs'].includes(theme)) && (
+<header class={`hatch-header ${headerStickyClass} z-40 border-b border-hatch-border ${headerBgClass}`}>
+  <div class="mx-auto px-5 sm:px-8 h-14 flex items-center justify-between gap-6" style="max-width: var(--hatch-max-width, 1160px)">
+    {/* Brand mark — logo image OR text + 🐣 fallback */}
+    <a href="/" class="brand flex items-center gap-2 font-semibold tracking-tight text-hatch-fg hover:text-hatch-primary transition-colors min-w-0">
+      {showLogo && (
+        <img
+          src={logoUrl}
+          alt={siteName}
+          height={28}
+          class="h-7 w-auto max-w-[180px] object-contain"
+          loading="eager"
+          decoding="async"
+        />
+      )}
+      {showText && brandMark === 'initial' && (
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-md bg-hatch-primary text-hatch-primary-fg text-sm font-bold">{siteName.charAt(0).toUpperCase()}</span>
+      )}
+      {showText && brandMark === 'text' && (
+        <span class="text-[15px] truncate">{siteName}</span>
+      )}
+      {showText && brandMark === 'icon_text' && (
+        <>
+          <span class="text-lg" aria-hidden="true">🐣</span>
+          <span class="text-[15px] truncate">{siteName}</span>
+        </>
+      )}
+    </a>
+
+    {/* Desktop nav — top-level items + hover/focus dropdown for sub-items (v0.50). */}
+    <nav class="hidden md:flex items-center gap-1" aria-label="Primary">
+      {navItems.map((item) => (
+        <div class="hatch-nav-item relative group">
+          <a
+            href={item.href}
+            target={item.target || undefined}
+            rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
+            class:list={[
+              'px-3 py-1.5 rounded-md text-[13.5px] font-medium transition-colors inline-flex items-center gap-1',
+              isActive(item.href)
+                ? 'text-hatch-fg bg-hatch-bg-3'
+                : 'text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2',
+            ]}
+            aria-haspopup={item.children.length > 0 ? 'true' : undefined}
+          >
+            {item.label}
+            {item.children.length > 0 && (
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                <path d="M2.5 4l2.5 2.5L7.5 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            )}
+          </a>
+          {item.children.length > 0 && (
+            <div
+              class="absolute left-0 top-full mt-1 min-w-[200px] py-1 rounded-md border border-hatch-border bg-hatch-bg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible focus-within:opacity-100 focus-within:visible transition-opacity z-50"
+              role="menu"
+            >
+              {item.children.map((child) => (
+                <a
+                  href={child.href}
+                  target={child.target || undefined}
+                  rel={child.target === '_blank' ? 'noopener noreferrer' : undefined}
+                  class="block px-3 py-2 text-[13.5px] text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2"
+                  role="menuitem"
+                >
+                  {child.label}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </nav>
+
+    {/* v0.50.15 — Color-mode toggle button (visitor-facing). Hidden on mobile
+        to avoid crowding the hamburger; mobile gets it inside the drawer. */}
+    {showColorModeBtn && (
+      <button
+        id="hatch-color-mode-btn"
+        type="button"
+        aria-label="Toggle color mode"
+        title="Toggle color mode"
+        class="hidden md:inline-flex items-center justify-center w-9 h-9 rounded-md text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2 transition-colors"
+      >
+        <svg class="hatch-cm-sun w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>
+        <svg class="hatch-cm-moon w-4 h-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+    )}
+
+    {/* Mobile hamburger toggle — pure CSS via :has() + checkbox state, no JS framework */}
+    <button
+      type="button"
+      class="hatch-hamburger md:hidden inline-flex items-center justify-center w-10 h-10 rounded-md text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2 transition-colors"
+      aria-label="Open menu"
+      aria-controls="hatch-mobile-drawer"
+      aria-expanded="false"
+    >
+      <svg class="h-5 w-5 hatch-icon-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+      <svg class="h-5 w-5 hatch-icon-close hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  {/* Mobile drawer */}
+  <div
+    id="hatch-mobile-drawer"
+    class="hatch-drawer md:hidden hidden border-t border-hatch-border bg-hatch-bg"
+  >
+    <nav class="mx-auto px-5 sm:px-8 py-3 flex flex-col gap-1" aria-label="Primary mobile" style="max-width: var(--hatch-max-width, 1160px)">
+      {navItems.map((item) => (
+        <a
+          href={item.href}
+          target={item.target || undefined}
+          rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
+          class:list={[
+            'px-3 py-3 rounded-md text-[15px] font-medium transition-colors',
+            isActive(item.href)
+              ? 'text-hatch-fg bg-hatch-bg-3'
+              : 'text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2',
+          ]}
+        >
+          {item.label}
+        </a>
+      ))}
+    </nav>
+  </div>
+</header>
+)}
+
+{/* v0.50.22 — Shared mobile drawer for themes that don't ship one inline.
+    Tech / AstroPaper / AstroWind / Astro Nano / Docs hamburger buttons all
+    target this. Default (blog) theme renders its own drawer inside its
+    header element above; this second drawer is hidden in that case via
+    the conditional. */}
+{theme !== 'blog' && (
+<div
+  id="hatch-mobile-drawer"
+  class="hatch-drawer md:hidden hidden border-t border-hatch-border bg-hatch-bg"
+>
+  <nav class="mx-auto px-5 sm:px-8 py-3 flex flex-col gap-1" aria-label="Primary mobile" style="max-width: var(--hatch-max-width, 1160px)">
+    {navItems.map((item) => (
+      <a
+        href={item.href}
+        target={item.target || undefined}
+        rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
+        class:list={[
+          'px-3 py-3 rounded-md text-[15px] font-medium transition-colors',
+          isActive(item.href)
+            ? 'text-hatch-fg bg-hatch-bg-3'
+            : 'text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2',
+        ]}
+      >
+        {item.label}
+      </a>
+    ))}
+  </nav>
+</div>
+)}
+
+<style>
+  /* Drawer toggle behavior is the only JS-dependent piece. */
+  .hatch-drawer.is-open { display: block; }
+  .hatch-hamburger.is-open .hatch-icon-open { display: none; }
+  .hatch-hamburger.is-open .hatch-icon-close { display: inline-block; }
+  /* Hide scroll on body when drawer open */
+  :global(body.hatch-drawer-open) { overflow: hidden; }
+  @media (min-width: 768px) {
+    :global(body.hatch-drawer-open) { overflow: auto; }
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    var btn = document.querySelector('.hatch-hamburger');
+    var drawer = document.getElementById('hatch-mobile-drawer');
+    if (!btn || !drawer) return;
+    function close() {
+      btn.classList.remove('is-open');
+      drawer.classList.remove('is-open');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.setAttribute('aria-label', 'Open menu');
+      document.body.classList.remove('hatch-drawer-open');
+    }
+    function toggle() {
+      var open = !drawer.classList.contains('is-open');
+      if (open) {
+        btn.classList.add('is-open');
+        drawer.classList.add('is-open');
+        btn.setAttribute('aria-expanded', 'true');
+        btn.setAttribute('aria-label', 'Close menu');
+        document.body.classList.add('hatch-drawer-open');
+      } else {
+        close();
+      }
+    }
+    btn.addEventListener('click', toggle);
+    // Close on link click + escape
+    drawer.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', close); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') close();
+    });
+    // Close if resized above breakpoint
+    var mq = window.matchMedia('(min-width: 768px)');
+    (mq.addEventListener ? mq.addEventListener('change', close) : mq.addListener(close));
+  })();
+</script>
+
+
+{/* v0.50.15 — Color-mode toggle + hide-on-scroll behavior. Both are pure
+    inline scripts so they hydrate immediately and don't need an island. */}
+<script is:inline>
+  (function () {
+    // Color mode toggle — flips html[data-hatch-mode] between light/dark
+    // and persists to localStorage. Auto mode follows OS preference.
+    var btn = document.getElementById('hatch-color-mode-btn');
+    if (btn) {
+      var sun = btn.querySelector('.hatch-cm-sun');
+      var moon = btn.querySelector('.hatch-cm-moon');
+      var apply = function (m) {
+        document.documentElement.setAttribute('data-hatch-mode', m);
+        try { localStorage.setItem('hatch-color-mode', m); } catch (e) {}
+        if (sun && moon) {
+          if (m === 'dark') { sun.classList.add('hidden'); moon.classList.remove('hidden'); }
+          else              { moon.classList.add('hidden'); sun.classList.remove('hidden'); }
+        }
+      };
+      try {
+        var saved = localStorage.getItem('hatch-color-mode');
+        if (saved) apply(saved);
+        else {
+          var cur = document.documentElement.getAttribute('data-hatch-mode') || 'auto';
+          if (cur === 'auto') {
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            apply(prefersDark ? 'dark' : 'light');
+          }
+        }
+      } catch (e) {}
+      btn.addEventListener('click', function () {
+        var now = document.documentElement.getAttribute('data-hatch-mode') === 'dark' ? 'light' : 'dark';
+        apply(now);
+      });
+    }
+
+    // Hide-on-scroll header — translates the header off-screen when scrolling
+    // down past 80px, restores on any scroll-up. CSS class controls transition.
+    var hide = document.querySelector('.hatch-header-hide-on-scroll');
+    if (hide) {
+      var lastY = window.scrollY;
+      hide.style.transition = 'transform .22s ease';
+      addEventListener('scroll', function () {
+        var y = window.scrollY;
+        if (y > 80 && y > lastY) hide.style.transform = 'translateY(-100%)';
+        else                     hide.style.transform = 'translateY(0)';
+        lastY = y;
+      }, { passive: true });
+    }
+  })();
+</script>

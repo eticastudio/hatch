@@ -1,0 +1,60 @@
+---
+/**
+ * BlockRenderer — Recursively renders a Hatch block tree.
+ *
+ * Looks up each block name in the registry. If a native Astro component
+ * exists, it's rendered with typed props. If not, falls back to set:html
+ * for the block's innerHTML (so unknown blocks still display correctly).
+ *
+ * Why this exists: instead of dumping post.content.rendered as one HTML blob,
+ * we render each Gutenberg block as a real Astro component. This unlocks:
+ *   - Astro <Image> optimization for every image block
+ *   - Lazy-loaded galleries with proper aspect ratios
+ *   - Native <details>/<summary> for collapsible blocks
+ *   - Design-system class consistency
+ *   - Hydration islands only where actually needed (gallery lightbox, embeds)
+ *
+ * Usage:
+ *   ---
+ *   import BlockRenderer from '~/components/blocks/BlockRenderer.astro';
+ *   import { fetchPostBlocks } from '~/lib/blocks';
+ *
+ *   const data = await fetchPostBlocks(postId);
+ *   ---
+ *   {data && <BlockRenderer blocks={data.blocks} />}
+ */
+
+import type { HatchBlock } from '../../lib/blocks';
+import { resolveBlock } from './registry';
+
+interface Props {
+	blocks: HatchBlock[];
+	/** Recursion depth — internal use, prevents pathological nesting. */
+	depth?: number;
+}
+
+const { blocks, depth = 0 } = Astro.props;
+const MAX_DEPTH = 12;
+---
+
+{
+	depth < MAX_DEPTH && blocks.map( ( block ) => {
+		const Component = resolveBlock( block.name );
+
+		// Native component path — render with typed props + nested children.
+		if ( Component ) {
+			return <Component block={ block } depth={ depth } />;
+		}
+
+		// Fallback — render raw innerHTML. Still allows nested children
+		// (e.g. an unknown wrapper containing known children).
+		return (
+			<>
+				{ block.innerHTML && <div set:html={ block.innerHTML } /> }
+				{ block.innerBlocks.length > 0 && (
+					<Astro.self blocks={ block.innerBlocks } depth={ depth + 1 } />
+				) }
+			</>
+		);
+	} )
+}

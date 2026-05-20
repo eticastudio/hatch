@@ -1,0 +1,67 @@
+---
+/**
+ * HatchImage — drop-in <img> replacement that routes through the Hatch image
+ * proxy when configured (WebP/AVIF + resize), falls back to the original URL
+ * when not. Adds loading="lazy", decoding="async", and proper width/height
+ * for layout-shift-free rendering.
+ *
+ * Usage:
+ *   <HatchImage features={features} src={url} alt="..." width={800} height={450} class="..." />
+ */
+import type { HatchFeatures } from '../lib/features';
+import { imgSrc } from '../lib/features';
+
+interface Props {
+  /** Optional. When omitted, falls back to raw src URL with no proxy/optim. */
+  features?: HatchFeatures | null;
+  src: string | null | undefined;
+  alt?: string;
+  width?: number;
+  height?: number;
+  format?: 'webp' | 'avif';
+  quality?: number;
+  loading?: 'lazy' | 'eager';
+  decoding?: 'async' | 'sync' | 'auto';
+  class?: string;
+  style?: string;
+  /** Pixel density multiplier — generates 2x srcset variant for retina. Default 2. */
+  retina?: number;
+}
+
+const {
+  features = null,
+  src,
+  alt = '',
+  width,
+  height,
+  format = 'webp',
+  quality,
+  loading = 'lazy',
+  decoding = 'async',
+  class: className,
+  style,
+  retina = 2,
+} = Astro.props;
+
+if (!src) return null;
+
+const opts = { w: width, h: height, format, q: quality };
+const optimized   = features ? imgSrc(features, src, opts) : src;
+const optimized2x = features && width
+  ? imgSrc(features, src, { ...opts, w: width * retina, h: height ? height * retina : undefined })
+  : optimized;
+
+const srcset = width && optimized !== optimized2x ? `${optimized} 1x, ${optimized2x} ${retina}x` : undefined;
+---
+
+<img
+  src={optimized}
+  srcset={srcset}
+  alt={alt}
+  width={width}
+  height={height}
+  loading={loading}
+  decoding={decoding}
+  class={className}
+  style={style}
+/>

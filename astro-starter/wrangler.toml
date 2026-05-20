@@ -1,0 +1,33 @@
+# Cloudflare Workers (Workers Assets) configuration for Hatch.
+#
+# This file is read by:
+#   - The `deploy.workers.cloudflare.com/?url=…` 1-click deploy button
+#     (the "Deploy to Cloudflare" button in the Hatch WP plugin wizard)
+#   - `wrangler deploy` from a developer's CLI
+#
+# Why Workers and not Pages: CF Workers has a public 1-click deploy URL pattern
+# (deploy.workers.cloudflare.com), which lets users deploy from inside CF's own
+# UI — no API token paste, no broker build server in the loop. Pages has no
+# equivalent. Both run the same Astro SSR `_worker.js` bundle the @astrojs/
+# cloudflare adapter produces, so the build pipeline is unchanged.
+
+name = "hatch-frontend"
+main = "./dist/_worker.js/index.js"
+compatibility_date = "2025-09-01"
+compatibility_flags = [ "nodejs_compat" ]
+
+# Workers Assets binding — serves static files (CSS, images, _astro/*) at the
+# edge, and falls through to the SSR worker for dynamic routes.
+[assets]
+binding   = "ASSETS"
+directory = "./dist"
+
+# Environment variables. The deploy button prompts the user to fill these in
+# during the 1-click flow. Empty strings here are placeholders — the user
+# enters their actual WP credentials. All four are required for the SSR
+# frontend to fetch content from WordPress.
+[vars]
+WP_API_URL           = ""
+WP_API_USER          = ""
+WP_API_PASS          = ""
+HATCH_WEBHOOK_SECRET = ""

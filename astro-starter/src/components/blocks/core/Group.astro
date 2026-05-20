@@ -1,0 +1,29 @@
+---
+/**
+ * core/group — generic wrapper. Renders children through BlockRenderer.
+ * Honors layout type (flex / constrained / default) via class.
+ */
+import BlockRenderer from '../BlockRenderer.astro';
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle } from './_shared';
+
+const { block, depth } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+const layout = ( a.layout && typeof a.layout === 'object' )
+	? a.layout as { type?: string; orientation?: string; justifyContent?: string }
+	: {};
+
+const layoutClass = layout.type === 'flex'
+	? `is-layout-flex is-${ layout.orientation || 'horizontal' }`
+	: 'is-layout-constrained';
+
+const cls   = blockClass( block, `wp-block-group ${ layoutClass }` );
+const style = blockStyle( block );
+
+const tagName = typeof a.tagName === 'string' ? a.tagName : 'div';
+const Tag = tagName as 'div' | 'section' | 'article' | 'aside' | 'header' | 'footer' | 'main' | 'nav';
+---
+<Tag class={ cls } style={ style || undefined }>
+	<BlockRenderer blocks={ block.innerBlocks } depth={ depth + 1 } />
+</Tag>

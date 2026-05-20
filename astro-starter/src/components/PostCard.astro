@@ -1,0 +1,110 @@
+---
+/**
+ * Vercel/Linear-style post card. Image (or gradient fallback), category pill,
+ * title, excerpt, date + author byline. Used on homepage grids, /blog list,
+ * category/tag/author archives.
+ */
+import type { Post } from '../lib/hatch';
+import HatchImage from './HatchImage.astro';
+import { getFeatures } from '../lib/features';
+
+interface Props {
+  post: Post;
+  /** 'compact' for sidebar/related lists, 'feature' for hero, 'default' for grids. */
+  variant?: 'default' | 'compact' | 'feature';
+  /** Set false to hide excerpt in archive grids (design.md archive_excerpt: false). */
+  showExcerpt?: boolean;
+}
+
+const { post, variant = 'default', showExcerpt = true } = Astro.props;
+const features = await getFeatures();
+const href = `/blog/${post.slug}`;
+
+// v0.50.15 — read aesthetic groups so cards respect Design tab.
+const aes = features.aesthetic;
+const hoverClass    = aes.images.hover_zoom ? 'group-hover:scale-[1.02] transition-transform duration-500' : '';
+const showFallback  = aes.images.fallback_gradient;
+const showRtPill    = aes.reading.reading_time_label !== 'hidden';
+const rtText        = (m: number) => aes.reading.reading_time_label === 'mins' ? `${m} mins` : `${m} min read`;
+const ratioClass = aes.images.aspect_ratio === '3_1' ? 'aspect-[3/1]' : aes.images.aspect_ratio === '16_9' ? 'aspect-[16/9]' : 'aspect-[2/1]';
+const dateLabel = (() => {
+  const d = new Date(post.publishedAt);
+  if (aes.reading.date_format === 'short') return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  if (aes.reading.date_format === 'relative') {
+    const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    if (diff < 7)   return `${diff} days ago`;
+    if (diff < 30)  return `${Math.floor(diff/7)} weeks ago`;
+    if (diff < 365) return `${Math.floor(diff/30)} months ago`;
+    return `${Math.floor(diff/365)} years ago`;
+  }
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+})();
+---
+
+{variant === 'feature' ? (
+  <a href={href} class="group block rounded-xl overflow-hidden border border-hatch-border hover:border-hatch-border-2 transition-colors">
+    {post.featuredImage ? (
+      <div class={`${ratioClass} overflow-hidden bg-hatch-bg-3`}>
+        <HatchImage features={features} src={post.featuredImage} alt={post.featuredImageAlt || ''} width={1200} height={600} class={`w-full h-full object-cover ${hoverClass}`} />
+      </div>
+    ) : showFallback ? (
+      <div class={`${ratioClass} bg-gradient-to-br from-hatch-primary-soft to-hatch-bg-3`}></div>
+    ) : null}
+    <div class="p-6 sm:p-8">
+      {post.category && (
+        <span class="inline-block text-[11px] uppercase tracking-wider font-medium text-hatch-primary mb-3">{post.category}</span>
+      )}
+      <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight leading-tight group-hover:text-hatch-primary transition-colors">
+        {post.title}
+      </h2>
+      {showExcerpt && post.excerpt && <p class="mt-3 text-hatch-fg-muted line-clamp-2">{post.excerpt}</p>}
+      <div class="mt-5 flex items-center gap-3 text-[13px] text-hatch-fg-subtle">
+        {post.author && <span>{post.author.name}</span>}
+        <span>·</span>
+        <time datetime={post.publishedAt}>{dateLabel}</time>
+        {showRtPill && (<><span>·</span><span>{rtText(post.readMinutes)}</span></>)}
+      </div>
+    </div>
+  </a>
+) : variant === 'compact' ? (
+  <a href={href} class="group flex gap-3 py-3 border-b border-hatch-border last:border-b-0">
+    {post.featuredImage && (
+      <div class="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-hatch-bg-3">
+        <HatchImage features={features} src={post.featuredImage} alt="" width={128} height={128} class="w-full h-full object-cover" />
+      </div>
+    )}
+    <div class="flex-1 min-w-0">
+      <h3 class="text-[14px] font-medium leading-snug line-clamp-2 group-hover:text-hatch-primary transition-colors">
+        {post.title}
+      </h3>
+      <div class="mt-1 text-[12px] text-hatch-fg-subtle">
+        <time datetime={post.publishedAt}>{dateLabel}</time>
+        {showRtPill && post.readMinutes > 0 && <> · {rtText(post.readMinutes)}</>}
+      </div>
+    </div>
+  </a>
+) : (
+  <a href={href} class="post-card group block">
+    <div class="aspect-[16/10] overflow-hidden rounded-lg bg-hatch-bg-3 mb-4">
+      {post.featuredImage ? (
+        <HatchImage features={features} src={post.featuredImage} alt={post.featuredImageAlt || ''} width={800} height={500} class={`w-full h-full object-cover ${hoverClass}`} />
+      ) : showFallback ? (
+        <div class="w-full h-full bg-gradient-to-br from-hatch-primary-soft to-hatch-bg-3"></div>
+      ) : null}
+    </div>
+    {post.category && (
+      <span class="inline-block text-[11px] uppercase tracking-wider font-medium text-hatch-primary mb-2">{post.category}</span>
+    )}
+    <h3 class="text-lg font-semibold leading-snug tracking-tight group-hover:text-hatch-primary transition-colors line-clamp-2">
+      {post.title}
+    </h3>
+    {showExcerpt && post.excerpt && <p class="mt-2 text-[14.5px] text-hatch-fg-muted line-clamp-2 leading-relaxed">{post.excerpt}</p>}
+    <div class="mt-3 flex items-center gap-2 text-[12.5px] text-hatch-fg-subtle">
+      {post.author && <><span>{post.author.name}</span><span>·</span></>}
+      <time datetime={post.publishedAt}>{dateLabel}</time>
+      {showRtPill && post.readMinutes > 0 && <><span>·</span><span>{rtText(post.readMinutes)}</span></>}
+    </div>
+  </a>
+)}

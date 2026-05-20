@@ -1,0 +1,120 @@
+---
+/**
+ * Homepage — three modes based on WP setup:
+ *
+ *   1) WP Reading → "A static page" → render that Page here (matches WP
+ *      behavior: front page is a Page, not the blog index)
+ *   2) Default: blog-style home — hero + featured post + latest grid + topics
+ *   3) Empty WP (no posts yet) → friendly onboarding placeholder
+ *
+ * Pulls site title/tagline from /hatch/v1/features so the hero mirrors WP
+ * General Settings.
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import PostCard from '@/components/PostCard.astro';
+import HatchImage from '@/components/HatchImage.astro';
+import { getPosts, getCategories, getPageById } from '@/lib/hatch';
+import { getFeatures, rewriteContentImages } from '@/lib/features';
+
+const features = await getFeatures();
+
+// Mode 1 — WP static front page.
+let staticPage = null;
+if (features.home.mode === 'page' && features.home.static_page_id) {
+  staticPage = await getPageById(features.home.static_page_id);
+}
+
+const { posts: latest, total } = staticPage
+  ? { posts: [], total: 0 }
+  : await getPosts({ perPage: 7 });
+
+const categories = staticPage ? [] : (await getCategories()).slice(0, 8);
+const [featured, ...recent] = latest;
+const siteName = features.site.name;
+const tagline = features.site.description;
+---
+
+{staticPage ? (
+  <PageLayout title={staticPage.title} description={staticPage.excerpt}>
+    <article class="mx-auto px-5 sm:px-8 pt-16 pb-12" style="max-width: var(--hatch-max-width, 1160px)">
+      {staticPage.featuredImage && (
+        <div class="aspect-[2/1] rounded-xl overflow-hidden mb-10 bg-hatch-bg-3">
+          <HatchImage features={features} src={staticPage.featuredImage} alt={staticPage.featuredImageAlt || ''} width={1600} height={800} loading="eager" class="w-full h-full object-cover" />
+        </div>
+      )}
+      <h1 class="text-4xl sm:text-5xl font-semibold tracking-tight leading-tight mb-6">{staticPage.title}</h1>
+      <div class="hatch-prose" set:html={rewriteContentImages(staticPage.content, features)}></div>
+    </article>
+  </PageLayout>
+) : latest.length === 0 ? (
+  <PageLayout title={siteName} description={tagline}>
+    <main class="mx-auto px-5 sm:px-8 py-32 text-center" style="max-width: var(--hatch-max-width, 1160px)">
+      <p class="text-xs uppercase tracking-wider text-hatch-primary font-medium mb-4">🐣 Hatch</p>
+      <h1 class="text-4xl sm:text-5xl font-semibold tracking-tight leading-tight mb-5">{siteName}</h1>
+      <p class="text-lg text-hatch-fg-muted leading-relaxed mb-10">
+        {tagline || 'A blazing-fast Astro frontend for your headless WordPress site.'}
+      </p>
+      <div class="rounded-lg border border-dashed border-hatch-border bg-hatch-bg-2 p-8 text-left max-w-md mx-auto">
+        <p class="text-sm text-hatch-fg-muted">
+          Publish your first post in WordPress and it'll appear here automatically (within ~60 seconds via edge cache).
+        </p>
+      </div>
+    </main>
+  </PageLayout>
+) : (
+  <PageLayout title={siteName} description={tagline}>
+    <main class="mx-auto px-5 sm:px-8" style="max-width: var(--hatch-max-width, 1160px)">
+
+      <section class="pt-16 pb-10 sm:pt-24 sm:pb-14 border-b border-hatch-border">
+        <h1 class="text-4xl sm:text-6xl font-semibold tracking-tight leading-[1.05]">
+          {siteName}
+        </h1>
+        {tagline && (
+          <p class="mt-5 text-lg sm:text-xl text-hatch-fg-muted leading-relaxed max-w-2xl">
+            {tagline}
+          </p>
+        )}
+      </section>
+
+      {featured && (
+        <section class="py-10 sm:py-14">
+          <PostCard post={featured} variant="feature" />
+        </section>
+      )}
+
+      {recent.length > 0 && (
+        <section class="py-10 sm:py-14 border-t border-hatch-border">
+          <div class="flex items-baseline justify-between mb-8">
+            <h2 class="text-xl font-semibold tracking-tight">Latest posts</h2>
+            {total > 7 && (
+              <a href="/blog" class="text-[13.5px] text-hatch-fg-muted hover:text-hatch-fg transition-colors">
+                See all {total} →
+              </a>
+            )}
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-7 gap-y-12">
+            {recent.map((post) => <PostCard post={post} />)}
+          </div>
+        </section>
+      )}
+
+      {categories.length > 0 && (
+        <section class="py-10 sm:py-14 border-t border-hatch-border">
+          <h2 class="text-xl font-semibold tracking-tight mb-6">Topics</h2>
+          <div class="flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <a
+                href={`/blog/category/${cat.slug}`}
+                class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-hatch-border hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors text-[13px] text-hatch-fg-muted hover:text-hatch-fg"
+              >
+                <span>{cat.name}</span>
+                <span class="text-hatch-fg-subtle text-[11.5px]">{cat.count}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
+    </main>
+  </PageLayout>
+)}

@@ -1,0 +1,149 @@
+---
+/**
+ * 404 — Not Found. Per-theme variants. SSR-rendered so the response is a
+ * proper 404, not a soft-200. Honors design.md template `not_found_search`.
+ *
+ * Token discipline: every color via var(--hatch-*), every font via
+ * var(--hatch-font-*). No hardcoded literals.
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import { getFeatures } from '@/lib/features';
+import { getPosts } from '@/lib/hatch';
+import { themeKey } from '@/lib/theme-dispatch';
+
+const features = await getFeatures();
+const showSearch = (features.design?.templates?.not_found_search ?? 'true') !== 'false';
+const { posts: recent } = await getPosts({ page: 1, perPage: 4 });
+const tk = themeKey(features);
+
+Astro.response.status = 404;
+Astro.response.statusText = 'Not Found';
+---
+
+<PageLayout title="Page not found" description="The page you were looking for doesn't exist." cacheTtl={0}>
+
+{tk === 'tech' && (
+  <main class="mx-auto px-5 sm:px-8 py-20 sm:py-28" style="max-width: var(--hatch-max-width, 1160px); font-family: var(--hatch-font-mono, ui-monospace, monospace);">
+    {/* v0.50.31 — sr-only h1 for a11y (page must have a heading per WCAG 2.4.6).
+        Visually the terminal-style <pre> below is the dominant heading element. */}
+    <h1 class="sr-only">404 — Page not found</h1>
+    <pre class="text-[12.5px] leading-relaxed text-hatch-fg-muted bg-hatch-bg-2 p-6 rounded-md border border-hatch-border max-w-2xl overflow-x-auto" style="color: var(--hatch-primary);">{`$ curl ${Astro.url.pathname}
+HTTP/1.1 404 Not Found
+content-type: text/html
+
+ERR_ROUTE_NOT_FOUND: The path you requested has no handler.`}</pre>
+    <p class="mt-6 text-[13px] text-hatch-fg-muted">Try one of these instead:</p>
+    <div class="mt-3 flex flex-wrap gap-2" style="font-family: var(--hatch-font-mono, ui-monospace, monospace);">
+      <a href="/" class="px-3 py-1.5 rounded-md border border-hatch-border text-[12.5px] hover:border-hatch-primary text-hatch-fg-muted hover:text-hatch-primary transition-colors">cd /</a>
+      <a href="/blog" class="px-3 py-1.5 rounded-md border border-hatch-border text-[12.5px] hover:border-hatch-primary text-hatch-fg-muted hover:text-hatch-primary transition-colors">ls /blog</a>
+    </div>
+    {showSearch && (
+      <form action="/search" method="get" class="mt-6 flex gap-2 max-w-md" style="font-family: var(--hatch-font-mono, ui-monospace, monospace);">
+        <input type="search" name="q" placeholder="grep '...' /blog/*" required class="flex-1 px-3 py-2 rounded-md border border-hatch-border bg-hatch-bg-2 text-[13px] focus:border-hatch-primary outline-none" />
+        <button type="submit" class="px-4 py-2 rounded-md text-[12.5px] font-medium" style="background: var(--hatch-primary); color: var(--hatch-primary-fg, white);">grep</button>
+      </form>
+    )}
+  </main>
+)}
+
+{tk === 'docs' && (
+  <main class="mx-auto px-5 sm:px-8 py-16 sm:py-20" style="max-width: var(--hatch-max-width, 1160px);">
+    <p class="text-[11px] uppercase tracking-widest font-semibold mb-3" style="color: var(--hatch-primary);">404 · No matching doc</p>
+    <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight leading-[1.15]" style="font-family: var(--hatch-font-heading);">We couldn't find that doc.</h1>
+    <p class="mt-3 text-[14.5px] text-hatch-fg-muted max-w-2xl">It may have been moved, renamed, or never existed. Search the docs below — most lost links land on a result that matches the page title.</p>
+    {showSearch && (
+      <form action="/search" method="get" class="mt-6 flex gap-2 max-w-xl">
+        <input type="search" name="q" placeholder="Search docs…" required class="flex-1 px-4 py-2.5 rounded-md border border-hatch-border bg-hatch-bg text-[14px] focus:border-hatch-primary focus:ring-2 outline-none" style="--tw-ring-color: color-mix(in srgb, var(--hatch-primary) 25%, transparent);" />
+        <button type="submit" class="px-5 py-2.5 rounded-md text-[13.5px] font-medium" style="background: var(--hatch-primary); color: var(--hatch-primary-fg, white);">Search</button>
+      </form>
+    )}
+    {recent.length > 0 && (
+      <section class="mt-12 pt-8 border-t border-hatch-border">
+        <h2 class="text-[13px] font-semibold uppercase tracking-wider text-hatch-fg-subtle mb-4">Recently published</h2>
+        <ul class="flex flex-col">{recent.map((p) => (
+          <li><a href={`/blog/${p.slug}`} class="flex items-center justify-between gap-3 py-2.5 border-b border-hatch-border last:border-0 group">
+            <span class="text-[14px] text-hatch-fg group-hover:text-hatch-primary transition-colors" set:html={p.title} />
+            <span class="text-[12px] text-hatch-fg-subtle shrink-0">{new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+          </a></li>
+        ))}</ul>
+      </section>
+    )}
+  </main>
+)}
+
+{tk === 'astropaper' && (
+  <main class="mx-auto px-5 sm:px-8 py-20 sm:py-28 text-center" style="max-width: calc(var(--hatch-max-width, 1160px) * 0.7); font-family: var(--hatch-font-heading);">
+    <p class="text-[11px] uppercase tracking-[0.25em] text-hatch-fg-subtle mb-5">— Issue No. 404 —</p>
+    <h1 class="text-5xl sm:text-6xl font-bold tracking-tight leading-[1.05]">Lost & Found</h1>
+    <p class="mt-5 text-[16px] italic text-hatch-fg-muted leading-relaxed">The article you were looking for has gone to print — but never landed in the archive. Perhaps it was retracted, or the URL was misset.</p>
+    <div class="mt-10 mb-10 flex justify-center gap-6 text-[12px] uppercase tracking-widest" style="border-top: 1px solid var(--hatch-fg); border-bottom: 1px solid var(--hatch-fg); padding-block: 16px;">
+      <a href="/" class="hover:text-hatch-primary transition-colors">Front Page</a>
+      <span class="text-hatch-fg-subtle">·</span>
+      <a href="/blog" class="hover:text-hatch-primary transition-colors">Archives</a>
+      {showSearch && <><span class="text-hatch-fg-subtle">·</span><a href="/search" class="hover:text-hatch-primary transition-colors">Search</a></>}
+    </div>
+  </main>
+)}
+
+{tk === 'astrowind' && (
+  <main class="mx-auto px-5 sm:px-8 py-24" style="max-width: var(--hatch-max-width, 1160px);">
+    <div class="text-center max-w-2xl mx-auto">
+      <div class="inline-block px-4 py-1.5 rounded-full text-[12px] font-semibold mb-6" style="background: color-mix(in srgb, var(--hatch-primary) 12%, transparent); color: var(--hatch-primary);">Error 404</div>
+      <h1 class="text-5xl sm:text-7xl font-bold tracking-tight leading-[1]" style="font-family: var(--hatch-font-heading); letter-spacing: -0.03em;">Lost in space.</h1>
+      <p class="mt-6 text-[17px] text-hatch-fg-muted leading-relaxed">The page you're looking for doesn't exist. Don't worry, it happens. Let's get you back on track.</p>
+      <div class="mt-10 flex flex-wrap items-center justify-center gap-3">
+        <a href="/" class="px-6 py-3 rounded-md text-[14px] font-semibold transition-opacity hover:opacity-90" style="background: var(--hatch-primary); color: var(--hatch-primary-fg, white);">← Take me home</a>
+        <a href="/blog" class="px-6 py-3 rounded-md border border-hatch-border text-[14px] font-semibold hover:border-hatch-fg transition-colors">Browse posts</a>
+      </div>
+      {showSearch && (
+        <form action="/search" method="get" class="mt-12 flex gap-2 max-w-md mx-auto">
+          <input type="search" name="q" placeholder="Or search for what you wanted…" required class="flex-1 px-4 py-3 rounded-md border border-hatch-border bg-hatch-bg text-[14px] focus:border-hatch-primary outline-none" />
+          <button type="submit" class="px-5 py-3 rounded-md text-[14px] font-semibold" style="background: var(--hatch-fg); color: var(--hatch-bg);">Search</button>
+        </form>
+      )}
+    </div>
+  </main>
+)}
+
+{tk === 'astronano' && (
+  <main class="mx-auto px-5 sm:px-8 py-20" style="max-width: calc(var(--hatch-max-width, 1160px) * 0.6);">
+    <h1 class="text-2xl font-medium tracking-tight" style="font-family: var(--hatch-font-heading);">404 — not found.</h1>
+    <p class="mt-3 text-[14px] text-hatch-fg-muted">The page doesn't exist.</p>
+    <div class="mt-6 flex gap-4 text-[13px]">
+      <a href="/" class="text-hatch-fg-muted hover:text-hatch-fg transition-colors underline">home</a>
+      <a href="/blog" class="text-hatch-fg-muted hover:text-hatch-fg transition-colors underline">blog</a>
+      {showSearch && <a href="/search" class="text-hatch-fg-muted hover:text-hatch-fg transition-colors underline">search</a>}
+    </div>
+  </main>
+)}
+
+{tk === 'blog' && (
+  <main class="mx-auto px-5 sm:px-8 py-20 sm:py-28" style="max-width: var(--hatch-max-width, 1160px)">
+    <p class="text-[12px] uppercase tracking-wider font-medium text-hatch-fg-subtle mb-3">Error 404</p>
+    <h1 class="text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.05]" style="font-family: var(--hatch-font-heading);">This page doesn't exist.</h1>
+    <p class="mt-4 text-[15px] text-hatch-fg-muted leading-relaxed max-w-xl">The URL you tried may have moved, been deleted, or never existed in the first place.</p>
+    {showSearch && (
+      <form action="/search" method="get" class="mt-8 flex gap-2 max-w-md">
+        <input type="search" name="q" placeholder="Search the site…" required class="flex-1 px-4 py-2.5 rounded-md border border-hatch-border bg-hatch-bg text-[14px] focus:border-hatch-primary focus:ring-2 outline-none" style="--tw-ring-color: color-mix(in srgb, var(--hatch-primary) 25%, transparent);" />
+        <button type="submit" class="px-5 py-2.5 rounded-md text-[13.5px] font-medium" style="background: var(--hatch-primary); color: var(--hatch-primary-fg, white);">Search</button>
+      </form>
+    )}
+    <div class="mt-10 flex flex-wrap gap-3">
+      <a href="/" class="px-4 py-2 rounded-md border border-hatch-border text-[13.5px] hover:border-hatch-fg transition-colors">← Home</a>
+      <a href="/blog" class="px-4 py-2 rounded-md border border-hatch-border text-[13.5px] hover:border-hatch-fg transition-colors">All posts</a>
+    </div>
+    {recent.length > 0 && (
+      <section class="mt-20 pt-10 border-t border-hatch-border">
+        <h2 class="text-lg font-semibold tracking-tight mb-6">Recent posts</h2>
+        <ul class="flex flex-col gap-3">{recent.map((p) => (
+          <li><a href={`/blog/${p.slug}`} class="block py-2 group">
+            <h3 class="text-[15px] font-medium leading-snug group-hover:text-hatch-primary transition-colors line-clamp-1" set:html={p.title} />
+            <p class="mt-1 text-[12.5px] text-hatch-fg-subtle">{new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}{p.category && <> · {p.category}</>}</p>
+          </a></li>
+        ))}</ul>
+      </section>
+    )}
+  </main>
+)}
+
+</PageLayout>

@@ -1,0 +1,9 @@
+---
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle } from './_shared';
+
+const { block } = Astro.props as BlockProps;
+const cls   = blockClass( block, 'wp-block-separator' );
+const style = blockStyle( block );
+---
+<hr class={ cls } style={ style || undefined } />

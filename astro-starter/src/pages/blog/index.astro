@@ -1,0 +1,183 @@
+---
+/**
+ * Blog index — listing of all published posts with category filter.
+ *
+ * URL params:
+ *   ?page=N         pagination
+ *   ?category=slug  filter by category (deprecated in favor of /blog/category/slug
+ *                   but kept for back-compat with old links)
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import PostCard from '@/components/PostCard.astro';
+import HatchEmbedForm from '@/components/HatchEmbedForm.astro';
+import DocsSidebar from '@/components/DocsSidebar.astro';
+import { getPosts, getCategories } from '@/lib/hatch';
+import { getFeatures, hasFeature } from '@/lib/features';
+
+const url = new URL(Astro.request.url);
+const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
+const categorySlug = url.searchParams.get('category');
+
+const features = await getFeatures();
+const showCategoryTabs = hasFeature(features, 'category_tabs');
+
+// v0.50.15 — aesthetic.blog_index supersedes design.templates.archive_grid
+// for the 4-column option, while keeping the existing 1/2/3 wiring for
+// installs that haven't switched to the new control yet.
+const tmpl = features.design?.templates;
+const blogIdx = features.aesthetic.blog_index;
+const aGrid = String(blogIdx.archive_grid || tmpl?.archive_grid || '3');
+const archiveGridClass =
+  aGrid === '1' ? 'grid-cols-1' :
+  aGrid === '2' ? 'grid-cols-1 md:grid-cols-2' :
+  aGrid === '4' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' :
+                  'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
+const showExcerpt = tmpl?.archive_excerpt !== 'false';
+const showHero    = blogIdx.show_hero;
+const showTopics  = blogIdx.show_topics;
+const paginationStyle = blogIdx.pagination_style;
+
+const categories = await getCategories();
+const activeCategory = categorySlug ? (categories.find((c) => c.slug === categorySlug) ?? null) : null;
+
+const { posts, total, hasMore } = await getPosts({
+  page,
+  perPage: 12,
+  category: activeCategory?.id ?? null,
+});
+
+const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
+---
+
+<PageLayout
+  title={activeCategory ? `${activeCategory.name} · Blog` : 'Blog'}
+  description={activeCategory ? `Posts in ${activeCategory.name}` : (features.site.description || 'Latest posts and updates.')}
+  canonical={`${SITE}/blog${activeCategory ? `?category=${activeCategory.slug}` : ''}`}
+>
+  {/* v0.50.23 — Docs theme wraps the blog index in a 2-col grid with the
+      category sidebar on the left, so docs feel like a docs site. */}
+  <main class={`mx-auto px-5 sm:px-8 py-12 sm:py-16 ${features.theme === 'docs' ? 'grid gap-x-10 gap-y-8 lg:grid-cols-[220px_1fr]' : ''}`} style="max-width: var(--hatch-max-width, 1160px)">
+
+    {features.theme === 'docs' && (
+      <DocsSidebar activeCategorySlug={activeCategory?.slug || null} />
+    )}
+
+    <div>
+    <header class="mb-10 sm:mb-12 pb-8 border-b border-hatch-border">
+      <h1 class="text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.05]">
+        {activeCategory ? activeCategory.name : 'Blog'}
+      </h1>
+      <p class="mt-3 text-[14.5px] text-hatch-fg-muted">
+        {total} {total === 1 ? 'post' : 'posts'}
+        {activeCategory && <> in <strong class="text-hatch-fg font-medium">{activeCategory.name}</strong></>}
+      </p>
+    </header>
+
+    {showCategoryTabs && showTopics && categories.length > 0 && (
+      <nav class="mb-10 flex gap-2 overflow-x-auto pb-2 -mx-1" aria-label="Categories">
+        <a
+          href="/blog"
+          class:list={[
+            'px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors border',
+            !activeCategory
+              ? 'bg-hatch-fg text-hatch-bg border-hatch-fg'
+              : 'border-hatch-border text-hatch-fg-muted hover:border-hatch-fg hover:text-hatch-fg'
+          ]}
+        >
+          All
+        </a>
+        {categories.map((cat) => (
+          <a
+            href={`/blog/category/${cat.slug}`}
+            class:list={[
+              'px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap inline-flex items-center gap-2 transition-colors border',
+              activeCategory?.id === cat.id
+                ? 'bg-hatch-fg text-hatch-bg border-hatch-fg'
+                : 'border-hatch-border text-hatch-fg-muted hover:border-hatch-fg hover:text-hatch-fg'
+            ]}
+          >
+            <span>{cat.name}</span>
+            <span class:list={[
+              'text-[11px]',
+              activeCategory?.id === cat.id ? 'opacity-70' : 'text-hatch-fg-subtle'
+            ]}>{cat.count}</span>
+          </a>
+        ))}
+      </nav>
+    )}
+
+    {posts.length === 0 ? (
+      <p class="text-center text-hatch-fg-muted py-24">No posts yet.</p>
+    ) : (
+      <>
+        {/* v0.50.15 — Hero feature card on page 1 only, when enabled. */}
+        {showHero && page === 1 && !activeCategory && posts[0] && (
+          <div class="mb-12">
+            <PostCard post={posts[0]} variant="feature" />
+          </div>
+        )}
+        <div class={`grid ${archiveGridClass} gap-x-7 gap-y-12`}>
+          {(showHero && page === 1 && !activeCategory ? posts.slice(1) : posts).map((post) => <PostCard post={post} showExcerpt={showExcerpt} />)}
+        </div>
+      </>
+    )}
+
+    {hasMore && paginationStyle !== 'infinite' && (
+      <div class="flex justify-center mt-14">
+        {paginationStyle === 'numbered' ? (
+          <nav class="flex gap-2" aria-label="Pagination">
+            {Array.from({ length: Math.max(1, Math.ceil(total / 12)) }, (_, i) => i + 1).map((n) => (
+              <a
+                href={`/blog?page=${n}${activeCategory ? `&category=${activeCategory.slug}` : ''}`}
+                class:list={[
+                  'px-3.5 py-1.5 rounded-md text-[13.5px] font-medium border transition-colors',
+                  n === page ? 'bg-hatch-fg text-hatch-bg border-hatch-fg' : 'border-hatch-border text-hatch-fg-muted hover:border-hatch-fg hover:text-hatch-fg'
+                ]}
+              >{n}</a>
+            ))}
+          </nav>
+        ) : (
+          <a
+            href={`/blog?page=${page + 1}${activeCategory ? `&category=${activeCategory.slug}` : ''}`}
+            class="px-6 py-2.5 rounded-md text-[13.5px] font-medium border border-hatch-border hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors"
+          >
+            Load more →
+          </a>
+        )}
+      </div>
+    )}
+    {hasMore && paginationStyle === 'infinite' && (
+      <div id="hatch-infinite-sentinel" data-next={`/blog?page=${page + 1}${activeCategory ? `&category=${activeCategory.slug}` : ''}`} class="h-12"></div>
+    )}
+
+    {paginationStyle === 'infinite' && (
+      <script is:inline>
+        (function () {
+          var sentinel = document.getElementById('hatch-infinite-sentinel');
+          if (!sentinel || !('IntersectionObserver' in window)) return;
+          var loading = false;
+          var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting && !loading) {
+                loading = true;
+                location.href = sentinel.dataset.next;
+              }
+            });
+          }, { rootMargin: '600px 0px' });
+          io.observe(sentinel);
+        })();
+      </script>
+    )}
+
+    {hasFeature(features, 'forms') && features.integrations?.forms?.default_form_id ? (
+      <HatchEmbedForm
+        features={features}
+        formId={features.integrations.forms.default_form_id}
+        title="Get new posts in your inbox"
+        description="Occasional, never spammy. Unsubscribe with one click."
+      />
+    ) : null}
+
+    </div>
+  </main>
+</PageLayout>

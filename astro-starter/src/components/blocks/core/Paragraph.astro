@@ -1,0 +1,17 @@
+---
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle, stripOuterTag } from './_shared';
+
+const { block } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+const cls   = blockClass( block );
+const style = blockStyle( block );
+const text  = stripOuterTag( block.innerHTML, 'p' );
+const dropCap = a.dropCap === true;
+---
+<p
+	class:list={ [ cls, { 'has-drop-cap': dropCap } ] }
+	style={ style || undefined }
+	set:html={ text }
+/>

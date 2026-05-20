@@ -1,0 +1,110 @@
+---
+/**
+ * AstroWind theme single — marketing-page style with big hero, bold byline
+ * card, and prominent share/CTA below the fold.
+ */
+import ShareRow from '../ShareRow.astro';
+import HatchImage from '../../HatchImage.astro';
+
+interface Props {
+  post: any; features: any; toc: any[]; related: any[]; adjacent: any;
+  dateLabel: string; updatedLabel: string; canonical: string; bodyHtml: string; flags: any;
+}
+const { post, features, toc, adjacent, dateLabel, updatedLabel, canonical, bodyHtml, flags } = Astro.props;
+// v0.50.31 — Sidebar position is the dominant control (see SingleBase.astro).
+const showSidebar = flags.sidebarSide !== "none" && toc.length > 0;
+---
+{flags.showHeroImage && (
+  <div class="relative aspect-[3/1] overflow-hidden bg-hatch-bg-3">
+    <HatchImage src={post.featuredImage} alt={post.title} class="w-full h-full object-cover" width={1920} height={640} />
+    <div class="absolute inset-0" style="background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--hatch-bg) 70%, transparent) 100%);"></div>
+  </div>
+)}
+
+<article class="mx-auto px-5 sm:px-8 py-10 sm:py-14" style="max-width: var(--hatch-max-width, 1160px);">
+  {flags.showBreadcrumb && (
+    <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[12.5px] text-hatch-fg-subtle mb-6 flex-wrap">
+      <a href="/" class="hover:text-hatch-primary transition-colors">Home</a>
+      <span>{flags.breadcrumbSep}</span>
+      <a href="/blog" class="hover:text-hatch-primary transition-colors">Blog</a>
+      {post.category && <><span>{flags.breadcrumbSep}</span><a href={`/blog/category/${post.category.slug}`} class="hover:text-hatch-primary transition-colors">{post.category.name}</a></>}
+    </nav>
+  )}
+
+  <header class="max-w-3xl mb-12">
+    {post.category && (
+      <a href={`/blog/category/${post.category.slug}`} class="inline-block px-3 py-1 rounded-full text-[12px] font-semibold mb-5 transition-opacity hover:opacity-80" style="background: color-mix(in srgb, var(--hatch-primary) 12%, transparent); color: var(--hatch-primary);">{post.category.name}</a>
+    )}
+    <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.05]" style="font-family: var(--hatch-font-heading); letter-spacing: -0.025em;">{post.title}</h1>
+    {post.excerpt && <p class="mt-5 text-[18px] text-hatch-fg-muted leading-relaxed max-w-2xl">{post.excerpt}</p>}
+
+    <div class="mt-8 flex items-center flex-wrap gap-4 p-4 rounded-xl border border-hatch-border bg-hatch-bg-2">
+      {post.author && (
+        <a href={`/blog/author/${post.author.slug}`} class="flex items-center gap-3 hover:text-hatch-primary transition-colors">
+          {post.author.avatar && <img src={post.author.avatar} alt={post.author.name} width="40" height="40" class={`${flags.avatarShape}`} loading="lazy" />}
+          <div>
+            <div class="font-semibold text-[14px] text-hatch-fg">{post.author.name}</div>
+            <div class="text-[12px] text-hatch-fg-subtle"><time datetime={post.publishedAt}>{dateLabel}</time>{flags.showReadingTime && ` · ${flags.readingTimeText(post.readMinutes)}`}</div>
+          </div>
+        </a>
+      )}
+    </div>
+    {flags.showUpdated && updatedLabel && <p class="mt-3 text-[12.5px] text-hatch-fg-subtle">Last updated {updatedLabel}</p>}
+  </header>
+
+  <div class={`grid gap-x-12 gap-y-8 ${showSidebar ? (flags.sidebarSide === 'left' ? 'lg:grid-cols-[260px_1fr]' : 'lg:grid-cols-[1fr_260px]') : 'grid-cols-1'}`}>
+    <div class={`hatch-prose min-w-0 max-w-3xl ${flags.sidebarSide === "left" ? "lg:order-2" : "lg:order-1"}`}>
+      <div set:html={bodyHtml} />
+    </div>
+    {showSidebar && (
+      <aside class={`hidden lg:block ${flags.sidebarSide === "left" ? "lg:order-1" : "lg:order-2"}`}>
+        <div class="sticky top-20 p-5 rounded-xl border border-hatch-border bg-hatch-bg-2 max-h-[calc(100vh-7rem)] overflow-y-auto">
+          <div class="text-[11px] font-bold uppercase tracking-widest mb-3" style="color: var(--hatch-primary);">{features.aesthetic.reading.toc_label}</div>
+          <nav class="flex flex-col gap-1.5 text-[13px]" aria-label="Table of Contents">
+            {toc.map((item: any) => (
+              <a href={`#${item.id}`} class={`hover:text-hatch-primary transition-colors text-hatch-fg-muted ${item.level === 3 ? 'pl-3' : ''}`}>{item.text}</a>
+            ))}
+          </nav>
+        </div>
+      </aside>
+    )}
+  </div>
+
+  {flags.showShare && (
+    <div class="max-w-3xl mt-14 p-6 rounded-xl border border-hatch-border bg-hatch-bg-2">
+      <div class="text-[13px] font-semibold text-hatch-fg mb-3">Found this useful? Share it.</div>
+      <ShareRow features={features} title={post.title} url={canonical} />
+    </div>
+  )}
+
+  {flags.showAuthorBio && post.author?.description && (
+    <div class="max-w-3xl mt-12 p-6 rounded-xl border border-hatch-border bg-hatch-bg-2 flex gap-5 items-start">
+      {post.author.avatar && <img src={post.author.avatar} alt={post.author.name} width="56" height="56" class={`${flags.avatarShape} flex-shrink-0`} loading="lazy" />}
+      <div class="min-w-0">
+        <div class="text-[11px] uppercase tracking-widest font-semibold" style="color: var(--hatch-primary);">About the author</div>
+        <a href={`/blog/author/${post.author.slug}`} class="font-bold text-hatch-fg hover:text-hatch-primary text-[16px]">{post.author.name}</a>
+        <p class="text-[14px] text-hatch-fg-muted mt-1.5 leading-relaxed">{post.author.description}</p>
+      </div>
+    </div>
+  )}
+
+  {flags.showPrevNext && (adjacent.prev || adjacent.next) && (
+    <nav class="max-w-3xl mt-14 grid grid-cols-1 sm:grid-cols-2 gap-4" aria-label="Post navigation">
+      {adjacent.prev && (
+        <a href={`/blog/${adjacent.prev.slug}`} class="group p-6 rounded-xl border border-hatch-border bg-hatch-bg-2 hover:border-hatch-primary transition-colors">
+          <span class="text-[11px] uppercase tracking-widest font-semibold" style="color: var(--hatch-primary);">← Previous</span>
+          <div class="mt-2 text-[15px] font-semibold text-hatch-fg group-hover:text-hatch-primary line-clamp-2">{adjacent.prev.title}</div>
+        </a>
+      )}
+      {adjacent.next && (
+        <a href={`/blog/${adjacent.next.slug}`} class="group p-6 rounded-xl border border-hatch-border bg-hatch-bg-2 hover:border-hatch-primary transition-colors sm:text-right">
+          <span class="text-[11px] uppercase tracking-widest font-semibold" style="color: var(--hatch-primary);">Next →</span>
+          <div class="mt-2 text-[15px] font-semibold text-hatch-fg group-hover:text-hatch-primary line-clamp-2">{adjacent.next.title}</div>
+        </a>
+      )}
+    </nav>
+  )}
+
+  <slot name="related" />
+  <slot name="comments" />
+</article>

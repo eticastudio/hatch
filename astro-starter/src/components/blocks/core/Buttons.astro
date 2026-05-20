@@ -1,0 +1,29 @@
+---
+import BlockRenderer from '../BlockRenderer.astro';
+import type { BlockProps } from './_shared';
+import { blockClass, blockStyle } from './_shared';
+
+const { block, depth } = Astro.props as BlockProps;
+const a = block.attrs as Record<string, unknown>;
+
+const layout = ( a.layout && typeof a.layout === 'object' )
+	? a.layout as { orientation?: string; justifyContent?: string }
+	: {};
+
+const orientation = layout.orientation || 'horizontal';
+const justify     = layout.justifyContent || 'flex-start';
+
+const cls   = blockClass( block, 'wp-block-buttons' );
+const base  = blockStyle( block );
+const style = [
+	base,
+	'display:flex',
+	`flex-direction:${ orientation === 'vertical' ? 'column' : 'row' }`,
+	`justify-content:${ justify }`,
+	'gap:0.75rem',
+	'flex-wrap:wrap',
+].join( ';' );
+---
+<div class={ cls } style={ style }>
+	<BlockRenderer blocks={ block.innerBlocks } depth={ depth + 1 } />
+</div>

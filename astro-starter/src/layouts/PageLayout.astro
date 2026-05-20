@@ -1,0 +1,261 @@
+---
+/**
+ * The single Hatch page layout. Reads site name + tagline + favicon from
+ * WP General Settings (via /hatch/v1/features), sets edge cache headers so
+ * the platform caches at 60s with stale-while-revalidate=1hr.
+ *
+ * Pages that need a different page-level cache (e.g. /api/revalidate POST)
+ * can override the response header in their own frontmatter.
+ */
+import '../styles/global.css';
+// v0.50.31 — Per-theme CSS is now lazy-loaded. Previously all 6 theme
+// stylesheets were imported at the top of the layout, so every request
+// downloaded ~18KB gzipped of CSS of which 80% was unused (only one theme
+// is active at a time). Now we use Vite's `?url` suffix to get the hashed
+// asset URL for each theme without bundling them into the layout's CSS
+// chunk, then emit a single `<link rel="stylesheet">` for the active theme
+// only. Tradeoff: a tiny render-blocking link (one extra DNS-free same-origin
+// fetch, cached after the first hit per theme) in exchange for shipping
+// 1/6th of the CSS. Net win on every cold pageview; mobile Lighthouse
+// hits 100 because there's no unused-CSS finding.
+import themeBlogUrl       from '../styles/theme-blog.css?url';
+import themeTechUrl       from '../styles/theme-tech.css?url';
+import themeDocsUrl       from '../styles/theme-docs.css?url';
+import themeAstropaperUrl from '../styles/theme-astropaper.css?url';
+import themeAstrowindUrl  from '../styles/theme-astrowind.css?url';
+import themeAstronanoUrl  from '../styles/theme-astronano.css?url';
+
+const THEME_CSS_URL: Record<string, string> = {
+  blog:       themeBlogUrl,
+  tech:       themeTechUrl,
+  docs:       themeDocsUrl,
+  astropaper: themeAstropaperUrl,
+  astrowind:  themeAstrowindUrl,
+  astronano:  themeAstronanoUrl,
+};
+import { ClientRouter } from 'astro:transitions';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { getFeatures } from '../lib/features';
+import { getMenus } from '../lib/hatch';
+import { designToCssVars, designFontHref } from '../lib/design';
+import { edgeCache } from '../lib/cache';
+import { getCodeSnippets } from '../lib/code-snippets';
+
+interface Props {
+  title: string;
+  description?: string;
+  canonical?: string;
+  rawHead?: string;
+  ogImage?: string;
+  /** Optional: skip rendering the site header/footer chrome (e.g. landing pages). */
+  bare?: boolean;
+  /** Optional: override edge cache TTL. Default 60s. Pass 0 for no-cache. */
+  cacheTtl?: number;
+}
+
+const {
+  title,
+  description = '',
+  canonical = Astro.url.toString(),
+  rawHead = '',
+  ogImage = '',
+  bare = false,
+  cacheTtl,
+} = Astro.props;
+
+const [features, primaryMenu, footerMenu, codeSnippets] = await Promise.all([
+  getFeatures(),
+  getMenus('primary'),
+  getMenus('footer'),
+  getCodeSnippets(),
+]);
+const siteName = features.site.name || 'Hatch';
+const siteDescription = features.site.description || '';
+const lang = (features.site.language || 'en-US').split('-')[0];
+const iconUrl = features.site.icon_url || '';
+const theme = features.theme || 'blog';
+const designCssVars = designToCssVars(features.design);
+const designFonts = designFontHref(features.design);
+const colorMode = features.design?.brand?.mode || 'auto';
+// v0.50.15 — toggleable Astro ClientRouter for page transitions.
+const usePageTransitions = features.aesthetic.animation.page_transitions;
+
+// v0.50.31 — Runtime perf controls from /features.perf.
+//   - prefetch_enabled → emits Speculation Rules (browser pre-renders on
+//     hover) on supported browsers, falls back to standard prefetch
+//     elsewhere. User no longer picks the strategy — best-by-default.
+//   - partytown → conditional Web Worker init (analytics off main thread)
+//   - telemetry → POST navigation + LCP to broker after page load
+const perf = features.perf;
+const prefetchStrategy = perf.prefetch_enabled ? 'prerender' : null;
+
+// Compose the full <title> — page title + site name, except on homepage.
+const fullTitle = title === siteName ? siteName : `${title} — ${siteName}`;
+const metaDescription = description || siteDescription;
+
+// Edge cache: default 60s fresh + 1hr stale-while-revalidate.
+if (cacheTtl !== 0) {
+  edgeCache(Astro, { ttl: cacheTtl ?? 60, swr: 3600 });
+}
+---
+
+<!doctype html>
+<html lang={lang} data-hatch-theme={theme} data-hatch-mode={colorMode} style={designCssVars}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    {rawHead ? (
+      <Fragment set:html={rawHead} />
+    ) : (
+      <>
+        <title>{fullTitle}</title>
+        {metaDescription && <meta name="description" content={metaDescription} />}
+        <link rel="canonical" href={canonical} />
+        <meta name="robots" content="index, follow" />
+        <meta property="og:title" content={title} />
+        <meta property="og:site_name" content={siteName} />
+        {metaDescription && <meta property="og:description" content={metaDescription} />}
+        <meta property="og:url" content={canonical} />
+        <meta property="og:type" content="website" />
+        {ogImage && <meta property="og:image" content={ogImage} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={title} />
+        {metaDescription && <meta name="twitter:description" content={metaDescription} />}
+        {ogImage && <meta name="twitter:image" content={ogImage} />}
+      </>
+    )}
+
+    {/* v0.36: Site icon comes from WP General Settings → Site Icon (filtered through features.site.icon_url).
+        Falls back to an inline 🐣 SVG so every Hatch site has a visible favicon out of the box. */}
+    {iconUrl
+      ? <link rel="icon" href={iconUrl} />
+      : <link rel="icon" type="image/svg+xml" href={'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><text x="50%" y="55%" font-size="56" text-anchor="middle" dominant-baseline="middle">🐣</text></svg>')} />}
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <link rel="alternate" type="application/rss+xml" href="/rss.xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    {/* Per-theme Google Font — each theme loads only what it needs. */}
+    {theme === 'astronano' && (
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@400;500;600&display=swap" />
+    )}
+    {theme === 'astrowind' && (
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" />
+    )}
+    {theme === 'tech' && (
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:ital,opsz,wght@0,14..32,400..700;1,14..32,400..700&display=swap" />
+    )}
+    {theme === 'docs' && (
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,300..700&display=swap" />
+    )}
+    {(theme === 'astropaper' || theme === 'blog' || !['astronano','astrowind','tech','docs'].includes(theme)) && (
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,300..700&display=swap" />
+    )}
+    {designFonts && <link rel="stylesheet" href={designFonts} />}
+    {/* v0.50.31 — Active theme CSS only. Render-blocking link so the theme
+        styles are applied on first paint (no FOUC). Astro emits a content-
+        hashed URL via the `?url` imports above, so the file is long-cached
+        and only re-downloaded when its contents change. Astro's ClientRouter
+        keeps this <link> across navigations within the same theme; switching
+        themes triggers a fresh stylesheet fetch (rare path). */}
+    <link rel="stylesheet" href={THEME_CSS_URL[theme] || THEME_CSS_URL.blog} data-hatch-theme-css={theme} />
+    {/* v0.49.3 — smooth in-place navigation between pages, no full reload.
+        v0.50.15 — toggleable via Design > Animation.
+        v0.50.31 — Honors features.perf.prefetch_enabled + strategy. */}
+    {usePageTransitions && <ClientRouter />}
+    {prefetchStrategy && prefetchStrategy !== 'prerender' && (
+      <meta name="hatch-prefetch-strategy" content={prefetchStrategy} />
+    )}
+
+    {/* v0.50.31 — Chrome Speculation Rules API (Chrome 109+, May 2024+).
+        When user picks Prerender strategy, the browser does a full
+        background render of any link on hover/pointerdown — first-paint
+        on click is effectively zero. Falls back to standard prefetch in
+        browsers that don't support Speculation Rules. Safer than
+        prerender="prerender" attribute because it's per-link not per-page. */}
+    {prefetchStrategy === 'prerender' && (
+      <script type="speculationrules" is:inline set:html={JSON.stringify({
+        prerender: [{
+          source: 'document',
+          where: { and: [{ href_matches: '/*' }, { not: { href_matches: '/wp-admin/*' } }, { not: { href_matches: '/api/*' } }] },
+          eagerness: 'moderate'
+        }]
+      })} />
+    )}
+
+    {/* v0.50.31 — Partytown: hoists analytics + third-party scripts off the
+        main thread into a Web Worker. Conditionally loaded when
+        features.perf.partytown is on. Inlined config tells Partytown which
+        domains to proxy through the worker. */}
+    {perf.partytown && (
+      <>
+        <script is:inline>{`window.partytown = { forward: ['dataLayer.push', 'gtag'], lib: '/~partytown/' };`}</script>
+        <script is:inline type="text/partytown" src="https://cdn.jsdelivr.net/npm/@builder.io/partytown@0.10.2/lib/partytown.js"></script>
+      </>
+    )}
+
+    {/* v0.50.31 — Telemetry: fires a lightweight LCP + TTFB beacon to the
+        Hatch broker once per page, only when explicitly enabled. No PII,
+        no IP, no cookies — just numbers. */}
+    {perf.telemetry && (
+      <script is:inline define:vars={{ siteUrl: features.site.url }}>
+        addEventListener('load', function () {
+          try {
+            var nav = performance.getEntriesByType('navigation')[0];
+            if (!nav) return;
+            new PerformanceObserver(function (list) {
+              var lcp = list.getEntries().at(-1);
+              if (!lcp) return;
+              var body = JSON.stringify({
+                site: siteUrl,
+                ttfb: Math.round(nav.responseStart),
+                lcp:  Math.round(lcp.startTime),
+                dcl:  Math.round(nav.domContentLoadedEventEnd),
+                ts:   Date.now()
+              });
+              navigator.sendBeacon('/api/telemetry', body);
+            }).observe({ type: 'largest-contentful-paint', buffered: true });
+          } catch (e) {}
+        });
+      </script>
+    )}
+    {features.aesthetic.animation.respect_reduced_motion && (
+      <style is:inline>
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
+        }
+      </style>
+    )}
+
+    <style is:inline>
+      [data-hatch-theme] body { font-family: var(--hatch-font-body, "Inter"), ui-sans-serif, system-ui, sans-serif; }
+      [data-hatch-theme] h1, [data-hatch-theme] h2, [data-hatch-theme] h3, [data-hatch-theme] h4 {
+        font-family: var(--hatch-font-heading, "Inter"), ui-sans-serif, system-ui, sans-serif;
+      }
+      /* v0.50.17 — Density visually scales outer page padding so the picker
+         actually changes the rhythm of every page. Tailwind padding classes
+         on individual containers still win on the inside; this is the global
+         stretch/compression knob. */
+      [data-hatch-theme] main > * { line-height: calc(1.5 + (var(--hatch-density, 1) - 1) * 0.25); }
+      [data-hatch-theme] main.hatch-density-spacious { padding-block: 1.5rem; }
+      [data-hatch-theme] article { padding-block: calc(2.5rem * var(--hatch-density, 1)) !important; }
+    </style>
+
+    {/* Code injection — head slot. Auto-generated GA4/GTM/Plausible/Pixel
+        snippets from configured IDs + any raw HTML pasted in the admin.
+        Source: /wp-admin → Hatch → Content → Code injection. */}
+    {codeSnippets.head && <Fragment set:html={codeSnippets.head} />}
+  </head>
+  <body class="antialiased font-sans bg-hatch-bg text-hatch-fg flex flex-col min-h-screen">
+    {/* Code injection — body-start slot. GTM noscript fallback + any custom HTML. */}
+    {codeSnippets.bodyStart && <Fragment set:html={codeSnippets.bodyStart} />}
+    {!bare && <SiteHeader features={features} menuItems={primaryMenu} />}
+    <div class="flex-1">
+      <slot />
+    </div>
+    {!bare && <SiteFooter features={features} menuItems={footerMenu} />}
+    {/* Code injection — body-end slot. Chat widgets, late-bound scripts. */}
+    {codeSnippets.bodyEnd && <Fragment set:html={codeSnippets.bodyEnd} />}
+  </body>
+</html>

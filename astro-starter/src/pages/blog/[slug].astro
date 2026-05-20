@@ -1,0 +1,507 @@
+---
+/**
+ * Blog post detail.
+ *
+ * Every visual section honors a Plugin → Features toggle:
+ *   progress_bar    → top reading-progress strip
+ *   breadcrumb      → home › blog › category › title trail
+ *   reading_time    → "5 min read" pill
+ *   last_updated    → "Updated <date>" line
+ *   toc_sidebar     → sticky table of contents on desktop
+ *   sticky_share    → share buttons rail on desktop
+ *   author_bio      → author card at bottom
+ *   related_posts   → 3 category-mates at bottom
+ *   next_prev_nav   → prev/next adjacent posts
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import PostCard from '@/components/PostCard.astro';
+import HatchComments from '@/components/HatchComments.astro';
+import { getPostBySlug, getAdjacent, getSeoHead, getRelatedPosts, getSchema } from '@/lib/hatch';
+import HatchSchema from '@/components/HatchSchema.astro';
+import { fetchPostBlocks } from '@/lib/blocks';
+import BlockRenderer from '@/components/blocks/BlockRenderer.astro';
+import HatchImage from '@/components/HatchImage.astro';
+import DocsSidebar from '@/components/DocsSidebar.astro';
+// v0.50.24 — Per-theme Single layouts. Blog theme uses the inline default
+// markup below (unchanged). Tech / Docs / AstroPaper / AstroWind / Astro
+// Nano dispatch to their own components.
+import TechSingle       from '@/components/theme/tech/Single.astro';
+import DocsSingle       from '@/components/theme/docs/Single.astro';
+import AstroPaperSingle from '@/components/theme/astropaper/Single.astro';
+import AstroWindSingle  from '@/components/theme/astrowind/Single.astro';
+import AstroNanoSingle  from '@/components/theme/astronano/Single.astro';
+import { themeKey } from '@/lib/theme-dispatch';
+import { getFeatures, hasFeature, rewriteContentImages } from '@/lib/features';
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/blog');
+
+const post = await getPostBySlug(slug);
+if (!post) { Astro.response.status = 404; return Astro.rewrite('/404'); }
+
+const features = await getFeatures();
+const aesthetic = features.aesthetic;
+const showProgress    = hasFeature(features, 'progress_bar');
+const showBreadcrumb  = hasFeature(features, 'breadcrumb');
+const showReadingTime = hasFeature(features, 'reading_time') && aesthetic.reading.reading_time_label !== 'hidden';
+const showUpdated     = hasFeature(features, 'last_updated');
+const showTOC         = hasFeature(features, 'toc_sidebar');
+const showShare       = hasFeature(features, 'sticky_share');
+const showAuthorBio   = hasFeature(features, 'author_bio');
+const showRelated     = hasFeature(features, 'related_posts');
+const showPrevNext    = hasFeature(features, 'next_prev_nav');
+const showComments    = hasFeature(features, 'comments');
+
+// v0.50.15 — aesthetic groups
+const share         = aesthetic.share;
+const reading       = aesthetic.reading;
+const images        = aesthetic.images;
+const postNav       = aesthetic.post_navigation;
+const breadcrumbSep = reading.breadcrumb_separator === 'chevron' ? '›' : reading.breadcrumb_separator === 'arrow' ? '→' : '/';
+const readingTimeText = (mins: number) => reading.reading_time_label === 'mins' ? `${mins} mins` : `${mins} min read`;
+const avatarShape = reading.author_avatar_shape === 'square' ? 'rounded-none' : reading.author_avatar_shape === 'rounded' ? 'rounded-lg' : 'rounded-full';
+const tocFiltered = (item: { level: 2 | 3 | 4 }) =>
+  reading.toc_depth === 'h2' ? item.level === 2 :
+  reading.toc_depth === 'h2_h3' ? item.level <= 3 : true;
+const progressColor = reading.progress_bar_color === 'accent' ? 'bg-hatch-accent' : 'bg-hatch-primary';
+const progressPosition = reading.progress_bar_position === 'bottom' ? 'bottom-0' : 'top-0';
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  if (reading.date_format === 'short')   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  if (reading.date_format === 'relative') {
+    const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    if (diff < 7)   return `${diff} days ago`;
+    if (diff < 30)  return `${Math.floor(diff/7)} weeks ago`;
+    if (diff < 365) return `${Math.floor(diff/30)} months ago`;
+    return `${Math.floor(diff/365)} years ago`;
+  }
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
+const canonical = `${SITE}/blog/${slug}`;
+
+// design.md single-post template controls.
+const tmpl = features.design?.templates;
+const singleHero    = tmpl?.single_hero    ?? 'featured'; // featured | compact | none
+const singleSidebar = tmpl?.single_sidebar ?? 'right';    // right | left | none
+// v0.50.31 — Article width = --hatch-max-width (matches header + footer).
+// The narrow/medium/wide preset previously scaled the article container,
+// which made chrome and content visually disagree for any CPT. The preset
+// now affects only prose readability via .hatch-prose max-width below
+// (typography stays comfortable; layout chrome stays aligned).
+const singleWidth   = tmpl?.single_width   ?? 'medium';   // narrow | medium | wide
+// v0.50.31 — Reading cap only applies when there's a sidebar (prose needs
+// to share width with the aside, so capping keeps it readable). When
+// sidebar=none, content fills the full article so the page doesn't look
+// like there's a phantom empty column.
+const proseMaxCh    = singleSidebar === 'none'
+  ? 'none'
+  : (singleWidth === 'narrow' ? '60ch' : singleWidth === 'wide' ? '85ch' : '72ch');
+const articleMaxWStyle = 'max-width: var(--hatch-max-width, 1160px);';
+
+// gridClass computed later, after `toc` is populated (around line ~130).
+const showHeroImage = singleHero !== 'none' && !!post.featuredImage;
+const heroCompact   = singleHero === 'compact';
+
+const [rawHead, schema, adjacent, related, blockData] = await Promise.all([
+  getSeoHead(slug),
+  getSchema(canonical),
+  showPrevNext ? getAdjacent(slug)                          : Promise.resolve({ prev: null, next: null }),
+  showRelated  ? getRelatedPosts(post, postNav.related_count) : Promise.resolve([]),
+  fetchPostBlocks(post.id),
+]);
+
+// Extract H2/H3 headings from rendered HTML for the TOC. Server-side regex
+// pass — runs at request time so SSR pages always have a fresh TOC.
+interface TocItem { level: 2 | 3; text: string; id: string; }
+const toc: TocItem[] = [];
+if (showTOC) {
+  const html = post.content;
+  const matches = html.matchAll(/<h([23])([^>]*)>([\s\S]*?)<\/h\1>/gi);
+  for (const m of matches) {
+    const level = Number(m[1]) as 2 | 3;
+    const inner = m[3].replace(/<[^>]+>/g, '').trim();
+    if (!inner) continue;
+    const id = inner.toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .slice(0, 80);
+    toc.push({ level, text: inner, id });
+  }
+}
+
+const dateLabel = formatDate(post.publishedAt);
+const updatedDifferent = post.modifiedAt && post.publishedAt &&
+  new Date(post.modifiedAt).toDateString() !== new Date(post.publishedAt).toDateString();
+const updatedLabel = updatedDifferent ? formatDate(post.modifiedAt) : '';
+
+// v0.50.31 — Compute the grid class string up front (after toc populated)
+// so we avoid nested template literals at the JSX call site (which earlier
+// produced a stale string with both branches concatenated).
+const hasTocSidebar = toc.length > 0 && singleSidebar !== 'none';
+const gridClass = hasTocSidebar
+  ? `grid gap-x-10 gap-y-8 max-w-5xl ${singleSidebar === 'left' ? 'lg:grid-cols-[240px_1fr]' : 'lg:grid-cols-[1fr_240px]'}`
+  : 'grid gap-x-10 gap-y-8 grid-cols-1';
+
+const shareText = encodeURIComponent(`${post.title} — ${SITE}/blog/${slug}`);
+const shareUrl  = encodeURIComponent(`${SITE}/blog/${slug}`);
+
+// v0.50.24 — Pre-rewritten body HTML (media proxy already applied) +
+// shared flags bundle that every per-theme Single layout consumes.
+const bodyHtml = blockData && blockData.blocks.length > 0
+  ? '' // BlockRenderer handles rendering inline below for legacy theme
+  : (post.content || '');
+
+const themeFlags = {
+  showBreadcrumb, showReadingTime, showUpdated, showTOC, showShare,
+  showAuthorBio, showRelated, showPrevNext, showComments,
+  showHeroImage, heroCompact,
+  sidebarSide: singleSidebar,
+  breadcrumbSep, avatarShape,
+  readingTimeText,
+};
+const tk = themeKey(features);
+---
+
+<PageLayout
+  title={post.title}
+  description={post.excerpt}
+  canonical={canonical}
+  rawHead={rawHead}
+  ogImage={post.featuredImage ?? undefined}
+>
+  <HatchSchema schema={schema} />
+
+  {showProgress && (
+    <div id="reading-progress" class={`fixed ${progressPosition} left-0 h-[2px] ${progressColor} z-50 origin-left scale-x-0 w-full transition-transform`} style="transform-origin:left;"></div>
+  )}
+
+  {tk === 'tech'       && <TechSingle       post={post} features={features} toc={toc} related={related} adjacent={adjacent} dateLabel={dateLabel} updatedLabel={updatedLabel} canonical={canonical} bodyHtml={bodyHtml || post.content} flags={themeFlags} />}
+  {tk === 'docs'       && <DocsSingle       post={post} features={features} toc={toc} related={related} adjacent={adjacent} dateLabel={dateLabel} updatedLabel={updatedLabel} canonical={canonical} bodyHtml={bodyHtml || post.content} flags={themeFlags} />}
+  {tk === 'astropaper' && <AstroPaperSingle post={post} features={features} toc={toc} related={related} adjacent={adjacent} dateLabel={dateLabel} updatedLabel={updatedLabel} canonical={canonical} bodyHtml={bodyHtml || post.content} flags={themeFlags} />}
+  {tk === 'astrowind'  && <AstroWindSingle  post={post} features={features} toc={toc} related={related} adjacent={adjacent} dateLabel={dateLabel} updatedLabel={updatedLabel} canonical={canonical} bodyHtml={bodyHtml || post.content} flags={themeFlags} />}
+  {tk === 'astronano'  && <AstroNanoSingle  post={post} features={features} toc={toc} related={related} adjacent={adjacent} dateLabel={dateLabel} updatedLabel={updatedLabel} canonical={canonical} bodyHtml={bodyHtml || post.content} flags={themeFlags} />}
+
+  {/* Blog theme — keep the existing inline render below (default fallback). */}
+  {tk === 'blog' && (
+  <article class="mx-auto px-5 sm:px-8 py-10 sm:py-14" style={articleMaxWStyle}>
+
+    {showBreadcrumb && (
+      <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[12.5px] text-hatch-fg-subtle mb-8 flex-wrap">
+        <a href="/" class="hover:text-hatch-fg transition-colors">Home</a>
+        <span class="text-hatch-fg-subtle">{breadcrumbSep}</span>
+        <a href="/blog" class="hover:text-hatch-fg transition-colors">Blog</a>
+        {post.category && (
+          <>
+            <span class="text-hatch-fg-subtle">{breadcrumbSep}</span>
+            <a href={`/blog/category/${post.categorySlug}`} class="hover:text-hatch-fg transition-colors">{post.category}</a>
+          </>
+        )}
+        <span class="text-hatch-fg-subtle">{breadcrumbSep}</span>
+        <span class="text-hatch-fg truncate max-w-[260px] sm:max-w-none">{post.title}</span>
+      </nav>
+    )}
+
+    {/* Header — title + metadata. Left-aligned, Vercel-style. */}
+    <header class="max-w-3xl mb-10">
+      {post.category && (
+        <a href={`/blog/category/${post.categorySlug}`} class="inline-block text-[11px] uppercase tracking-wider font-medium text-hatch-primary mb-4 hover:underline">
+          {post.category}
+        </a>
+      )}
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight leading-[1.1]" set:html={post.title} />
+      <div class="mt-6 flex items-center flex-wrap gap-x-4 gap-y-2 text-[13.5px] text-hatch-fg-muted">
+        {post.author && (
+          <a href={`/blog/author/${post.author.slug}`} class="flex items-center gap-2 hover:text-hatch-fg transition-colors">
+            {post.author.avatar && <img src={post.author.avatar} alt="" width="24" height="24" class={avatarShape} loading="lazy" />}
+            <span class="font-medium">{post.author.name}</span>
+          </a>
+        )}
+        <span class="text-hatch-fg-subtle">·</span>
+        <time datetime={post.publishedAt}>{dateLabel}</time>
+        {showReadingTime && (
+          <>
+            <span class="text-hatch-fg-subtle">·</span>
+            <span>{readingTimeText(post.readMinutes)}</span>
+          </>
+        )}
+      </div>
+      {showUpdated && updatedDifferent && (
+        <p class="mt-2 text-[12px] text-hatch-fg-subtle italic">Last updated {updatedLabel}</p>
+      )}
+    </header>
+
+    {showHeroImage && (
+      <div class={`${heroCompact ? 'aspect-[3/1]' : 'aspect-[2/1]'} rounded-xl overflow-hidden bg-hatch-bg-3 mb-12 max-w-5xl`}>
+        <HatchImage features={features} src={post.featuredImage!} alt={post.featuredImageAlt ?? post.title} width={1600} height={heroCompact ? 533 : 800} loading="eager" class="w-full h-full object-cover" />
+      </div>
+    )}
+
+    {/* Main content + optional sidebars (blog theme only — other themes
+        render their own Single.astro above).
+        v0.50.31 — Sidebar position is the dominant control. The Sidebar chip
+        in Design tab decides:
+          'none'  → single column always
+          'left'  → TOC sidebar on the left  (if post has h2/h3 headings)
+          'right' → TOC sidebar on the right (if post has h2/h3 headings)
+        Dropped the legacy `features.theme === 'docs'` branch — docs now uses
+        DocsSingle.astro and never reaches this inline code path. Also dropped
+        the `showTOC` gate so the Sidebar chip is authoritative. */}
+    {/* v0.50.31 — gridClass computed in frontmatter (line ~107). When sidebar
+        is none, drops max-w-5xl AND lg:grid-cols-[...], lets prose fill 1160. */}
+    <div class={gridClass}>
+
+      {/* Article body — content images routed through the proxy when configured.
+          v0.50.31: `lg:order-2` keeps the article visually on the right when
+          sidebar is left; `lg:order-1` puts it left when sidebar is right.
+          CSS grid + order avoids duplicating the markup. */}
+      <div class={`hatch-prose min-w-0 ${singleSidebar === 'left' ? 'lg:order-2' : 'lg:order-1'}`} style={`max-width: ${proseMaxCh};`}>
+        {blockData && blockData.blocks.length > 0
+          ? <BlockRenderer blocks={blockData.blocks} />
+          : <div set:html={rewriteContentImages(post.content, features)} />
+        }
+      </div>
+
+      {/* TOC sidebar — position decided by grid order. Hidden on mobile always. */}
+      {toc.length > 0 && singleSidebar !== 'none' && (
+        <aside class={`hidden lg:block ${singleSidebar === 'left' ? 'lg:order-1' : 'lg:order-2'}`}>
+          <div class="sticky top-20 text-[13px]">
+            <p class="text-[11px] uppercase tracking-wider font-medium text-hatch-fg-subtle mb-3">{reading.toc_label}</p>
+            <ul class="space-y-1.5 border-l border-hatch-border">
+              {toc.filter(tocFiltered).map((item) => (
+                <li>
+                  <a
+                    href={`#${item.id}`}
+                    class:list={[
+                      '-ml-px block py-1 pl-3 border-l border-transparent hover:border-hatch-fg hover:text-hatch-fg text-hatch-fg-muted transition-colors',
+                      item.level === 3 ? 'pl-5' : ''
+                    ]}
+                    data-toc-id={item.id}
+                  >
+                    {item.text}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </aside>
+      )}
+    </div>
+
+    {/* Tags */}
+    {post.tags.length > 0 && (
+      <div class="flex flex-wrap items-center gap-2 max-w-3xl pt-10 mt-12 border-t border-hatch-border">
+        {post.tags.map((tag) => (
+          <span class="px-3 py-1 rounded-full text-[12px] bg-hatch-bg-2 text-hatch-fg-muted border border-hatch-border">{tag}</span>
+        ))}
+      </div>
+    )}
+
+    {/* Share row — per-network toggles + 3 new networks. Each link only
+        renders when its switch is on in Design tab. Render the whole rail
+        only if showShare (sticky_share feature) AND at least one network
+        is enabled. Position is inline by default; sticky/both swaps to a
+        floating left rail. */}
+    {showShare && (share.x || share.linkedin || share.whatsapp || share.copy || share.facebook || share.reddit || share.email) && (
+      <div class={share.position === 'sticky' ? 'hidden lg:flex flex-col fixed left-6 top-1/2 -translate-y-1/2 gap-2 z-40' : 'flex items-center gap-2 max-w-3xl mt-8 pt-6 border-t border-hatch-border'}>
+        {share.position !== 'sticky' && <span class="text-[12.5px] text-hatch-fg-subtle mr-2">Share</span>}
+        {share.x && (
+          <a href={`https://twitter.com/intent/tweet?text=${shareText}`} target="_blank" rel="noopener noreferrer" aria-label="Share on X" title="Share on X" class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-hatch-border text-hatch-fg-muted hover:text-hatch-fg hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors">
+            <svg viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          </a>
+        )}
+        {share.linkedin && (
+          <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`} target="_blank" rel="noopener noreferrer" aria-label="Share on LinkedIn" title="Share on LinkedIn" class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-hatch-border text-hatch-fg-muted hover:text-hatch-fg hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+          </a>
+        )}
+        {share.whatsapp && (
+          <a href={`https://wa.me/?text=${shareText}`} target="_blank" rel="noopener noreferrer" aria-label="Share on WhatsApp" title="Share on WhatsApp" class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-hatch-border text-hatch-fg-muted hover:text-hatch-fg hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg>
+          </a>
+        )}
+        {share.facebook && (
+          <a href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`} target="_blank" rel="noopener noreferrer" aria-label="Share on Facebook" title="Share on Facebook" class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-hatch-border text-hatch-fg-muted hover:text-hatch-fg hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors">
+            <svg viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4" aria-hidden="true"><path d="M22 12.07C22 6.51 17.52 2 12 2S2 6.51 2 12.07c0 5.02 3.66 9.18 8.44 9.93v-7.03H7.9v-2.9h2.54V9.84c0-2.52 1.49-3.91 3.78-3.91 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.78-1.63 1.57v1.89h2.78l-.45 2.9h-2.33V22C18.34 21.25 22 17.09 22 12.07z"/></svg>
+          </a>
+        )}
+        {share.reddit && (
+          <a href={`https://www.reddit.com/submit?url=${shareUrl}&title=${encodeURIComponent(post.title)}`} target="_blank" rel="noopener noreferrer" aria-label="Share on Reddit" title="Share on Reddit" class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-hatch-border text-hatch-fg-muted hover:text-hatch-fg hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors">
+            <svg viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4" aria-hidden="true"><path d="M12 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 01-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 01.042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 014.028 12.5c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 01.14-.197.35.35 0 01.238-.042l2.906.617a1.214 1.214 0 011.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 00-.231.094.33.33 0 000 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 00.029-.463.33.33 0 00-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 00-.232-.095z"/></svg>
+          </a>
+        )}
+        {share.email && (
+          <a href={`mailto:?subject=${encodeURIComponent(post.title)}&body=${shareText}`} aria-label="Share via Email" title="Share via Email" class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-hatch-border text-hatch-fg-muted hover:text-hatch-fg hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </a>
+        )}
+        {share.copy && (
+          <button type="button" id="hatch-share-copy" data-url={`${SITE}/blog/${slug}`} aria-label="Copy link" title="Copy link" class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-hatch-border text-hatch-fg-muted hover:text-hatch-fg hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </button>
+        )}
+      </div>
+    )}
+
+    {/* Author bio */}
+    {showAuthorBio && post.author?.description && (
+      <div class="max-w-3xl mt-12 p-6 rounded-xl border border-hatch-border bg-hatch-bg-2 flex gap-4 items-start">
+        {post.author.avatar && <img src={post.author.avatar} alt={post.author.name} width="48" height="48" class={`${avatarShape} flex-shrink-0`} loading="lazy" />}
+        <div class="min-w-0">
+          <a href={`/blog/author/${post.author.slug}`} class="font-semibold text-hatch-fg hover:text-hatch-primary transition-colors">{post.author.name}</a>
+          <p class="text-[14px] text-hatch-fg-muted mt-1 leading-relaxed">{post.author.description}</p>
+        </div>
+      </div>
+    )}
+
+    {/* Prev / Next */}
+    {showPrevNext && (adjacent.prev || adjacent.next) && (
+      <div class="max-w-3xl mt-14 pt-10 border-t border-hatch-border grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {adjacent.prev ? (
+          <a href={`/blog/${adjacent.prev.slug}`} class="group p-4 rounded-lg border border-hatch-border hover:border-hatch-fg transition-colors">
+            <span class="block text-[11px] uppercase tracking-wider text-hatch-fg-subtle mb-1">← Previous</span>
+            <span class="block font-medium leading-snug line-clamp-2 group-hover:text-hatch-primary transition-colors" set:html={adjacent.prev.title} />
+          </a>
+        ) : <div />}
+        {adjacent.next ? (
+          <a href={`/blog/${adjacent.next.slug}`} class="group p-4 rounded-lg border border-hatch-border hover:border-hatch-fg transition-colors sm:text-right">
+            <span class="block text-[11px] uppercase tracking-wider text-hatch-fg-subtle mb-1">Next →</span>
+            <span class="block font-medium leading-snug line-clamp-2 group-hover:text-hatch-primary transition-colors" set:html={adjacent.next.title} />
+          </a>
+        ) : <div />}
+      </div>
+    )}
+
+    {/* Related */}
+    {showRelated && related.length > 0 && (
+      <section class="mt-20 pt-12 border-t border-hatch-border">
+        <h2 class="text-xl font-semibold tracking-tight mb-8">
+          More in <span class="text-hatch-primary">{post.category}</span>
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-7 gap-y-12">
+          {related.map((entry) => <PostCard post={entry} />)}
+        </div>
+      </section>
+    )}
+
+    {/* Comments */}
+    {showComments && (
+      <HatchComments features={features} postId={post.id} postTitle={post.title} />
+    )}
+
+  </article>
+  )}
+
+  {/* v0.50.15 — Lightbox overlay. Hidden by default; opened by clicking an
+      in-content image when images.lightbox is on. Closed by Esc or backdrop click. */}
+  {images.lightbox && (
+    <div id="hatch-lightbox" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/85 backdrop-blur-sm cursor-zoom-out" role="dialog" aria-modal="true" aria-label="Image preview">
+      <button id="hatch-lightbox-close" type="button" aria-label="Close" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white inline-flex items-center justify-center transition-colors">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <img id="hatch-lightbox-img" src="" alt="" class="max-w-[95vw] max-h-[90vh] object-contain rounded-md" />
+    </div>
+  )}
+
+  {/* Client scripts: ID-inject for TOC headings + reading progress + copy link + lightbox + reading anchors */}
+  <script is:inline define:vars={{ showProgress, tocIds: toc.map(t => t.id), lightboxOn: images.lightbox, anchorsOn: reading.heading_anchors }}>
+    // v0.50.31 — Wrapped in a single init() so we can re-run on Astro
+    // ClientRouter navigations. Previously the script only ran on a hard
+    // refresh, so the lightbox + heading anchors + TOC IDs didn't bind
+    // when arriving at a post via in-app navigation. Now: run on first
+    // load AND on every `astro:page-load` event.
+    function hatchInitPostScripts() {
+    // Add id="..." to h2/h3 inside .hatch-prose so TOC anchor links work.
+    (function() {
+      const prose = document.querySelector('.hatch-prose');
+      if (!prose) return;
+      const headings = prose.querySelectorAll('h2, h3');
+      let i = 0;
+      headings.forEach((h) => {
+        if (i < tocIds.length) { h.id = tocIds[i++]; }
+      });
+    })();
+
+    if (showProgress) {
+      const bar = document.getElementById('reading-progress');
+      if (bar) {
+        const onScroll = () => {
+          const h = document.documentElement;
+          const max = h.scrollHeight - h.clientHeight;
+          const pct = max > 0 ? h.scrollTop / max : 0;
+          bar.style.transform = `scaleX(${pct})`;
+        };
+        addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+      }
+    }
+
+    const copyBtn = document.getElementById('hatch-share-copy');
+    if (copyBtn) {
+      const linkIcon = copyBtn.innerHTML;
+      const checkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-600" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(copyBtn.dataset.url || location.href);
+          copyBtn.innerHTML = checkIcon;
+          copyBtn.setAttribute('aria-label', 'Copied');
+          setTimeout(() => {
+            copyBtn.innerHTML = linkIcon;
+            copyBtn.setAttribute('aria-label', 'Copy link');
+          }, 1500);
+        } catch {}
+      });
+    }
+
+    // Lightbox — wire all images inside .hatch-prose. Click image -> open
+    // overlay with the full-resolution src. Esc + backdrop click close it.
+    if (lightboxOn) {
+      const lb = document.getElementById('hatch-lightbox');
+      const lbImg = document.getElementById('hatch-lightbox-img');
+      const lbClose = document.getElementById('hatch-lightbox-close');
+      const open = (src, alt) => {
+        if (!lb || !lbImg) return;
+        lbImg.src = src; lbImg.alt = alt || '';
+        lb.classList.remove('hidden');
+        lb.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+      };
+      const close = () => {
+        if (!lb) return;
+        lb.classList.add('hidden');
+        lb.classList.remove('flex');
+        document.body.style.overflow = '';
+      };
+      document.querySelectorAll('.hatch-prose img').forEach((img) => {
+        img.style.cursor = 'zoom-in';
+        img.addEventListener('click', () => open(img.currentSrc || img.src, img.alt));
+      });
+      if (lb) lb.addEventListener('click', (e) => { if (e.target === lb) close(); });
+      if (lbClose) lbClose.addEventListener('click', close);
+      addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+    }
+
+    // Heading anchor links — append a clickable # before each h2/h3 inside
+    // .hatch-prose when reading.heading_anchors is on.
+    if (anchorsOn) {
+      document.querySelectorAll('.hatch-prose h2[id], .hatch-prose h3[id]').forEach((h) => {
+        if (h.querySelector('a[data-hatch-anchor]')) return; // idempotent on re-init
+        const a = document.createElement('a');
+        a.href = '#' + h.id;
+        a.textContent = '#';
+        a.setAttribute('aria-label', 'Permalink');
+        a.setAttribute('data-hatch-anchor', '');
+        a.className = 'ml-2 text-hatch-fg-subtle hover:text-hatch-primary opacity-0 group-hover:opacity-100 transition-opacity';
+        h.classList.add('group');
+        h.appendChild(a);
+      });
+    }
+    }
+    hatchInitPostScripts();
+    document.addEventListener('astro:page-load', hatchInitPostScripts);
+  </script>
+</PageLayout>

@@ -1,0 +1,778 @@
+/**
+ * Hatch · AstroWind theme — marketing/business site aesthetic.
+ *
+ * Base: github.com/onwidget/astrowind (MIT)
+ * Bold hero typography, gradient accents, generous whitespace.
+ * Loaded by PageLayout when features.theme === 'astrowind'.
+ */
+
+:root[data-hatch-theme="astrowind"] {
+	--hatch-font-body: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+	--hatch-font-heading: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+	--hatch-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+	--hatch-radius: 12px;
+	--hatch-bg: #ffffff;
+	--hatch-bg-2: #f8fafc;
+	--hatch-bg-3: #f1f5f9;
+	--hatch-fg: #0f172a;
+	--hatch-fg-muted: #475569;
+	--hatch-fg-subtle: #94a3b8;
+	--hatch-border: #e2e8f0;
+	--hatch-border-2: #cbd5e1;
+	--hatch-primary: #7c3aed;
+	--hatch-primary-soft: rgba(124, 58, 237, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root[data-hatch-theme="astrowind"][data-hatch-mode="auto"],
+	:root[data-hatch-theme="astrowind"][data-hatch-mode="dark"] {
+		--hatch-bg: #0d1117;
+		--hatch-bg-2: #161b22;
+		--hatch-bg-3: #21262d;
+		--hatch-fg: #e6edf3;
+		--hatch-fg-muted: #8b949e;
+		--hatch-fg-subtle: #6e7681;
+		--hatch-border: #21262d;
+		--hatch-border-2: #30363d;
+		--hatch-primary: #a78bfa;
+		--hatch-primary-soft: rgba(167, 139, 250, 0.12);
+	}
+}
+
+:root[data-hatch-theme="astrowind"][data-hatch-mode="dark"] {
+	--hatch-bg: #0d1117;
+	--hatch-bg-2: #161b22;
+	--hatch-bg-3: #21262d;
+	--hatch-fg: #e6edf3;
+	--hatch-fg-muted: #8b949e;
+	--hatch-fg-subtle: #6e7681;
+	--hatch-border: #21262d;
+	--hatch-border-2: #30363d;
+	--hatch-primary: #a78bfa;
+	--hatch-primary-soft: rgba(167, 139, 250, 0.12);
+}
+
+[data-hatch-theme="astrowind"] body {
+	background: var(--hatch-bg);
+	color: var(--hatch-fg);
+}
+
+/* AstroWind: large, impactful headings */
+[data-hatch-theme="astrowind"] h1 {
+	font-size: clamp(2.25rem, 5vw, 4rem);
+	font-weight: 800;
+	letter-spacing: -0.03em;
+	line-height: 1.05;
+}
+
+[data-hatch-theme="astrowind"] h2 {
+	font-size: clamp(1.5rem, 3vw, 2.25rem);
+	font-weight: 700;
+	letter-spacing: -0.025em;
+}
+
+[data-hatch-theme="astrowind"] h3,
+[data-hatch-theme="astrowind"] h4 {
+	font-weight: 700;
+	letter-spacing: -0.02em;
+}
+
+/* Gradient primary accent — uses brand tokens so the user's primary/accent
+   from Design tab drive the gradient. v0.50.31: removed hardcoded purple→blue
+   (#7c3aed → #3b82f6) which broke the "no hardcoded brand color" contract. */
+[data-hatch-theme="astrowind"] .hatch-primary-gradient {
+	background: linear-gradient(135deg, var(--hatch-primary), var(--hatch-accent));
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+}
+
+[data-hatch-theme="astrowind"] a {
+	color: var(--hatch-primary);
+}
+
+/* Prose */
+[data-hatch-theme="astrowind"] .hatch-prose {
+	font-size: 1.0625rem;
+	line-height: 1.75;
+}
+
+[data-hatch-theme="astrowind"] .hatch-prose a {
+	color: var(--hatch-primary);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+[data-hatch-theme="astrowind"] .hatch-prose h2,
+[data-hatch-theme="astrowind"] .hatch-prose h3 {
+	font-weight: 700;
+}
+
+/* Card style: soft shadow, radius */
+[data-hatch-theme="astrowind"] .hatch-post-card {
+	border: 1px solid var(--hatch-border);
+	border-radius: 12px;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+	transition: box-shadow 0.2s, transform 0.2s;
+}
+
+[data-hatch-theme="astrowind"] .hatch-post-card:hover {
+	box-shadow: 0 4px 12px rgba(0,0,0,0.1), 0 8px 32px rgba(0,0,0,0.08);
+	transform: translateY(-2px);
+}
+
+/* v0.50.5 — marketing/SaaS depth.
+   Inspired by the OnWidget AstroWind aesthetic (MIT). All CSS below is
+   original — common UI patterns (gradient text, soft shadows, generous
+   spacing, large radius) implemented from scratch. */
+
+/* Container — wider than blog themes for marketing density. */
+[data-hatch-theme="astrowind"] .hatch-shell {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: 0 1.5rem;
+}
+
+/* Header — slightly elevated, soft border, prominent CTA on the right. */
+[data-hatch-theme="astrowind"] header.site-header {
+	background: rgba(255, 255, 255, 0.85);
+	backdrop-filter: saturate(180%) blur(12px);
+	border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+	padding: 12px 0;
+}
+[data-hatch-theme="astrowind"][data-hatch-mode="dark"] header.site-header,
+[data-hatch-theme="astrowind"][data-hatch-mode="auto"] header.site-header {
+	background: rgba(13, 17, 23, 0.85);
+	border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+[data-hatch-theme="astrowind"] header.site-header .brand {
+	font-weight: 800;
+	letter-spacing: -0.02em;
+	font-size: 1.05rem;
+	color: var(--hatch-fg);
+	text-decoration: none;
+}
+[data-hatch-theme="astrowind"] header.site-header nav a {
+	color: var(--hatch-fg-muted);
+	text-decoration: none;
+	padding: 8px 14px;
+	font-size: 0.9375rem;
+	font-weight: 500;
+	border-radius: 8px;
+	transition: color 0.15s, background 0.15s;
+}
+[data-hatch-theme="astrowind"] header.site-header nav a:hover {
+	color: var(--hatch-fg);
+	background: var(--hatch-bg-2);
+}
+
+/* Hero — gradient headline, generous vertical rhythm. */
+[data-hatch-theme="astrowind"] .hatch-hero {
+	padding: 88px 0 72px;
+	text-align: center;
+}
+[data-hatch-theme="astrowind"] .hatch-hero h1 {
+	font-size: clamp(2.5rem, 6vw, 4.5rem);
+	font-weight: 800;
+	letter-spacing: -0.035em;
+	line-height: 1.05;
+	background: linear-gradient(135deg, var(--hatch-primary), #3b82f6 50%, #06b6d4 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	margin-bottom: 1.25rem;
+}
+[data-hatch-theme="astrowind"] .hatch-hero .hatch-eyebrow {
+	display: inline-block;
+	padding: 6px 14px;
+	background: var(--hatch-primary-soft);
+	color: var(--hatch-primary);
+	font-size: 0.8125rem;
+	font-weight: 600;
+	border-radius: 999px;
+	letter-spacing: 0.02em;
+	margin-bottom: 1.5rem;
+}
+[data-hatch-theme="astrowind"] .hatch-hero .hatch-lede {
+	font-size: clamp(1.0625rem, 2vw, 1.25rem);
+	color: var(--hatch-fg-muted);
+	line-height: 1.65;
+	max-width: 680px;
+	margin: 0 auto 2rem;
+}
+[data-hatch-theme="astrowind"] .hatch-hero .hatch-cta-row {
+	display: flex;
+	gap: 12px;
+	justify-content: center;
+	flex-wrap: wrap;
+}
+
+/* CTA buttons — large, pill, primary + secondary. */
+[data-hatch-theme="astrowind"] .hatch-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 14px 28px;
+	border-radius: var(--hatch-radius, 12px);
+	font-size: 0.9375rem;
+	font-weight: 600;
+	text-decoration: none;
+	transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+	cursor: pointer;
+}
+[data-hatch-theme="astrowind"] .hatch-btn-primary {
+	background: var(--hatch-primary);
+	color: var(--hatch-primary-fg, #fff);
+	box-shadow: 0 4px 12px var(--hatch-primary-soft), 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+[data-hatch-theme="astrowind"] .hatch-btn-primary:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 6px 18px var(--hatch-primary-soft), 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+[data-hatch-theme="astrowind"] .hatch-btn-secondary {
+	background: transparent;
+	color: var(--hatch-fg);
+	border: 1px solid var(--hatch-border-2);
+}
+[data-hatch-theme="astrowind"] .hatch-btn-secondary:hover {
+	background: var(--hatch-bg-2);
+	border-color: var(--hatch-fg-muted);
+}
+
+/* Feature card grid — 3 columns desktop, 1 column mobile. */
+[data-hatch-theme="astrowind"] .hatch-feature-grid {
+	display: grid;
+	gap: 24px;
+	grid-template-columns: 1fr;
+	margin: 64px 0;
+}
+@media (min-width: 720px) { [data-hatch-theme="astrowind"] .hatch-feature-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 960px) { [data-hatch-theme="astrowind"] .hatch-feature-grid { grid-template-columns: repeat(3, 1fr); } }
+[data-hatch-theme="astrowind"] .hatch-feature {
+	background: var(--hatch-bg);
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius, 12px);
+	padding: 28px 24px;
+	transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+[data-hatch-theme="astrowind"] .hatch-feature:hover {
+	border-color: var(--hatch-primary);
+	transform: translateY(-2px);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+[data-hatch-theme="astrowind"] .hatch-feature .hatch-feature-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	background: var(--hatch-primary-soft);
+	color: var(--hatch-primary);
+	border-radius: 10px;
+	margin-bottom: 16px;
+	font-size: 22px;
+}
+[data-hatch-theme="astrowind"] .hatch-feature h3 {
+	font-size: 1.125rem;
+	font-weight: 700;
+	letter-spacing: -0.015em;
+	margin-bottom: 8px;
+}
+[data-hatch-theme="astrowind"] .hatch-feature p {
+	color: var(--hatch-fg-muted);
+	font-size: 0.9375rem;
+	line-height: 1.65;
+}
+
+/* Section spacing — marketing pages need air. */
+[data-hatch-theme="astrowind"] section.hatch-section {
+	padding: 64px 0;
+}
+[data-hatch-theme="astrowind"] section.hatch-section h2 {
+	font-size: clamp(1.875rem, 4vw, 2.5rem);
+	font-weight: 700;
+	letter-spacing: -0.025em;
+	line-height: 1.15;
+	margin-bottom: 16px;
+	text-align: center;
+}
+[data-hatch-theme="astrowind"] section.hatch-section .hatch-section-lede {
+	color: var(--hatch-fg-muted);
+	font-size: 1.0625rem;
+	max-width: 640px;
+	margin: 0 auto 48px;
+	text-align: center;
+	line-height: 1.65;
+}
+
+/* Pricing card — featured one is elevated. */
+[data-hatch-theme="astrowind"] .hatch-pricing {
+	background: var(--hatch-bg);
+	border: 1px solid var(--hatch-border);
+	border-radius: 16px;
+	padding: 32px 28px;
+	text-align: center;
+}
+[data-hatch-theme="astrowind"] .hatch-pricing.is-featured {
+	border-color: var(--hatch-primary);
+	box-shadow: 0 12px 32px var(--hatch-primary-soft);
+	transform: scale(1.02);
+}
+[data-hatch-theme="astrowind"] .hatch-pricing .hatch-price {
+	font-size: 3rem;
+	font-weight: 800;
+	letter-spacing: -0.02em;
+	margin: 12px 0 4px;
+}
+[data-hatch-theme="astrowind"] .hatch-pricing .hatch-price-period {
+	color: var(--hatch-fg-muted);
+	font-size: 0.9375rem;
+}
+
+/* Testimonial — large quote mark, soft card. */
+[data-hatch-theme="astrowind"] .hatch-testimonial {
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	border-radius: 14px;
+	padding: 28px;
+	position: relative;
+}
+[data-hatch-theme="astrowind"] .hatch-testimonial::before {
+	content: "\201C";
+	position: absolute;
+	top: 8px;
+	left: 18px;
+	font-size: 4rem;
+	line-height: 1;
+	color: var(--hatch-primary);
+	opacity: 0.2;
+	font-family: Georgia, serif;
+}
+[data-hatch-theme="astrowind"] .hatch-testimonial .hatch-testimonial-text {
+	font-size: 1rem;
+	line-height: 1.7;
+	color: var(--hatch-fg);
+	margin-bottom: 16px;
+	position: relative;
+}
+[data-hatch-theme="astrowind"] .hatch-testimonial .hatch-author {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+[data-hatch-theme="astrowind"] .hatch-testimonial .hatch-author img {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+}
+[data-hatch-theme="astrowind"] .hatch-testimonial .hatch-author-name {
+	font-weight: 600;
+	font-size: 0.875rem;
+}
+[data-hatch-theme="astrowind"] .hatch-testimonial .hatch-author-title {
+	color: var(--hatch-fg-muted);
+	font-size: 0.8125rem;
+}
+
+/* Post-card list (blog inside marketing site) — softer, more visual. */
+[data-hatch-theme="astrowind"] .hatch-post-card h2 a {
+	color: var(--hatch-fg);
+	text-decoration: none;
+	font-size: 1.25rem;
+	font-weight: 700;
+	letter-spacing: -0.015em;
+	transition: color 0.15s;
+}
+[data-hatch-theme="astrowind"] .hatch-post-card h2 a:hover {
+	color: var(--hatch-primary);
+}
+
+/* Footer — large, structured columns. */
+[data-hatch-theme="astrowind"] footer.site-footer {
+	background: var(--hatch-bg-2);
+	border-top: 1px solid var(--hatch-border);
+	padding: 48px 0 32px;
+	margin-top: 80px;
+}
+
+/* v0.50.9 — pixel polish pass.
+   Original CSS implementing common marketing/SaaS UX patterns from scratch. */
+
+/* Refined gradient stops — three-color bias for richer text gradient. */
+[data-hatch-theme="astrowind"] .hatch-hero h1 {
+	background: linear-gradient(135deg, var(--hatch-primary) 0%, #3b82f6 45%, #06b6d4 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	text-wrap: balance;
+}
+
+/* CTA button hover — translate + larger shadow halo. */
+[data-hatch-theme="astrowind"] .hatch-btn-primary {
+	will-change: transform, box-shadow;
+	box-shadow:
+		0 1px 3px rgba(0, 0, 0, 0.08),
+		0 4px 12px var(--hatch-primary-soft),
+		inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+[data-hatch-theme="astrowind"] .hatch-btn-primary:hover {
+	transform: translateY(-1px);
+	box-shadow:
+		0 2px 6px rgba(0, 0, 0, 0.12),
+		0 8px 24px var(--hatch-primary-soft),
+		inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+[data-hatch-theme="astrowind"] .hatch-btn-primary:active {
+	transform: translateY(0);
+}
+
+/* Feature card hover — refined corner accent + lift. */
+[data-hatch-theme="astrowind"] .hatch-feature {
+	position: relative;
+	overflow: hidden;
+}
+[data-hatch-theme="astrowind"] .hatch-feature::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(circle at top right, var(--hatch-primary-soft), transparent 60%);
+	opacity: 0;
+	transition: opacity 0.25s;
+	pointer-events: none;
+}
+[data-hatch-theme="astrowind"] .hatch-feature:hover::after { opacity: 1; }
+
+/* Section eyebrow pill — for "Feature" / "Pricing" / etc. labels. */
+[data-hatch-theme="astrowind"] .hatch-eyebrow-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	background: var(--hatch-primary-soft);
+	color: var(--hatch-primary);
+	border-radius: 999px;
+	font-size: 12.5px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	margin-bottom: 14px;
+}
+
+/* Pricing card — featured row has gradient border accent. */
+[data-hatch-theme="astrowind"] .hatch-pricing.is-featured {
+	position: relative;
+}
+[data-hatch-theme="astrowind"] .hatch-pricing.is-featured::before {
+	content: "";
+	position: absolute;
+	inset: -2px;
+	background: linear-gradient(135deg, var(--hatch-primary), #3b82f6);
+	border-radius: 18px;
+	z-index: -1;
+	opacity: 0.6;
+}
+
+/* Testimonial card — refined quote glyph + author hover. */
+[data-hatch-theme="astrowind"] .hatch-testimonial:hover .hatch-author img {
+	transform: scale(1.05);
+}
+[data-hatch-theme="astrowind"] .hatch-testimonial .hatch-author img {
+	transition: transform 0.25s;
+}
+
+/* Selection + focus polish. */
+[data-hatch-theme="astrowind"] ::selection {
+	background: var(--hatch-primary);
+	color: var(--hatch-primary-fg, #fff);
+}
+[data-hatch-theme="astrowind"] a:focus-visible,
+[data-hatch-theme="astrowind"] button:focus-visible {
+	outline: 2px solid var(--hatch-primary);
+	outline-offset: 3px;
+	border-radius: 8px;
+}
+
+/* Dark-mode polish — softer surface, brighter accent. */
+@media (prefers-color-scheme: dark) {
+	:root[data-hatch-theme="astrowind"][data-hatch-mode="auto"] .hatch-feature,
+	:root[data-hatch-theme="astrowind"][data-hatch-mode="dark"] .hatch-feature {
+		background: rgba(255, 255, 255, 0.02);
+		border-color: rgba(255, 255, 255, 0.08);
+	}
+}
+
+/* Reduce motion. */
+@media (prefers-reduced-motion: reduce) {
+	[data-hatch-theme="astrowind"] * {
+		transition-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+	}
+}
+
+/* v0.50.32 — AstroWind: marketing header with brand badge + nav + gradient
+   CTA. Footer leads with a CTA band, 4-column nav grid, polished bottom. */
+[data-hatch-theme="astrowind"] .hatch-header {
+	background: var(--hatch-bg);
+	box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+	border-bottom: none;
+}
+[data-hatch-theme="astrowind"] .hatch-header > div {
+	padding-top: 10px;
+	padding-bottom: 10px;
+	min-height: 64px;
+}
+
+/* Brand badge — gradient square, primary→accent. */
+[data-hatch-theme="astrowind"] .hatch-aw-brand-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border-radius: 10px;
+	background: linear-gradient(135deg, var(--hatch-primary), color-mix(in srgb, var(--hatch-primary) 60%, #06b6d4));
+	color: var(--hatch-primary-fg, #fff);
+	font-size: 16px;
+	font-weight: 800;
+	letter-spacing: -0.02em;
+	box-shadow: 0 4px 10px var(--hatch-primary-soft);
+}
+[data-hatch-theme="astrowind"] .hatch-aw-brand-name {
+	font-size: 16px;
+	font-weight: 800;
+	letter-spacing: -0.02em;
+	color: var(--hatch-fg);
+}
+
+/* Nav — pill ghost with soft hover. */
+[data-hatch-theme="astrowind"] .hatch-aw-nav-link {
+	padding: 8px 14px;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 500;
+	color: var(--hatch-fg-muted);
+	text-decoration: none;
+	transition: background 0.12s, color 0.12s;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-nav-link:hover {
+	color: var(--hatch-fg);
+	background: var(--hatch-bg-2);
+}
+[data-hatch-theme="astrowind"] .hatch-aw-nav-link.is-active {
+	color: var(--hatch-fg);
+	background: var(--hatch-bg-2);
+	font-weight: 600;
+}
+
+/* Gradient CTA — primary→accent on header, larger version on footer. */
+[data-hatch-theme="astrowind"] .hatch-aw-cta {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 9px 16px;
+	border-radius: 10px;
+	font-size: 13.5px;
+	font-weight: 600;
+	letter-spacing: -0.005em;
+	color: var(--hatch-primary-fg, #fff);
+	background: linear-gradient(135deg, var(--hatch-primary), color-mix(in srgb, var(--hatch-primary) 55%, #3b82f6));
+	text-decoration: none;
+	box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 6px 14px var(--hatch-primary-soft), inset 0 1px 0 rgba(255,255,255,0.18);
+	transition: transform 0.15s, box-shadow 0.15s;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-cta:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 2px 6px rgba(0,0,0,0.08), 0 10px 24px var(--hatch-primary-soft), inset 0 1px 0 rgba(255,255,255,0.22);
+}
+[data-hatch-theme="astrowind"] .hatch-aw-cta:active { transform: translateY(0); }
+[data-hatch-theme="astrowind"] .hatch-aw-cta-lg {
+	padding: 14px 22px;
+	font-size: 15px;
+	border-radius: 12px;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-cta-ghost {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 14px 20px;
+	border-radius: 12px;
+	font-size: 14px;
+	font-weight: 500;
+	color: var(--hatch-fg);
+	background: transparent;
+	border: 1px solid var(--hatch-border-2);
+	text-decoration: none;
+	transition: background 0.12s, border-color 0.12s;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-cta-ghost:hover {
+	background: var(--hatch-bg-2);
+	border-color: var(--hatch-fg-muted);
+}
+
+/* Footer override — drop bg-2 strip, use full structure. */
+[data-hatch-theme="astrowind"] .hatch-footer.hatch-footer-astrowind {
+	background: var(--hatch-bg-2);
+	border-top: none;
+	padding-top: 0;
+	padding-bottom: 0;
+}
+[data-hatch-theme="astrowind"] .hatch-footer.hatch-footer-astrowind > div {
+	grid-template-columns: 1fr;
+	gap: 0;
+}
+
+/* Top CTA band — gradient ribbon inside the footer. */
+[data-hatch-theme="astrowind"] .hatch-aw-foot-cta {
+	display: grid;
+	grid-template-columns: 1.4fr auto;
+	gap: 28px;
+	align-items: center;
+	padding: 36px 32px;
+	margin-top: -56px;
+	margin-bottom: 56px;
+	background: linear-gradient(135deg,
+		color-mix(in srgb, var(--hatch-primary) 12%, var(--hatch-bg)),
+		color-mix(in srgb, var(--hatch-primary) 22%, var(--hatch-bg)));
+	border: 1px solid var(--hatch-border);
+	border-radius: 20px;
+	box-shadow: 0 12px 32px rgba(0,0,0,0.05);
+	position: relative;
+	overflow: hidden;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-cta::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(circle at top right, var(--hatch-primary-soft), transparent 70%);
+	pointer-events: none;
+}
+@media (max-width: 768px) {
+	[data-hatch-theme="astrowind"] .hatch-aw-foot-cta {
+		grid-template-columns: 1fr;
+		gap: 20px;
+		padding: 28px 22px;
+		margin-top: -40px;
+	}
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-cta-text { position: relative; z-index: 1; }
+[data-hatch-theme="astrowind"] .hatch-aw-eyebrow {
+	display: inline-block;
+	font-size: 11.5px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--hatch-primary);
+	background: var(--hatch-primary-soft);
+	padding: 4px 10px;
+	border-radius: 999px;
+	margin-bottom: 10px;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-cta h2 {
+	font-size: clamp(1.25rem, 2.2vw, 1.625rem);
+	font-weight: 700;
+	letter-spacing: -0.02em;
+	color: var(--hatch-fg);
+	margin: 0 0 6px;
+	line-height: 1.2;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-cta p {
+	font-size: 14px;
+	color: var(--hatch-fg-muted);
+	margin: 0;
+	max-width: 56ch;
+	line-height: 1.55;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-cta-actions {
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+	justify-self: end;
+	position: relative;
+	z-index: 1;
+}
+@media (max-width: 768px) {
+	[data-hatch-theme="astrowind"] .hatch-aw-foot-cta-actions { justify-self: start; }
+}
+
+/* Column grid. */
+[data-hatch-theme="astrowind"] .hatch-aw-foot-grid {
+	display: grid;
+	grid-template-columns: 1.6fr 1fr 1fr 1fr;
+	gap: 32px;
+	padding-bottom: 32px;
+}
+@media (max-width: 768px) {
+	[data-hatch-theme="astrowind"] .hatch-aw-foot-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
+}
+@media (max-width: 480px) {
+	[data-hatch-theme="astrowind"] .hatch-aw-foot-grid { grid-template-columns: 1fr; }
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-name {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 18px;
+	font-weight: 800;
+	letter-spacing: -0.02em;
+	color: var(--hatch-fg);
+	text-decoration: none;
+	margin-bottom: 12px;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-tagline {
+	font-size: 13.5px;
+	color: var(--hatch-fg-muted);
+	line-height: 1.6;
+	margin: 0;
+	max-width: 30ch;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-h {
+	font-size: 11.5px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--hatch-fg);
+	margin: 0 0 14px;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-nav {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-nav a {
+	font-size: 13.5px;
+	color: var(--hatch-fg-muted);
+	text-decoration: none;
+	transition: color 0.12s;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-nav a:hover { color: var(--hatch-primary); }
+
+/* Bottom strip. */
+[data-hatch-theme="astrowind"] .hatch-aw-foot-bottom {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 20px 0 28px;
+	border-top: 1px solid var(--hatch-border);
+	font-size: 12.5px;
+	color: var(--hatch-fg-subtle);
+}
+
+/* v0.50.23 — AstroWind single-post body: marketing-page prose with bold sub-heads */
+[data-hatch-theme="astrowind"] .hatch-prose {
+	font-size: 17px;
+	line-height: 1.72;
+}
+[data-hatch-theme="astrowind"] .hatch-prose h2 { font-size: 1.75em; margin-top: 2.5em; margin-bottom: 0.55em; font-weight: 700; letter-spacing: -0.018em; line-height: 1.15; }
+[data-hatch-theme="astrowind"] .hatch-prose h3 { font-size: 1.3em; margin-top: 1.8em; font-weight: 600; }
+[data-hatch-theme="astrowind"] .hatch-prose a { color: var(--hatch-primary); text-decoration: none; border-bottom: 2px solid color-mix(in srgb, var(--hatch-primary) 30%, transparent); transition: border-color .15s; }
+[data-hatch-theme="astrowind"] .hatch-prose a:hover { border-bottom-color: var(--hatch-primary); }
+[data-hatch-theme="astrowind"] .hatch-prose blockquote { background: var(--hatch-bg-2); padding: 22px 28px; border-radius: 12px; font-size: 1.1em; border: none; margin: 2em 0; }
+[data-hatch-theme="astrowind"] .hatch-prose ul li::marker { color: var(--hatch-primary); }
+
+/* v0.50.24 — AstroWind PostCard: bold marketing tile w/ shadow */
+[data-hatch-theme="astrowind"] .post-card { border-radius: 12px; padding: 4px 4px 16px; transition: transform .2s, box-shadow .2s; }
+[data-hatch-theme="astrowind"] .post-card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0,0,0,0.06), 0 4px 8px rgba(0,0,0,0.04); }
+[data-hatch-theme="astrowind"] .post-card .aspect-\[16\/10\] { border-radius: 10px; overflow: hidden; }
+[data-hatch-theme="astrowind"] .post-card h3 { font-family: var(--hatch-font-heading); font-weight: 700; font-size: 18px; padding: 0 6px; }
+[data-hatch-theme="astrowind"] .post-card .uppercase { padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--hatch-primary) 12%, transparent); display: inline-block; }

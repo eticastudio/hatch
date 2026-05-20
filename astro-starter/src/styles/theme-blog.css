@@ -1,0 +1,309 @@
+/**
+ * Hatch · Blog (default) theme — modern editorial blog aesthetic.
+ *
+ * The default theme when no specific theme is selected. Aimed at a balanced
+ * blog look — content-first, comfortable reading width, subtle accents.
+ *
+ * Loaded by PageLayout when features.theme === 'blog' (or unset).
+ *
+ * @since 0.50.5
+ */
+
+:root[data-hatch-theme="blog"] {
+	--hatch-font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+	--hatch-font-heading: "Inter", ui-sans-serif, system-ui, sans-serif;
+	--hatch-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+	--hatch-radius: 8px;
+	--hatch-bg: #ffffff;
+	--hatch-bg-2: #fafafa;
+	--hatch-bg-3: #f4f4f5;
+	--hatch-fg: #18181b;
+	--hatch-fg-muted: #52525b;
+	--hatch-fg-subtle: #71717a;
+	--hatch-border: #e4e4e7;
+	--hatch-border-2: #d4d4d8;
+	--hatch-primary: #f97316;
+	--hatch-primary-soft: rgba(249, 115, 22, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root[data-hatch-theme="blog"][data-hatch-mode="auto"],
+	:root[data-hatch-theme="blog"][data-hatch-mode="dark"] {
+		--hatch-bg: #0c0c0d;
+		--hatch-bg-2: #18181b;
+		--hatch-bg-3: #27272a;
+		--hatch-fg: #fafafa;
+		--hatch-fg-muted: #a1a1aa;
+		--hatch-fg-subtle: #71717a;
+		--hatch-border: #27272a;
+		--hatch-border-2: #3f3f46;
+		--hatch-primary: #fb923c;
+		--hatch-primary-soft: rgba(251, 146, 60, 0.12);
+	}
+}
+
+[data-hatch-theme="blog"] .hatch-shell {
+	max-width: 880px;
+	margin: 0 auto;
+	padding: 0 1.5rem;
+}
+
+/* Header — clean: brand left, nav right, soft border. */
+[data-hatch-theme="blog"] header.site-header {
+	border-bottom: 1px solid var(--hatch-border);
+	padding: 1rem 0;
+}
+[data-hatch-theme="blog"] header.site-header .brand {
+	font-weight: 700;
+	font-size: 1.0625rem;
+	letter-spacing: -0.015em;
+	color: var(--hatch-fg);
+	text-decoration: none;
+}
+[data-hatch-theme="blog"] header.site-header nav a {
+	color: var(--hatch-fg-muted);
+	text-decoration: none;
+	padding: 6px 12px;
+	font-size: 0.9375rem;
+	border-radius: 6px;
+	transition: color 0.15s, background 0.15s;
+}
+[data-hatch-theme="blog"] header.site-header nav a:hover {
+	color: var(--hatch-fg);
+	background: var(--hatch-bg-2);
+}
+
+/* Post-card — comfortable two-column-friendly hero card. */
+[data-hatch-theme="blog"] .hatch-post-card {
+	background: var(--hatch-bg);
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius);
+	padding: 1.5rem;
+	transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+[data-hatch-theme="blog"] .hatch-post-card:hover {
+	border-color: var(--hatch-fg-subtle);
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+[data-hatch-theme="blog"] .hatch-post-card .post-meta {
+	display: flex;
+	gap: 0.75rem;
+	font-size: 0.8125rem;
+	color: var(--hatch-fg-subtle);
+	margin-bottom: 0.5rem;
+}
+[data-hatch-theme="blog"] .hatch-post-card h2 a {
+	color: var(--hatch-fg);
+	text-decoration: none;
+	font-size: 1.25rem;
+	font-weight: 600;
+	letter-spacing: -0.015em;
+	transition: color 0.15s;
+}
+[data-hatch-theme="blog"] .hatch-post-card h2 a:hover {
+	color: var(--hatch-primary);
+}
+[data-hatch-theme="blog"] .hatch-post-card .post-excerpt {
+	color: var(--hatch-fg-muted);
+	font-size: 0.9375rem;
+	line-height: 1.65;
+	margin-top: 0.5rem;
+}
+
+/* Article page — editorial typography. */
+[data-hatch-theme="blog"] article.hatch-post {
+	max-width: 720px;
+	margin: 0 auto;
+	padding: 0 1.5rem 4rem;
+}
+[data-hatch-theme="blog"] article.hatch-post header h1 {
+	font-size: clamp(2rem, 4vw, 2.625rem);
+	font-weight: 700;
+	letter-spacing: -0.025em;
+	line-height: 1.1;
+	margin-bottom: 0.75rem;
+}
+[data-hatch-theme="blog"] article.hatch-post header .post-meta {
+	font-size: 0.875rem;
+	color: var(--hatch-fg-subtle);
+	margin-bottom: 2rem;
+	padding-bottom: 1.25rem;
+	border-bottom: 1px solid var(--hatch-border);
+	display: flex;
+	gap: 1rem;
+	flex-wrap: wrap;
+}
+[data-hatch-theme="blog"] .hatch-prose {
+	font-size: 1.0625rem;
+	line-height: 1.75;
+}
+[data-hatch-theme="blog"] .hatch-prose > * + * { margin-top: 1.25rem; }
+[data-hatch-theme="blog"] .hatch-prose h2 {
+	font-size: 1.5rem;
+	font-weight: 700;
+	letter-spacing: -0.015em;
+	margin-top: 2.5rem;
+	padding-bottom: 0.5rem;
+	border-bottom: 1px solid var(--hatch-border);
+}
+[data-hatch-theme="blog"] .hatch-prose h3 {
+	font-size: 1.1875rem;
+	font-weight: 600;
+	margin-top: 2rem;
+}
+[data-hatch-theme="blog"] .hatch-prose a {
+	color: var(--hatch-primary);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+[data-hatch-theme="blog"] .hatch-prose blockquote {
+	border-left: 4px solid var(--hatch-primary);
+	background: var(--hatch-bg-2);
+	padding: 1rem 1.25rem;
+	border-radius: 0 var(--hatch-radius) var(--hatch-radius) 0;
+	color: var(--hatch-fg);
+	font-style: italic;
+}
+[data-hatch-theme="blog"] .hatch-prose code:not(pre code) {
+	background: var(--hatch-bg-3);
+	padding: 0.15em 0.4em;
+	border-radius: 4px;
+	font-size: 0.88em;
+	border: 1px solid var(--hatch-border);
+}
+[data-hatch-theme="blog"] .hatch-prose pre {
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius);
+	padding: 16px 20px;
+	overflow-x: auto;
+	font-size: 0.875rem;
+	line-height: 1.6;
+}
+[data-hatch-theme="blog"] .hatch-prose img {
+	border-radius: var(--hatch-radius);
+	margin: 1.5rem 0;
+}
+
+/* Tag chips — accent color hover. */
+[data-hatch-theme="blog"] .hatch-tag {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.125rem 0.625rem;
+	font-size: 0.75rem;
+	color: var(--hatch-fg-muted);
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	border-radius: 999px;
+	text-decoration: none;
+	transition: border-color 0.15s, color 0.15s;
+}
+[data-hatch-theme="blog"] .hatch-tag:hover {
+	border-color: var(--hatch-primary);
+	color: var(--hatch-primary);
+}
+
+/* Footer. */
+[data-hatch-theme="blog"] footer.site-footer {
+	border-top: 1px solid var(--hatch-border);
+	padding: 2rem 0;
+	margin-top: 4rem;
+	font-size: 0.875rem;
+	color: var(--hatch-fg-muted);
+}
+
+/* v0.50.9 — pixel polish pass.
+   Original CSS implementing common modern-editorial UX patterns from scratch. */
+
+[data-hatch-theme="blog"] {
+	--hatch-h1-size: clamp(2.125rem, 4vw, 2.75rem);
+	--hatch-h2-size: clamp(1.5rem, 2.4vw, 1.75rem);
+}
+
+/* Article H1 — orphan-free wrap + tighter line-height. */
+[data-hatch-theme="blog"] article.hatch-post header h1 {
+	font-size: var(--hatch-h1-size);
+	letter-spacing: -0.025em;
+	line-height: 1.12;
+	text-wrap: balance;
+}
+
+/* Post-card hover — subtle accent border + small lift. */
+[data-hatch-theme="blog"] .hatch-post-card { will-change: transform; }
+[data-hatch-theme="blog"] .hatch-post-card:hover {
+	border-color: var(--hatch-primary);
+}
+[data-hatch-theme="blog"] .hatch-post-card h2 a:hover { text-decoration: none; }
+
+/* Tag chips — primary glow on hover. */
+[data-hatch-theme="blog"] .hatch-tag:hover {
+	background: var(--hatch-primary-soft);
+}
+
+/* Selection — primary accent. */
+[data-hatch-theme="blog"] ::selection {
+	background: var(--hatch-primary-soft);
+	color: var(--hatch-fg);
+}
+
+/* Focus — visible 2px primary outline. */
+[data-hatch-theme="blog"] a:focus-visible,
+[data-hatch-theme="blog"] button:focus-visible {
+	outline: 2px solid var(--hatch-primary);
+	outline-offset: 3px;
+	border-radius: 6px;
+}
+
+/* Pull-quote class (manual <p class="pull-quote">) for editorial flair. */
+[data-hatch-theme="blog"] .pull-quote {
+	font-size: 1.375rem;
+	line-height: 1.45;
+	letter-spacing: -0.01em;
+	font-weight: 500;
+	color: var(--hatch-fg);
+	border-left: 4px solid var(--hatch-primary);
+	padding: 1rem 0 1rem 1.5rem;
+	margin: 2rem 0;
+	font-style: italic;
+}
+
+/* Reduce motion + print. */
+@media (prefers-reduced-motion: reduce) {
+	[data-hatch-theme="blog"] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+@media print {
+	[data-hatch-theme="blog"] header.site-header, [data-hatch-theme="blog"] footer.site-footer { display: none; }
+	[data-hatch-theme="blog"] body { font-size: 11pt; line-height: 1.55; }
+}
+
+/* v0.50.21 — Blog theme: classic newspaper masthead + clean centered footer */
+[data-hatch-theme="blog"] .hatch-header {
+	border-bottom: 1px solid var(--hatch-fg);
+	padding: 8px 0;
+}
+[data-hatch-theme="blog"] .hatch-header > div { min-height: 56px; }
+[data-hatch-theme="blog"] .hatch-footer {
+	border-top: 1px solid var(--hatch-fg);
+	background: transparent;
+	padding-top: 32px;
+	padding-bottom: 32px;
+	text-align: center;
+}
+[data-hatch-theme="blog"] .hatch-footer > div { grid-template-columns: 1fr; gap: 12px; text-align: center; }
+
+/* v0.50.23 — Blog single-post body: classic editorial prose */
+[data-hatch-theme="blog"] .hatch-prose {
+	font-family: var(--hatch-font-body);
+	font-size: 18px;
+	line-height: 1.75;
+	color: var(--hatch-fg);
+}
+[data-hatch-theme="blog"] .hatch-prose h2 { font-size: 1.65em; margin-top: 2em; margin-bottom: 0.6em; font-weight: 700; letter-spacing: -0.012em; }
+[data-hatch-theme="blog"] .hatch-prose h3 { font-size: 1.25em; margin-top: 1.6em; margin-bottom: 0.5em; font-weight: 600; }
+[data-hatch-theme="blog"] .hatch-prose p { margin-block: 1em; }
+[data-hatch-theme="blog"] .hatch-prose blockquote { border-left: 4px solid var(--hatch-fg); padding-left: 18px; font-style: italic; color: var(--hatch-fg-muted); margin: 1.5em 0; }
+
+/* v0.50.24 — Blog PostCard: clean editorial */
+[data-hatch-theme="blog"] .post-card { padding-bottom: 8px; }
+[data-hatch-theme="blog"] .post-card h3 { font-family: var(--hatch-font-heading); font-weight: 600; }

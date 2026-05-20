@@ -1,0 +1,26 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/container",
+	"title": "Container",
+	"category": "hatch",
+	"icon": "align-center",
+	"description": "Max-width wrapper. Constrains content inside a section.",
+	"keywords": [ "container", "wrapper", "max-width" ],
+	"version": "0.4.0",
+	"textdomain": "hatch-blocks",
+	"supports": {
+		"html": false,
+		"anchor": true,
+		"reusable": true
+	},
+	"attributes": {
+		"maxWidth":  { "type": "string", "default": "5xl" },
+		"layout":    { "type": "string", "default": "stack" },
+		"gap":       { "type": "object", "default": { "base": 6, "sm": null, "md": null, "lg": null, "xl": null } },
+		"align":     { "type": "string", "default": "stretch" },
+		"justify":   { "type": "string", "default": "start" }
+	},
+	"editorScript": "file:./index.js",
+	"style":        "file:./style.css"
+}

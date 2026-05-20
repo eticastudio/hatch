@@ -1,0 +1,79 @@
+---
+/**
+ * Astro Nano theme single — ultra-minimal. Tiny byline, no card chrome,
+ * narrow column, text-only share. Pure focus on the words.
+ */
+import ShareRow from '../ShareRow.astro';
+import HatchImage from '../../HatchImage.astro';
+
+interface Props {
+  post: any; features: any; toc: any[]; related: any[]; adjacent: any;
+  dateLabel: string; updatedLabel: string; canonical: string; bodyHtml: string; flags: any;
+}
+const { post, features, toc, adjacent, dateLabel, updatedLabel, canonical, bodyHtml, flags } = Astro.props;
+// v0.50.31 — Minimal theme is single-column by design. Sidebar control is
+// honored as a slim plaintext TOC strip below the header (does not break
+// the narrow centered look). Sidebar=none keeps the original clean view.
+const showSidebar = flags.sidebarSide !== 'none' && toc.length > 0;
+---
+<article class="mx-auto px-5 sm:px-8 py-10 sm:py-12" style="max-width: var(--hatch-max-width, 1160px);">
+  {flags.showBreadcrumb && (
+    <nav aria-label="Breadcrumb" class="text-[11.5px] text-hatch-fg-subtle mb-6 truncate">
+      <a href="/blog" class="hover:text-hatch-fg transition-colors">blog</a>
+      {post.category && <> {flags.breadcrumbSep} <a href={`/blog/category/${post.category.slug}`} class="hover:text-hatch-fg transition-colors">{post.category.slug}</a></>}
+      {' '}{flags.breadcrumbSep}{' '}<span class="text-hatch-fg-muted">{post.slug}</span>
+    </nav>
+  )}
+
+  <header class="mb-6">
+    <h1 class="text-[26px] sm:text-[32px] font-medium tracking-tight leading-[1.2]" style="font-family: var(--hatch-font-heading);">{post.title}</h1>
+    <div class="mt-3 text-[12px] text-hatch-fg-subtle">
+      <time datetime={post.publishedAt}>{dateLabel}</time>
+      {flags.showReadingTime && <> · {flags.readingTimeText(post.readMinutes)}</>}
+      {flags.showUpdated && updatedLabel && <> · updated {updatedLabel}</>}
+    </div>
+  </header>
+
+  {flags.showHeroImage && (
+    <div class="aspect-[2/1] overflow-hidden mb-8">
+      <HatchImage src={post.featuredImage} alt={post.title} class="w-full h-full object-cover" width={1000} height={500} />
+    </div>
+  )}
+
+  {showSidebar && (
+    <nav class="mb-6 pb-4 text-[12px]" aria-label="Table of Contents" style="border-bottom: 1px dashed var(--hatch-border);">
+      <p class="text-[10.5px] uppercase tracking-wider text-hatch-fg-subtle mb-2">on this page</p>
+      <div class="flex flex-wrap gap-x-3 gap-y-1">
+        {toc.map((item: any) => (
+          <a href={`#${item.id}`} class="text-hatch-fg-muted hover:text-hatch-fg transition-colors underline-offset-4 hover:underline">{item.text}</a>
+        ))}
+      </div>
+    </nav>
+  )}
+
+  <div class="hatch-prose">
+    <div set:html={bodyHtml} />
+  </div>
+
+  {flags.showShare && (
+    <div class="mt-10 pt-6" style="border-top: 1px dashed var(--hatch-border);">
+      <ShareRow features={features} title={post.title} url={canonical} />
+    </div>
+  )}
+
+  {flags.showAuthorBio && post.author?.description && (
+    <div class="mt-8 text-[13px] text-hatch-fg-muted">
+      <a href={`/blog/author/${post.author.slug}`} class="text-hatch-fg hover:text-hatch-primary">{post.author.name}</a> · {post.author.description}
+    </div>
+  )}
+
+  {flags.showPrevNext && (adjacent.prev || adjacent.next) && (
+    <nav class="mt-10 pt-6 flex flex-wrap justify-between gap-3 text-[12px]" style="border-top: 1px dashed var(--hatch-border);" aria-label="Post navigation">
+      {adjacent.prev ? <a href={`/blog/${adjacent.prev.slug}`} class="text-hatch-fg-muted hover:text-hatch-fg max-w-[45%] truncate">← {adjacent.prev.title}</a> : <span></span>}
+      {adjacent.next ? <a href={`/blog/${adjacent.next.slug}`} class="text-hatch-fg-muted hover:text-hatch-fg max-w-[45%] truncate text-right">{adjacent.next.title} →</a> : <span></span>}
+    </nav>
+  )}
+
+  <slot name="related" />
+  <slot name="comments" />
+</article>

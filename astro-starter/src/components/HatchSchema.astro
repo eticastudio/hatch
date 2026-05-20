@@ -1,0 +1,23 @@
+---
+/**
+ * HatchSchema — injects JSON-LD structured data into the page <head>.
+ *
+ * Receives a flat array of schema.org objects (Article, BreadcrumbList, Person,
+ * FAQ, HowTo, Product, etc.) and emits one <script type="application/ld+json">
+ * per object.  Pass-through from RankMath/Yoast or Hatch fallback — same API.
+ *
+ * Usage (in a page's <head> or inside <PageLayout>):
+ *   import HatchSchema from '@/components/HatchSchema.astro';
+ *   const schema = await getSchema(canonicalUrl);
+ *   <HatchSchema schema={schema} />
+ */
+interface Props {
+  schema: unknown[];
+}
+
+const { schema } = Astro.props;
+---
+
+{schema.map((item) => (
+  <script type="application/ld+json" set:html={JSON.stringify(item)} />
+))}

@@ -1,0 +1,95 @@
+---
+/**
+ * Catch-all for WP Pages.
+ *
+ * If the user visits /about, /contact, /pricing, etc., we look up a WP Page
+ * with that slug and render its content. Returns 404 if no matching Page
+ * exists (so /random-nonsense doesn't accidentally render).
+ *
+ * NOTE: this only matches paths NOT already handled by a more specific
+ * route. /blog/*, /api/*, etc. take precedence because Astro prefers
+ * literal paths over rest-parameter catch-alls.
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import HatchImage from '@/components/HatchImage.astro';
+import { getPageBySlug, getContentBySlug } from '@/lib/hatch';
+import { getFeatures, rewriteContentImages } from '@/lib/features';
+
+const { slug } = Astro.params;
+const slugStr = Array.isArray(slug) ? slug.join('/') : (slug || '');
+
+if (!slugStr) {
+  return Astro.redirect('/');
+}
+
+// v0.50.31 — Catch-all now resolves ANY public post type: page first
+// (preserves the legacy fast-path), then any CPT (products, courses, docs,
+// portfolio, …) via the universal /hatch/v1/content endpoint. Normalised
+// shape so the template below doesn't care about post type.
+const [pageOrigin, features] = await Promise.all([
+  getPageBySlug(slugStr),
+  getFeatures(),
+]);
+
+const page = pageOrigin ?? await (async () => {
+  const cpt = await getContentBySlug(slugStr);
+  if (!cpt) return null;
+  // v0.50.31 — Always provide an excerpt for meta description: use the WP
+  // excerpt if set, otherwise derive a 155-char snippet from the post body
+  // (strip HTML tags). Without this, CPTs ship with no <meta description>.
+  let excerpt = (cpt.excerpt || '').trim();
+  if (!excerpt && cpt.content) {
+    excerpt = cpt.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 155);
+    if (excerpt.length === 155) excerpt += '…';
+  }
+  return {
+    title: cpt.title,
+    content: cpt.content,
+    excerpt,
+    featuredImage: cpt.featured_media_url || null,
+    featuredImageAlt: cpt.featured_media_alt || '',
+    modifiedAt: cpt.modified,
+  } as any;
+})();
+
+if (!page) {
+  // v0.50.31 — Rewrite to the themed 404 instead of returning a plain
+  // text Response. Astro keeps the 404 status code via the response
+  // object below; the rewrite emits the per-theme 404 layout the user
+  // designed in src/pages/404.astro with full chrome + search.
+  Astro.response.status = 404;
+  return Astro.rewrite('/404');
+}
+
+// Pages and posts share the same outer container width (--hatch-max-width,
+// 1160px default) so chrome, posts, and pages all align vertically across
+// every route. Inner reading column for posts is still capped via
+// .hatch-prose max-width below; pages fill the full article width.
+const articleMaxWStyle = 'max-width: var(--hatch-max-width, 1160px);';
+---
+
+<PageLayout title={page.title} description={page.excerpt}>
+  {/* Article container matches posts + homepage at --hatch-max-width. The
+      inner .hatch-prose fills 100% of the article so wide hero images and
+      multi-column page layouts still render edge-to-edge inside the cap. */}
+  <article class="mx-auto px-5 sm:px-8 pt-12 pb-16" style={articleMaxWStyle}>
+    {page.featuredImage && (
+      <div class="aspect-[2/1] rounded-xl overflow-hidden mb-10 bg-hatch-bg-3">
+        <HatchImage features={features} src={page.featuredImage} alt={page.featuredImageAlt || ''} width={1600} height={800} loading="eager" class="w-full h-full object-cover" />
+      </div>
+    )}
+
+    <header class="mb-10">
+      <h1 class="text-4xl sm:text-5xl font-semibold tracking-tight leading-tight">{page.title}</h1>
+      {page.modifiedAt && (
+        <p class="mt-4 text-[13px] text-hatch-fg-subtle">
+          Updated <time datetime={page.modifiedAt}>{new Date(page.modifiedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
+        </p>
+      )}
+    </header>
+
+    {/* v0.50.31 — Override global .hatch-prose 68ch cap on PAGES so content
+        fills the article width (~1160px). Posts keep the cap for reading. */}
+    <div class="hatch-prose" style="max-width: 100%;" set:html={rewriteContentImages(page.content, features)}></div>
+  </article>
+</PageLayout>

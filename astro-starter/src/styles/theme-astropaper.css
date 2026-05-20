@@ -1,0 +1,547 @@
+/**
+ * Hatch · AstroPaper theme — minimal blogging aesthetic.
+ *
+ * Base: github.com/satnaing/astro-paper (MIT)
+ * Clean, legible, strong typography. Light default with rich dark.
+ * Loaded by PageLayout when features.theme === 'astropaper'.
+ */
+
+:root[data-hatch-theme="astropaper"] {
+	--hatch-font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+	--hatch-font-heading: "Inter", ui-sans-serif, system-ui, sans-serif;
+	--hatch-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+	--hatch-radius: 6px;
+	--hatch-bg: #fafafa;
+	--hatch-bg-2: #f3f4f6;
+	--hatch-bg-3: #e5e7eb;
+	--hatch-fg: #18191a;
+	--hatch-fg-muted: #6b7280;
+	--hatch-fg-subtle: #9ca3af;
+	--hatch-border: #e5e7eb;
+	--hatch-border-2: #d1d5db;
+	--hatch-primary: #3d64d3;
+	--hatch-primary-soft: rgba(61, 100, 211, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root[data-hatch-theme="astropaper"][data-hatch-mode="auto"],
+	:root[data-hatch-theme="astropaper"][data-hatch-mode="dark"] {
+		--hatch-bg: #191c20;
+		--hatch-bg-2: #22262c;
+		--hatch-bg-3: #2c3038;
+		--hatch-fg: #e6e8eb;
+		--hatch-fg-muted: #9ba3af;
+		--hatch-fg-subtle: #6b7280;
+		--hatch-border: #2c3038;
+		--hatch-border-2: #374151;
+		--hatch-primary: #6b8ef0;
+		--hatch-primary-soft: rgba(107, 142, 240, 0.12);
+	}
+}
+
+:root[data-hatch-theme="astropaper"][data-hatch-mode="dark"] {
+	--hatch-bg: #191c20;
+	--hatch-bg-2: #22262c;
+	--hatch-bg-3: #2c3038;
+	--hatch-fg: #e6e8eb;
+	--hatch-fg-muted: #9ba3af;
+	--hatch-fg-subtle: #6b7280;
+	--hatch-border: #2c3038;
+	--hatch-border-2: #374151;
+	--hatch-primary: #6b8ef0;
+	--hatch-primary-soft: rgba(107, 142, 240, 0.12);
+}
+
+[data-hatch-theme="astropaper"] body {
+	background: var(--hatch-bg);
+	color: var(--hatch-fg);
+	font-size: 16px;
+	line-height: 1.7;
+}
+
+[data-hatch-theme="astropaper"] h1,
+[data-hatch-theme="astropaper"] h2,
+[data-hatch-theme="astropaper"] h3,
+[data-hatch-theme="astropaper"] h4 {
+	font-family: var(--hatch-font-heading, "Inter"), ui-sans-serif, system-ui, sans-serif;
+	letter-spacing: -0.02em;
+	line-height: 1.2;
+}
+
+/* AstroPaper: card-less post list, horizontal rule separators */
+[data-hatch-theme="astropaper"] .hatch-post-card {
+	border: none;
+	border-bottom: 1px solid var(--hatch-border);
+	border-radius: 0;
+	padding: 1.5rem 0;
+	background: transparent;
+}
+
+[data-hatch-theme="astropaper"] .hatch-post-card:hover {
+	background: transparent;
+}
+
+/* Prose */
+[data-hatch-theme="astropaper"] .hatch-prose {
+	font-size: 1.0625rem;
+	line-height: 1.75;
+}
+
+[data-hatch-theme="astropaper"] .hatch-prose a {
+	color: var(--hatch-primary);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+[data-hatch-theme="astropaper"] .hatch-prose blockquote {
+	border-left: 3px solid var(--hatch-primary);
+	padding-left: 1.25rem;
+	color: var(--hatch-fg-muted);
+	font-style: italic;
+}
+
+[data-hatch-theme="astropaper"] .hatch-prose code:not(pre code) {
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	border-radius: 4px;
+	padding: 0.15em 0.4em;
+	font-size: 0.88em;
+}
+
+/* v0.49.3 — content container: narrow, centered reading column. */
+[data-hatch-theme="astropaper"] .hatch-shell {
+	max-width: 720px;
+	margin: 0 auto;
+	padding: 0 1.5rem;
+}
+
+/* Header: site brand left, nav right. Subtle border under header. */
+[data-hatch-theme="astropaper"] header.site-header {
+	border-bottom: 1px solid var(--hatch-border);
+	padding: 1rem 0;
+	margin-bottom: 2rem;
+}
+[data-hatch-theme="astropaper"] header.site-header .brand {
+	font-weight: 700;
+	font-size: 1.1rem;
+	letter-spacing: -0.015em;
+	color: var(--hatch-fg);
+	text-decoration: none;
+}
+[data-hatch-theme="astropaper"] header.site-header nav a {
+	position: relative;
+	color: var(--hatch-fg-muted);
+	text-decoration: none;
+	font-size: 0.9375rem;
+	padding: 0.25rem 0;
+	transition: color 0.15s;
+}
+[data-hatch-theme="astropaper"] header.site-header nav a::after {
+	content: "";
+	position: absolute;
+	left: 0; right: 0; bottom: -2px;
+	height: 2px;
+	background: var(--hatch-primary);
+	transform: scaleX(0);
+	transform-origin: left;
+	transition: transform 0.2s;
+}
+[data-hatch-theme="astropaper"] header.site-header nav a:hover { color: var(--hatch-fg); }
+[data-hatch-theme="astropaper"] header.site-header nav a:hover::after { transform: scaleX(1); }
+[data-hatch-theme="astropaper"] header.site-header nav a[aria-current="page"] {
+	color: var(--hatch-fg);
+}
+[data-hatch-theme="astropaper"] header.site-header nav a[aria-current="page"]::after { transform: scaleX(1); }
+
+/* Post-card: enrich the existing flat-list with date metadata + tag chips. */
+[data-hatch-theme="astropaper"] .hatch-post-card .post-meta {
+	display: flex;
+	gap: 0.75rem;
+	font-size: 0.8125rem;
+	color: var(--hatch-fg-subtle);
+	margin-bottom: 0.5rem;
+}
+[data-hatch-theme="astropaper"] .hatch-post-card .post-meta time { font-variant-numeric: tabular-nums; }
+[data-hatch-theme="astropaper"] .hatch-post-card h2 a {
+	color: var(--hatch-fg);
+	text-decoration: none;
+	font-size: 1.375rem;
+	font-weight: 600;
+	letter-spacing: -0.015em;
+	transition: color 0.15s;
+}
+[data-hatch-theme="astropaper"] .hatch-post-card h2 a:hover { color: var(--hatch-primary); }
+[data-hatch-theme="astropaper"] .hatch-post-card .post-excerpt {
+	color: var(--hatch-fg-muted);
+	font-size: 0.9375rem;
+	line-height: 1.65;
+	margin-top: 0.5rem;
+}
+
+/* Tag chips: small, rounded, ghosty. */
+[data-hatch-theme="astropaper"] .hatch-tag {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	padding: 0.125rem 0.5rem;
+	font-size: 0.75rem;
+	color: var(--hatch-fg-muted);
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	border-radius: 999px;
+	text-decoration: none;
+	transition: border-color 0.15s, color 0.15s;
+}
+[data-hatch-theme="astropaper"] .hatch-tag::before { content: "#"; opacity: 0.5; }
+[data-hatch-theme="astropaper"] .hatch-tag:hover {
+	border-color: var(--hatch-primary);
+	color: var(--hatch-primary);
+}
+
+/* Article (single-post page): centered, generous spacing. */
+[data-hatch-theme="astropaper"] article.hatch-post {
+	max-width: 720px;
+	margin: 0 auto;
+	padding: 0 1.5rem 4rem;
+}
+[data-hatch-theme="astropaper"] article.hatch-post header h1 {
+	font-size: clamp(1.875rem, 4vw, 2.5rem);
+	font-weight: 700;
+	letter-spacing: -0.025em;
+	line-height: 1.15;
+	margin-bottom: 0.75rem;
+}
+[data-hatch-theme="astropaper"] article.hatch-post header .post-meta {
+	font-size: 0.875rem;
+	color: var(--hatch-fg-subtle);
+	margin-bottom: 2rem;
+	padding-bottom: 1rem;
+	border-bottom: 1px solid var(--hatch-border);
+}
+[data-hatch-theme="astropaper"] article.hatch-post .hatch-prose > * + * { margin-top: 1.25rem; }
+[data-hatch-theme="astropaper"] article.hatch-post .hatch-prose h2 {
+	font-size: 1.5rem;
+	font-weight: 600;
+	letter-spacing: -0.015em;
+	margin-top: 2.5rem;
+}
+[data-hatch-theme="astropaper"] article.hatch-post .hatch-prose h3 {
+	font-size: 1.1875rem;
+	font-weight: 600;
+	margin-top: 2rem;
+}
+
+/* Theme toggle button: round, ghosty, 36px. */
+[data-hatch-theme="astropaper"] .hatch-theme-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px; height: 36px;
+	border-radius: 50%;
+	border: 1px solid transparent;
+	background: transparent;
+	color: var(--hatch-fg-muted);
+	cursor: pointer;
+	transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+[data-hatch-theme="astropaper"] .hatch-theme-toggle:hover {
+	border-color: var(--hatch-border);
+	color: var(--hatch-fg);
+	background: var(--hatch-bg-2);
+}
+[data-hatch-theme="astropaper"] .hatch-theme-toggle svg { width: 18px; height: 18px; }
+
+/* Smooth view transitions hook (Astro 5 ClientRouter sets these). */
+[data-hatch-theme="astropaper"] ::view-transition-old(root),
+[data-hatch-theme="astropaper"] ::view-transition-new(root) {
+	animation-duration: 0.2s;
+}
+
+/* v0.50.9 — pixel polish pass.
+   Original CSS implementing common minimalist-blog UX patterns from scratch. */
+
+/* Refined typography scale — fluid clamp() per heading, tight tracking. */
+[data-hatch-theme="astropaper"] {
+	--hatch-h1-size: clamp(2rem, 4vw, 2.75rem);
+	--hatch-h2-size: clamp(1.5rem, 2.5vw, 1.75rem);
+	--hatch-h3-size: clamp(1.1875rem, 1.8vw, 1.3125rem);
+	--hatch-body-size: 1.0625rem;
+	--hatch-meta-size: 0.8125rem;
+	--hatch-tracking-tight: -0.022em;
+}
+
+/* Article page — refined hierarchy. */
+[data-hatch-theme="astropaper"] article.hatch-post header h1 {
+	font-size: var(--hatch-h1-size);
+	letter-spacing: var(--hatch-tracking-tight);
+	font-weight: 700;
+	line-height: 1.12;
+	text-wrap: balance;
+}
+[data-hatch-theme="astropaper"] .hatch-prose h2 { font-size: var(--hatch-h2-size); }
+[data-hatch-theme="astropaper"] .hatch-prose h3 { font-size: var(--hatch-h3-size); }
+[data-hatch-theme="astropaper"] .hatch-prose {
+	font-size: var(--hatch-body-size);
+	line-height: 1.72;
+}
+
+/* Selection style — primary tint, no harsh blue OS default. */
+[data-hatch-theme="astropaper"] ::selection {
+	background: var(--hatch-primary-soft);
+	color: var(--hatch-fg);
+}
+
+/* Focus ring — keyboard accessible without breaking the minimal aesthetic. */
+[data-hatch-theme="astropaper"] a:focus-visible,
+[data-hatch-theme="astropaper"] button:focus-visible {
+	outline: 2px solid var(--hatch-primary);
+	outline-offset: 3px;
+	border-radius: 4px;
+}
+
+/* Code blocks — tactile, readable, with copy-friendly affordance. */
+[data-hatch-theme="astropaper"] .hatch-prose pre {
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	border-radius: 8px;
+	padding: 1rem 1.25rem;
+	overflow-x: auto;
+	font-size: 0.875rem;
+	line-height: 1.65;
+	tab-size: 2;
+}
+
+/* Inline links in prose — restrained underline with offset. */
+[data-hatch-theme="astropaper"] .hatch-prose a {
+	color: var(--hatch-primary);
+	text-decoration-thickness: from-font;
+	text-underline-offset: 3px;
+	transition: color 0.15s;
+}
+[data-hatch-theme="astropaper"] .hatch-prose a:hover {
+	color: var(--hatch-fg);
+	text-decoration-color: var(--hatch-primary);
+}
+
+/* Image polish — rounded corner, max-readable width. */
+[data-hatch-theme="astropaper"] .hatch-prose img {
+	border-radius: 6px;
+	margin: 1.75rem 0;
+	box-shadow: 0 1px 0 var(--hatch-border);
+}
+
+/* Post-card list — refined meta hierarchy + tag chip spacing. */
+[data-hatch-theme="astropaper"] .hatch-post-card .post-meta {
+	font-variant-numeric: tabular-nums;
+	font-size: var(--hatch-meta-size);
+	color: var(--hatch-fg-subtle);
+	letter-spacing: 0.02em;
+}
+[data-hatch-theme="astropaper"] .hatch-post-card h2 a {
+	text-wrap: balance;
+}
+[data-hatch-theme="astropaper"] .hatch-post-card .hatch-tag + .hatch-tag {
+	margin-left: 0.25rem;
+}
+
+/* Dark-mode contrast — slightly warmer fg, deeper primary, subtle border. */
+@media (prefers-color-scheme: dark) {
+	:root[data-hatch-theme="astropaper"][data-hatch-mode="auto"] .hatch-prose pre,
+	:root[data-hatch-theme="astropaper"][data-hatch-mode="dark"] .hatch-prose pre {
+		background: rgba(255, 255, 255, 0.025);
+		border-color: rgba(255, 255, 255, 0.08);
+	}
+}
+
+/* Print-friendly — readable on paper, no chrome. */
+@media print {
+	[data-hatch-theme="astropaper"] header,
+	[data-hatch-theme="astropaper"] footer { display: none; }
+	[data-hatch-theme="astropaper"] body { font-size: 11pt; line-height: 1.55; }
+	[data-hatch-theme="astropaper"] .hatch-prose img { max-width: 100%; }
+}
+
+/* Reduce motion — honour user preference. */
+@media (prefers-reduced-motion: reduce) {
+	[data-hatch-theme="astropaper"] * {
+		transition-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+	}
+}
+
+/* v0.50.32 — AstroPaper: full editorial masthead aesthetic.
+   Three-up masthead row (edition date | wordmark | actions), double rule,
+   then a byline strip with nav + tagline. Footer mirrors the masthead in
+   sign-off form: wordmark, italic tagline, kicker nav, "Vol/No/©" edition. */
+[data-hatch-theme="astropaper"] .hatch-header {
+	background: var(--hatch-bg);
+	border-bottom: none;
+	padding-top: 12px;
+	padding-bottom: 0;
+}
+[data-hatch-theme="astropaper"] .hatch-header > div { padding-top: 0; padding-bottom: 0; }
+
+[data-hatch-theme="astropaper"] .hatch-ap-masthead .hatch-ap-row {
+	grid-template-columns: 1fr auto 1fr;
+	padding: 8px 0 14px;
+}
+[data-hatch-theme="astropaper"] .hatch-ap-edition {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 11px;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--hatch-fg-subtle);
+	font-variant-numeric: tabular-nums;
+}
+[data-hatch-theme="astropaper"] .hatch-ap-dot { opacity: 0.6; }
+[data-hatch-theme="astropaper"] .hatch-ap-brand { text-decoration: none; }
+[data-hatch-theme="astropaper"] .hatch-ap-wordmark {
+	font-family: var(--hatch-font-heading);
+	font-size: clamp(28px, 4.5vw, 44px);
+	font-weight: 800;
+	letter-spacing: -0.035em;
+	line-height: 1;
+	color: var(--hatch-fg);
+	font-variant: small-caps;
+}
+[data-hatch-theme="astropaper"] .hatch-ap-actions {
+	color: var(--hatch-fg-muted);
+}
+
+/* Double rule below the wordmark — newspaper-style separator. */
+[data-hatch-theme="astropaper"] .hatch-ap-rule {
+	border-top: 3px double var(--hatch-fg);
+	margin: 0;
+}
+
+/* Byline strip — kicker-style nav left, italic tagline right. */
+[data-hatch-theme="astropaper"] .hatch-ap-byline {
+	padding: 10px 20px;
+	font-family: var(--hatch-font-heading);
+}
+[data-hatch-theme="astropaper"] .hatch-ap-link {
+	font-size: 11px;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--hatch-fg-muted);
+	text-decoration: none;
+	font-weight: 600;
+	padding: 4px 0;
+	position: relative;
+	transition: color 0.15s;
+}
+[data-hatch-theme="astropaper"] .hatch-ap-link:hover { color: var(--hatch-fg); }
+[data-hatch-theme="astropaper"] .hatch-ap-link.is-active { color: var(--hatch-fg); }
+[data-hatch-theme="astropaper"] .hatch-ap-link.is-active::after {
+	content: "";
+	position: absolute;
+	left: 0; right: 0; bottom: -4px;
+	height: 1px;
+	background: var(--hatch-fg);
+}
+[data-hatch-theme="astropaper"] .hatch-ap-tagline {
+	font-family: var(--hatch-font-body), Georgia, serif;
+	font-style: italic;
+	font-size: 13px;
+	color: var(--hatch-fg-muted);
+	letter-spacing: 0;
+	text-transform: none;
+}
+
+/* Footer — colophon. */
+[data-hatch-theme="astropaper"] .hatch-footer.hatch-footer-astropaper {
+	border-top: 3px double var(--hatch-fg);
+	background: transparent;
+	padding-top: 0;
+	padding-bottom: 0;
+	text-align: center;
+	font-family: var(--hatch-font-heading);
+}
+[data-hatch-theme="astropaper"] .hatch-footer.hatch-footer-astropaper > div {
+	grid-template-columns: 1fr;
+	gap: 0;
+}
+[data-hatch-theme="astropaper"] .hatch-ap-foot-wordmark {
+	font-family: var(--hatch-font-heading);
+	font-size: clamp(24px, 3.5vw, 36px);
+	font-weight: 800;
+	letter-spacing: -0.03em;
+	line-height: 1;
+	color: var(--hatch-fg);
+	text-decoration: none;
+	font-variant: small-caps;
+}
+[data-hatch-theme="astropaper"] .hatch-ap-foot-tagline {
+	font-family: var(--hatch-font-body), Georgia, serif;
+	font-style: italic;
+	font-size: 14px;
+	color: var(--hatch-fg-muted);
+	margin: 8px 0 16px;
+}
+[data-hatch-theme="astropaper"] .hatch-ap-rule-mini {
+	width: 60px;
+	height: 1px;
+	background: var(--hatch-fg);
+	margin: 18px auto;
+	opacity: 0.5;
+}
+[data-hatch-theme="astropaper"] .hatch-ap-foot-nav {
+	display: inline-flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 16px;
+}
+[data-hatch-theme="astropaper"] .hatch-ap-foot-nav a {
+	font-size: 11px;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--hatch-fg-muted);
+	text-decoration: none;
+	font-weight: 600;
+	transition: color 0.15s;
+}
+[data-hatch-theme="astropaper"] .hatch-ap-foot-nav a:hover { color: var(--hatch-fg); }
+[data-hatch-theme="astropaper"] .hatch-ap-foot-sep { color: var(--hatch-fg-subtle); }
+[data-hatch-theme="astropaper"] .hatch-ap-foot-edition {
+	display: inline-flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
+	gap: 8px;
+	font-size: 11px;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--hatch-fg-subtle);
+	font-variant-numeric: tabular-nums;
+}
+[data-hatch-theme="astropaper"] .hatch-ap-foot-credit {
+	margin-top: 14px;
+}
+
+@media (max-width: 768px) {
+	[data-hatch-theme="astropaper"] .hatch-ap-byline {
+		padding: 10px 0 12px;
+	}
+}
+
+/* v0.50.23 — AstroPaper single-post body: serif editorial, generous spacing */
+[data-hatch-theme="astropaper"] .hatch-prose {
+	font-family: var(--hatch-font-body), Georgia, 'Times New Roman', serif;
+	font-size: 18px;
+	line-height: 1.8;
+	color: var(--hatch-fg);
+}
+[data-hatch-theme="astropaper"] .hatch-prose h2 { font-family: var(--hatch-font-heading); font-size: 1.6em; margin-top: 2.2em; margin-bottom: 0.5em; font-weight: 700; letter-spacing: -0.015em; }
+[data-hatch-theme="astropaper"] .hatch-prose h3 { font-family: var(--hatch-font-heading); font-size: 1.25em; margin-top: 1.7em; }
+[data-hatch-theme="astropaper"] .hatch-prose p { margin-block: 1.15em; }
+[data-hatch-theme="astropaper"] .hatch-prose p:first-of-type::first-letter { font-family: var(--hatch-font-heading); font-size: 3.2em; line-height: 0.95; float: left; padding: 4px 8px 0 0; font-weight: 700; }
+[data-hatch-theme="astropaper"] .hatch-prose blockquote { font-style: italic; text-align: center; font-size: 1.2em; padding: 1.5em 1em; border-top: 1px solid var(--hatch-fg); border-bottom: 1px solid var(--hatch-fg); margin: 2em 0; }
+
+/* v0.50.24 — AstroPaper PostCard: serif center-aligned */
+[data-hatch-theme="astropaper"] .post-card { text-align: left; padding-bottom: 12px; }
+[data-hatch-theme="astropaper"] .post-card h3 { font-family: var(--hatch-font-heading); font-weight: 700; letter-spacing: -0.01em; }
+[data-hatch-theme="astropaper"] .post-card .uppercase { font-family: var(--hatch-font-heading); letter-spacing: 0.15em; }

@@ -1,0 +1,65 @@
+---
+import PageLayout from '@/layouts/PageLayout.astro';
+import PostCard from '@/components/PostCard.astro';
+import { getCategories, getPosts } from '@/lib/hatch';
+import { getFeatures } from '@/lib/features';
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/blog');
+
+const url = new URL(Astro.request.url);
+const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
+
+const categories = await getCategories();
+const cat = categories.find((c) => c.slug === slug);
+if (!cat) { Astro.response.status = 404; return Astro.rewrite('/404'); }
+
+const { posts, total, hasMore } = await getPosts({ page, perPage: 12, category: cat.id });
+
+const features = await getFeatures();
+const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
+---
+
+<PageLayout
+  title={`${cat.name} · Blog`}
+  description={`All posts in ${cat.name}.`}
+  canonical={`${SITE}/blog/category/${cat.slug}`}
+>
+  <main class="mx-auto px-5 sm:px-8 py-12 sm:py-16" style="max-width: var(--hatch-max-width, 1160px)">
+
+    <nav class="text-[12.5px] text-hatch-fg-subtle mb-6 flex items-center gap-2 flex-wrap">
+      <a href="/" class="hover:text-hatch-fg transition-colors">Home</a>
+      <span>/</span>
+      <a href="/blog" class="hover:text-hatch-fg transition-colors">Blog</a>
+      <span>/</span>
+      <span class="text-hatch-fg">Category</span>
+      <span>/</span>
+      <span class="text-hatch-fg">{cat.name}</span>
+    </nav>
+
+    <header class="mb-10 pb-8 border-b border-hatch-border">
+      <p class="text-[11px] uppercase tracking-wider font-medium text-hatch-primary mb-3">Category</p>
+      <h1 class="text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.05]">{cat.name}</h1>
+      <p class="mt-3 text-[14.5px] text-hatch-fg-muted">
+        {total} {total === 1 ? 'post' : 'posts'} in this category
+      </p>
+    </header>
+
+    {posts.length === 0 ? (
+      <p class="text-center text-hatch-fg-muted py-24">No posts in this category yet.</p>
+    ) : (
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-7 gap-y-12">
+        {posts.map((post) => <PostCard post={post} />)}
+      </div>
+    )}
+
+    {hasMore && (
+      <div class="flex justify-center mt-14">
+        <a href={`/blog/category/${cat.slug}?page=${page + 1}`} class="px-6 py-2.5 rounded-md text-[13.5px] font-medium border border-hatch-border hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors">
+          Load more →
+        </a>
+      </div>
+    )}
+
+  </main>
+</PageLayout>

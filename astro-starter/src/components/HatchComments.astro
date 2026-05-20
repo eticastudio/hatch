@@ -1,0 +1,259 @@
+---
+/**
+ * HatchComments — fetches approved comments for a post from /hatch/v1/comments
+ * and renders a thread + reply form. Form submits client-side to the same
+ * endpoint with optional Cloudflare Turnstile widget.
+ *
+ * Pass-through:
+ *   - features: the result of getFeatures() — used to read site_key + turnstile flag
+ *   - postId:   WP post ID to fetch comments for
+ *   - postTitle: used for inline confirmation message
+ *
+ * Server-rendered for the initial list (SSR keeps SEO + works without JS).
+ * The form itself uses progressive enhancement: works as a POST submit
+ * fallback, but JS upgrades to an inline fetch with success/error UI.
+ */
+import type { HatchFeatures } from '../lib/features';
+import { WP_API_URL } from 'astro:env/server';
+
+interface Props {
+  features: HatchFeatures;
+  postId: number;
+  postTitle?: string;
+}
+
+const { features, postId, postTitle = 'this post' } = Astro.props;
+
+const WP_API = WP_API_URL || '';
+const base = WP_API.replace(/\/wp\/v2\/?$/, '');
+
+const integ = features.integrations;
+const enabled = !!integ?.comments?.enabled;
+const turnstileOn = !!(integ?.comments?.turnstile && integ?.turnstile?.enabled && integ?.turnstile?.site_key);
+const siteKey = integ?.turnstile?.site_key || '';
+const requireLogin = !!integ?.comments?.require_login;
+
+interface Comment {
+  id: number;
+  parent: number;
+  author: string;
+  avatar: string;
+  date_gmt: string;
+  content: string;
+  is_author: boolean;
+}
+
+let comments: Comment[] = [];
+let count = 0;
+
+if (enabled && base) {
+  try {
+    const res = await fetch(`${base}/hatch/v1/comments?post=${postId}`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      comments = Array.isArray(data.comments) ? data.comments : [];
+      count = comments.length;
+    }
+  } catch {
+    /* swallow — show empty state */
+  }
+}
+
+const submitUrl = `${base}/hatch/v1/comments`;
+const fmt = (iso: string) =>
+  new Date(iso).toLocaleDateString(features.site.language || 'en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+---
+
+{enabled && (
+  <section class="hatch-comments mt-16 pt-8 border-t border-hatch-border" id="comments">
+    <header class="flex items-baseline justify-between mb-6 gap-4 flex-wrap">
+      <h2 class="text-[20px] sm:text-[22px] font-semibold tracking-tight">
+        {count === 0 ? 'Be the first to comment' : count === 1 ? '1 Comment' : `${count} Comments`}
+      </h2>
+      <a href="#reply" class="text-[12.5px] text-hatch-primary hover:underline whitespace-nowrap">Write a comment →</a>
+    </header>
+
+    {comments.length > 0 && (
+      <ul class="flex flex-col gap-5 mb-10">
+        {comments.map((c) => (
+          <li class="flex gap-3 items-start">
+            <img src={c.avatar} alt="" width="36" height="36" class="rounded-full flex-shrink-0 mt-0.5" loading="lazy" />
+            <div class="flex-1 min-w-0">
+              <div class="flex items-baseline gap-2 flex-wrap">
+                <span class="font-semibold text-[13.5px] text-hatch-fg">{c.author}</span>
+                {c.is_author && (
+                  <span class="text-[9.5px] uppercase tracking-wider font-medium text-hatch-primary border border-hatch-primary/40 rounded px-1.5 py-0.5">Author</span>
+                )}
+                <span class="text-[11.5px] text-hatch-fg-subtle">· {fmt(c.date_gmt)}</span>
+              </div>
+              <div class="mt-1 text-[14px] leading-[1.65] text-hatch-fg-muted hatch-comment-body" set:html={c.content}></div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+
+    <form
+      id="hatch-comment-form"
+      action={submitUrl}
+      method="POST"
+      class="flex flex-col gap-3.5"
+      data-postid={String(postId)}
+      data-endpoint={submitUrl}
+    >
+      <h3 id="reply" class="text-[15px] font-semibold mb-1">Leave a comment</h3>
+      {requireLogin && (
+        <p class="text-[13px] text-hatch-fg-subtle bg-hatch-bg-2 border border-hatch-border rounded-md px-3 py-2">
+          Sign-in required to comment on {postTitle}.
+        </p>
+      )}
+      <input type="hidden" name="post" value={String(postId)} />
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="flex flex-col gap-1.5">
+          <span class="text-[12.5px] font-medium text-hatch-fg-muted">Name</span>
+          <input
+            type="text"
+            name="author"
+            required
+            class="px-3 py-2 rounded-md border border-hatch-border bg-hatch-bg focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none text-[14px]"
+            autocomplete="name"
+          />
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="text-[12.5px] font-medium text-hatch-fg-muted">Email <span class="text-hatch-fg-subtle">· never shown</span></span>
+          <input
+            type="email"
+            name="email"
+            required
+            class="px-3 py-2 rounded-md border border-hatch-border bg-hatch-bg focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none text-[14px]"
+            autocomplete="email"
+          />
+        </label>
+      </div>
+      <label class="flex flex-col gap-1.5">
+        <span class="text-[12.5px] font-medium text-hatch-fg-muted">Comment</span>
+        <textarea
+          name="content"
+          rows="5"
+          required
+          minlength="2"
+          class="px-3 py-2 rounded-md border border-hatch-border bg-hatch-bg focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none text-[14px] resize-y font-sans"
+        ></textarea>
+      </label>
+
+      {turnstileOn && (
+        <div class="cf-turnstile" data-sitekey={siteKey} data-theme="auto"></div>
+      )}
+
+      <div class="flex items-center gap-3">
+        <button
+          type="submit"
+          class="px-5 py-2.5 rounded-md bg-hatch-primary text-white text-[13.5px] font-medium hover:bg-hatch-primary/90 transition-colors disabled:opacity-50"
+        >
+          Post comment
+        </button>
+        <p id="hatch-comment-status" class="text-[13px] text-hatch-fg-subtle" aria-live="polite"></p>
+      </div>
+    </form>
+
+    {turnstileOn && (
+      <script
+        is:inline
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+        async
+        defer
+      ></script>
+    )}
+
+    <script is:inline>
+      (function () {
+        const form = document.getElementById('hatch-comment-form');
+        if (!form) return;
+        const status = document.getElementById('hatch-comment-status');
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const data = new FormData(form);
+          const tsResp = document.querySelector('[name="cf-turnstile-response"]');
+          if (tsResp && tsResp.value) data.append('cf-turnstile-response', tsResp.value);
+          const submitBtn = form.querySelector('button[type="submit"]');
+          if (submitBtn) submitBtn.disabled = true;
+          if (status) {
+            status.textContent = 'Posting…';
+            status.className = 'text-[13px] text-hatch-fg-subtle';
+          }
+          try {
+            const res = await fetch(form.dataset.endpoint, {
+              method: 'POST',
+              body: data,
+              headers: { Accept: 'application/json' },
+            });
+            const body = await res.json();
+            if (!res.ok) throw new Error(body.message || 'Failed');
+            if (status) {
+              status.textContent = body.message || 'Comment posted!';
+              status.className = 'text-[13px] text-green-600 dark:text-green-400';
+            }
+            form.reset();
+            if (window.turnstile && tsResp) window.turnstile.reset();
+            if (body.approved) setTimeout(() => location.reload(), 1500);
+          } catch (err) {
+            if (status) {
+              status.textContent = (err && err.message) || 'Could not post comment.';
+              status.className = 'text-[13px] text-red-600 dark:text-red-400';
+            }
+          } finally {
+            if (submitBtn) submitBtn.disabled = false;
+          }
+        });
+      })();
+    </script>
+  </section>
+)}
+
+<style>
+  /* Constrain the entire comments block to a comfortable reading width
+     and let the design.md tokens drive radius + spacing. Works inside the
+     blog post column without ballooning to the full content width. */
+  .hatch-comments {
+    max-width: 640px;
+    margin-left: 0;
+  }
+  .hatch-comments .hatch-comment-body p { margin: 0 0 0.5em; }
+  .hatch-comments .hatch-comment-body p:last-child { margin-bottom: 0; }
+  .hatch-comments .hatch-comment-body a {
+    color: var(--hatch-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .hatch-comments form input,
+  .hatch-comments form textarea {
+    border-radius: var(--hatch-radius, 6px);
+    font-family: var(--hatch-font-body, inherit);
+  }
+  .hatch-comments button[type="submit"] {
+    border-radius: var(--hatch-radius, 6px);
+    font-family: var(--hatch-font-body, inherit);
+  }
+
+  /* Tech theme: tighter, mono author names, sharper accents. */
+  [data-hatch-theme="tech"] .hatch-comments .hatch-comment-body { font-size: 13.5px; }
+  [data-hatch-theme="tech"] .hatch-comments form input,
+  [data-hatch-theme="tech"] .hatch-comments form textarea {
+    background: var(--hatch-bg-2);
+    border-color: var(--hatch-border);
+  }
+
+  /* Docs theme: comments sit in a calm card so they don't compete with body copy. */
+  [data-hatch-theme="docs"] .hatch-comments {
+    padding: 18px 20px;
+    border: 1px solid var(--hatch-border);
+    border-radius: var(--hatch-radius, 10px);
+    background: var(--hatch-bg-2);
+    margin-top: 36px;
+    border-top-width: 1px;
+  }
+</style>

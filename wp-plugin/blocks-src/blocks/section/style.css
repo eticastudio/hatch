@@ -1,0 +1,15 @@
+/* Hatch Section — base styles. Most styling comes from Tailwind utility classes
+   applied at save time; this file only contains structural rules that Tailwind
+   can't express via utilities (e.g. fallback when no padding is set). */
+
+.hatch-section {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.hatch-section > .wp-block-hatch-container,
+.hatch-section > .hatch-container {
+	margin-left: auto;
+	margin-right: auto;
+}

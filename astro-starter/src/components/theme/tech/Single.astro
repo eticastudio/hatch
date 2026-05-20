@@ -1,0 +1,100 @@
+---
+/**
+ * Tech theme single — terminal-flavored chrome on top of the base.
+ * Hero is replaced with a code-style metadata block.
+ */
+import ShareRow from '../ShareRow.astro';
+import HatchImage from '../../HatchImage.astro';
+
+interface Props {
+  post: any; features: any; toc: any[]; related: any[]; adjacent: any;
+  dateLabel: string; updatedLabel: string; canonical: string; bodyHtml: string; flags: any;
+}
+const { post, features, toc, adjacent, dateLabel, updatedLabel, canonical, bodyHtml, flags } = Astro.props;
+// v0.50.31 — Sidebar position is the dominant control (see SingleBase.astro).
+const showSidebar = flags.sidebarSide !== "none" && toc.length > 0;
+---
+<article class="mx-auto px-5 sm:px-8 py-10 sm:py-14" style="max-width: var(--hatch-max-width, 1160px);">
+  {flags.showBreadcrumb && (
+    <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[12px] mb-8 flex-wrap" style="font-family: var(--hatch-font-mono, ui-monospace, monospace); color: var(--hatch-fg-subtle);">
+      <span>~</span><span>/</span>
+      <a href="/blog" class="hover:text-hatch-primary transition-colors">blog</a>
+      {post.category && <><span>/</span><a href={`/blog/category/${post.category.slug}`} class="hover:text-hatch-primary transition-colors">{post.category.slug}</a></>}
+      <span>/</span><span class="text-hatch-fg truncate max-w-[260px] sm:max-w-none">{post.slug}</span>
+    </nav>
+  )}
+
+  <header class="max-w-3xl mb-10">
+    <div class="text-[11px] mb-4" style="font-family: var(--hatch-font-mono, ui-monospace, monospace); color: var(--hatch-primary);">// {post.category?.name || 'post'}.md</div>
+    <h1 class="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight leading-[1.1]" style="font-family: var(--hatch-font-heading);">{post.title}</h1>
+    <div class="mt-6 p-4 rounded-md border border-hatch-border bg-hatch-bg-2 text-[12.5px]" style="font-family: var(--hatch-font-mono, ui-monospace, monospace);">
+      <div class="flex flex-wrap gap-x-4 gap-y-1 text-hatch-fg-muted">
+        <span><span class="text-hatch-fg-subtle">author:</span> {post.author?.name || 'anonymous'}</span>
+        <span><span class="text-hatch-fg-subtle">date:</span> <time datetime={post.publishedAt}>{dateLabel}</time></span>
+        {flags.showReadingTime && <span><span class="text-hatch-fg-subtle">read:</span> {flags.readingTimeText(post.readMinutes)}</span>}
+        {flags.showUpdated && updatedLabel && <span><span class="text-hatch-fg-subtle">updated:</span> {updatedLabel}</span>}
+      </div>
+    </div>
+  </header>
+
+  {flags.showHeroImage && (
+    <div class="aspect-[2/1] rounded-md overflow-hidden bg-hatch-bg-3 mb-12 max-w-5xl border border-hatch-border">
+      <HatchImage src={post.featuredImage} alt={post.title} class="w-full h-full object-cover" width={1600} height={800} />
+    </div>
+  )}
+
+  <div class={`grid gap-x-10 gap-y-8 ${showSidebar ? `max-w-5xl ` + (flags.sidebarSide === 'left' ? 'lg:grid-cols-[240px_1fr]' : 'lg:grid-cols-[1fr_240px]') : 'grid-cols-1'}`}>
+    <div class={`hatch-prose min-w-0 ${flags.sidebarSide === "left" ? "lg:order-2" : "lg:order-1"}`}>
+      <div set:html={bodyHtml} />
+    </div>
+    {showSidebar && (
+      <aside class={`hidden lg:block ${flags.sidebarSide === "left" ? "lg:order-1" : "lg:order-2"}`}>
+        <div class="sticky top-20 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2" style="font-family: var(--hatch-font-mono, ui-monospace, monospace);">
+          <div class="text-[11px] uppercase tracking-widest text-hatch-fg-subtle mb-3">// {features.aesthetic.reading.toc_label}</div>
+          <nav class="flex flex-col gap-1 text-[12.5px]" aria-label="Table of Contents">
+            {toc.map((item: any) => (
+              <a href={`#${item.id}`} class={`hover:text-hatch-primary transition-colors text-hatch-fg-muted ${item.level === 3 ? 'pl-3' : ''}`}>{item.text}</a>
+            ))}
+          </nav>
+        </div>
+      </aside>
+    )}
+  </div>
+
+  {flags.showShare && (
+    <div class="max-w-3xl mt-12 pt-8 border-t border-hatch-border">
+      <ShareRow features={features} title={post.title} url={canonical} />
+    </div>
+  )}
+
+  {flags.showAuthorBio && post.author?.description && (
+    <div class="max-w-3xl mt-12 p-5 border border-hatch-border rounded-md bg-hatch-bg-2 flex gap-4 items-start" style="font-family: var(--hatch-font-mono, ui-monospace, monospace); font-size: 13px;">
+      {post.author.avatar && <img src={post.author.avatar} alt={post.author.name} width="40" height="40" class={`${flags.avatarShape} flex-shrink-0`} loading="lazy" />}
+      <div class="min-w-0">
+        <div class="text-hatch-primary">// author</div>
+        <a href={`/blog/author/${post.author.slug}`} class="text-hatch-fg hover:text-hatch-primary">{post.author.name}</a>
+        <p class="text-hatch-fg-muted mt-1 leading-relaxed">{post.author.description}</p>
+      </div>
+    </div>
+  )}
+
+  {flags.showPrevNext && (adjacent.prev || adjacent.next) && (
+    <nav class="max-w-3xl mt-12 pt-8 border-t border-hatch-border grid grid-cols-1 sm:grid-cols-2 gap-3" style="font-family: var(--hatch-font-mono, ui-monospace, monospace);" aria-label="Post navigation">
+      {adjacent.prev && (
+        <a href={`/blog/${adjacent.prev.slug}`} class="group p-4 rounded-md border border-hatch-border hover:border-hatch-primary transition-colors text-[13px]">
+          <span class="text-hatch-primary">← prev</span>
+          <div class="mt-1 text-hatch-fg group-hover:text-hatch-primary line-clamp-2">{adjacent.prev.title}</div>
+        </a>
+      )}
+      {adjacent.next && (
+        <a href={`/blog/${adjacent.next.slug}`} class="group p-4 rounded-md border border-hatch-border hover:border-hatch-primary transition-colors text-[13px] sm:text-right">
+          <span class="text-hatch-primary">next →</span>
+          <div class="mt-1 text-hatch-fg group-hover:text-hatch-primary line-clamp-2">{adjacent.next.title}</div>
+        </a>
+      )}
+    </nav>
+  )}
+
+  <slot name="related" />
+  <slot name="comments" />
+</article>

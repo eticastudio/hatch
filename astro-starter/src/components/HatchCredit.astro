@@ -1,0 +1,21 @@
+---
+/**
+ * "Built by Hatch" footer credit. Renders only when the
+ * built_by_hatch feature flag is on.
+ */
+interface Props {
+  show: boolean;
+}
+const { show } = Astro.props;
+---
+{show && (
+  <a
+    href="https://hatch.adityaarsharma.com"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="inline-flex items-center gap-1.5 text-[12px] text-hatch-fg-subtle hover:text-hatch-fg transition-colors group"
+  >
+    <span aria-hidden="true" class="group-hover:animate-bounce inline-block">🐣</span>
+    <span>Built by <span class="text-hatch-fg-muted font-medium group-hover:text-hatch-fg group-hover:underline">Hatch</span></span>
+  </a>
+)}

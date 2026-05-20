@@ -1,0 +1,77 @@
+---
+/**
+ * Search results. URL: /search?q=foo&page=2
+ * Uses WP REST `?search=` for fuzzy match across title + content.
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import PostCard from '@/components/PostCard.astro';
+import { searchPosts } from '@/lib/hatch';
+import { getFeatures } from '@/lib/features';
+
+const url = new URL(Astro.request.url);
+const query = (url.searchParams.get('q') ?? '').trim();
+const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
+
+const features = await getFeatures();
+const { posts, total, hasMore } = await searchPosts(query, { page, perPage: 12 });
+
+const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
+---
+
+<PageLayout
+  title={query ? `Search: ${query}` : 'Search'}
+  description={query ? `${total} results for "${query}"` : 'Search the site.'}
+  canonical={`${SITE}/search${query ? `?q=${encodeURIComponent(query)}` : ''}`}
+>
+  <main class="mx-auto px-5 sm:px-8 py-12 sm:py-16" style="max-width: var(--hatch-max-width, 1160px)">
+
+    <header class="mb-10 sm:mb-12 pb-8 border-b border-hatch-border">
+      <h1 class="text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.05]">Search</h1>
+
+      <form action="/search" method="get" class="mt-6 flex gap-2 max-w-2xl">
+        <input
+          type="search"
+          name="q"
+          value={query}
+          placeholder="Search posts…"
+          autofocus
+          class="flex-1 px-4 py-2.5 rounded-md border border-hatch-border bg-hatch-bg text-[14.5px] focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none"
+        />
+        <button type="submit" class="px-6 py-2.5 rounded-md bg-hatch-primary text-white text-[13.5px] font-medium hover:opacity-90 transition-opacity">
+          Search
+        </button>
+      </form>
+
+      {query && (
+        <p class="mt-4 text-[14px] text-hatch-fg-muted">
+          {total} {total === 1 ? 'result' : 'results'} for <strong class="text-hatch-fg font-medium">"{query}"</strong>
+        </p>
+      )}
+    </header>
+
+    {!query ? (
+      <p class="text-hatch-fg-muted py-12">Type a query above to search posts.</p>
+    ) : posts.length === 0 ? (
+      <div class="py-16 text-center">
+        <p class="text-hatch-fg-muted text-[15px]">No results for "{query}".</p>
+        <p class="mt-2 text-[13px] text-hatch-fg-subtle">Try different keywords or check the spelling.</p>
+      </div>
+    ) : (
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-7 gap-y-12">
+        {posts.map((post) => <PostCard post={post} />)}
+      </div>
+    )}
+
+    {hasMore && (
+      <div class="flex justify-center mt-14">
+        <a
+          href={`/search?q=${encodeURIComponent(query)}&page=${page + 1}`}
+          class="px-6 py-2.5 rounded-md text-[13.5px] font-medium border border-hatch-border hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors"
+        >
+          Load more →
+        </a>
+      </div>
+    )}
+
+  </main>
+</PageLayout>

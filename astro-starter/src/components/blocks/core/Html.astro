@@ -1,0 +1,10 @@
+---
+/**
+ * core/html — raw HTML, passed through as-is.
+ * WP already sanitizes via KSES on save (unless user has unfiltered_html).
+ */
+import type { BlockProps } from './_shared';
+
+const { block } = Astro.props as BlockProps;
+---
+<div set:html={ block.innerHTML } />

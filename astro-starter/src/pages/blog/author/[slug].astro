@@ -1,0 +1,73 @@
+---
+import PageLayout from '@/layouts/PageLayout.astro';
+import PostCard from '@/components/PostCard.astro';
+import { getAuthors, getPosts } from '@/lib/hatch';
+import { getFeatures } from '@/lib/features';
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/blog');
+
+const url = new URL(Astro.request.url);
+const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
+
+const authors = await getAuthors();
+const author = authors.find((a) => a.slug === slug);
+if (!author) { Astro.response.status = 404; return Astro.rewrite('/404'); }
+
+const { posts, total, hasMore } = await getPosts({ page, perPage: 12, author: author.id });
+
+const features = await getFeatures();
+const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
+---
+
+<PageLayout
+  title={`${author.name} · Author`}
+  description={author.description || `Posts by ${author.name}`}
+  canonical={`${SITE}/blog/author/${author.slug}`}
+>
+  <main class="mx-auto px-5 sm:px-8 py-12 sm:py-16" style="max-width: var(--hatch-max-width, 1160px)">
+
+    <nav class="text-[12.5px] text-hatch-fg-subtle mb-6 flex items-center gap-2 flex-wrap">
+      <a href="/" class="hover:text-hatch-fg transition-colors">Home</a>
+      <span>/</span>
+      <a href="/blog" class="hover:text-hatch-fg transition-colors">Blog</a>
+      <span>/</span>
+      <span class="text-hatch-fg">Author</span>
+      <span>/</span>
+      <span class="text-hatch-fg">{author.name}</span>
+    </nav>
+
+    <header class="mb-10 pb-8 border-b border-hatch-border flex flex-col sm:flex-row gap-5 items-start">
+      {author.avatar && (
+        <img src={author.avatar} alt={author.name} width="80" height="80" class="rounded-full flex-shrink-0" loading="lazy" />
+      )}
+      <div>
+        <p class="text-[11px] uppercase tracking-wider font-medium text-hatch-primary mb-2">Author</p>
+        <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight leading-[1.1]">{author.name}</h1>
+        {author.description && (
+          <p class="mt-3 text-[15px] text-hatch-fg-muted leading-relaxed max-w-2xl">{author.description}</p>
+        )}
+        <p class="mt-3 text-[13px] text-hatch-fg-subtle">
+          {total} {total === 1 ? 'post' : 'posts'}
+        </p>
+      </div>
+    </header>
+
+    {posts.length === 0 ? (
+      <p class="text-center text-hatch-fg-muted py-24">No posts by this author yet.</p>
+    ) : (
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-7 gap-y-12">
+        {posts.map((post) => <PostCard post={post} />)}
+      </div>
+    )}
+
+    {hasMore && (
+      <div class="flex justify-center mt-14">
+        <a href={`/blog/author/${author.slug}?page=${page + 1}`} class="px-6 py-2.5 rounded-md text-[13.5px] font-medium border border-hatch-border hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors">
+          Load more →
+        </a>
+      </div>
+    )}
+
+  </main>
+</PageLayout>
