@@ -2,6 +2,43 @@
 
 All notable changes to Hatch are recorded here. Format adheres loosely to [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.1] — 2026-05-20
+
+Post-launch polish — five hollow / mislabeled toggles fixed, repo cleaned, README rewritten to match shipped reality.
+
+### Security toggles — code now matches every label
+
+- **Kill XML-RPC** — `/xmlrpc.php` now hard-returns 403 (previously responded 200 with a method-list message; only method dispatch was blocked).
+- **Hide usernames** — `?author=N` now returns 404 (was a 301 redirect to home). `/wp/v2/users` is removed from the REST surface unconditionally — no longer dependent on the REST-lock toggle.
+- **Hide WP from Google** — `robots.txt` now emits `User-agent: *\nDisallow: /` when the toggle is on. Previously only the meta robots noindex was emitted; the `robots.txt` body was unchanged.
+
+### Performance toggles — wiring fixes
+
+- **Real-user telemetry** — fixed an option-key mismatch (UI was writing to `hatch_telemetry`, the frontend was reading `hatch_perf['telemetry']`). The beacon now actually fires when the toggle is on.
+- **CDN asset prefix** — removed (was saved but never consumed). Will return in v0.2 wired into `astro.config.mjs` `build.assetsPrefix` at build time.
+
+### Editor
+
+- **Gutenberg URL preview** — the editor tooltip now mirrors the actual saved slug. Previously the preview reflected the title-derived `generated_slug` even when the user had manually edited the slug to something else.
+
+### Layout
+
+- **Page + post container alignment** — pages now share the same `--hatch-max-width` container as posts and the homepage. Header, footer, and article all align vertically on every route.
+
+### Repo + documentation
+
+- README rewritten with explanatory voice and v0.1.1 reality (no "8 Gutenberg blocks" claim — Hatch uses core Gutenberg).
+- Removed all internal handoff / audit / architecture markdown files from the repo root.
+- Removed legacy `docs/` folder (replaced by inline FAQ + README sections).
+- `blocks-src/` excluded from the release zip (~40 KB smaller).
+- `.DS_Store` added to `.gitignore`.
+
+### Verified
+
+- Zero static-scan issues across the codebase (10 checks).
+- Zero runtime QA issues across 30 cells (5 themes × 5 page types) after the toggle fixes.
+- Per-toggle end-to-end audit: 0 hollow, 0 broken across all 6 admin tabs.
+
 ## [0.1.0] — 2026-05-20
 
 First stable public release. Hatch is one WordPress plugin that turns your existing install into a headless CMS, plus a matched Astro starter and a self-hosted deploy broker. Everything ships in the box.

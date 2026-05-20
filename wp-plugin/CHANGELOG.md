@@ -1,5 +1,18 @@
 # Hatch WordPress Plugin — Changelog
 
+## [0.1.1] — 2026-05-20
+
+Post-launch polish — see the root `CHANGELOG.md` for the full release notes.
+
+Plugin-specific fixes:
+
+- `Kill XML-RPC` toggle now hard-403s `/xmlrpc.php` (was 200 with method message)
+- `Hide usernames` returns 404 on `?author=N` (was 301 redirect); `/wp/v2/users` independently stripped from REST surface
+- `Hide WP from Google` now emits `Disallow: /` in `robots.txt` (was only meta robots)
+- `Real-user telemetry` option key wiring fixed (was a silent no-op)
+- `CDN asset prefix` removed (returns in v0.2)
+- Gutenberg editor URL preview now mirrors the saved slug
+
 ## [0.1.0] — 2026-05-20
 
 First stable public release. See the root `CHANGELOG.md` for the full Hatch release notes.

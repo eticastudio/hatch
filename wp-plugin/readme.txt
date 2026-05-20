@@ -4,7 +4,7 @@ Tags: headless, astro, rest-api, security
 Requires at least: 6.4
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Turn WordPress into a headless CMS with an Astro frontend. One plugin, one wizard, one deploy.
@@ -53,12 +53,24 @@ Plugin Bridge auto-detects RankMath, Yoast, AIOSEO, WPForms, Fluent Forms, Gravi
 
 == Changelog ==
 
+= 0.1.1 — Post-launch polish =
+* Security toggles — code now matches every label. /xmlrpc.php hard-403s, ?author=N returns 404, robots.txt emits Disallow: / when "Hide WP from Google" is on.
+* /wp/v2/users removed from REST surface independently of the REST-lock toggle.
+* Real-user telemetry — fixed option-key mismatch; beacon now fires when toggle is on.
+* CDN asset prefix UI removed (returns in v0.2 wired at build time).
+* Gutenberg editor URL preview now mirrors the saved slug.
+* Page + post container widths aligned via --hatch-max-width across all themes.
+* Per-toggle audit: 0 hollow, 0 broken across all 6 admin tabs.
+
 = 0.1.0 — First stable release =
 * React admin SPA, 3-step wizard, Plugin Bridge, WP Core Sync, Performance + Security tabs
 * Five Astro themes with unique headers and footers
 * Self-hosted deploy broker
 
 == Upgrade Notice ==
+
+= 0.1.1 =
+Post-launch polish — every admin toggle audited end-to-end. Upgrade safe.
 
 = 0.1.0 =
 First stable public release. Install fresh, run the wizard, deploy in one click.

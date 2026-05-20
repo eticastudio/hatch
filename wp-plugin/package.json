@@ -1,6 +1,6 @@
 {
   "name": "hatch-wp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Hatch — headless WordPress engine. Companion plugin + 8 headless-first Gutenberg blocks with Tailwind utility output.",
   "license": "MIT",
   "author": "Aditya Sharma <hi@adityaarsharma.com>",
