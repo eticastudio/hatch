@@ -2,6 +2,28 @@
 
 All notable changes to Hatch are recorded here. Format adheres loosely to [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.4] — 2026-05-28
+
+**The "no more silent 404s" release.** Eliminates the bug class where a stale or missing Astro `.env` App Password caused every page on the headless frontend to 404 — with no admin-side warning. Real users (thank you Asad) hit this and couldn't tell what was wrong.
+
+### Fixed
+
+- **`/hatch/v1/content` is now PUBLIC.** The universal post / page / CPT resolver no longer requires `permission_authenticated`. It only ever returns `post_status: publish` content (enforced inside `route_content_by_slug`), so making it public exposes nothing private — exactly the same surface as visiting the page on the live site. Eliminates the "App Password expired → entire headless frontend goes silent-404" failure mode.
+- **`getPostBySlug` + `getPageBySlug` (Astro) now use the public endpoint.** Previously both hit `/wp/v2/posts` and `/wp/v2/pages` which require Basic auth. Now they use the public `/hatch/v1/content?slug=…` path, so even with NO credentials in `.env` the headless frontend renders posts and pages correctly. Auth is still used for everything that actually needs it (admin/edit flows).
+- **`/hatch/v1/content` response enriched** with `categories`, `tags`, and `author` so the blog template can render breadcrumbs, related posts, and the author bio in a single round-trip.
+
+### Verified
+
+- With `WP_API_USER=` and `WP_API_PASS=` (both empty) in `.env`:
+  - `/blog/edge-e-test` returns **200** with the post title, breadcrumbs, share rail, progress bar, related posts — all rendered correctly.
+  - `/sample-page` returns **200** with the page content.
+- Every Design tab feature toggle now produces a visible end-to-end render change (verified: progress_bar, breadcrumb, last_updated, sticky_share, next_prev_nav, related_posts).
+- `/hatch/v1/post/{id}/blocks` permission unchanged — context-aware (view = public, edit = auth) per existing route handler.
+
+### Migration
+
+No action needed. Existing installs get the fix on plugin upgrade. The `.env` file is no longer load-bearing for read paths — you can leave `WP_API_USER` and `WP_API_PASS` blank and the frontend will still render perfectly. Set them only when you need auth for non-Hatch endpoints (e.g., raw `/wp/v2/*` calls in custom code).
+
 ## [0.1.3] — 2026-05-20
 
 Fixed: enabling "Lock the REST API" 404'd every page on the headless frontend.
