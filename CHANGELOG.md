@@ -2,6 +2,52 @@
 
 All notable changes to Hatch are recorded here. Format adheres loosely to [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.2.0] — 2026-05-28
+
+**Hatch Blocks foundation — alpha.** The block system is no longer dormant. Eight Hatch-native blocks ship, register on `init`, appear in the Gutenberg inserter under a "Hatch" category, save semantic HTML with Tailwind utility classes, and render passthrough on the Astro frontend (no custom Astro components required — the HTML they save IS the renderable output).
+
+### What's in this release
+
+#### 8 Hatch blocks (registered + working)
+
+- `hatch/section` — full-width row wrapper with bg color / image / gradient + responsive padding
+- `hatch/container` — max-width wrapper with flex / grid + alignment
+- `hatch/heading` — H1–H6 with responsive sizes + gradient text
+- `hatch/paragraph` — body text with typography controls + prose widths
+- `hatch/button` — variants with size + radius from design tokens
+- `hatch/image` — Astro Image-friendly (`<img>` with class hooks)
+- `hatch/hero` — composed hero pattern
+- `hatch/custom-code` — sandboxed HTML/CSS/JS (admin-only capability gate)
+
+Tier 1 still owes: Spacer, Divider, Group, Columns, List, Quote. Tier 2 (Media: YouTube/Video/Gallery/Cover/Embed), Tier 3 (Interactive: Tabs/Accordion/Table/Form/Search), Tier 4 (Posts), Tier 5 (Smart AI) — roadmap for v0.2.1 through v0.5.
+
+#### Admin
+
+- **New tab: Blocks** — between Content and Performance.
+- **"Hatch Blocks Only" toggle** — restricts the editor inserter to `hatch/*` blocks. Authors see only the Hatch vocabulary. Default OFF so existing content keeps working.
+- **Master switch** — disable all Hatch blocks at once without uninstalling.
+- **Per-block enable/disable list** — flip individual blocks off; saved instances become invalid-block placeholders for the recovery flow.
+
+#### Fixed
+
+- **`hatch_blocks_state` legacy reset migration** — earlier installs ended up with every block explicitly disabled in the option store, causing the inserter to silently show zero Hatch blocks. New `migrate_legacy_state()` hook on `plugins_loaded` detects the all-false state and resets to default-enabled. Marker stored in `hatch_blocks_migration` so the migration only runs once per upgrade.
+- **`blocks-src/` now ships in the release zip.** Previous v0.1.x zips excluded it; the per-block registration silently no-op'd.
+
+#### Architecture
+
+- Block registration uses `Hatch_Blocks_Registry::register_all()` with a per-block fallback that reads `block.json` from `blocks-src/blocks/<name>/` when no `build/blocks/` exists. Single-bundle build (`build/index.js`) provides the editor script shared by all blocks.
+- Frontend rendering is passthrough — Hatch blocks save plain HTML with Tailwind utility classes, so `<Fragment set:html={post.content}>` in the Astro starter renders them correctly with no per-block Astro component needed.
+- `hatch_blocks_hatch_only` option filters `allowed_block_types_all` to whitelist only `hatch/*` when on.
+
+### Verified end-to-end
+
+- 8 blocks register on container init (`WP_Block_Type_Registry::get_all_registered()` reports them).
+- Block content saved to a real post via `wp_update_post` renders on `localhost:4321/blog/<slug>` with correct classes (`<section class="hatch-section"><h2 class="hatch-heading">…</h2></section>`).
+
+### Coming next
+
+The remaining 16 blocks ship across v0.2.1 → v0.4. Smart Block (AI generation) targets v0.5 — needs BYOK API key plumbing + prompt engineering.
+
 ## [0.1.4] — 2026-05-28
 
 **The "no more silent 404s" release.** Eliminates the bug class where a stale or missing Astro `.env` App Password caused every page on the headless frontend to 404 — with no admin-side warning. Real users (thank you Asad) hit this and couldn't tell what was wrong.

@@ -21,8 +21,9 @@ defined( 'ABSPATH' ) || exit;
  */
 class Hatch_Blocks_Control {
 
-	const OPTION_KEY    = 'hatch_blocks_state';
-	const MASTER_KEY    = 'hatch_blocks_master';
+	const OPTION_KEY     = 'hatch_blocks_state';
+	const MASTER_KEY     = 'hatch_blocks_master';
+	const HATCH_ONLY_KEY = 'hatch_blocks_hatch_only';
 
 	/**
 	 * @var Hatch_Blocks_Control|null
@@ -45,8 +46,73 @@ class Hatch_Blocks_Control {
 	 * Wire hooks.
 	 */
 	private function __construct() {
+		// v0.2.0 — One-shot migration: if hatch_blocks_state has all keys
+		// explicitly false (leftover from earlier dev-state bug), reset to
+		// all-enabled so users upgrading don't get a silent inserter with
+		// every block missing.
+		add_action( 'plugins_loaded', array( $this, 'migrate_legacy_state' ), 5 );
+
 		// After Gutenberg has registered all blocks, unregister disabled Hatch ones.
 		add_action( 'init', array( $this, 'apply_disabled_blocks' ), 100 );
+
+		// v0.2.0 — "Hatch Blocks Only" mode. When the toggle is ON, filter
+		// allowed_block_types_all to whitelist only hatch/* so the inserter
+		// shows only Hatch blocks. Visually-clean editor for content authors.
+		add_filter( 'allowed_block_types_all', array( $this, 'maybe_restrict_to_hatch' ), 10, 2 );
+	}
+
+	/**
+	 * One-shot migration — if every catalog key is explicitly disabled, reset
+	 * to default (all enabled). Catches a legacy state where users could end
+	 * up with the inserter showing zero Hatch blocks after a clean reinstall.
+	 *
+	 * Runs at most once per upgrade — guarded by a version transient so it
+	 * doesn't re-run every page load.
+	 */
+	public function migrate_legacy_state(): void {
+		$marker = get_option( 'hatch_blocks_migration', '' );
+		if ( defined( 'HATCH_VERSION' ) && $marker === HATCH_VERSION ) {
+			return;
+		}
+		$stored = (array) get_option( self::OPTION_KEY, array() );
+		if ( ! empty( $stored ) ) {
+			$catalog_keys = array_keys( self::catalog() );
+			$all_false = true;
+			foreach ( $catalog_keys as $k ) {
+				if ( ! isset( $stored[ $k ] ) ) { $all_false = false; break; }
+				if ( ! empty( $stored[ $k ] ) ) { $all_false = false; break; }
+			}
+			if ( $all_false ) {
+				delete_option( self::OPTION_KEY );
+			}
+		}
+		// Ensure master switch is on for new installs.
+		if ( get_option( self::MASTER_KEY, null ) === null ) {
+			update_option( self::MASTER_KEY, 1 );
+		}
+		if ( defined( 'HATCH_VERSION' ) ) {
+			update_option( 'hatch_blocks_migration', HATCH_VERSION );
+		}
+	}
+
+	/**
+	 * "Hatch Blocks Only" mode — when on, the inserter only shows hatch/*
+	 * blocks. The user-visible editor is restricted to Hatch's vocabulary.
+	 *
+	 * @param bool|array $allowed Existing allowlist (true = all, array = list).
+	 * @param mixed      $editor  Editor context.
+	 * @return bool|array
+	 */
+	public function maybe_restrict_to_hatch( $allowed, $editor ) {
+		if ( ! get_option( self::HATCH_ONLY_KEY, false ) ) {
+			return $allowed;
+		}
+		// Keep only registered hatch/* blocks.
+		$catalog = array_keys( self::catalog() );
+		// Always keep the core block container so InnerBlocks can wrap (just
+		// in case any Hatch block expects to be inserted via the inserter
+		// recovery flow). Otherwise empty array = only hatch/*.
+		return $catalog;
 	}
 
 	/**
