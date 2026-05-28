@@ -410,6 +410,8 @@ function hatch_react_boot_state(): array {
 			'blocks'         => array(
 				'master'      => (bool) get_option( 'hatch_blocks_master', 1 ),
 				'hatch_only'  => (bool) get_option( 'hatch_blocks_hatch_only', 0 ),
+				'ai_provider' => (string) get_option( 'hatch_ai_provider', 'anthropic' ),
+				'ai_api_key'  => '' !== (string) get_option( 'hatch_ai_api_key', '' ) ? '••••••••' : '',
 			),
 			'blocks_catalog' => class_exists( 'Hatch_Blocks_Control' ) ? Hatch_Blocks_Control::catalog() : array(),
 			'blocks_enabled' => class_exists( 'Hatch_Blocks_Control' ) ? Hatch_Blocks_Control::get_states() : array(),
@@ -1097,6 +1099,9 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 		'blocks.master'                => 'hatch_blocks_master',
 	);
 	$str_options = array(
+		// v0.3.0 — Smart Block AI key (BYOK).
+		'blocks.ai_provider'             => 'hatch_ai_provider',
+		'blocks.ai_api_key'              => 'hatch_ai_api_key',
 		'security.login_slug'            => 'hatch_login_slug',
 		'security.login_redirect'        => 'hatch_login_redirect_slug',
 		'security.login_redirect_custom' => 'hatch_login_redirect_custom',

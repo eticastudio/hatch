@@ -1,0 +1,13 @@
+.hatch-cover { position: relative; overflow: hidden; display: flex; padding: 2rem; border-radius: var( --hatch-radius, 6px ); margin: var( --hatch-spacing, 1rem ) 0; background: var( --hatch-surface-2, #f4f4f5 ); background-size: cover; background-position: center; min-height: 240px; color: #fff; }
+.hatch-cover-overlay { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.hatch-cover-inner { position: relative; z-index: 2; max-width: 100%; width: 100%; }
+
+/* Text horizontal */
+.hatch-cover-text-left   .hatch-cover-inner { text-align: left; }
+.hatch-cover-text-center .hatch-cover-inner { text-align: center; margin: 0 auto; }
+.hatch-cover-text-right  .hatch-cover-inner { text-align: right; margin-left: auto; }
+
+/* Vertical alignment via flex */
+.hatch-cover-v-top    { align-items: flex-start; }
+.hatch-cover-v-center { align-items: center; }
+.hatch-cover-v-bottom { align-items: flex-end; }

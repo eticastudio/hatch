@@ -1,0 +1,20 @@
+.hatch-list { padding-left: 1.5em; margin: var( --hatch-spacing, 1rem ) 0; color: var( --hatch-fg, #0a0a0a ); }
+.hatch-list li { padding-left: 0.25em; margin: 0.4em 0; line-height: 1.55; }
+
+.hatch-list-disc   { list-style: disc; }
+.hatch-list-circle { list-style: circle; }
+.hatch-list-square { list-style: square; }
+.hatch-list-none   { list-style: none; padding-left: 0; }
+.hatch-list-decimal               { list-style: decimal; }
+.hatch-list-decimal-leading-zero  { list-style: decimal-leading-zero; }
+.hatch-list-lower-alpha           { list-style: lower-alpha; }
+.hatch-list-upper-alpha           { list-style: upper-alpha; }
+.hatch-list-lower-roman           { list-style: lower-roman; }
+.hatch-list-upper-roman           { list-style: upper-roman; }
+
+/* Custom markers: check / arrow — use ::marker for native browsers */
+.hatch-list-check  { list-style: none; padding-left: 1.75em; }
+.hatch-list-check  li::before { content: '✓'; color: var( --hatch-primary, #ff6b35 ); position: absolute; transform: translateX( -1.5em ); font-weight: 600; }
+.hatch-list-arrow  { list-style: none; padding-left: 1.75em; }
+.hatch-list-arrow  li::before { content: '→'; color: var( --hatch-primary, #ff6b35 ); position: absolute; transform: translateX( -1.5em ); font-weight: 600; }
+.hatch-list-check li, .hatch-list-arrow li { position: relative; }

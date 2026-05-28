@@ -1,0 +1,21 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/tabs",
+	"title": "Tabs",
+	"category": "hatch",
+	"icon": "list-view",
+	"description": "Accessible tab panel. Keyboard nav + ARIA roles baked in.",
+	"keywords": [ "tabs", "panels", "switcher" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": { "html": false, "reusable": true, "anchor": true },
+	"attributes": {
+		"tabs":   { "type": "array",  "default": [
+			{ "id": "tab-1", "label": "Tab 1", "content": "<p>First panel content.</p>" },
+			{ "id": "tab-2", "label": "Tab 2", "content": "<p>Second panel content.</p>" },
+			{ "id": "tab-3", "label": "Tab 3", "content": "<p>Third panel content.</p>" }
+		] },
+		"variant": { "type": "string", "default": "underline" }
+	}
+}

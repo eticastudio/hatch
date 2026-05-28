@@ -1,0 +1,15 @@
+.hatch-quote { margin: var( --hatch-spacing, 1rem ) 0; padding: 0 0 0 1.25em; border-left: 3px solid var( --hatch-accent, #0a0a0a ); color: var( --hatch-fg, #0a0a0a ); font-style: italic; }
+.hatch-quote-text { margin: 0 0 0.5em; line-height: 1.55; }
+.hatch-quote-cite { display: block; font-style: normal; font-size: 0.875em; color: var( --hatch-muted, #525252 ); margin-top: 0.6em; }
+.hatch-quote-cite:before { content: '— '; }
+
+/* Variants */
+.hatch-quote-pull { padding: 0; border: 0; text-align: center; font-style: normal; }
+.hatch-quote-pull .hatch-quote-text { font-family: var( --hatch-font-heading ); font-weight: 600; }
+.hatch-quote-minimal { border: 0; padding-left: 0; }
+
+/* Sizes */
+.hatch-quote-sm .hatch-quote-text  { font-size: 0.95em; }
+.hatch-quote-md .hatch-quote-text  { font-size: 1.05em; }
+.hatch-quote-lg .hatch-quote-text  { font-size: 1.3em; }
+.hatch-quote-xl .hatch-quote-text  { font-size: 1.6em; }

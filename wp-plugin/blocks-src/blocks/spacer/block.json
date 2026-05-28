@@ -1,0 +1,23 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/spacer",
+	"title": "Spacer",
+	"category": "hatch",
+	"icon": "minus",
+	"description": "Vertical breathing room. Token-scaled (xs–2xl) so density changes flow through automatically.",
+	"keywords": [ "spacer", "gap", "space", "margin", "padding" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": {
+		"html": false,
+		"reusable": true,
+		"anchor": true
+	},
+	"attributes": {
+		"size":   { "type": "string", "default": "md" },
+		"sizeSm": { "type": "string", "default": "" },
+		"sizeMd": { "type": "string", "default": "" },
+		"sizeLg": { "type": "string", "default": "" }
+	}
+}

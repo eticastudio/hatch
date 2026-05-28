@@ -3,7 +3,7 @@
  * Plugin Name:       Hatch — Headless WordPress
  * Plugin URI:        https://github.com/adityaarsharma/hatch
  * Description:       Turn WordPress into a headless CMS with an Astro frontend. One-click deploy to Cloudflare / Vercel / VPS, security hardening, image proxy, REST bridge, and a React admin.
- * Version:           0.2.0
+ * Version:           0.3.0
  * Requires at least: 6.4
  * Tested up to:      6.9
  * Requires PHP:      7.4
@@ -20,7 +20,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'HATCH_VERSION', '0.2.0' );
+define( 'HATCH_VERSION', '0.3.0' );
 define( 'HATCH_PLUGIN_FILE', __FILE__ );
 define( 'HATCH_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'HATCH_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -509,6 +509,9 @@ final class Hatch {
 		Hatch_Blocks_Custom_Code_Security::instance();
 		Hatch_Blocks_Tailwind_Runtime::instance();
 		Hatch_Blocks_Control::instance();   // v0.6 — per-block enable/disable
+		if ( class_exists( 'Hatch_AI_Generator' ) ) {
+			Hatch_AI_Generator::instance(); // v0.3.0 — Smart Block REST endpoint
+		}
 
 		// V0.7 — real connection status (cron + heartbeat + verify).
 		Hatch_Connection_Status::instance();

@@ -1,0 +1,29 @@
+.hatch-columns { display: grid; grid-template-columns: 1fr; margin: var( --hatch-spacing, 1rem ) 0; }
+
+/* Gap tokens (use --hatch-spacing scale) */
+.hatch-cols-gap-none { gap: 0; }
+.hatch-cols-gap-sm   { gap: calc( var( --hatch-spacing, 1rem ) * 0.5 ); }
+.hatch-cols-gap-md   { gap: calc( var( --hatch-spacing, 1rem ) * 1 ); }
+.hatch-cols-gap-lg   { gap: calc( var( --hatch-spacing, 1rem ) * 2 ); }
+.hatch-cols-gap-xl   { gap: calc( var( --hatch-spacing, 1rem ) * 3 ); }
+
+/* Align items (cross-axis in grid) */
+.hatch-cols-align-start   { align-items: start; }
+.hatch-cols-align-center  { align-items: center; }
+.hatch-cols-align-end     { align-items: end; }
+.hatch-cols-align-stretch { align-items: stretch; }
+
+/* Stack rules — when stackAt breakpoint NOT met, stack 1col */
+.hatch-cols-stack-never  { grid-template-columns: repeat( var( --hatch-cols-count, 2 ), minmax( 0, 1fr ) ); }
+
+@media ( min-width: 640px )  { .hatch-cols-stack-sm { grid-template-columns: repeat( var( --hatch-cols-count, 2 ), minmax( 0, 1fr ) ); } }
+@media ( min-width: 768px )  { .hatch-cols-stack-md { grid-template-columns: repeat( var( --hatch-cols-count, 2 ), minmax( 0, 1fr ) ); } }
+@media ( min-width: 1024px ) { .hatch-cols-stack-lg { grid-template-columns: repeat( var( --hatch-cols-count, 2 ), minmax( 0, 1fr ) ); } }
+
+/* Column count token */
+.hatch-cols-1 { --hatch-cols-count: 1; }
+.hatch-cols-2 { --hatch-cols-count: 2; }
+.hatch-cols-3 { --hatch-cols-count: 3; }
+.hatch-cols-4 { --hatch-cols-count: 4; }
+.hatch-cols-5 { --hatch-cols-count: 5; }
+.hatch-cols-6 { --hatch-cols-count: 6; }

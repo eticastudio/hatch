@@ -1,0 +1,23 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/video",
+	"title": "Video",
+	"category": "hatch",
+	"icon": "format-video",
+	"description": "HTML5 video with poster + lazy load. Only loads on play.",
+	"keywords": [ "video", "mp4", "html5", "media" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": { "html": false, "reusable": true, "anchor": true, "align": [ "wide", "full" ] },
+	"attributes": {
+		"src":         { "type": "string", "default": "" },
+		"poster":      { "type": "string", "default": "" },
+		"autoplay":    { "type": "boolean", "default": false },
+		"loop":        { "type": "boolean", "default": false },
+		"muted":       { "type": "boolean", "default": false },
+		"controls":    { "type": "boolean", "default": true },
+		"playsinline": { "type": "boolean", "default": true },
+		"aspectRatio": { "type": "string", "default": "16/9" }
+	}
+}

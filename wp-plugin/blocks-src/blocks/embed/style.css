@@ -1,0 +1,3 @@
+.hatch-embed { position: relative; overflow: hidden; background: #000; border-radius: var( --hatch-radius, 6px ); margin: var( --hatch-spacing, 1rem ) 0; max-width: 100%; }
+.hatch-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.hatch-embed-empty { display: grid; place-items: center; min-height: 180px; color: var( --hatch-muted, #737373 ); background: var( --hatch-surface-2, #f4f4f5 ); }

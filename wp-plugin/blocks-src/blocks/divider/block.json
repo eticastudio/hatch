@@ -1,0 +1,19 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/divider",
+	"title": "Divider",
+	"category": "hatch",
+	"icon": "minus",
+	"description": "Horizontal rule with style variants.",
+	"keywords": [ "divider", "rule", "hr", "separator", "line" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": { "html": false, "reusable": true, "anchor": true, "align": [ "wide", "full" ] },
+	"attributes": {
+		"style":     { "type": "string", "default": "solid" },
+		"thickness": { "type": "string", "default": "1" },
+		"colorToken":{ "type": "string", "default": "border" },
+		"width":     { "type": "string", "default": "full" }
+	}
+}

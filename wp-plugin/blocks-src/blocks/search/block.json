@@ -1,0 +1,19 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/search",
+	"title": "Search",
+	"category": "hatch",
+	"icon": "search",
+	"description": "Site search box. Posts /hatch/v1/search and renders results inline.",
+	"keywords": [ "search", "find", "query" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": { "html": false, "reusable": true, "anchor": true },
+	"attributes": {
+		"placeholder": { "type": "string", "default": "Search the site…" },
+		"buttonLabel": { "type": "string", "default": "Search" },
+		"action":      { "type": "string", "default": "/search" },
+		"variant":     { "type": "string", "default": "inline" }
+	}
+}

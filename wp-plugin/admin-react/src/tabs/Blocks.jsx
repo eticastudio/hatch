@@ -10,7 +10,12 @@
  * via Hatch_Blocks_Control::catalog()), so the React list updates whenever
  * a new Hatch block ships — no React change required.
  */
-import { HxCard, HxHead, HxRow, HxToggle, HxBadge } from '../components.jsx';
+import { HxCard, HxHead, HxRow, HxToggle, HxBadge, HxInp } from '../components.jsx';
+
+const AI_PROVIDERS = [
+	{ value: 'anthropic', label: 'Anthropic (Claude)' },
+	{ value: 'openai',    label: 'OpenAI (GPT-4o)' },
+];
 
 export default function Blocks({ state, setSetting, onDirty }) {
 	const blocks = (state && state.blocks) || {};
@@ -18,6 +23,8 @@ export default function Blocks({ state, setSetting, onDirty }) {
 	const enabled = (state && state.blocks_enabled) || {};
 	const hatchOnly = !!blocks.hatch_only;
 	const masterOn = blocks.master === undefined ? true : !!blocks.master;
+	const aiProvider = blocks.ai_provider || 'anthropic';
+	const aiKeyMasked = blocks.ai_api_key || '';
 
 	const list = Object.keys(catalog).map((slug) => ({
 		slug,
@@ -53,6 +60,29 @@ export default function Blocks({ state, setSetting, onDirty }) {
 					<HxToggle
 						on={masterOn}
 						onChange={(v) => { setSetting('blocks.master', v); onDirty(); }}
+					/>
+				</HxRow>
+			</HxCard>
+
+			<HxCard>
+				<HxHead
+					iconChildren={<><circle cx="12" cy="12" r="3" /><path d="M12 1v6m0 10v6m11-11h-6M1 12h6m13.5-7.5l-4.2 4.2M7.7 16.3l-4.2 4.2m17 0l-4.2-4.2M7.7 7.7L3.5 3.5" /></>}
+					iconColor="#8b5cf6"
+					title="Smart Block · AI"
+					desc="Bring your own API key. Hatch sends prompts directly to the provider — no proxy, no logging on our side, no infra cost. Key stored in WP options encrypted at rest only as well as your hosting permits."
+				/>
+				<HxRow label="Provider" desc="Pick whichever provider you have an API key for.">
+					<select value={aiProvider} onChange={(e) => { setSetting('blocks.ai_provider', e.target.value); onDirty(); }}
+						style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--hx-border)' }}>
+						{AI_PROVIDERS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+					</select>
+				</HxRow>
+				<HxRow label="API key" desc={aiKeyMasked ? 'Key set. Type a new value to rotate.' : 'Paste your sk-… / sk-ant-… key.'} last>
+					<HxInp
+						value={aiKeyMasked}
+						mono
+						onChange={(e) => { setSetting('blocks.ai_api_key', e.target.value); onDirty(); }}
+						placeholder={aiProvider === 'openai' ? 'sk-…' : 'sk-ant-…'}
 					/>
 				</HxRow>
 			</HxCard>

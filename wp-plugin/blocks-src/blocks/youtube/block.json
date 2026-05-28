@@ -1,0 +1,21 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/youtube",
+	"title": "YouTube",
+	"category": "hatch",
+	"icon": "video-alt3",
+	"description": "Lazy YouTube embed — facade thumbnail, click-to-play, no cookie domain. Saves ~500 KB per video on initial paint.",
+	"keywords": [ "youtube", "video", "embed", "lazy" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": { "html": false, "reusable": true, "anchor": true, "align": [ "wide", "full" ] },
+	"attributes": {
+		"videoId":     { "type": "string", "default": "" },
+		"title":       { "type": "string", "default": "YouTube video" },
+		"thumbnail":   { "type": "string", "default": "" },
+		"aspectRatio": { "type": "string", "default": "16/9" },
+		"controls":    { "type": "boolean", "default": true },
+		"start":       { "type": "number", "default": 0 }
+	}
+}

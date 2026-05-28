@@ -1,0 +1,4 @@
+.hatch-smart { margin: var( --hatch-spacing, 1rem ) 0; }
+.hatch-smart-empty { padding: 3rem 1.5rem; text-align: center; background: linear-gradient( 135deg, var( --hatch-surface-2, #f4f4f5 ), var( --hatch-surface, #fff ) ); border: 1px dashed var( --hatch-border-2, #d4d4d4 ); border-radius: var( --hatch-radius, 6px ); color: var( --hatch-muted, #525252 ); }
+.hatch-smart-empty strong { font-size: 1.25em; color: var( --hatch-fg, #0a0a0a ); display: block; margin-bottom: 0.5em; }
+.hatch-smart-empty p { margin: 0; }

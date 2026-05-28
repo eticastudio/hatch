@@ -1,0 +1,19 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/quote",
+	"title": "Quote",
+	"category": "hatch",
+	"icon": "format-quote",
+	"description": "Blockquote with optional citation. Schema.org Quotation markup baked in.",
+	"keywords": [ "quote", "blockquote", "citation", "pull quote" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": { "html": false, "reusable": true, "anchor": true, "align": [ "wide", "full" ] },
+	"attributes": {
+		"value":    { "type": "string", "default": "" },
+		"citation": { "type": "string", "default": "" },
+		"variant":  { "type": "string", "default": "default" },
+		"size":     { "type": "string", "default": "md" }
+	}
+}

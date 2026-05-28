@@ -1,0 +1,14 @@
+.hatch-tabs { margin: var( --hatch-spacing, 1rem ) 0; }
+.hatch-tabs-nav { display: flex; flex-wrap: wrap; gap: 0.25rem; border-bottom: 1px solid var( --hatch-border, #e5e5e5 ); margin-bottom: 1rem; }
+.hatch-tabs-tab { background: none; border: 0; padding: 0.6em 1em; cursor: pointer; color: var( --hatch-muted, #525252 ); font: inherit; }
+.hatch-tabs-tab.is-active { color: var( --hatch-fg, #0a0a0a ); }
+.hatch-tabs-panel { color: var( --hatch-fg, #0a0a0a ); }
+.hatch-tabs-panel:not(.is-active) { display: none; }
+
+/* Variants */
+.hatch-tabs-underline .hatch-tabs-tab.is-active { box-shadow: inset 0 -2px 0 var( --hatch-primary, #ff6b35 ); }
+.hatch-tabs-pills .hatch-tabs-nav { border: 0; gap: 0.5rem; }
+.hatch-tabs-pills .hatch-tabs-tab { border-radius: 999px; padding: 0.4em 0.9em; background: var( --hatch-surface-2, #f4f4f5 ); }
+.hatch-tabs-pills .hatch-tabs-tab.is-active { background: var( --hatch-fg, #0a0a0a ); color: var( --hatch-bg, #fff ); }
+.hatch-tabs-boxed .hatch-tabs-tab { border: 1px solid transparent; border-bottom: 0; border-radius: var( --hatch-radius, 6px ) var( --hatch-radius, 6px ) 0 0; }
+.hatch-tabs-boxed .hatch-tabs-tab.is-active { border-color: var( --hatch-border, #e5e5e5 ); background: var( --hatch-bg, #fff ); margin-bottom: -1px; }

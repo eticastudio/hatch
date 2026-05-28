@@ -1,0 +1,19 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/embed",
+	"title": "Embed",
+	"category": "hatch",
+	"icon": "embed-generic",
+	"description": "Generic embed — Vimeo / Spotify / CodePen / Figma / Loom / SoundCloud. iframe with sane defaults.",
+	"keywords": [ "embed", "iframe", "vimeo", "spotify", "codepen", "loom" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": { "html": false, "reusable": true, "anchor": true, "align": [ "wide", "full" ] },
+	"attributes": {
+		"url":         { "type": "string", "default": "" },
+		"title":       { "type": "string", "default": "Embed" },
+		"aspectRatio": { "type": "string", "default": "16/9" },
+		"allowList":   { "type": "string", "default": "fullscreen; picture-in-picture" }
+	}
+}

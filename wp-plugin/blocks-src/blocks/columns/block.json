@@ -1,0 +1,22 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/columns",
+	"title": "Columns",
+	"category": "hatch",
+	"icon": "columns",
+	"description": "2 / 3 / 4 column responsive grid. Stacks on mobile.",
+	"keywords": [ "columns", "grid", "row", "layout" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": { "html": false, "reusable": true, "anchor": true, "align": [ "wide", "full" ] },
+	"attributes": {
+		"count":     { "type": "number", "default": 2 },
+		"gap":       { "type": "string", "default": "md" },
+		"stackAt":   { "type": "string", "default": "md" },
+		"alignItems":{ "type": "string", "default": "start" }
+	},
+	"providesContext": {
+		"hatch/columns:count": "count"
+	}
+}
