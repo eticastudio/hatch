@@ -2,6 +2,20 @@
 
 All notable changes to Hatch are recorded here. Format adheres loosely to [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.1] — 2026-05-29
+
+Hot-patch for v0.3.0 — the editor bundle was missing imports for all 18 new blocks.
+
+### Fixed
+
+- **`blocks-src/index.js` only imported the original 8 blocks** despite v0.3.0 shipping 26. The PHP registered all 26 server-side, but the editor JS bundle only had `registerBlockType` calls for Section / Container / Heading / Paragraph / Button / Image / Hero / Custom Code. Result: 18 blocks showed as "Your site doesn't include support for the 'hatch/X' block" placeholders in the editor. Fixed by rewriting the entry to import all 26 blocks. Bundle grew from 50.9 KiB → 89.7 KiB (+38 KiB for the 18 new block React components).
+- Inserter now shows the full Hatch category with all 26 blocks, and existing posts with v0.3.0 markup recover automatically.
+
+### Verified
+
+- `grep -oE "registerBlockType\\('[^']+'\\)" build/index.js | sort -u` returns all 26 block slugs.
+- `WP_Block_Type_Registry` reports 26 hatch/* blocks registered.
+
 ## [0.3.0] — 2026-05-29
 
 **Full block catalog — 26 Hatch blocks across all 5 tiers.** Plus the Smart Block AI generator. v0.2.0 shipped the foundation; v0.3.0 fills it out.
