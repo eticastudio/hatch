@@ -200,7 +200,12 @@ class Hatch_Rest_Api {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'route_content_by_slug' ),
-				'permission_callback' => array( $this, 'permission_authenticated' ),
+				// Public — the route ONLY returns post_status=publish content
+				// (enforced inside route_content_by_slug). Requiring auth here
+				// meant a stale Astro .env App Password silently 404'd every
+				// page on the headless frontend with no admin-side warning.
+				// v0.1.4 — making it public eliminates that entire failure mode.
+				'permission_callback' => '__return_true',
 				'args'                => array(
 					'slug' => array(
 						'required'          => true,
@@ -335,6 +340,30 @@ class Hatch_Rest_Api {
 			$thumb_id = (int) get_post_thumbnail_id( $post );
 			$thumb_url = $thumb_id ? (string) wp_get_attachment_image_url( $thumb_id, 'full' ) : '';
 			$thumb_alt = $thumb_id ? (string) get_post_meta( $thumb_id, '_wp_attachment_image_alt', true ) : '';
+
+			// v0.1.4 — enrich the response with categories / tags / author so
+			// the Astro blog template can render breadcrumbs, related posts,
+			// and the author bio WITHOUT a second auth-required round-trip.
+			$cats = array();
+			foreach ( wp_get_post_categories( $post->ID, array( 'fields' => 'all' ) ) ?: array() as $c ) {
+				$cats[] = array( 'id' => (int) $c->term_id, 'name' => $c->name, 'slug' => $c->slug );
+			}
+			$tags_arr = array();
+			foreach ( wp_get_post_tags( $post->ID ) ?: array() as $t ) {
+				$tags_arr[] = array( 'id' => (int) $t->term_id, 'name' => $t->name, 'slug' => $t->slug );
+			}
+			$author = null;
+			$au = $post->post_author ? get_userdata( (int) $post->post_author ) : null;
+			if ( $au ) {
+				$author = array(
+					'id'     => (int) $au->ID,
+					'name'   => $au->display_name,
+					'slug'   => $au->user_nicename,
+					'bio'    => get_user_meta( $au->ID, 'description', true ),
+					'avatar' => get_avatar_url( $au->ID, array( 'size' => 128 ) ),
+				);
+			}
+
 			return new WP_REST_Response( array(
 				'found'              => true,
 				'id'                 => (int) $post->ID,
@@ -346,6 +375,9 @@ class Hatch_Rest_Api {
 				'excerpt'            => has_excerpt( $post ) ? wp_strip_all_tags( get_the_excerpt( $post ) ) : '',
 				'featured_media_url' => $thumb_url,
 				'featured_media_alt' => $thumb_alt,
+				'categories'         => $cats,
+				'tags'               => $tags_arr,
+				'author'             => $author,
 				'modified'           => mysql_to_rfc3339( $post->post_modified_gmt ),
 				'published'          => mysql_to_rfc3339( $post->post_date_gmt ),
 				'link'               => get_permalink( $post ),

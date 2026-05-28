@@ -205,12 +205,48 @@ export async function getPosts(opts: {
   };
 }
 
+// v0.1.4 — convert the public HatchContent shape into the Post shape the
+// templates consume. Single conversion point so getPostBySlug + getPageBySlug
+// both stay consistent.
+function hatchContentToPost(c: HatchContent): Post {
+  const cats = c.categories || [];
+  const primary = cats[0];
+  // Reading-time: count words in content (strip tags), 200 wpm baseline.
+  const text = (c.content || '').replace(/<[^>]+>/g, ' ');
+  const words = text.split(/\s+/).filter(Boolean).length;
+  const readMinutes = Math.max(1, Math.round(words / 200));
+  return {
+    id: c.id,
+    slug: c.slug,
+    title: c.title,
+    content: c.content,
+    excerpt: c.excerpt,
+    category:     primary ? primary.name : null,
+    categorySlug: primary ? primary.slug : null,
+    categoryId:   primary ? primary.id   : null,
+    featuredImage:    c.featured_media_url || null,
+    featuredImageAlt: c.featured_media_alt || null,
+    publishedAt: c.published,
+    modifiedAt:  c.modified,
+    author: c.author ? {
+      name:        c.author.name,
+      slug:        c.author.slug,
+      avatar:      c.author.avatar || null,
+      description: c.author.bio || '',
+    } : null,
+    tags: (c.tags || []).map((t) => t.name),
+    readMinutes,
+  } as Post;
+}
+
 export async function getPostBySlug(slug: string): Promise<Post | null> {
-  const res = await wpFetch(`/posts?slug=${encodeURIComponent(slug)}&_embed=1&status=publish`);
-  if (!res.ok) return null;
-  const data = (await res.json()) as WpRawPost[];
-  if (!data.length) return null;
-  return transform(data[0]);
+  // v0.1.4 — use the public /hatch/v1/content endpoint instead of the
+  // auth-required /wp/v2/posts. Eliminates the "stale Astro .env App
+  // Password silently 404s every page" failure mode that bit real users.
+  // The endpoint enforces post_status: publish, so it's safe public.
+  const content = await getContentBySlug(slug);
+  if (!content || content.type !== 'post') return null;
+  return hatchContentToPost(content);
 }
 
 export async function getCategories(): Promise<Category[]> {
@@ -270,11 +306,11 @@ export async function getAdjacent(slug: string): Promise<{ prev: Post | null; ne
  * /<page-slug>. Returns null if no published Page matches.
  */
 export async function getPageBySlug(slug: string): Promise<Post | null> {
-  const res = await wpFetch(`/pages?slug=${encodeURIComponent(slug)}&_embed=1&status=publish`);
-  if (!res.ok) return null;
-  const data = (await res.json()) as WpRawPost[];
-  if (!data.length) return null;
-  return transform(data[0]);
+  // v0.1.4 — same fix path as getPostBySlug. Use the public resolver so
+  // pages don't 404 when the Astro .env App Password is stale or missing.
+  const content = await getContentBySlug(slug);
+  if (!content || content.type !== 'page') return null;
+  return hatchContentToPost(content);
 }
 
 /**
@@ -298,9 +334,13 @@ export interface HatchContent {
   excerpt: string;
   featured_media_url: string;
   featured_media_alt: string;
+  categories?: Array<{ id: number; name: string; slug: string }>;
+  tags?: Array<{ id: number; name: string; slug: string }>;
+  author?: { id: number; name: string; slug: string; bio: string; avatar: string } | null;
   modified: string;
   published: string;
   link: string;
+  found?: boolean;
 }
 export async function getContentBySlug(slug: string): Promise<HatchContent | null> {
   if (!WP_API) return null;
