@@ -55,3 +55,5 @@ coverage/
 hatch.zip
 *.zip
 HANDOFF-*.md
+astro-starter/.env.bak
+test/200/
