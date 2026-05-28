@@ -20,10 +20,12 @@ import Status from './tabs/Status.jsx';
 import SetupApp from './setup/SetupApp.jsx';
 import './styles.css';
 
+import Blocks from './tabs/Blocks.jsx';
 const TABS = [
 	{ id: 'connection',  label: 'Connection',  Component: Connection },
 	{ id: 'design',      label: 'Design',      Component: Design },
 	{ id: 'content',     label: 'Content',     Component: Content },
+	{ id: 'blocks',      label: 'Blocks',      Component: Blocks },
 	{ id: 'performance', label: 'Performance', Component: Performance },
 	{ id: 'security',    label: 'Security',    Component: Security },
 	{ id: 'status',      label: 'Status',      Component: Status },

@@ -406,6 +406,13 @@ function hatch_react_boot_state(): array {
 			'performance'    => hatch_react_perf_state(),
 			'security'       => hatch_react_security_state(),
 			'status'         => hatch_react_status_snapshot(),
+			// v0.2.0 — Blocks tab state.
+			'blocks'         => array(
+				'master'      => (bool) get_option( 'hatch_blocks_master', 1 ),
+				'hatch_only'  => (bool) get_option( 'hatch_blocks_hatch_only', 0 ),
+			),
+			'blocks_catalog' => class_exists( 'Hatch_Blocks_Control' ) ? Hatch_Blocks_Control::catalog() : array(),
+			'blocks_enabled' => class_exists( 'Hatch_Blocks_Control' ) ? Hatch_Blocks_Control::get_states() : array(),
 			// v0.50.31 — WordPress Core Sync card. Surfaces every WP-owned
 			// setting that affects headless rendering so users have ONE
 			// status view + deep-links to the canonical WP UI. Read-only;
@@ -1085,6 +1092,9 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 		// WHERE to apply the gate. Gated server-side by Hatch_Turnstile_WP.
 		'security.turnstile_login'     => 'hatch_security_turnstile_login',
 		'security.turnstile_comments'  => 'hatch_security_turnstile_comments',
+		// v0.2.0 — Blocks tab toggles.
+		'blocks.hatch_only'            => 'hatch_blocks_hatch_only',
+		'blocks.master'                => 'hatch_blocks_master',
 	);
 	$str_options = array(
 		'security.login_slug'            => 'hatch_login_slug',
