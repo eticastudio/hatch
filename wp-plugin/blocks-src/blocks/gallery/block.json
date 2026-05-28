@@ -1,0 +1,21 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/gallery",
+	"title": "Gallery",
+	"category": "hatch",
+	"icon": "format-gallery",
+	"description": "Image grid with optional lazy lightbox.",
+	"keywords": [ "gallery", "images", "grid", "lightbox" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": { "html": false, "reusable": true, "anchor": true, "align": [ "wide", "full" ] },
+	"attributes": {
+		"images":    { "type": "array",  "default": [] },
+		"columns":   { "type": "number", "default": 3 },
+		"gap":       { "type": "string", "default": "md" },
+		"layout":    { "type": "string", "default": "grid" },
+		"lightbox":  { "type": "boolean","default": true },
+		"aspect":    { "type": "string", "default": "1/1" }
+	}
+}

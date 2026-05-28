@@ -1,0 +1,34 @@
+.hatch-group { display: flex; flex-direction: column; }
+.hatch-group-stack { flex-direction: column; }
+.hatch-group-row   { flex-direction: row; }
+.hatch-group-grid  { display: grid; grid-template-columns: repeat( var( --hatch-grid-cols, 1 ), minmax( 0, 1fr ) ); }
+.hatch-group-wrap  { flex-wrap: wrap; }
+
+/* Gap tokens */
+.hatch-group-gap-none { gap: 0; }
+.hatch-group-gap-xs   { gap: calc( var( --hatch-spacing, 1rem ) * 0.25 ); }
+.hatch-group-gap-sm   { gap: calc( var( --hatch-spacing, 1rem ) * 0.5 ); }
+.hatch-group-gap-md   { gap: calc( var( --hatch-spacing, 1rem ) * 1 ); }
+.hatch-group-gap-lg   { gap: calc( var( --hatch-spacing, 1rem ) * 2 ); }
+.hatch-group-gap-xl   { gap: calc( var( --hatch-spacing, 1rem ) * 3 ); }
+
+/* Cross-axis (align-items) */
+.hatch-group-align-start   { align-items: flex-start; }
+.hatch-group-align-center  { align-items: center; }
+.hatch-group-align-end     { align-items: flex-end; }
+.hatch-group-align-stretch { align-items: stretch; }
+
+/* Main-axis (justify-content) */
+.hatch-group-justify-start   { justify-content: flex-start; }
+.hatch-group-justify-center  { justify-content: center; }
+.hatch-group-justify-end     { justify-content: flex-end; }
+.hatch-group-justify-between { justify-content: space-between; }
+.hatch-group-justify-around  { justify-content: space-around; }
+
+/* Responsive grid: stack < md, multi-col >= md */
+@media ( min-width: 768px ) {
+	.hatch-group-grid { --hatch-grid-cols: 2; }
+}
+@media ( min-width: 1024px ) {
+	.hatch-group-grid { --hatch-grid-cols: 3; }
+}

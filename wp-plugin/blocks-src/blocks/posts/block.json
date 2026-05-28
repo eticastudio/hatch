@@ -1,0 +1,26 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/posts",
+	"title": "Posts",
+	"category": "hatch",
+	"icon": "list-view",
+	"description": "ONE dynamic listing block for every post type. Default = post. Accepts any CPT slug. Filters by taxonomy + term + author + order.",
+	"keywords": [ "posts", "list", "query", "cpt", "loop" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": { "html": false, "reusable": true, "anchor": true, "align": [ "wide", "full" ] },
+	"attributes": {
+		"postType":   { "type": "string", "default": "post" },
+		"perPage":    { "type": "number", "default": 6 },
+		"taxonomy":   { "type": "string", "default": "" },
+		"term":       { "type": "string", "default": "" },
+		"author":     { "type": "string", "default": "" },
+		"orderBy":    { "type": "string", "default": "date" },
+		"order":      { "type": "string", "default": "desc" },
+		"template":   { "type": "string", "default": "grid-3" },
+		"showImage":  { "type": "boolean","default": true },
+		"showExcerpt":{ "type": "boolean","default": true },
+		"showMeta":   { "type": "boolean","default": true }
+	}
+}

@@ -1,0 +1,18 @@
+.hatch-table { margin: var( --hatch-spacing, 1rem ) 0; }
+.hatch-table-scroll { overflow-x: auto; }
+.hatch-table table { width: 100%; border-collapse: collapse; }
+.hatch-table th, .hatch-table td { padding: 0.75em 1em; text-align: left; vertical-align: top; }
+.hatch-table th { font-weight: 600; color: var( --hatch-fg, #0a0a0a ); background: var( --hatch-surface-2, #f4f4f5 ); border-bottom: 2px solid var( --hatch-border, #e5e5e5 ); }
+.hatch-table td { color: var( --hatch-fg, #0a0a0a ); border-bottom: 1px solid var( --hatch-border, #e5e5e5 ); }
+.hatch-table-caption { font-size: 0.875em; color: var( --hatch-muted, #525252 ); margin-top: 0.6em; text-align: center; }
+
+/* Variants */
+.hatch-table-striped tbody tr:nth-child( odd ) td { background: var( --hatch-surface-2, #f4f4f5 ); }
+.hatch-table-bordered th, .hatch-table-bordered td { border: 1px solid var( --hatch-border, #e5e5e5 ); }
+.hatch-table-compact th, .hatch-table-compact td { padding: 0.4em 0.7em; font-size: 0.92em; }
+
+/* Editor-only delete buttons */
+.editor-styles-wrapper .hatch-table-del, .editor-styles-wrapper .hatch-table-rowdel button {
+	background: none; border: 0; color: #b91c1c; cursor: pointer; font-size: 1em; margin-left: 0.4em; opacity: 0.5;
+}
+.editor-styles-wrapper .hatch-table-del:hover, .editor-styles-wrapper .hatch-table-rowdel button:hover { opacity: 1; }

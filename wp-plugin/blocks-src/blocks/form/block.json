@@ -1,0 +1,17 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/form",
+	"title": "Form",
+	"category": "hatch",
+	"icon": "feedback",
+	"description": "Embed a form from your Plugin Bridge provider (Fluent / Gravity / WPForms / CF7).",
+	"keywords": [ "form", "contact", "wpforms", "gravity", "fluent" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": { "html": false, "reusable": true, "anchor": true },
+	"attributes": {
+		"formId": { "type": "string", "default": "" },
+		"label":  { "type": "string", "default": "" }
+	}
+}

@@ -2,6 +2,75 @@
 
 All notable changes to Hatch are recorded here. Format adheres loosely to [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.0] — 2026-05-29
+
+**Full block catalog — 26 Hatch blocks across all 5 tiers.** Plus the Smart Block AI generator. v0.2.0 shipped the foundation; v0.3.0 fills it out.
+
+### 18 new blocks
+
+#### Tier 1 missing — 6 foundation primitives
+
+- `hatch/spacer` — vertical rhythm (xs / sm / md / lg / xl / 2xl), responsive per breakpoint
+- `hatch/divider` — `<hr>` with style variants (solid / dashed / dotted / double / fade), color token, width preset, thickness
+- `hatch/group` — flex / grid / stack wrapper for nested blocks. Gap, align, justify, wrap, semantic tag picker (div / section / article / aside / nav / etc.)
+- `hatch/columns` — 1–6 column responsive grid, gap token, stack-at breakpoint, vertical alignment, allowedBlocks gate
+- `hatch/list` — semantic `<ul>` / `<ol>` with custom marker styles (disc / circle / square / check ✓ / arrow → / numbered variants)
+- `hatch/quote` — `<blockquote>` with optional `<cite>`, schema.org/Quotation markup, variants (default / pull / minimal) and sizes
+
+#### Tier 2 — 5 media blocks
+
+- `hatch/youtube` — **facade pattern**, lazy thumbnail + click-to-play, no cookie domain. Saves ~500 KB per video on initial paint. URL parser accepts full URL, short URL, or bare ID. Custom thumbnail support
+- `hatch/video` — lazy HTML5 `<video>` with poster, `preload="none"`, autoplay/loop/muted/playsinline controls
+- `hatch/gallery` — grid OR masonry layouts, 1–6 columns, aspect ratio presets, lazy lightbox attribute hook
+- `hatch/cover` — image bg + overlay color + opacity, FocalPointPicker, nested heading + paragraph inner blocks, vertical + horizontal alignment
+- `hatch/embed` — generic iframe with URL normalization for Vimeo / Spotify / CodePen / Loom / Figma. Lazy load + strict referrer policy
+
+#### Tier 3 — 5 interactive blocks
+
+- `hatch/tabs` — accessible tab panel with `role="tablist"` / `role="tab"` / `aria-selected` / keyboard nav. Variants: underline / pills / boxed
+- `hatch/accordion` — native `<details>` / `<summary>`, optional schema.org/FAQPage JSON-LD baked in. Single vs multi-open
+- `hatch/table` — responsive (horizontal scroll on mobile), add/remove rows + columns inline, variants (default / striped / bordered / compact), optional caption
+- `hatch/form` — Plugin Bridge embed. Saves a `<div data-hatch-form data-form-id="…">` placeholder; the Astro frontend hydrates via `/hatch/v1/forms/{id}/embed` which auto-detects Fluent / Gravity / WPForms / CF7
+- `hatch/search` — semantic `<form role="search">` posting GET to `/search` (or your custom URL). Variants: inline / pill / boxed
+
+#### Tier 4 — 1 dynamic listing block
+
+- `hatch/posts` — **ONE block for every post type.** Default `postType: post`. Accepts ANY registered CPT slug (product / course / portfolio / docs / recipe / …) — drop the same block, change the attr. Filters: taxonomy + term + author + orderBy + perPage. Templates: grid-2 / grid-3 / grid-4 / list / featured. Saves a `<div data-hatch-posts>` placeholder with every parameter as data-* — Astro fetches and renders live
+
+#### Tier 5 — 1 AI block 🪄
+
+- `hatch/smart` — **Smart Block.** Prompt-based AI section generator. Pick a vibe (minimal / bold / playful / editorial / corporate), describe what you want in plain English, click Generate.
+  - **BYOK (Bring Your Own Key)** — pick Anthropic (Claude Sonnet 4) or OpenAI (GPT-4o), paste your key in Hatch → Blocks tab. Direct API calls; no proxy, no logging on Hatch's side, zero infra cost
+  - **Token-aware system prompt** — AI is told to use ONLY `var(--hatch-primary)` / `var(--hatch-fg)` / `var(--hatch-bg)` / `var(--hatch-accent)` and `max-w-[<your-max-width>px]` from YOUR Design tab settings. Change brand color in admin → every Smart-generated section re-themes automatically
+  - **Strict server-side sanitization** — `Hatch_AI_Generator::sanitize_output()` strips `<script>` / `<iframe>` / `<style>` / `<link>` / `<form>` / all `on*` event handlers / `javascript:` URLs. Final `wp_kses` allowlist of safe elements only
+  - **REST endpoint:** `POST /hatch/v1/ai/generate` — gated to `edit_posts` capability (cost control)
+  - Stub: needs prompt-engineering polish + few-shot examples — sufficient to ship + iterate
+
+### Admin
+
+- **Blocks tab** now lists all 26 blocks by category (Layout / Typography / Media / CTA / Marketing / Interactive / Dynamic / AI / Advanced)
+- **Smart Block · AI card** with provider picker + API key field (masked when set)
+- Per-block enable/disable list grows automatically from the catalog
+
+### Frontend
+
+- All blocks save semantic HTML with `hatch-*` class hooks → Astro renders passthrough via `set:html` on `post.content` — no per-block Astro component needed for static blocks
+- Dynamic blocks (YouTube facade, Form, Posts, Smart) save `data-hatch-*` markers; the Astro starter's small `hatch-blocks` runtime handles facade upgrades + listing fetches + AI HTML embedding
+- Bundle size: 88 KiB JS (unchanged from 8-block v0.2.0 — webpack already dedupes the WP runtime imports). Admin React bundle: 203 KiB
+
+### Architecture
+
+- New `Hatch_AI_Generator` class — register + permissions + Anthropic + OpenAI clients + sanitizer. Loaded via module-loader.php
+- `Hatch_Blocks_Control::catalog()` extended from 8 to 26 entries with category tags
+- Category labels gained `interactive`, `dynamic`, `ai`
+- Boot state now publishes `blocks.ai_provider` + masked `blocks.ai_api_key` so the React admin can render the form without seeing the real key
+
+### Verified
+
+- All 26 blocks register on container init (`WP_Block_Type_Registry::get_all_registered()` reports them)
+- Build pipeline green: 88 KiB blocks bundle + 203 KiB admin bundle
+- `migrate_legacy_state()` from v0.2.0 still safe — runs once per upgrade
+
 ## [0.2.0] — 2026-05-28
 
 **Hatch Blocks foundation — alpha.** The block system is no longer dormant. Eight Hatch-native blocks ship, register on `init`, appear in the Gutenberg inserter under a "Hatch" category, save semantic HTML with Tailwind utility classes, and render passthrough on the Astro frontend (no custom Astro components required — the HTML they save IS the renderable output).

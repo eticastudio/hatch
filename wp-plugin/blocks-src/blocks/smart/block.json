@@ -1,0 +1,19 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/smart",
+	"title": "Smart Block (AI)",
+	"category": "hatch",
+	"icon": "lightbulb",
+	"description": "Describe what you want in plain English. AI generates a section using only Hatch's design vocabulary. BYOK — bring your own Claude/OpenAI key.",
+	"keywords": [ "ai", "smart", "generate", "claude", "gpt", "section" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": { "html": false, "reusable": true, "anchor": true, "align": [ "wide", "full" ] },
+	"attributes": {
+		"prompt":     { "type": "string", "default": "" },
+		"vibe":       { "type": "string", "default": "minimal" },
+		"generated":  { "type": "string", "default": "" },
+		"lastModel":  { "type": "string", "default": "" }
+	}
+}

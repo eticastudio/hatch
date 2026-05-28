@@ -1,0 +1,6 @@
+.hatch-form { margin: var( --hatch-spacing, 1rem ) 0; padding: 1rem; background: var( --hatch-surface, #fff ); border: 1px solid var( --hatch-border, #e5e5e5 ); border-radius: var( --hatch-radius, 6px ); }
+.hatch-form-label { margin: 0 0 0.6em; font-weight: 600; color: var( --hatch-fg, #0a0a0a ); }
+
+.hatch-form-placeholder .hatch-form-stub { padding: 1.25rem; background: var( --hatch-surface-2, #f4f4f5 ); border: 1px dashed var( --hatch-border-2, #d4d4d4 ); border-radius: var( --hatch-radius, 6px ); display: grid; gap: 0.25em; color: var( --hatch-muted, #737373 ); }
+.hatch-form-placeholder strong { color: var( --hatch-fg, #0a0a0a ); }
+.hatch-form-placeholder small { font-size: 0.8em; opacity: 0.7; }

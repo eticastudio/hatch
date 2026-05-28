@@ -1,0 +1,25 @@
+/**
+ * Hatch Spacer block — frontend + editor.
+ *
+ * Heights map to spacing tokens. Density token (--hatch-density) on
+ * <html data-hatch-theme> scales all of them at once when set from the
+ * Design tab.
+ */
+.hatch-spacer { display: block; width: 100%; height: calc( var(--hatch-spacing, 1rem) * 1 ); }
+.hatch-spacer-xs  { height: calc( var(--hatch-spacing, 1rem) * 0.5 ); }
+.hatch-spacer-sm  { height: calc( var(--hatch-spacing, 1rem) * 1 ); }
+.hatch-spacer-md  { height: calc( var(--hatch-spacing, 1rem) * 2 ); }
+.hatch-spacer-lg  { height: calc( var(--hatch-spacing, 1rem) * 3 ); }
+.hatch-spacer-xl  { height: calc( var(--hatch-spacing, 1rem) * 5 ); }
+.hatch-spacer-2xl { height: calc( var(--hatch-spacing, 1rem) * 8 ); }
+
+/* Responsive: sm: ≥ 640px, md: ≥ 768px, lg: ≥ 1024px. */
+@media ( min-width: 640px )  { .sm\:hatch-spacer-xs{height:calc(var(--hatch-spacing,1rem) * 0.5)} .sm\:hatch-spacer-sm{height:calc(var(--hatch-spacing,1rem) * 1)} .sm\:hatch-spacer-md{height:calc(var(--hatch-spacing,1rem) * 2)} .sm\:hatch-spacer-lg{height:calc(var(--hatch-spacing,1rem) * 3)} .sm\:hatch-spacer-xl{height:calc(var(--hatch-spacing,1rem) * 5)} .sm\:hatch-spacer-2xl{height:calc(var(--hatch-spacing,1rem) * 8)} }
+@media ( min-width: 768px )  { .md\:hatch-spacer-xs{height:calc(var(--hatch-spacing,1rem) * 0.5)} .md\:hatch-spacer-sm{height:calc(var(--hatch-spacing,1rem) * 1)} .md\:hatch-spacer-md{height:calc(var(--hatch-spacing,1rem) * 2)} .md\:hatch-spacer-lg{height:calc(var(--hatch-spacing,1rem) * 3)} .md\:hatch-spacer-xl{height:calc(var(--hatch-spacing,1rem) * 5)} .md\:hatch-spacer-2xl{height:calc(var(--hatch-spacing,1rem) * 8)} }
+@media ( min-width: 1024px ) { .lg\:hatch-spacer-xs{height:calc(var(--hatch-spacing,1rem) * 0.5)} .lg\:hatch-spacer-sm{height:calc(var(--hatch-spacing,1rem) * 1)} .lg\:hatch-spacer-md{height:calc(var(--hatch-spacing,1rem) * 2)} .lg\:hatch-spacer-lg{height:calc(var(--hatch-spacing,1rem) * 3)} .lg\:hatch-spacer-xl{height:calc(var(--hatch-spacing,1rem) * 5)} .lg\:hatch-spacer-2xl{height:calc(var(--hatch-spacing,1rem) * 8)} }
+
+/* Editor-only: faint outline so block is visible while empty. */
+.editor-styles-wrapper .hatch-spacer {
+	background-image: repeating-linear-gradient( 45deg, rgba( 100, 100, 100, 0.08 ) 0 4px, transparent 4px 8px );
+	border-radius: 4px;
+}

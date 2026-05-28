@@ -162,6 +162,29 @@ class Hatch_Blocks_Control {
 				'description' => __( 'Drop in HTML / CSS / JS — admin-only, 3 security modes.', 'hatch' ),
 				'category'    => 'advanced',
 			),
+			// v0.3.0 — Tier 1 missing
+			'hatch/spacer'   => array( 'label' => __( 'Spacer', 'hatch' ),    'description' => __( 'Vertical rhythm token (xs–2xl).', 'hatch' ),    'category' => 'layout' ),
+			'hatch/divider'  => array( 'label' => __( 'Divider', 'hatch' ),   'description' => __( 'Horizontal rule with style variants.', 'hatch' ),'category' => 'layout' ),
+			'hatch/group'    => array( 'label' => __( 'Group', 'hatch' ),     'description' => __( 'Flex / grid / stack wrapper.', 'hatch' ),       'category' => 'layout' ),
+			'hatch/columns'  => array( 'label' => __( 'Columns', 'hatch' ),   'description' => __( 'Responsive 2–6 column grid.', 'hatch' ),        'category' => 'layout' ),
+			'hatch/list'     => array( 'label' => __( 'List', 'hatch' ),      'description' => __( 'Bulleted / numbered / check / arrow list.', 'hatch' ), 'category' => 'typography' ),
+			'hatch/quote'    => array( 'label' => __( 'Quote', 'hatch' ),     'description' => __( 'Blockquote with attribution + Quotation schema.', 'hatch' ), 'category' => 'typography' ),
+			// v0.3.0 — Tier 2 Media
+			'hatch/youtube'  => array( 'label' => __( 'YouTube', 'hatch' ),   'description' => __( 'Lazy YouTube — facade thumbnail, no iframe until click.', 'hatch' ), 'category' => 'media' ),
+			'hatch/video'    => array( 'label' => __( 'Video', 'hatch' ),     'description' => __( 'HTML5 video with poster, only loads on play.', 'hatch' ), 'category' => 'media' ),
+			'hatch/gallery'  => array( 'label' => __( 'Gallery', 'hatch' ),   'description' => __( 'Grid / masonry image set with lightbox.', 'hatch' ),  'category' => 'media' ),
+			'hatch/cover'    => array( 'label' => __( 'Cover', 'hatch' ),     'description' => __( 'Image background with overlay text.', 'hatch' ),       'category' => 'media' ),
+			'hatch/embed'    => array( 'label' => __( 'Embed', 'hatch' ),     'description' => __( 'Vimeo / Spotify / CodePen / Loom / Figma.', 'hatch' ), 'category' => 'media' ),
+			// v0.3.0 — Tier 3 Interactive
+			'hatch/tabs'      => array( 'label' => __( 'Tabs', 'hatch' ),     'description' => __( 'Accessible tab panel.', 'hatch' ),               'category' => 'interactive' ),
+			'hatch/accordion' => array( 'label' => __( 'Accordion', 'hatch' ),'description' => __( 'Native <details> / FAQ schema.', 'hatch' ),       'category' => 'interactive' ),
+			'hatch/table'     => array( 'label' => __( 'Table', 'hatch' ),    'description' => __( 'Responsive table — scrolls on mobile.', 'hatch' ),'category' => 'interactive' ),
+			'hatch/form'      => array( 'label' => __( 'Form', 'hatch' ),     'description' => __( 'Plugin-Bridge form (Fluent / WPForms / Gravity / CF7).', 'hatch' ), 'category' => 'interactive' ),
+			'hatch/search'    => array( 'label' => __( 'Search', 'hatch' ),   'description' => __( 'Site search box.', 'hatch' ),                    'category' => 'interactive' ),
+			// v0.3.0 — Tier 4 Dynamic
+			'hatch/posts'     => array( 'label' => __( 'Posts', 'hatch' ),    'description' => __( 'ONE dynamic listing block for every CPT. Default = post.', 'hatch' ), 'category' => 'dynamic' ),
+			// v0.3.0 — Tier 5 AI
+			'hatch/smart'     => array( 'label' => __( 'Smart Block (AI)', 'hatch' ), 'description' => __( 'Prompt-based AI section generator. BYOK.', 'hatch' ), 'category' => 'ai' ),
 		);
 	}
 
@@ -172,12 +195,15 @@ class Hatch_Blocks_Control {
 	 */
 	public static function category_labels(): array {
 		return array(
-			'layout'     => __( 'Layout', 'hatch' ),
-			'typography' => __( 'Typography', 'hatch' ),
-			'media'      => __( 'Media', 'hatch' ),
-			'cta'        => __( 'Call to action', 'hatch' ),
-			'marketing'  => __( 'Marketing', 'hatch' ),
-			'advanced'   => __( 'Advanced', 'hatch' ),
+			'layout'      => __( 'Layout', 'hatch' ),
+			'typography'  => __( 'Typography', 'hatch' ),
+			'media'       => __( 'Media', 'hatch' ),
+			'cta'         => __( 'Call to action', 'hatch' ),
+			'marketing'   => __( 'Marketing', 'hatch' ),
+			'interactive' => __( 'Interactive', 'hatch' ),
+			'dynamic'     => __( 'Dynamic', 'hatch' ),
+			'ai'          => __( 'AI', 'hatch' ),
+			'advanced'    => __( 'Advanced', 'hatch' ),
 		);
 	}
 

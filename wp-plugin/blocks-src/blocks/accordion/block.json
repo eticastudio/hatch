@@ -1,0 +1,21 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/accordion",
+	"title": "Accordion",
+	"category": "hatch",
+	"icon": "menu-alt",
+	"description": "Expandable sections via native <details>. Doubles as FAQ. Schema.org markup optional.",
+	"keywords": [ "accordion", "faq", "expand", "collapse", "details" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": { "html": false, "reusable": true, "anchor": true },
+	"attributes": {
+		"items":      { "type": "array",  "default": [
+			{ "q": "First question", "a": "First answer." },
+			{ "q": "Second question", "a": "Second answer." }
+		] },
+		"allowMulti": { "type": "boolean","default": true },
+		"useSchema":  { "type": "boolean","default": false }
+	}
+}

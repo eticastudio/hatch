@@ -1,0 +1,22 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/cover",
+	"title": "Cover",
+	"category": "hatch",
+	"icon": "cover-image",
+	"description": "Image background with overlay text + heading. Fixed aspect ratio, zero CLS.",
+	"keywords": [ "cover", "hero", "banner", "image", "overlay" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": { "html": false, "reusable": true, "anchor": true, "align": [ "wide", "full" ] },
+	"attributes": {
+		"image":       { "type": "object", "default": null },
+		"aspectRatio": { "type": "string", "default": "16/9" },
+		"overlayOpacity":{ "type": "number", "default": 40 },
+		"overlayColor":  { "type": "string", "default": "#000000" },
+		"textAlign":   { "type": "string", "default": "center" },
+		"verticalAlign":{ "type": "string","default": "center" },
+		"focalPoint":  { "type": "object", "default": { "x": 0.5, "y": 0.5 } }
+	}
+}

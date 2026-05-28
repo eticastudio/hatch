@@ -47,6 +47,7 @@ class Hatch_Module_Loader {
 		'Hatch_Blocks_Registry'           => array( 'file' => 'class-blocks-registry.php',         'flag' => null ),
 		'Hatch_Blocks_Shared_Attributes'  => array( 'file' => 'class-blocks-shared-attributes.php', 'flag' => null ),
 		'Hatch_Blocks_Control'            => array( 'file' => 'class-blocks-control.php',          'flag' => null ),
+		'Hatch_AI_Generator'              => array( 'file' => 'class-ai-generator.php',            'flag' => null ),
 		'Hatch_Rankready_Bridge'          => array( 'file' => 'class-rankready-bridge.php',        'flag' => null ),
 		'Hatch_Acf_Bridge'                => array( 'file' => 'class-acf-bridge.php',              'flag' => null ),
 		'Hatch_Frontend_Agent'            => array( 'file' => 'class-frontend-agent.php',          'flag' => null ),

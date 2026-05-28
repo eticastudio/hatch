@@ -1,0 +1,19 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/table",
+	"title": "Table",
+	"category": "hatch",
+	"icon": "editor-table",
+	"description": "Responsive table — scrolls on mobile.",
+	"keywords": [ "table", "data" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": { "html": false, "reusable": true, "anchor": true, "align": [ "wide", "full" ] },
+	"attributes": {
+		"head":     { "type": "array",  "default": [ "Column 1", "Column 2", "Column 3" ] },
+		"rows":     { "type": "array",  "default": [ [ "Cell 1", "Cell 2", "Cell 3" ] ] },
+		"caption":  { "type": "string", "default": "" },
+		"variant":  { "type": "string", "default": "default" }
+	}
+}

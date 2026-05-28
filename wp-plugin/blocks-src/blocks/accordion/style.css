@@ -1,0 +1,9 @@
+.hatch-accordion { margin: var( --hatch-spacing, 1rem ) 0; border-radius: var( --hatch-radius, 6px ); }
+.hatch-accordion-item { border-bottom: 1px solid var( --hatch-border, #e5e5e5 ); }
+.hatch-accordion-item:first-child { border-top: 1px solid var( --hatch-border, #e5e5e5 ); }
+.hatch-accordion-item summary { padding: 0.9em 0; cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; font-weight: 500; color: var( --hatch-fg, #0a0a0a ); }
+.hatch-accordion-item summary::-webkit-details-marker { display: none; }
+.hatch-accordion-item summary::after { content: '+'; font-size: 1.4em; line-height: 1; color: var( --hatch-muted, #737373 ); transition: transform 0.2s; }
+.hatch-accordion-item[open] summary::after { content: '−'; }
+.hatch-accordion-item summary:hover { color: var( --hatch-primary, #ff6b35 ); }
+.hatch-accordion-body { padding: 0 0 1em; color: var( --hatch-fg, #0a0a0a ); }

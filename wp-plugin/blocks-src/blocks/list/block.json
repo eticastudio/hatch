@@ -1,0 +1,18 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hatch/list",
+	"title": "List",
+	"category": "hatch",
+	"icon": "editor-ul",
+	"description": "Bulleted, numbered, or check-mark list with token typography.",
+	"keywords": [ "list", "ul", "ol", "bullet", "numbered", "check" ],
+	"version": "0.3.0",
+	"textdomain": "hatch-blocks",
+	"supports": { "html": false, "reusable": true, "anchor": true },
+	"attributes": {
+		"ordered": { "type": "boolean", "default": false },
+		"marker":  { "type": "string",  "default": "disc" },
+		"values":  { "type": "string",  "default": "<li>Item one</li><li>Item two</li><li>Item three</li>" }
+	}
+}

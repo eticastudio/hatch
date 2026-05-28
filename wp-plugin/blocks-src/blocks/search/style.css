@@ -1,0 +1,12 @@
+.hatch-search { display: flex; gap: 0.5rem; margin: var( --hatch-spacing, 1rem ) 0; align-items: center; max-width: 100%; }
+.hatch-search input { flex: 1; padding: 0.6em 0.9em; border: 1px solid var( --hatch-border, #e5e5e5 ); border-radius: var( --hatch-radius, 6px ); font: inherit; background: var( --hatch-bg, #fff ); color: var( --hatch-fg, #0a0a0a ); }
+.hatch-search input:focus { outline: 2px solid var( --hatch-primary, #ff6b35 ); outline-offset: 2px; }
+.hatch-search button { padding: 0.6em 1.1em; border: 0; border-radius: var( --hatch-radius, 6px ); background: var( --hatch-fg, #0a0a0a ); color: var( --hatch-bg, #fff ); cursor: pointer; font: inherit; font-weight: 500; }
+.hatch-search button:hover { background: var( --hatch-primary, #ff6b35 ); }
+
+/* Variants */
+.hatch-search-pill input, .hatch-search-pill button { border-radius: 999px; }
+.hatch-search-boxed { padding: 0.4em; background: var( --hatch-surface-2, #f4f4f5 ); border-radius: var( --hatch-radius, 6px ); }
+.hatch-search-boxed input { border-color: transparent; background: transparent; }
+
+.screen-reader-text { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect( 0,0,0,0 ); white-space: nowrap; border: 0; }
