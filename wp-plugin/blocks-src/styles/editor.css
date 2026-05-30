@@ -26,51 +26,54 @@
 }
 
 /* ==========================================================================
-   v0.3.4 — Hatch yellow accent in the inserter.
-   Every Hatch block carries a soft gold tint + 🐣 badge in its inserter tile
-   so authors instantly know which blocks are Hatch-native vs Core. The
-   block-category section ("Hatch") gets a small chick badge in its header.
+   v0.3.5 — Hatch brand cue in the inserter (outline + icon, no fill).
+   The previous fill made the panel feel like a candy shop. New approach:
+   transparent tile background, amber icon tint, amber-on-hover outline,
+   and a tiny chick mark — that's it.
    ========================================================================== */
-:root {
-	--hatch-amber:        #fbbf24;
-	--hatch-amber-soft:   #fef3c7;
-	--hatch-amber-border: #f59e0b;
+
+/* Resting tile — no fill, no border. Only the icon gets a brand colour. */
+.block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"] {
+	position: relative;
+	background: transparent !important;
+	border-radius: 8px !important;
+	box-shadow: none !important;
+	transition: box-shadow 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+.block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"] .block-editor-block-types-list__item-icon svg,
+.block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"] svg {
+	color: #d97706 !important;
 }
 
-/* Inserter tile (preview card) for any block with name starting hatch/ */
-.block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"] {
-	background: var(--hatch-amber-soft) !important;
-	border-radius: 6px !important;
-	border: 1px solid rgba(245, 158, 11, 0.25) !important;
-	transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
-}
+/* Hover/focus — amber outline reveals; still no fill. */
 .block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"]:hover {
-	border-color: var(--hatch-amber-border) !important;
-	box-shadow: 0 6px 14px -8px rgba(245, 158, 11, 0.35) !important;
+	background: rgba(254, 243, 199, 0.4) !important;
+	box-shadow: inset 0 0 0 1.5px rgba(217, 119, 6, 0.7) !important;
 	transform: translateY(-1px);
 }
-.block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"] .block-editor-block-types-list__item-icon {
-	color: #b45309 !important;
-}
-.block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"] .block-editor-block-types-list__item-title {
-	color: #78350f !important;
-	font-weight: 600;
+.block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"]:focus,
+.block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"].is-active {
+	box-shadow: inset 0 0 0 2px #d97706 !important;
 }
 
-/* Tiny 🐣 badge in the corner of every Hatch tile. */
+/* Tiny chick mark — SVG of the Hatch egg/chick instead of an emoji so it
+   doesn't render system-font-dependent. */
 .block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"]::after {
-	content: '🐣';
+	content: '';
 	position: absolute;
-	top: 4px;
-	right: 6px;
-	font-size: 10px;
-	opacity: 0.85;
-	line-height: 1;
+	top: 5px;
+	right: 5px;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: #d97706;
+	opacity: 0.65;
+	pointer-events: none;
 }
-.block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"] { position: relative; }
 
-/* Inserter category header — "Hatch" gets the same gold tint. */
-.block-editor-inserter__panel-title[id*="hatch"],
-.block-editor-block-card[class*="hatch-"] .block-editor-block-card__title {
-	color: #b45309 !important;
+/* Canvas selection ring — thin amber dashed border. */
+.wp-block.is-selected[class*="wp-block-hatch-"] {
+	outline: 1px dashed rgba(217, 119, 6, 0.55) !important;
+	outline-offset: 4px;
+	border-radius: 4px;
 }

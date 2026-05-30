@@ -412,3 +412,104 @@ export function rewriteContentImages(html: string, features: HatchFeatures, maxW
     return `<img${before}src="${proxied}"${after}${extra}>`;
   });
 }
+
+/**
+ * v0.3.5 — Server-render Hatch Posts blocks before the HTML hits the browser.
+ *
+ * The Posts block (`<div data-hatch-posts ...>`) used to render a loading
+ * stub on the server and let `hatch-blocks.js` fetch + replace it client-side.
+ * That meant every page with a Posts block showed an empty placeholder for
+ * a few hundred ms, then card markup popped in and shifted the layout.
+ *
+ * Now we fetch the post list during SSR and inline the rendered card HTML
+ * so the page arrives painted. The client runtime still hydrates dynamic
+ * interactions (YouTube facade, Tabs, etc.) — it just no longer owns the
+ * Posts render path. If the SSR fetch fails we leave the placeholder so
+ * the client fallback still has a chance.
+ */
+const POSTS_BLOCK_RE = /<div\b([^>]*?\bdata-hatch-posts\b[^>]*)>([\s\S]*?)<\/div>/gi;
+const ATTR_RE = /\bdata-([a-z-]+)=["']([^"']*)["']/gi;
+
+function attrs(s: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const m of s.matchAll(ATTR_RE)) out[m[1]] = m[2];
+  return out;
+}
+
+function escAttr(s: string): string {
+  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+interface HatchPostsItem {
+  id: number;
+  slug: string;
+  link?: string;
+  title?: string;
+  excerpt?: string;
+  published?: string;
+  featured_media_url?: string;
+  featured_media_alt?: string;
+}
+
+async function fetchPostsForBlock(features: HatchFeatures, params: URLSearchParams): Promise<HatchPostsItem[]> {
+  const base = (features.site?.url || '').replace(/\/$/, '');
+  if (!base) return [];
+  try {
+    const res = await fetch(`${base}/wp-json/hatch/v1/content/list?${params.toString()}`, {
+      // SSR runs on the worker/Node side; cache here to keep the WP origin cool.
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const list = Array.isArray(data) ? data : (data?.items || []);
+    return list as HatchPostsItem[];
+  } catch {
+    return [];
+  }
+}
+
+function renderCard(p: HatchPostsItem, showImage: boolean, showExcerpt: boolean, showMeta: boolean): string {
+  const href = p.link || `/blog/${p.slug}`;
+  const img = showImage && p.featured_media_url
+    ? `<div class="hatch-post-card-image"><img src="${escAttr(p.featured_media_url)}" alt="${escAttr(p.featured_media_alt || '')}" loading="lazy" decoding="async"></div>`
+    : '';
+  const excerpt = showExcerpt && p.excerpt ? `<p class="hatch-post-card-excerpt">${p.excerpt}</p>` : '';
+  const meta = showMeta && p.published
+    ? `<div class="hatch-post-card-meta">${new Date(p.published).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>`
+    : '';
+  return `<a class="hatch-post-card" href="${escAttr(href)}">${img}<div class="hatch-post-card-body"><h3 class="hatch-post-card-title">${p.title || ''}</h3>${excerpt}${meta}</div></a>`;
+}
+
+export async function renderHatchPostsBlocks(html: string, features: HatchFeatures): Promise<string> {
+  if (!html || html.indexOf('data-hatch-posts') === -1) return html;
+  // Walk every Posts block, fetch, replace. Run sequentially because a single
+  // page rarely has more than 1–2 Posts blocks; parallel would just add WP load.
+  const matches = Array.from(html.matchAll(POSTS_BLOCK_RE));
+  let out = html;
+  for (const m of matches) {
+    const a = attrs(m[1] || '');
+    const params = new URLSearchParams();
+    if (a['post-type']) params.set('post_type', a['post-type']);
+    if (a['per-page']) params.set('per_page', a['per-page']);
+    if (a['taxonomy']) params.set('taxonomy', a['taxonomy']);
+    if (a['term']) params.set('term', a['term']);
+    if (a['author']) params.set('author', a['author']);
+    if (a['order-by']) params.set('orderby', a['order-by']);
+    if (a['order']) params.set('order', a['order']);
+    if (!params.has('per_page')) params.set('per_page', '6');
+
+    const items = await fetchPostsForBlock(features, params);
+    if (items.length === 0) continue; // leave loading stub for client fallback
+
+    const showImage   = a['show-image']   !== '0';
+    const showExcerpt = a['show-excerpt'] !== '0';
+    const showMeta    = a['show-meta']    !== '0';
+    const cards = items.map(p => renderCard(p, showImage, showExcerpt, showMeta)).join('');
+    const outer = m[0];
+    // Strip the loading stub from inside the original div; preserve the
+    // wrapper so the CSS grid + data-attrs survive for hydration parity.
+    const replaced = outer.replace(/>[\s\S]*<\/div>$/, `>${cards}</div>`);
+    out = out.replace(outer, replaced);
+  }
+  return out;
+}

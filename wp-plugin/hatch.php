@@ -3,7 +3,7 @@
  * Plugin Name:       Hatch — Headless WordPress
  * Plugin URI:        https://github.com/adityaarsharma/hatch
  * Description:       Turn WordPress into a headless CMS with an Astro frontend. One-click deploy to Cloudflare / Vercel / VPS, security hardening, image proxy, REST bridge, and a React admin.
- * Version:           0.3.4
+ * Version:           0.3.5
  * Requires at least: 6.4
  * Tested up to:      6.9
  * Requires PHP:      7.4
@@ -20,7 +20,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'HATCH_VERSION', '0.3.4' );
+define( 'HATCH_VERSION', '0.3.5' );
 define( 'HATCH_PLUGIN_FILE', __FILE__ );
 define( 'HATCH_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'HATCH_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -652,6 +652,13 @@ final class Hatch {
 		}
 		if ( file_exists( HATCH_PLUGIN_DIR . 'build/editor.css' ) ) {
 			wp_enqueue_style( 'hatch-editor', HATCH_PLUGIN_URL . 'build/editor.css', array( 'wp-edit-blocks' ), $ver );
+		}
+		// v0.3.5 — single-bundle build mode also ships an index.css alongside
+		// index.js (the editor.css imported from blocks-src/index.js gets
+		// concatenated there). Enqueue it so the Hatch amber inserter tint +
+		// editor affordances actually load.
+		if ( file_exists( HATCH_PLUGIN_DIR . 'build/index.css' ) ) {
+			wp_enqueue_style( 'hatch-editor-bundle', HATCH_PLUGIN_URL . 'build/index.css', array( 'wp-edit-blocks' ), $ver );
 		}
 	}
 

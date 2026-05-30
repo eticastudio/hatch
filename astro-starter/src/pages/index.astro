@@ -14,14 +14,23 @@ import PageLayout from '@/layouts/PageLayout.astro';
 import PostCard from '@/components/PostCard.astro';
 import HatchImage from '@/components/HatchImage.astro';
 import { getPosts, getCategories, getPageById } from '@/lib/hatch';
-import { getFeatures, rewriteContentImages } from '@/lib/features';
+import { getFeatures, rewriteContentImages, renderHatchPostsBlocks } from '@/lib/features';
 
 const features = await getFeatures();
 
 // Mode 1 — WP static front page.
 let staticPage = null;
+let staticContent = '';
 if (features.home.mode === 'page' && features.home.static_page_id) {
   staticPage = await getPageById(features.home.static_page_id);
+  if (staticPage) {
+    // v0.3.5 — SSR-render Hatch Posts blocks BEFORE injecting HTML so the
+    // home page paints with real cards on first byte (no client-side flicker).
+    staticContent = await renderHatchPostsBlocks(
+      rewriteContentImages(staticPage.content, features),
+      features,
+    );
+  }
 }
 
 const { posts: latest, total } = staticPage
@@ -47,7 +56,7 @@ const tagline = features.site.description;
           article width, not the 680px reading column. Blog themes constrain
           .hatch-prose to a reading column by default (right for posts, wrong
           for landing pages with Cover/Columns/Posts blocks). */}
-      <div class="hatch-prose" style="max-width: 100%;" set:html={rewriteContentImages(staticPage.content, features)}></div>
+      <div class="hatch-prose" style="max-width: 100%;" set:html={staticContent}></div>
     </article>
   </PageLayout>
 ) : latest.length === 0 ? (

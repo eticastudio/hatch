@@ -410,10 +410,13 @@
    real hover affordances, gradient accents on Cover/Buttons/Smart.
    ========================================================================== */
 
-/* ---- Cover: gradient overlay + dramatic typography ---- */
+/* ---- Cover: gradient overlay + dramatic typography ----
+   v0.3.5 — capped to feel like a hero, not a billboard. Authors who want
+   a tall cover can override via the block's own min-height attribute. */
 .hatch-cover {
-	padding: clamp( 3rem, 6vw, 5rem ) clamp( 1.5rem, 4vw, 3rem );
-	min-height: 360px;
+	padding: clamp( 2rem, 4vw, 3.5rem ) clamp( 1.5rem, 4vw, 3rem );
+	min-height: 280px;
+	max-height: 460px;
 	border-radius: 16px;
 	background: linear-gradient( 135deg, #1e293b 0%, #0f172a 55%, #020617 100% );
 	box-shadow: 0 24px 60px -28px rgba( 15, 23, 42, 0.6 );
