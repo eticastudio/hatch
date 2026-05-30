@@ -467,6 +467,34 @@
 	transition: transform 0.5s ease;
 }
 .hatch-posts a.hatch-post-card:hover .hatch-post-card-image img { transform: scale( 1.06 ); }
+
+/* v0.3.6 — Designed placeholder for cards without a featured image. The card
+   gets a soft gradient panel instead of an empty cream rectangle that looks
+   broken. Used by .hatch-posts cards AND the shared PostCard.astro component
+   (Related / Latest grids), so the look is consistent across the site. */
+.hatch-posts a.hatch-post-card:not(:has(.hatch-post-card-image))::before {
+	content: '';
+	display: block;
+	aspect-ratio: 16 / 10;
+	border-bottom: 1px solid rgba( 15, 23, 42, 0.06 );
+}
+.hatch-posts a.hatch-post-card:not(:has(.hatch-post-card-image))::before,
+.hatch-card-placeholder {
+	background:
+		radial-gradient( circle at 30% 25%, rgba( 99, 102, 241, 0.22 ), transparent 55% ),
+		radial-gradient( circle at 75% 70%, rgba( 236, 72, 153, 0.18 ), transparent 55% ),
+		linear-gradient( 135deg, #f8fafc 0%, #eef2ff 60%, #fdf2f8 100% );
+	background-size: cover;
+	position: relative;
+}
+.hatch-card-placeholder::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background:
+		radial-gradient( circle at 80% 20%, rgba( 245, 158, 11, 0.12 ), transparent 40% );
+	pointer-events: none;
+}
 .hatch-posts .hatch-post-card-body { padding: 1.1rem 1.2rem 1.3rem; flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
 .hatch-posts .hatch-post-card-title {
 	font-family: var( --hatch-font-heading, inherit );
@@ -515,24 +543,59 @@ h3.hatch-heading { font-size: 1.25rem; font-weight: 600; }
 .hatch-paragraph { line-height: 1.65; color: #334155; font-size: 1rem; }
 
 /* ---- Button: gradient pill ---- */
+.hatch-button-wrap { display: inline-block; max-width: 100%; }
 .hatch-button {
-	display: inline-flex; align-items: center; gap: 0.5em;
-	padding: 0.75em 1.4em;
+	display: inline-flex; align-items: center; justify-content: center; gap: 0.5em;
+	padding: 0.75em 1.5em;
+	min-height: 44px;          /* a11y tap target */
+	max-width: 100%;            /* never overflow its container */
+	white-space: nowrap;
 	border-radius: 999px;
-	font-weight: 600; font-size: 0.95rem;
+	font-weight: 600; font-size: 0.95rem; line-height: 1.2;
 	background: linear-gradient( 135deg, var( --hatch-primary, #6366f1 ) 0%, var( --hatch-accent, #8b5cf6 ) 100% );
 	color: #fff;
 	box-shadow: 0 8px 20px -8px rgba( 99, 102, 241, 0.55 );
 	transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+	box-sizing: border-box;
+	text-decoration: none;
 }
 .hatch-button:hover { transform: translateY( -2px ); box-shadow: 0 14px 28px -10px rgba( 99, 102, 241, 0.65 ); filter: brightness( 1.05 ); }
 .hatch-button:active { transform: translateY( 0 ); }
 
-/* ---- Tabs: clean underline ---- */
-.hatch-tabs-nav { border-bottom: 1px solid rgba( 15, 23, 42, 0.1 ); gap: 0.5rem; }
-.hatch-tabs-tab { padding: 0.75em 1.1em; font-weight: 500; transition: color 0.2s; }
-.hatch-tabs-tab.is-active { color: var( --hatch-primary, #6366f1 ); box-shadow: inset 0 -2px 0 var( --hatch-primary, #6366f1 ); }
-.hatch-tabs-panel { padding-top: 1rem; line-height: 1.6; }
+/* ---- Tabs: clean underline + smooth panel transition ---- */
+.hatch-tabs-nav {
+	border-bottom: 1px solid rgba( 15, 23, 42, 0.08 );
+	gap: 0.25rem;
+	margin-bottom: 1.5rem;
+	position: relative;
+	display: flex;
+	flex-wrap: wrap;
+}
+.hatch-tabs-tab {
+	background: transparent; border: 0;
+	padding: 0.85em 1.25em;
+	font: inherit; font-weight: 500; font-size: 0.95rem;
+	color: var( --hatch-fg-muted, #64748b );
+	cursor: pointer;
+	position: relative;
+	transition: color 0.18s ease;
+}
+.hatch-tabs-tab:hover { color: var( --hatch-fg, #0f172a ); }
+.hatch-tabs-tab::after {
+	content: '';
+	position: absolute;
+	left: 0.6em; right: 0.6em; bottom: -1px;
+	height: 2px;
+	background: var( --hatch-primary, #6366f1 );
+	border-radius: 2px;
+	transform: scaleX( 0 );
+	transform-origin: center;
+	transition: transform 0.25s cubic-bezier( 0.4, 0.0, 0.2, 1 );
+}
+.hatch-tabs-tab.is-active { color: var( --hatch-fg, #0f172a ); font-weight: 600; }
+.hatch-tabs-tab.is-active::after { transform: scaleX( 1 ); }
+.hatch-tabs-panel { padding: 0.5rem 0 0; line-height: 1.65; color: var( --hatch-fg, #1e293b ); }
+.hatch-tabs-panel:not(.is-active) { display: none; }
 
 /* ---- Search: pill input ---- */
 .hatch-search input {
