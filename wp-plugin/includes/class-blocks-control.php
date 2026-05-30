@@ -290,6 +290,18 @@ class Hatch_Blocks_Control {
 		if ( ! function_exists( 'unregister_block_type' ) ) {
 			return;
 		}
+
+		// v0.3.3 — blocks not yet visually QA'd are hidden from the inserter
+		// entirely. They stay in the codebase so contributors can finish them,
+		// but no demo user can drop a half-finished block onto a page. The
+		// Hatch admin → Blocks tab shows them with a "Coming Soon" badge so
+		// the catalog feels complete.
+		foreach ( self::coming_soon() as $slug ) {
+			if ( \WP_Block_Type_Registry::get_instance()->is_registered( $slug ) ) {
+				unregister_block_type( $slug );
+			}
+		}
+
 		if ( ! self::master_on() ) {
 			// Master off — unregister ALL Hatch blocks.
 			foreach ( array_keys( self::catalog() ) as $slug ) {
@@ -306,5 +318,26 @@ class Hatch_Blocks_Control {
 				unregister_block_type( $slug );
 			}
 		}
+	}
+
+	/**
+	 * Blocks that exist in the codebase but are not yet visually production-
+	 * ready. Hidden from the inserter, shown as "Coming Soon" in admin.
+	 *
+	 * Re-evaluate after the v0.3.3 theme QA pass — anything that survives the
+	 * 6-theme matrix can come off this list.
+	 *
+	 * @return array<int,string>
+	 */
+	public static function coming_soon(): array {
+		return array(
+			'hatch/smart',       // AI BYOK — needs key config flow
+			'hatch/custom-code', // Just converted to dynamic block; re-verify before exposing
+			'hatch/gallery',     // Lightbox not yet hydrated
+			'hatch/video',       // Poster + play UX not designed
+			'hatch/embed',       // Provider whitelist not finalized
+			'hatch/table',       // Mobile scroll affordance untested
+			'hatch/form',        // Needs an actual Fluent/CF7/WPForms install to demo
+		);
 	}
 }
