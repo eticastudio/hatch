@@ -1,0 +1,88 @@
+# Hatch — local development stack.
+#
+# Two containers, one network:
+#   hatch_wp     → WordPress + Hatch plugin, port 8810
+#   hatch_astro  → Astro starter (SSR dev), port 4321
+#
+# Spin up:           docker compose up -d
+# Tear down:         docker compose down
+# Reset DB:          docker compose down -v
+# View Astro logs:   docker compose logs -f astro
+# View WP logs:      docker compose logs -f wp
+#
+# WP login (auto-installed via the entrypoint script):
+#   user:  admin
+#   pass:  admin
+#   url:   http://localhost:8810/wp-admin
+#
+# Astro reads the WP origin from astro-starter/.env (HATCH_WP_API_URL).
+# When running through compose, both containers can also reach each other
+# on the internal network at http://wp/ — useful for SSR fetch.
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: hatch_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  wp:
+    image: wordpress:latest
+    container_name: hatch_wp
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DEBUG: 1
+      WORDPRESS_CONFIG_EXTRA: |
+        define( 'WP_HOME',    'http://localhost:8810' );
+        define( 'WP_SITEURL', 'http://localhost:8810' );
+    ports:
+      - "8810:80"
+    volumes:
+      # The Hatch plugin source is bind-mounted so every PHP edit is live —
+      # no `docker cp` needed during development.
+      - ./wp-plugin:/var/www/html/wp-content/plugins/hatch
+      - wp_data:/var/www/html
+
+  astro:
+    image: node:20-alpine
+    container_name: hatch_astro
+    restart: unless-stopped
+    depends_on:
+      - wp
+    working_dir: /app
+    # `npm install` is idempotent thanks to package-lock.json; first boot will
+    # take ~30s, subsequent boots reuse the cached node_modules volume.
+    command: sh -c "npm install --no-audit --no-fund && npm run dev -- --host 0.0.0.0"
+    environment:
+      # When the Astro container talks to WP across the docker network it
+      # uses the service name; the browser still hits http://localhost:8810.
+      HATCH_WP_API_URL: http://wp/wp-json/wp/v2
+      HOST: 0.0.0.0
+    ports:
+      - "4321:4321"
+    volumes:
+      - ./astro-starter:/app
+      - astro_node_modules:/app/node_modules
+
+volumes:
+  db_data:
+  wp_data:
+  astro_node_modules:
