@@ -90,8 +90,12 @@
 [data-hatch-theme="blog"] .hatch-header .brand span {
 	font-family: var(--hatch-font-heading);
 }
+/* v0.3.5 — Header must be OPAQUE. The previous `background: transparent`
+   made a sticky header that content scrolled under, so the wordmark
+   overlapped section headings on long pages. Solid cream paper colour
+   with a thin rule underneath = classic editorial top bar. */
 [data-hatch-theme="blog"] .hatch-header {
-	background: transparent !important;
+	background: var(--hatch-bg) !important;
 	border-bottom: 1px solid var(--hatch-border) !important;
 	backdrop-filter: none !important;
 }
