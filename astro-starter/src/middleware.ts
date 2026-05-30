@@ -206,13 +206,22 @@ function rateLimit(request: Request, path: string): Response | null {
   return null;
 }
 
+// v0.3.2 — extract origin from WP_API_URL so CSP `connect-src` allows the
+// browser-side blocks runtime to fetch /hatch/v1/* directly.
+const wpApiOrigin = (() => {
+  try {
+    return WP_API ? new URL(WP_API).origin : '';
+  } catch (e) { return ''; }
+})();
 const CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://challenges.cloudflare.com https://static.cloudflareinsights.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: https:",
-  "connect-src 'self' https://www.google-analytics.com https://*.analytics.google.com",
+  // v0.3.2 — allow the Hatch WP origin so the blocks runtime can fetch
+  // /hatch/v1/content/list, /hatch/v1/forms/*/embed, etc.
+  `connect-src 'self' https://www.google-analytics.com https://*.analytics.google.com ${ wpApiOrigin } http://localhost:8810 http://localhost:8765`,
   "frame-src 'self' https://www.googletagmanager.com https://challenges.cloudflare.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",

@@ -36,6 +36,9 @@ class Hatch_Rest_Api {
 	 */
 	private function __construct() {
 		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
+		// v0.3.2 — Permissive CORS for /hatch/v1/* (the Astro browser runtime
+		// hits these directly). Priority 5 so we run before WP's defaults.
+		add_filter( 'rest_pre_serve_request', array( self::class, 'send_cors_for_hatch' ), 5, 4 );
 	}
 
 	/**
@@ -215,6 +218,27 @@ class Hatch_Rest_Api {
 			)
 		);
 
+		// v0.3.2 — Posts block list endpoint. Public; returns only published
+		// content with safe filters (taxonomy / term / author / orderby).
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/content/list',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'route_content_list' ),
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'post_type' => array( 'default' => 'post', 'sanitize_callback' => 'sanitize_key' ),
+					'per_page'  => array( 'default' => 6,      'type' => 'integer' ),
+					'taxonomy'  => array( 'default' => '',     'sanitize_callback' => 'sanitize_key' ),
+					'term'      => array( 'default' => '',     'sanitize_callback' => 'sanitize_title' ),
+					'author'    => array( 'default' => '',     'sanitize_callback' => 'sanitize_text_field' ),
+					'orderby'   => array( 'default' => 'date', 'sanitize_callback' => 'sanitize_key' ),
+					'order'     => array( 'default' => 'desc', 'sanitize_callback' => 'sanitize_key' ),
+				),
+			)
+		);
+
 		// Code injection snippets — public read (the snippets end up in every
 		// visitor's HTML head, so there's nothing to gate). The Astro frontend
 		// fetches this on each request and renders the slots via set:html.
@@ -310,6 +334,87 @@ class Hatch_Rest_Api {
 	 * Returns: { id, slug, type, rest_base, title, content, excerpt,
 	 *            featured_media_url, modified, link } | { found:false }
 	 */
+	/**
+	 * v0.3.2 — Posts block backend. Returns published items only, optionally
+	 * filtered by taxonomy/term/author. Safe for public consumption.
+	 */
+	/**
+	 * v0.3.2 — Emit permissive CORS headers on all Hatch v1 REST responses.
+	 * The Astro frontend fetches /hatch/v1/* directly from the browser, so
+	 * the response must always carry Access-Control-Allow-Origin. Hooked on
+	 * rest_pre_serve_request which runs even when WP's own CORS handler
+	 * wouldn't fire (e.g. simple GET without Origin echo).
+	 */
+	public static function send_cors_for_hatch( $served, $result, WP_REST_Request $request, $server ) {
+		if ( 0 === strpos( (string) $request->get_route(), '/hatch/v1/' ) ) {
+			$origin = isset( $_SERVER['HTTP_ORIGIN'] ) ? (string) $_SERVER['HTTP_ORIGIN'] : '*';
+			header( 'Access-Control-Allow-Origin: ' . $origin );
+			header( 'Vary: Origin' );
+			header( 'Access-Control-Allow-Methods: GET, POST, OPTIONS' );
+			header( 'Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce' );
+			header( 'Access-Control-Max-Age: 600' );
+		}
+		return $served;
+	}
+
+	public function route_content_list( WP_REST_Request $request ) {
+		$pt_param   = $request->get_param( 'post_type' );
+		$per_page   = (int)    $request->get_param( 'per_page' );
+		$orderby    = $request->get_param( 'orderby' );
+		$order_raw  = $request->get_param( 'order' );
+		$tax_raw    = $request->get_param( 'taxonomy' );
+		$term_raw   = $request->get_param( 'term' );
+		$author_raw = $request->get_param( 'author' );
+
+		$post_type = is_string( $pt_param ) ? sanitize_key( $pt_param ) : 'post';
+		$pt = get_post_type_object( $post_type );
+		if ( ! $pt || empty( $pt->public ) || empty( $pt->show_in_rest ) ) {
+			$post_type = 'post';
+		}
+		$args = array(
+			'post_type'      => $post_type,
+			'posts_per_page' => max( 1, min( 24, $per_page ?: 6 ) ),
+			'post_status'    => 'publish',
+			'orderby'        => is_string( $orderby ) ? sanitize_key( $orderby ) : 'date',
+			'order'          => is_string( $order_raw ) && 'asc' === strtolower( $order_raw ) ? 'ASC' : 'DESC',
+			'no_found_rows'  => true,
+		);
+		$tax  = is_string( $tax_raw )  ? sanitize_key( $tax_raw )    : '';
+		$term = is_string( $term_raw ) ? sanitize_title( $term_raw ) : '';
+		if ( $tax && $term && taxonomy_exists( $tax ) ) {
+			$args['tax_query'] = array( array(
+				'taxonomy' => $tax,
+				'field'    => 'slug',
+				'terms'    => $term,
+			) );
+		}
+		$author = is_string( $author_raw ) ? sanitize_text_field( $author_raw ) : '';
+		if ( '' !== $author ) {
+			$au = is_numeric( $author ) ? get_user_by( 'id', (int) $author ) : get_user_by( 'slug', $author );
+			if ( $au ) $args['author'] = $au->ID;
+		}
+		$q = new WP_Query( $args );
+		$items = array();
+		foreach ( $q->posts as $post ) {
+			$thumb_id = (int) get_post_thumbnail_id( $post );
+			$items[] = array(
+				'id'                 => (int) $post->ID,
+				'slug'               => (string) $post->post_name,
+				'type'               => (string) $post->post_type,
+				'title'              => get_the_title( $post ),
+				'excerpt'            => wp_strip_all_tags( get_the_excerpt( $post ) ),
+				'featured_media_url' => $thumb_id ? (string) wp_get_attachment_image_url( $thumb_id, 'large' ) : '',
+				'featured_media_alt' => $thumb_id ? (string) get_post_meta( $thumb_id, '_wp_attachment_image_alt', true ) : '',
+				'published'          => mysql_to_rfc3339( $post->post_date_gmt ),
+				'link'               => get_permalink( $post ),
+			);
+		}
+		return new WP_REST_Response( array( 'items' => $items, 'total' => count( $items ) ), 200, array(
+			'Cache-Control' => 'public, max-age=60, s-maxage=60, stale-while-revalidate=3600',
+			'Access-Control-Allow-Origin' => '*',
+		) );
+	}
+
 	public function route_content_by_slug( WP_REST_Request $request ) {
 		$slug = sanitize_title( (string) $request->get_param( 'slug' ) );
 		if ( '' === $slug ) {

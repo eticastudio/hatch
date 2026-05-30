@@ -93,19 +93,19 @@ registerBlockType( 'hatch/tabs', {
 			'data-hatch-tabs': '',
 		} );
 		const tabs = attributes.tabs || [];
+		// Tabs save markup is intentionally minimal — runtime (hatch-blocks.js)
+		// wires up roles, aria-selected, tabindex and hidden state on the
+		// frontend. Editor save only emits stable markup so block validation
+		// stays consistent across reloads.
 		return (
 			<div { ...blockProps }>
-				<div className="hatch-tabs-nav" role="tablist">
+				<div className="hatch-tabs-nav">
 					{ tabs.map( ( t, i ) => (
 						<button
 							key={ i }
 							type="button"
-							role="tab"
-							id={ `${ t.id }-tab` }
-							aria-controls={ `${ t.id }-panel` }
-							aria-selected={ i === 0 ? 'true' : 'false' }
 							className={ `hatch-tabs-tab${ i === 0 ? ' is-active' : '' }` }
-							tabIndex={ i === 0 ? 0 : -1 }
+							data-hatch-tab={ t.id }
 						>
 							{ t.label }
 						</button>
@@ -114,11 +114,8 @@ registerBlockType( 'hatch/tabs', {
 				{ tabs.map( ( t, i ) => (
 					<div
 						key={ i }
-						role="tabpanel"
-						id={ `${ t.id }-panel` }
-						aria-labelledby={ `${ t.id }-tab` }
 						className={ `hatch-tabs-panel${ i === 0 ? ' is-active' : '' }` }
-						hidden={ i === 0 ? undefined : true }
+						data-hatch-panel={ t.id }
 					>
 						<RichText.Content value={ t.content } tagName="div" />
 					</div>

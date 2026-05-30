@@ -161,59 +161,8 @@ registerBlockType( metadata.name, {
 		);
 	},
 
-	save: ( { attributes, clientId } ) => {
-		const blockProps = useBlockProps.save( { className: 'hatch-custom-code' } );
-		// clientId is not available on save — use a stable derivation.
-		// We use a deterministic class from the HTML hash (best-effort uniqueness).
-		const wrapperClass = `hatch-cc-${ Math.abs( hashCode( attributes.html + attributes.css ) ).toString( 36 ).slice( 0, 8 ) }`;
-
-		const fullClass = `${ blockProps.className || '' } ${ wrapperClass } hatch-cc-mode-${ attributes.mode }`.trim();
-
-		if ( 'iframe' === attributes.mode ) {
-			const srcdoc = `<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0}${ attributes.css }</style></head><body>${ attributes.html }<script>${ attributes.js }<\/script></body></html>`;
-			return (
-				<div { ...blockProps } className={ fullClass } data-iframe-height={ attributes.iframeHeight }>
-					<iframe
-						title="Custom code"
-						sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
-						srcDoc={ srcdoc }
-						style={ { width: '100%', height: `${ attributes.iframeHeight }px`, border: 0, display: 'block' } }
-					/>
-				</div>
-			);
-		}
-
-		if ( 'shadow' === attributes.mode ) {
-			// Render a custom element. The frontend Web Component attaches Shadow DOM.
-			return (
-				<div { ...blockProps } className={ fullClass }>
-					<hatch-shadow-code
-						data-html={ encodeURIComponent( attributes.html ) }
-						data-css={ encodeURIComponent( attributes.css ) }
-						data-js={ encodeURIComponent( attributes.js ) }
-					/>
-				</div>
-			);
-		}
-
-		// inline mode (default).
-		return (
-			<div { ...blockProps } className={ fullClass }>
-				<style dangerouslySetInnerHTML={ { __html: scopeCss( attributes.css, wrapperClass ) } } />
-				<div dangerouslySetInnerHTML={ { __html: attributes.html } } />
-			</div>
-		);
-	},
+	// Dynamic block — save() returns null so KSES never sees the raw
+	// HTML/CSS/JS payload. PHP render_callback (Hatch_Blocks_Renderers) emits
+	// the final markup at request time, bypassing the post-save sanitiser.
+	save: () => null,
 } );
-
-/**
- * Simple deterministic hash used only for generating a stable wrapper class name.
- */
-function hashCode( str ) {
-	let h = 0;
-	for ( let i = 0; i < str.length; i++ ) {
-		h = ( h << 5 ) - h + str.charCodeAt( i );
-		h |= 0;
-	}
-	return h;
-}
