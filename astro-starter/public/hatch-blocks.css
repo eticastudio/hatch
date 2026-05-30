@@ -698,3 +698,136 @@ a.hatch-button-outline:hover {
 	margin-left: 0;
 	margin-right: 0;
 }
+
+/* ==========================================================================
+   v0.3.7 — Tailwind utility override hardening (autonomous QA pass)
+   The block save() emits Tailwind utilities directly on the element (e.g.
+   the paragraph block bakes `m-0 text-base font-normal leading-relaxed
+   text-foreground max-w-prose`; the quote block inherits prose typography
+   resets that knock font-weight back to 400 and shrink the border-left).
+   We bump specificity by anchoring to the element type (blockquote.hatch-quote,
+   p.hatch-quote-text, etc.) and pin only the cascade-critical visual
+   properties with !important — palette-driven values stay variable-driven
+   so the 6-theme palette swap continues to work.
+   ========================================================================== */
+
+/* ---- Quote: editorial pull-quote (hardened) ---- */
+blockquote.hatch-quote {
+	padding: 1.5em 1.75em !important;
+	background: linear-gradient( 135deg, rgba( 99, 102, 241, 0.06 ), rgba( 139, 92, 246, 0.04 ) );
+	border-left: 4px solid var( --hatch-primary, #6366f1 ) !important;
+	border-radius: 0 12px 12px 0 !important;
+	font-style: normal;
+	color: var( --hatch-fg, #1e293b );
+}
+blockquote.hatch-quote .hatch-quote-text,
+p.hatch-quote-text {
+	font-weight: 500 !important;
+	color: var( --hatch-fg, #1e293b );
+	line-height: 1.55;
+}
+blockquote.hatch-quote .hatch-quote-cite,
+.hatch-quote-cite { color: var( --hatch-primary, #6366f1 ); font-weight: 500; }
+
+/* ---- Paragraph: defeat Tailwind `m-0` so reading rhythm survives ----
+   Block save() emits `m-0` so paragraphs collapse. We restore a sane
+   bottom margin only when the paragraph sits in a hatch context. */
+p.hatch-paragraph {
+	color: var( --hatch-fg, #334155 );
+	line-height: 1.65;
+}
+.hatch-prose p.hatch-paragraph,
+.hatch-section p.hatch-paragraph,
+.hatch-container p.hatch-paragraph,
+.hatch-group > p.hatch-paragraph {
+	margin: 0 0 1em !important;
+}
+
+/* ---- Heading: lock weight + colour against Tailwind text-foreground ---- */
+h1.hatch-heading, h2.hatch-heading, h3.hatch-heading,
+h4.hatch-heading, h5.hatch-heading, h6.hatch-heading {
+	color: var( --hatch-fg, #0f172a );
+	font-weight: 700;
+	line-height: 1.2;
+}
+h2.hatch-heading { font-weight: 600; }
+h3.hatch-heading { font-weight: 600; }
+
+/* ---- List: keep bullets visible when Tailwind prose resets them ---- */
+ul.hatch-list { list-style: disc; padding-left: 1.5em; }
+ol.hatch-list { list-style: decimal; padding-left: 1.5em; }
+ul.hatch-list.hatch-list-none,
+ol.hatch-list.hatch-list-none { list-style: none !important; padding-left: 0 !important; }
+ul.hatch-list > li,
+ol.hatch-list > li { color: var( --hatch-fg, #1c1815 ); margin-bottom: 0.4em; }
+
+/* ---- Cover: lock the gradient placeholder + content stacking against
+   Tailwind utilities baked into Heading/Paragraph children ---- */
+div.hatch-cover, section.hatch-cover {
+	position: relative !important;
+	overflow: hidden !important;
+	border-radius: 12px !important;
+	min-height: 320px;
+}
+.hatch-cover .hatch-cover-inner,
+.hatch-cover .hatch-cover-content {
+	position: relative;
+	z-index: 2;
+}
+.hatch-cover .hatch-heading,
+.hatch-cover h1, .hatch-cover h2, .hatch-cover h3 {
+	color: #fff !important;
+}
+.hatch-cover .hatch-paragraph,
+.hatch-cover p { color: rgba( 255, 255, 255, 0.92 ) !important; }
+
+/* ---- Tabs: tab buttons fight Tailwind reset (background, padding) ---- */
+button.hatch-tabs-tab {
+	background: transparent !important;
+	border: 0;
+	color: var( --hatch-fg-muted, #64748b );
+}
+button.hatch-tabs-tab.is-active { color: var( --hatch-fg, #0f172a ); }
+
+/* ---- Accordion: summary baseline against Tailwind summary resets ---- */
+details.hatch-accordion-item > summary {
+	cursor: pointer;
+	list-style: none;
+	color: var( --hatch-fg, #0a0a0a );
+}
+
+/* ---- Search input pill safe-guard ---- */
+.hatch-search input[type="search"],
+.hatch-search input[type="text"] {
+	border-radius: 999px !important;
+	background: #fff;
+}
+
+/* ---- Posts grid: keep gap + grid columns against Tailwind utilities ---- */
+div.hatch-posts {
+	display: grid !important;
+	gap: 1.75rem;
+}
+@media ( max-width: 768px ) {
+	div.hatch-posts { grid-template-columns: 1fr !important; gap: 1.25rem; }
+}
+
+/* ---- Group / Columns layout integrity ---- */
+div.hatch-group { display: flex; }
+div.hatch-group.hatch-group-stack { flex-direction: column; }
+div.hatch-group.hatch-group-row { flex-direction: row; flex-wrap: wrap; }
+div.hatch-columns { display: grid !important; }
+
+/* ---- Divider: keep stroke visible against Tailwind `border-0` ---- */
+hr.hatch-divider {
+	border: 0 !important;
+	border-top: 1px solid var( --hatch-border, #e5e5e5 ) !important;
+	height: 0;
+	margin: 1.5rem 0;
+}
+hr.hatch-divider-dashed { border-top-style: dashed !important; }
+hr.hatch-divider-dotted { border-top-style: dotted !important; }
+
+/* ---- Section / Container rhythm (re-pin so Tailwind py-* cannot win) ---- */
+section.hatch-section { padding: clamp( 2.5rem, 5vw, 4.5rem ) 0; }
+div.hatch-container { max-width: var( --hatch-max-width, 1160px ); margin-left: auto !important; margin-right: auto !important; }
