@@ -63,14 +63,15 @@ registerBlockType( 'hatch/quote', {
 		);
 	},
 	save: ( { attributes } ) => {
+		// itemScope/itemType dropped from save markup — KSES strips boolean
+		// attribute order so the editor invalidates on reload. Schema markup
+		// is emitted via Astro runtime / page-level JSON-LD when needed.
 		const blockProps = useBlockProps.save( {
 			className: computeClasses( attributes ),
-			itemScope: true,
-			itemType: 'https://schema.org/Quotation',
 		} );
 		return (
 			<blockquote { ...blockProps }>
-				<RichText.Content tagName="p" className="hatch-quote-text" value={ attributes.value } itemProp="text" />
+				<RichText.Content tagName="p" className="hatch-quote-text" value={ attributes.value } />
 				{ attributes.citation && <RichText.Content tagName="cite" className="hatch-quote-cite" value={ attributes.citation } /> }
 			</blockquote>
 		);

@@ -88,7 +88,7 @@ registerBlockType( 'hatch/posts', {
 		} );
 		return (
 			<div { ...blockProps }>
-				<noscript>{ __( 'Loading posts…', 'hatch' ) }</noscript>
+				<span className="hatch-posts-loading">{ __( 'Loading posts…', 'hatch' ) }</span>
 			</div>
 		);
 	},

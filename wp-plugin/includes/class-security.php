@@ -170,6 +170,8 @@ class Hatch_Security {
 			// every render; without it in the allowlist, REST-lock=ON 404s
 			// every page on the headless site.
 			'#^/hatch/v1/content$#',
+			// Posts block list — published-only content with filter args.
+			'#^/hatch/v1/content/list$#',
 			// Block tree (used by per-block Astro components). The handler
 			// enforces context=edit auth internally; context=view is public.
 			'#^/hatch/v1/post/\d+/blocks$#',

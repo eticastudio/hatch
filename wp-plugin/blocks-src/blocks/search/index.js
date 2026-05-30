@@ -40,15 +40,22 @@ registerBlockType( 'hatch/search', {
 		);
 	},
 	save: ( { attributes } ) => {
+		// Save markup is intentionally minimal — KSES strips <form> AND <input>
+		// elements from post_content unless the user has unfiltered_html.
+		// We persist the search props as data-* attributes; the Astro runtime
+		// rebuilds the real <input>/<button> on first hydration.
 		const blockProps = useBlockProps.save( {
 			className: `hatch-search hatch-search-${ attributes.variant }`,
+			role: 'search',
+			'data-hatch-search': '',
+			'data-action': attributes.action,
+			'data-placeholder': attributes.placeholder,
+			'data-label': attributes.buttonLabel,
 		} );
 		return (
-			<form { ...blockProps } role="search" action={ attributes.action } method="get">
-				<label className="screen-reader-text" htmlFor="hatch-search-q">{ attributes.placeholder }</label>
-				<input id="hatch-search-q" type="search" name="q" placeholder={ attributes.placeholder } required />
-				<button type="submit">{ attributes.buttonLabel }</button>
-			</form>
+			<div { ...blockProps }>
+				<span className="hatch-search-fallback">{ attributes.placeholder }</span>
+			</div>
 		);
 	},
 } );

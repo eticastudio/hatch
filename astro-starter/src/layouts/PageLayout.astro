@@ -133,6 +133,9 @@ if (cacheTtl !== 0) {
       ? <link rel="icon" href={iconUrl} />
       : <link rel="icon" type="image/svg+xml" href={'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><text x="50%" y="55%" font-size="56" text-anchor="middle" dominant-baseline="middle">🐣</text></svg>')} />}
     <link rel="sitemap" href="/sitemap-index.xml" />
+    {/* v0.3.2 — Hatch blocks stylesheet. Static, cacheable. Contains the
+        block-level CSS for the 26 Hatch blocks. ~12 KB on the wire. */}
+    <link rel="stylesheet" href="/hatch-blocks.css" />
     <link rel="alternate" type="application/rss+xml" href="/rss.xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -257,5 +260,14 @@ if (cacheTtl !== 0) {
     {!bare && <SiteFooter features={features} menuItems={footerMenu} />}
     {/* Code injection — body-end slot. Chat widgets, late-bound scripts. */}
     {codeSnippets.bodyEnd && <Fragment set:html={codeSnippets.bodyEnd} />}
+
+    {/* v0.3.2 — Hatch blocks runtime + stylesheet. Vanilla JS, no framework.
+        Hydrates YouTube facade / Tabs / Search / Form / Posts on first paint
+        AND on every Astro ClientRouter `astro:page-load`. Sets HATCH_WP_BASE
+        so the runtime can fetch /wp-json/hatch/v1/* endpoints. */}
+    <script is:inline define:vars={{ wpBase: (features.site?.url || '').replace(/\/$/, '') }}>
+      window.HATCH_WP_BASE = wpBase;
+    </script>
+    <script src="/hatch-blocks.js" is:inline></script>
   </body>
 </html>
