@@ -125,7 +125,7 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
     {hasMore && paginationStyle !== 'infinite' && (
       <div class="flex justify-center mt-14">
         {paginationStyle === 'numbered' ? (
-          <nav class="flex gap-2" aria-label="Pagination">
+          <nav class="flex flex-wrap justify-center gap-2 max-w-full px-2" aria-label="Pagination">
             {Array.from({ length: Math.max(1, Math.ceil(total / 12)) }, (_, i) => i + 1).map((n) => (
               <a
                 href={`/blog?page=${n}${activeCategory ? `&category=${activeCategory.slug}` : ''}`}
