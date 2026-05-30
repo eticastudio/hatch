@@ -72,10 +72,10 @@ function formatDate(iso: string): string {
     const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
     if (diff === 0) return 'Today';
     if (diff === 1) return 'Yesterday';
-    if (diff < 7)   return `${diff} days ago`;
-    if (diff < 30)  return `${Math.floor(diff/7)} weeks ago`;
-    if (diff < 365) return `${Math.floor(diff/30)} months ago`;
-    return `${Math.floor(diff/365)} years ago`;
+    if (diff < 7)   return `${diff} ${diff === 1 ? 'day' : 'days'} ago`;
+    if (diff < 30)  { const w = Math.floor(diff/7); return `${w} ${w === 1 ? 'week' : 'weeks'} ago`; }
+    if (diff < 365) { const m = Math.floor(diff/30); return `${m} ${m === 1 ? 'month' : 'months'} ago`; }
+    const y = Math.floor(diff/365); return `${y} ${y === 1 ? 'year' : 'years'} ago`;
   }
   return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
