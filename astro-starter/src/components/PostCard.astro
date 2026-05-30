@@ -50,7 +50,7 @@ const dateLabel = (() => {
         <HatchImage features={features} src={post.featuredImage} alt={post.featuredImageAlt || ''} width={1200} height={600} class={`w-full h-full object-cover ${hoverClass}`} />
       </div>
     ) : showFallback ? (
-      <div class={`${ratioClass} bg-gradient-to-br from-hatch-primary-soft to-hatch-bg-3`}></div>
+      <div class={`${ratioClass} hatch-card-placeholder`}></div>
     ) : null}
     <div class="p-6 sm:p-8">
       {post.category && (
@@ -91,7 +91,7 @@ const dateLabel = (() => {
       {post.featuredImage ? (
         <HatchImage features={features} src={post.featuredImage} alt={post.featuredImageAlt || ''} width={800} height={500} class={`w-full h-full object-cover ${hoverClass}`} />
       ) : showFallback ? (
-        <div class="w-full h-full bg-gradient-to-br from-hatch-primary-soft to-hatch-bg-3"></div>
+        <div class="w-full h-full hatch-card-placeholder"></div>
       ) : null}
     </div>
     {post.category && (
