@@ -43,7 +43,11 @@ const tagline = features.site.description;
         </div>
       )}
       <h1 class="text-4xl sm:text-5xl font-semibold tracking-tight leading-tight mb-6">{staticPage.title}</h1>
-      <div class="hatch-prose" set:html={rewriteContentImages(staticPage.content, features)}></div>
+      {/* v0.3.4 — match [...slug].astro: WP-driven static homepages get full
+          article width, not the 680px reading column. Blog themes constrain
+          .hatch-prose to a reading column by default (right for posts, wrong
+          for landing pages with Cover/Columns/Posts blocks). */}
+      <div class="hatch-prose" style="max-width: 100%;" set:html={rewriteContentImages(staticPage.content, features)}></div>
     </article>
   </PageLayout>
 ) : latest.length === 0 ? (

@@ -1,0 +1,230 @@
+/**
+ * Hatch · Blog theme — Editorial / Substack-Medium aesthetic.
+ *
+ * Direction: warm cream paper, deep ink fg, single rust accent, serif headlines,
+ * generous line-height, centered logo + horizontal nav, 3-col footer.
+ *
+ * @since 0.50.5  · v0.4 rewrite 2026-05-30
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root[data-hatch-theme="blog"] {
+	--hatch-font-body:    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--hatch-font-heading: 'Source Serif 4', 'Iowan Old Style', 'Palatino', Georgia, serif;
+	--hatch-font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+	--hatch-radius:       4px;
+	--hatch-max-width:    1080px;
+	--hatch-reading-width: 680px;
+
+	/* Warm cream paper palette */
+	--hatch-bg:          #fbf7f1;
+	--hatch-bg-2:        #f5efe5;
+	--hatch-bg-3:        #ece5d6;
+	--hatch-fg:          #1c1815;
+	--hatch-fg-muted:    #58504a;
+	--hatch-fg-subtle:   #8a7f74;
+	--hatch-border:      #e6dccb;
+	--hatch-border-2:    #d5c8b1;
+
+	/* Single rust accent */
+	--hatch-primary:      #b34520;
+	--hatch-primary-soft: rgba(179, 69, 32, 0.08);
+	--hatch-primary-fg:   #fbf7f1;
+	--hatch-accent:       #b34520;
+}
+
+[data-hatch-theme="blog"][data-hatch-mode="dark"] {
+	--hatch-bg:          #15110d;
+	--hatch-bg-2:        #1d1813;
+	--hatch-bg-3:        #28201a;
+	--hatch-fg:          #f5ece0;
+	--hatch-fg-muted:    #b0a594;
+	--hatch-fg-subtle:   #7b7164;
+	--hatch-border:      #2e261e;
+	--hatch-border-2:    #423629;
+	--hatch-primary:      #e08054;
+	--hatch-primary-soft: rgba(224, 128, 84, 0.14);
+	--hatch-primary-fg:   #15110d;
+	--hatch-accent:       #e08054;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root[data-hatch-theme="blog"][data-hatch-mode="auto"] {
+		--hatch-bg:          #15110d;
+		--hatch-bg-2:        #1d1813;
+		--hatch-bg-3:        #28201a;
+		--hatch-fg:          #f5ece0;
+		--hatch-fg-muted:    #b0a594;
+		--hatch-fg-subtle:   #7b7164;
+		--hatch-border:      #2e261e;
+		--hatch-border-2:    #423629;
+		--hatch-primary:      #e08054;
+		--hatch-primary-soft: rgba(224, 128, 84, 0.14);
+		--hatch-primary-fg:   #15110d;
+		--hatch-accent:       #e08054;
+	}
+}
+
+[data-hatch-theme="blog"] body {
+	background: var(--hatch-bg);
+	color: var(--hatch-fg);
+	font-family: var(--hatch-font-body);
+	font-feature-settings: "ss01", "cv11";
+}
+
+/* Center the brand for blog theme — override flex justify */
+[data-hatch-theme="blog"] .hatch-header .mx-auto {
+	justify-content: center;
+	gap: 2.5rem;
+	position: relative;
+}
+[data-hatch-theme="blog"] .hatch-header .brand {
+	order: -1;
+	font-family: var(--hatch-font-heading);
+	font-weight: 600;
+	font-size: 22px;
+	letter-spacing: -0.02em;
+	color: var(--hatch-fg);
+}
+[data-hatch-theme="blog"] .hatch-header .brand span {
+	font-family: var(--hatch-font-heading);
+}
+[data-hatch-theme="blog"] .hatch-header {
+	background: transparent !important;
+	border-bottom: 1px solid var(--hatch-border) !important;
+	backdrop-filter: none !important;
+}
+[data-hatch-theme="blog"] .hatch-header nav.hidden.md\:flex {
+	gap: 0;
+}
+[data-hatch-theme="blog"] .hatch-header nav a {
+	font-family: var(--hatch-font-body);
+	font-weight: 500;
+	font-size: 14px;
+	letter-spacing: 0.01em;
+	color: var(--hatch-fg-muted);
+	padding: 6px 14px;
+	border-radius: 0;
+	position: relative;
+}
+[data-hatch-theme="blog"] .hatch-header nav a:hover {
+	color: var(--hatch-primary);
+	background: transparent;
+}
+[data-hatch-theme="blog"] .hatch-header nav a::after {
+	content: '';
+	position: absolute;
+	left: 14px; right: 14px; bottom: 2px;
+	height: 1px;
+	background: currentColor;
+	transform: scaleX(0);
+	transform-origin: left;
+	transition: transform .25s ease;
+}
+[data-hatch-theme="blog"] .hatch-header nav a:hover::after,
+[data-hatch-theme="blog"] .hatch-header nav a.text-hatch-fg::after {
+	transform: scaleX(1);
+}
+
+/* Typography — serif display headings */
+[data-hatch-theme="blog"] h1,
+[data-hatch-theme="blog"] .hatch-prose h1 {
+	font-family: var(--hatch-font-heading);
+	font-weight: 600;
+	font-size: clamp(2.2rem, 4.5vw + 1rem, 3.75rem);
+	line-height: 1.08;
+	letter-spacing: -0.025em;
+	color: var(--hatch-fg);
+}
+[data-hatch-theme="blog"] h2,
+[data-hatch-theme="blog"] .hatch-prose h2 {
+	font-family: var(--hatch-font-heading);
+	font-weight: 600;
+	font-size: clamp(1.5rem, 1.5vw + 1.1rem, 2rem);
+	line-height: 1.18;
+	letter-spacing: -0.018em;
+}
+[data-hatch-theme="blog"] h3,
+[data-hatch-theme="blog"] .hatch-prose h3 {
+	font-family: var(--hatch-font-heading);
+	font-weight: 600;
+	font-size: clamp(1.2rem, 0.6vw + 1rem, 1.45rem);
+	letter-spacing: -0.012em;
+}
+
+[data-hatch-theme="blog"] .hatch-prose {
+	font-family: var(--hatch-font-heading);
+	font-size: 19px;
+	line-height: 1.78;
+	max-width: var(--hatch-reading-width);
+	color: var(--hatch-fg);
+}
+[data-hatch-theme="blog"] .hatch-prose p {
+	font-family: var(--hatch-font-heading);
+	font-weight: 400;
+}
+[data-hatch-theme="blog"] .hatch-prose a {
+	color: var(--hatch-primary);
+	text-decoration-color: var(--hatch-border-2);
+	text-underline-offset: 4px;
+}
+[data-hatch-theme="blog"] .hatch-prose blockquote {
+	border-left: 2px solid var(--hatch-primary);
+	font-style: italic;
+	font-family: var(--hatch-font-heading);
+	font-size: 1.15em;
+	color: var(--hatch-fg-muted);
+}
+
+/* Post card — minimal, paper-like */
+[data-hatch-theme="blog"] .hatch-post-card {
+	background: transparent;
+	border: 0;
+	border-bottom: 1px solid var(--hatch-border);
+	border-radius: 0;
+	padding: 1.75rem 0;
+	transition: transform .2s ease;
+}
+[data-hatch-theme="blog"] .hatch-post-card:hover {
+	transform: none;
+	background: var(--hatch-bg-2);
+	padding-left: 1rem;
+	padding-right: 1rem;
+}
+[data-hatch-theme="blog"] .hatch-post-card h2,
+[data-hatch-theme="blog"] .hatch-post-card h3 {
+	font-family: var(--hatch-font-heading);
+	font-weight: 600;
+	letter-spacing: -0.018em;
+}
+
+/* Buttons */
+[data-hatch-theme="blog"] .hatch-btn,
+[data-hatch-theme="blog"] button[type="submit"],
+[data-hatch-theme="blog"] .wp-block-button__link {
+	background: var(--hatch-fg);
+	color: var(--hatch-bg);
+	border: 0;
+	border-radius: 2px;
+	padding: 12px 22px;
+	font-family: var(--hatch-font-body);
+	font-weight: 500;
+	font-size: 14px;
+	letter-spacing: 0.02em;
+	transition: background .15s ease;
+}
+[data-hatch-theme="blog"] .hatch-btn:hover,
+[data-hatch-theme="blog"] .wp-block-button__link:hover {
+	background: var(--hatch-primary);
+}
+
+/* Footer — 3-column with newsletter feel */
+[data-hatch-theme="blog"] .hatch-footer {
+	background: var(--hatch-bg-2);
+	border-top: 1px solid var(--hatch-border);
+	margin-top: 6rem;
+}
+[data-hatch-theme="blog"] .hatch-footer h2 {
+	font-family: var(--hatch-font-heading);
+}

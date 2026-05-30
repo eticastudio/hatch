@@ -82,7 +82,31 @@ services:
       - ./astro-starter:/app
       - astro_node_modules:/app/node_modules
 
+  # v0.3.4 — Next.js 15 starter. Feature-equivalent to the Astro container,
+  # different framework. Both can run side-by-side because Astro lives on
+  # 4321 and Next lives on 3000 — useful for A/B comparing the two stacks.
+  nextjs:
+    image: node:20-alpine
+    container_name: hatch_nextjs
+    restart: unless-stopped
+    depends_on:
+      - wp
+    working_dir: /app
+    command: sh -c "npm install --no-audit --no-fund && npm run dev"
+    environment:
+      HATCH_WP_API_URL: http://wp/wp-json
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./nextjs-starter:/app
+      - nextjs_node_modules:/app/node_modules
+      - nextjs_next_cache:/app/.next
+
 volumes:
   db_data:
   wp_data:
   astro_node_modules:
+  nextjs_node_modules:
+  nextjs_next_cache:

@@ -1,6 +1,14 @@
 # Hatch — Local dev quickstart
 
-Two-container stack: WordPress (with Hatch) on `:8810`, Astro frontend on `:4321`.
+Four-container stack:
+- WordPress (with Hatch plugin) on `:8810`
+- MySQL on the internal docker network
+- **Astro** starter on `:4321`
+- **Next.js 15** starter on `:3000`
+
+Both frontends connect to the same WP backend so you can A/B them
+side-by-side. Pick the one your team prefers — the WP plugin and the
+REST contract are identical.
 
 ## Spin it up
 
@@ -23,6 +31,7 @@ docker compose logs -f
 |---------------------|----------------------------------------------|
 | WP admin            | http://localhost:8810/wp-admin (admin / admin) |
 | Astro frontend      | http://localhost:4321                        |
+| Next.js frontend    | http://localhost:3000                        |
 | Hatch admin tab     | http://localhost:8810/wp-admin/admin.php?page=hatch |
 | Hatch REST          | http://localhost:8810/wp-json/hatch/v1/      |
 

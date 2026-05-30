@@ -588,24 +588,3 @@ h3.hatch-heading { font-size: 1.25rem; font-weight: 600; }
 
 /* ---- Posts loading state ---- */
 .hatch-posts-loading { display: block; padding: 2rem; text-align: center; color: #94a3b8; font-size: 0.9rem; grid-column: 1 / -1; }
-
-/* ==========================================================================
-   v0.3.4 — Wide-block escape from reading column.
-   Themes (esp. blog/astronano/astropaper) cap .hatch-prose at ~680px for
-   comfortable reading. That's correct for paragraphs and headings — wrong
-   for full-bleed elements like Cover, Posts grids, Columns sections,
-   Galleries. These bust out to the parent article's max-width so they look
-   like real heroes / showcase sections, not narrow cards with gutters.
-   ========================================================================== */
-.hatch-prose .hatch-cover,
-.hatch-prose > .hatch-posts,
-.hatch-prose > .hatch-columns,
-.hatch-prose > .hatch-gallery,
-.hatch-prose > .hatch-embed,
-.hatch-prose > .hatch-video,
-.hatch-prose > .hatch-youtube {
-	max-width: none;
-	width: 100%;
-	margin-left: 0;
-	margin-right: 0;
-}

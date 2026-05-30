@@ -1,0 +1,375 @@
+/**
+ * Hatch · AstroWind theme — Modern marketing / Vercel-Linear aesthetic.
+ *
+ * Direction: glassy floating pill nav (rounded-full, blur, sticky), gradient
+ * accent CTA, soft radial gradient hero bg, bold dark footer with CTA band,
+ * vibrant purple/pink/blue palette.
+ *
+ * @since 0.50.5 · v0.4 rewrite 2026-05-30
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root[data-hatch-theme="astrowind"] {
+	--hatch-font-body:    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--hatch-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+	--hatch-font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+	--hatch-radius:       14px;
+	--hatch-max-width:    1240px;
+
+	--hatch-bg:          #ffffff;
+	--hatch-bg-2:        #fafafa;
+	--hatch-bg-3:        #f4f4f5;
+	--hatch-fg:          #09090b;
+	--hatch-fg-muted:    #52525b;
+	--hatch-fg-subtle:   #71717a;
+	--hatch-border:      #e4e4e7;
+	--hatch-border-2:    #d4d4d8;
+
+	--hatch-primary:      #7c3aed;
+	--hatch-primary-soft: rgba(124, 58, 237, 0.10);
+	--hatch-primary-fg:   #ffffff;
+	--hatch-accent:       #ec4899;
+
+	--hatch-grad: linear-gradient(135deg, #7c3aed 0%, #ec4899 55%, #f59e0b 110%);
+	--hatch-grad-soft: radial-gradient(1200px 600px at 20% -10%, rgba(124, 58, 237, 0.12), transparent 60%),
+	                   radial-gradient(900px 500px at 90% 0%, rgba(236, 72, 153, 0.10), transparent 60%);
+}
+
+[data-hatch-theme="astrowind"][data-hatch-mode="dark"] {
+	--hatch-bg:          #050510;
+	--hatch-bg-2:        #0d0c1f;
+	--hatch-bg-3:        #16142b;
+	--hatch-fg:          #f4f4f5;
+	--hatch-fg-muted:    #a1a1aa;
+	--hatch-fg-subtle:   #71717a;
+	--hatch-border:      #232038;
+	--hatch-border-2:    #36314f;
+	--hatch-primary:      #a78bfa;
+	--hatch-primary-soft: rgba(167, 139, 250, 0.14);
+	--hatch-primary-fg:   #050510;
+	--hatch-accent:       #f472b6;
+	--hatch-grad-soft: radial-gradient(1200px 600px at 20% -10%, rgba(167, 139, 250, 0.16), transparent 60%),
+	                   radial-gradient(900px 500px at 90% 0%, rgba(244, 114, 182, 0.10), transparent 60%);
+}
+@media (prefers-color-scheme: dark) {
+	:root[data-hatch-theme="astrowind"][data-hatch-mode="auto"] {
+		--hatch-bg:          #050510;
+		--hatch-bg-2:        #0d0c1f;
+		--hatch-bg-3:        #16142b;
+		--hatch-fg:          #f4f4f5;
+		--hatch-fg-muted:    #a1a1aa;
+		--hatch-fg-subtle:   #71717a;
+		--hatch-border:      #232038;
+		--hatch-border-2:    #36314f;
+		--hatch-primary:      #a78bfa;
+		--hatch-primary-soft: rgba(167, 139, 250, 0.14);
+		--hatch-primary-fg:   #050510;
+		--hatch-accent:       #f472b6;
+	}
+}
+
+[data-hatch-theme="astrowind"] body {
+	background: var(--hatch-bg);
+	color: var(--hatch-fg);
+	font-family: var(--hatch-font-body);
+	font-size: 15.5px;
+	line-height: 1.6;
+	background-image: var(--hatch-grad-soft);
+	background-repeat: no-repeat;
+	background-size: 100% 800px;
+	background-position: top center;
+}
+
+/* Header — floating glass pill */
+[data-hatch-theme="astrowind"] .hatch-header-astrowind {
+	background: transparent !important;
+	border: 0 !important;
+	padding-top: 14px;
+	padding-bottom: 0;
+}
+[data-hatch-theme="astrowind"] .hatch-header-astrowind > .mx-auto {
+	background: color-mix(in oklab, var(--hatch-bg) 78%, transparent);
+	-webkit-backdrop-filter: saturate(180%) blur(14px);
+	backdrop-filter: saturate(180%) blur(14px);
+	border: 1px solid var(--hatch-border);
+	border-radius: 999px;
+	padding-left: 22px !important;
+	padding-right: 10px !important;
+	box-shadow:
+		0 1px 0 rgba(255, 255, 255, 0.04) inset,
+		0 8px 32px -12px rgba(124, 58, 237, 0.20),
+		0 2px 8px rgba(0, 0, 0, 0.04);
+	max-width: 1080px !important;
+	height: 58px !important;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-brand-badge {
+	width: 30px;
+	height: 30px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 8px;
+	background: var(--hatch-grad);
+	color: #fff;
+	font-weight: 700;
+	font-size: 14px;
+	box-shadow: 0 4px 12px -2px rgba(124, 58, 237, 0.4);
+}
+[data-hatch-theme="astrowind"] .hatch-aw-brand-name {
+	font-weight: 700;
+	font-size: 15px;
+	letter-spacing: -0.018em;
+	color: var(--hatch-fg);
+}
+[data-hatch-theme="astrowind"] .hatch-aw-nav-link {
+	padding: 7px 13px;
+	border-radius: 999px;
+	font-size: 13.5px;
+	font-weight: 500;
+	color: var(--hatch-fg-muted);
+	text-decoration: none;
+	transition: background .15s, color .15s;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-nav-link:hover {
+	background: var(--hatch-bg-3);
+	color: var(--hatch-fg);
+}
+[data-hatch-theme="astrowind"] .hatch-aw-nav-link.is-active {
+	background: var(--hatch-primary-soft);
+	color: var(--hatch-primary);
+}
+[data-hatch-theme="astrowind"] .hatch-aw-cta {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	background: var(--hatch-grad);
+	color: #fff;
+	font-weight: 600;
+	font-size: 13.5px;
+	padding: 9px 16px;
+	border-radius: 999px;
+	text-decoration: none;
+	box-shadow:
+		0 1px 0 rgba(255, 255, 255, 0.2) inset,
+		0 6px 18px -4px rgba(124, 58, 237, 0.5);
+	transition: transform .15s, box-shadow .15s;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-cta:hover {
+	transform: translateY(-1px);
+	box-shadow:
+		0 1px 0 rgba(255, 255, 255, 0.25) inset,
+		0 10px 28px -4px rgba(124, 58, 237, 0.6);
+}
+
+/* Typography — large display headings */
+[data-hatch-theme="astrowind"] h1 {
+	font-weight: 800;
+	font-size: clamp(2.5rem, 5vw + 1rem, 4.5rem);
+	letter-spacing: -0.035em;
+	line-height: 1.02;
+	color: var(--hatch-fg);
+	background: var(--hatch-grad);
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+	color: transparent;
+}
+[data-hatch-theme="astrowind"] h2 {
+	font-weight: 700;
+	font-size: clamp(1.7rem, 1.8vw + 1.1rem, 2.4rem);
+	letter-spacing: -0.025em;
+	line-height: 1.15;
+	color: var(--hatch-fg);
+}
+[data-hatch-theme="astrowind"] h3 {
+	font-weight: 600;
+	font-size: clamp(1.2rem, 0.6vw + 1rem, 1.4rem);
+	letter-spacing: -0.015em;
+}
+
+[data-hatch-theme="astrowind"] .hatch-prose {
+	font-size: 16.5px;
+	line-height: 1.7;
+	max-width: 720px;
+}
+[data-hatch-theme="astrowind"] .hatch-prose a {
+	color: var(--hatch-primary);
+	text-decoration: none;
+	font-weight: 500;
+}
+[data-hatch-theme="astrowind"] .hatch-prose a:hover { text-decoration: underline; }
+[data-hatch-theme="astrowind"] .hatch-prose code {
+	background: var(--hatch-bg-3);
+	color: var(--hatch-primary);
+	padding: 2px 7px;
+	border-radius: 6px;
+	font-family: var(--hatch-font-mono);
+	font-size: 0.88em;
+}
+
+/* Post card — soft cards with hover lift */
+[data-hatch-theme="astrowind"] .hatch-post-card {
+	background: var(--hatch-bg);
+	border: 1px solid var(--hatch-border);
+	border-radius: 18px;
+	padding: 1.5rem;
+	box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+	transition: transform .2s ease, box-shadow .2s ease, border-color .2s;
+	position: relative;
+	overflow: hidden;
+}
+[data-hatch-theme="astrowind"] .hatch-post-card:hover {
+	transform: translateY(-3px);
+	border-color: var(--hatch-primary);
+	box-shadow:
+		0 12px 32px -8px rgba(124, 58, 237, 0.20),
+		0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* Buttons */
+[data-hatch-theme="astrowind"] .hatch-btn,
+[data-hatch-theme="astrowind"] .wp-block-button__link {
+	background: var(--hatch-grad);
+	color: #fff;
+	border: 0;
+	border-radius: 999px;
+	padding: 12px 24px;
+	font-weight: 600;
+	font-size: 14.5px;
+	box-shadow: 0 6px 20px -4px rgba(124, 58, 237, 0.4);
+}
+
+/* Footer */
+[data-hatch-theme="astrowind"] .hatch-footer-astrowind {
+	background: #050510;
+	color: #d4d4d8;
+	margin-top: 5rem;
+	padding-top: 4rem;
+	padding-bottom: 2rem;
+	position: relative;
+	overflow: hidden;
+}
+[data-hatch-theme="astrowind"] .hatch-footer-astrowind::before {
+	content: '';
+	position: absolute;
+	top: -200px; left: 50%;
+	transform: translateX(-50%);
+	width: 1000px; height: 400px;
+	background: radial-gradient(closest-side, rgba(124, 58, 237, 0.25), transparent 70%);
+	pointer-events: none;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-cta {
+	background: linear-gradient(135deg, rgba(124, 58, 237, 0.20), rgba(236, 72, 153, 0.16));
+	border: 1px solid rgba(167, 139, 250, 0.30);
+	border-radius: 20px;
+	padding: 2.5rem;
+	display: grid;
+	grid-template-columns: 1.4fr auto;
+	gap: 2rem;
+	align-items: center;
+	margin-bottom: 3rem;
+	position: relative;
+	z-index: 1;
+}
+@media (max-width: 760px) {
+	[data-hatch-theme="astrowind"] .hatch-aw-foot-cta { grid-template-columns: 1fr; padding: 1.75rem; }
+}
+[data-hatch-theme="astrowind"] .hatch-aw-eyebrow {
+	display: inline-block;
+	font-family: var(--hatch-font-mono);
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.14em;
+	color: #a78bfa;
+	margin-bottom: 0.5rem;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-cta-text h2 {
+	color: #fff;
+	font-size: clamp(1.5rem, 2vw + 1rem, 2.1rem);
+	font-weight: 700;
+	letter-spacing: -0.02em;
+	margin: 0 0 0.5rem;
+	-webkit-text-fill-color: #fff;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-cta-text p {
+	color: #a1a1aa;
+	font-size: 15px;
+	margin: 0;
+	max-width: 460px;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-cta-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+[data-hatch-theme="astrowind"] .hatch-aw-cta-lg {
+	padding: 12px 22px;
+	font-size: 14px;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-cta-ghost {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	background: rgba(255, 255, 255, 0.06);
+	color: #f4f4f5;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	padding: 11px 18px;
+	border-radius: 999px;
+	font-weight: 500;
+	font-size: 13.5px;
+	text-decoration: none;
+	transition: background .15s;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-cta-ghost:hover { background: rgba(255, 255, 255, 0.10); }
+[data-hatch-theme="astrowind"] .hatch-aw-foot-grid {
+	display: grid;
+	grid-template-columns: 1.5fr 1fr 1fr 1fr;
+	gap: 2.5rem;
+	padding-bottom: 2.5rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	position: relative;
+	z-index: 1;
+}
+@media (max-width: 760px) {
+	[data-hatch-theme="astrowind"] .hatch-aw-foot-grid { grid-template-columns: 1fr 1fr; }
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-name {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: 700;
+	font-size: 16px;
+	color: #fff;
+	text-decoration: none;
+	margin-bottom: 0.6rem;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-tagline {
+	color: #a1a1aa;
+	font-size: 14px;
+	line-height: 1.55;
+	max-width: 280px;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-h {
+	font-family: var(--hatch-font-mono);
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.14em;
+	color: #71717a;
+	margin-bottom: 0.85rem;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-nav { display: flex; flex-direction: column; gap: 0.55rem; }
+[data-hatch-theme="astrowind"] .hatch-aw-foot-nav a {
+	color: #d4d4d8;
+	font-size: 14px;
+	text-decoration: none;
+	transition: color .15s;
+}
+[data-hatch-theme="astrowind"] .hatch-aw-foot-nav a:hover { color: #a78bfa; }
+[data-hatch-theme="astrowind"] .hatch-aw-foot-bottom {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding-top: 1.5rem;
+	font-size: 12.5px;
+	color: #71717a;
+	position: relative;
+	z-index: 1;
+}
