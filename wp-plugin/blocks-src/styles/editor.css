@@ -24,3 +24,53 @@
 	background: #fff;
 	box-shadow: 0 1px 2px rgba(0,0,0,0.06);
 }
+
+/* ==========================================================================
+   v0.3.4 — Hatch yellow accent in the inserter.
+   Every Hatch block carries a soft gold tint + 🐣 badge in its inserter tile
+   so authors instantly know which blocks are Hatch-native vs Core. The
+   block-category section ("Hatch") gets a small chick badge in its header.
+   ========================================================================== */
+:root {
+	--hatch-amber:        #fbbf24;
+	--hatch-amber-soft:   #fef3c7;
+	--hatch-amber-border: #f59e0b;
+}
+
+/* Inserter tile (preview card) for any block with name starting hatch/ */
+.block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"] {
+	background: var(--hatch-amber-soft) !important;
+	border-radius: 6px !important;
+	border: 1px solid rgba(245, 158, 11, 0.25) !important;
+	transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+.block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"]:hover {
+	border-color: var(--hatch-amber-border) !important;
+	box-shadow: 0 6px 14px -8px rgba(245, 158, 11, 0.35) !important;
+	transform: translateY(-1px);
+}
+.block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"] .block-editor-block-types-list__item-icon {
+	color: #b45309 !important;
+}
+.block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"] .block-editor-block-types-list__item-title {
+	color: #78350f !important;
+	font-weight: 600;
+}
+
+/* Tiny 🐣 badge in the corner of every Hatch tile. */
+.block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"]::after {
+	content: '🐣';
+	position: absolute;
+	top: 4px;
+	right: 6px;
+	font-size: 10px;
+	opacity: 0.85;
+	line-height: 1;
+}
+.block-editor-block-types-list__item[class*="editor-block-list-item-hatch-"] { position: relative; }
+
+/* Inserter category header — "Hatch" gets the same gold tint. */
+.block-editor-inserter__panel-title[id*="hatch"],
+.block-editor-block-card[class*="hatch-"] .block-editor-block-card__title {
+	color: #b45309 !important;
+}
