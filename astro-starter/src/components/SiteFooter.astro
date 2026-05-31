@@ -135,24 +135,14 @@ const navLinks = footerItems.length > 0
   </footer>
 )}
 
-{theme === 'docs' && (() => {
-  // v0.50.32 — Docs footer: dense, info-rich. Three columns of nav grouped
-  // by 1/3 splits of the available links (Documentation / Resources / More).
-  // Headings are small caps with --hatch-fg-subtle. Bottom strip has the
-  // brand + version badge + © + Built-by-Hatch.
-  const third = Math.max(1, Math.ceil(navLinks.length / 3));
-  const colA = navLinks.slice(0, third);
-  const colB = navLinks.slice(third, third * 2);
-  const colC = navLinks.slice(third * 2);
-  const columns = [
-    { title: 'Documentation', links: colA },
-    { title: 'Resources', links: colB },
-    { title: 'More', links: colC },
-  ].filter((c) => c.links.length > 0);
-  return (
+{theme === 'docs' && (
+  /* v0.3.10 — Stripped invented "Documentation / Resources / More" column
+     headers. The WP menu doesn't categorize itself, and inventing groups
+     made a 2-link nav look like a 6-link sitemap. Now: single honest nav
+     row mirroring what WP actually returns. */
   <footer class="hatch-footer hatch-footer-docs mt-16">
     <div class="mx-auto px-5 sm:px-8 py-10" style="max-width: var(--hatch-max-width, 1160px);">
-      <div class="hatch-docs-foot-grid">
+      <div class="hatch-docs-foot-grid hatch-docs-foot-grid-simple">
         <div class="hatch-docs-foot-brand">
           {logoUrl
             ? <a href="/"><img src={logoUrl} alt={siteName} class="h-6 w-auto mb-3" loading="lazy" /></a>
@@ -160,16 +150,13 @@ const navLinks = footerItems.length > 0
           {tagline && <p class="hatch-docs-foot-tagline">{tagline}</p>}
           <span class="hatch-docs-badge" aria-hidden="true">v{features.version || '1'}</span>
         </div>
-        {columns.map((col) => (
-          <div>
-            <h3 class="hatch-docs-foot-h">{col.title}</h3>
-            <nav class="hatch-docs-foot-nav" aria-label={col.title}>
-              {col.links.map((link) => (
-                <a href={link.href} target={link.target || undefined}>{link.label}</a>
-              ))}
-            </nav>
-          </div>
-        ))}
+        {navLinks.length > 0 && (
+          <nav class="hatch-docs-foot-nav" aria-label="Footer">
+            {navLinks.map((link) => (
+              <a href={link.href} target={link.target || undefined}>{link.label}</a>
+            ))}
+          </nav>
+        )}
       </div>
       <div class="hatch-docs-foot-bottom">
         <span>{`© ${year} ${siteName}`}</span>
@@ -177,8 +164,7 @@ const navLinks = footerItems.length > 0
       </div>
     </div>
   </footer>
-  );
-})()}
+)}
 
 {theme === 'astropaper' && (
   <footer class="hatch-footer hatch-footer-astropaper mt-24">

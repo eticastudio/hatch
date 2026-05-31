@@ -10,6 +10,10 @@
 
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
+/**
+ * v0.3.10 — Brand tokens hold the only literal hex. Surfaces, borders,
+ * muted text all derive via color-mix from those 4 colours.
+ */
 :root[data-hatch-theme="tech"] {
 	--hatch-font-body:    'Inter', ui-sans-serif, system-ui, sans-serif;
 	--hatch-font-heading: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -17,34 +21,33 @@
 	--hatch-radius:       4px;
 	--hatch-max-width:    1080px;
 
-	/* Pure terminal dark */
-	--hatch-bg:          #06070a;
-	--hatch-bg-2:        #0c0e13;
-	--hatch-bg-3:        #15181f;
-	--hatch-fg:          #e6edf3;
-	--hatch-fg-muted:    #9ba3af;
-	--hatch-fg-subtle:   #5b6573;
-	--hatch-border:      #1d212a;
-	--hatch-border-2:    #2a2f3a;
-
-	/* Neon cyan */
+	/* === BRAND === */
+	--hatch-bg:           #06070a;
+	--hatch-fg:           #e6edf3;
 	--hatch-primary:      #22d3ee;
-	--hatch-primary-soft: rgba(34, 211, 238, 0.10);
-	--hatch-primary-fg:   #06070a;
 	--hatch-accent:       #a78bfa;
+	--hatch-secondary:    #9ba3af;
+
+	/* === DERIVED === */
+	--hatch-bg-2:         color-mix( in oklab, var(--hatch-fg) 4%, var(--hatch-bg) );
+	--hatch-bg-3:         color-mix( in oklab, var(--hatch-fg) 9%, var(--hatch-bg) );
+	--hatch-fg-muted:     color-mix( in oklab, var(--hatch-fg) 65%, var(--hatch-bg) );
+	--hatch-fg-subtle:    color-mix( in oklab, var(--hatch-fg) 35%, var(--hatch-bg) );
+	--hatch-border:       color-mix( in oklab, var(--hatch-fg) 12%, var(--hatch-bg) );
+	--hatch-border-2:     color-mix( in oklab, var(--hatch-fg) 20%, var(--hatch-bg) );
+	--hatch-primary-soft: color-mix( in oklab, var(--hatch-primary) 10%, transparent );
+	--hatch-primary-fg:   var(--hatch-bg);
 }
 
 /* Tech is ALWAYS dark; ignore color-mode preference. */
 [data-hatch-theme="tech"][data-hatch-mode="light"] {
-	--hatch-bg:          #06070a;
-	--hatch-bg-2:        #0c0e13;
-	--hatch-bg-3:        #15181f;
-	--hatch-fg:          #e6edf3;
+	--hatch-bg:           #06070a;
+	--hatch-fg:           #e6edf3;
 }
 
 [data-hatch-theme="tech"] body {
 	background:
-		radial-gradient(1200px 600px at 50% -10%, rgba(34, 211, 238, 0.06), transparent 60%),
+		radial-gradient(1200px 600px at 50% -10%, color-mix( in oklab, var(--hatch-primary) 8%, transparent ), transparent 60%),
 		var(--hatch-bg);
 	color: var(--hatch-fg);
 	font-family: var(--hatch-font-body);
@@ -54,7 +57,7 @@
 
 /* Header — sticky terminal bar */
 [data-hatch-theme="tech"] .hatch-header-tech {
-	background: rgba(6, 7, 10, 0.85);
+	background: color-mix( in oklab, var(--hatch-bg) 85%, transparent );
 	-webkit-backdrop-filter: blur(10px);
 	backdrop-filter: blur(10px);
 	border-bottom: 1px solid var(--hatch-border);
@@ -117,8 +120,8 @@
 	width: 6px;
 	height: 6px;
 	border-radius: 50%;
-	background: #10b981;
-	box-shadow: 0 0 8px #10b981;
+	background: var(--hatch-primary);
+	box-shadow: 0 0 8px var(--hatch-primary);
 }
 
 /* Typography */
@@ -174,23 +177,23 @@
    AND the white text inside disappears. Override to a tech-aligned dark card
    with a cyan-tinted border + glow on hover. */
 [data-hatch-theme="tech"] .hatch-posts a.hatch-post-card {
-	background: #0f1115;
-	border-color: rgba(34, 211, 238, 0.14);
-	box-shadow: 0 1px 0 rgba(34, 211, 238, 0.04);
+	background: var(--hatch-bg-2);
+	border-color: color-mix( in oklab, var(--hatch-primary) 14%, transparent );
+	box-shadow: 0 1px 0 color-mix( in oklab, var(--hatch-primary) 4%, transparent );
 }
 [data-hatch-theme="tech"] .hatch-posts a.hatch-post-card:hover {
-	border-color: rgba(34, 211, 238, 0.32);
-	box-shadow: 0 18px 36px -22px rgba(34, 211, 238, 0.32);
+	border-color: color-mix( in oklab, var(--hatch-primary) 32%, transparent );
+	box-shadow: 0 18px 36px -22px color-mix( in oklab, var(--hatch-primary) 32%, transparent );
 }
-[data-hatch-theme="tech"] .hatch-post-card-title { color: #e6edf3; }
-[data-hatch-theme="tech"] .hatch-post-card-excerpt { color: #a1a1aa; }
-[data-hatch-theme="tech"] .hatch-post-card-meta { color: #6b7280; }
-[data-hatch-theme="tech"] .hatch-post-card-image { background: #18181b; }
+[data-hatch-theme="tech"] .hatch-post-card-title { color: var(--hatch-fg); }
+[data-hatch-theme="tech"] .hatch-post-card-excerpt { color: var(--hatch-fg-muted); }
+[data-hatch-theme="tech"] .hatch-post-card-meta { color: var(--hatch-fg-subtle); }
+[data-hatch-theme="tech"] .hatch-post-card-image { background: var(--hatch-bg-3); }
 
-/* Accordion in dark theme — body copy was inheriting #475569 from blocks.css. */
-[data-hatch-theme="tech"] .hatch-accordion-item { border-color: rgba(255, 255, 255, 0.08); }
-[data-hatch-theme="tech"] .hatch-accordion-item summary { color: #e6edf3; }
-[data-hatch-theme="tech"] .hatch-accordion-body { color: #a1a1aa; }
+/* Accordion in dark theme */
+[data-hatch-theme="tech"] .hatch-accordion-item { border-color: var(--hatch-border); }
+[data-hatch-theme="tech"] .hatch-accordion-item summary { color: var(--hatch-fg); }
+[data-hatch-theme="tech"] .hatch-accordion-body { color: var(--hatch-fg-muted); }
 
 [data-hatch-theme="tech"] .hatch-prose {
 	font-size: 16px;
@@ -216,7 +219,7 @@
 	border: 1px solid var(--hatch-border);
 }
 [data-hatch-theme="tech"] .hatch-prose pre {
-	background: #04050a;
+	background: color-mix( in oklab, var(--hatch-bg) 80%, #000 );
 	border: 1px solid var(--hatch-border);
 	border-radius: 4px;
 	box-shadow: 0 0 0 1px var(--hatch-primary-soft) inset;

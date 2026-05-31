@@ -9,6 +9,16 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap');
 
+/**
+ * v0.3.10 — All non-brand tokens are now derived from the 4 admin brand
+ * colours (--hatch-primary, --hatch-secondary, --hatch-accent, --hatch-bg)
+ * via color-mix( in oklab, ... ). The user can change the 4 pickers in
+ * Hatch admin and every shade, border, surface, soft-tint follows.
+ *
+ * The hex values for `--hatch-bg`, `--hatch-fg` (derived from --hatch-bg
+ * via contrast), `--hatch-primary`, `--hatch-accent` are the ONLY
+ * authoritative colour declarations. Everything else is computed.
+ */
 :root[data-hatch-theme="blog"] {
 	--hatch-font-body:    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 	--hatch-font-heading: 'Source Serif 4', 'Iowan Old Style', 'Palatino', Georgia, serif;
@@ -17,52 +27,39 @@
 	--hatch-max-width:    1080px;
 	--hatch-reading-width: 680px;
 
-	/* Warm cream paper palette */
-	--hatch-bg:          #fbf7f1;
-	--hatch-bg-2:        #f5efe5;
-	--hatch-bg-3:        #ece5d6;
-	--hatch-fg:          #1c1815;
-	--hatch-fg-muted:    #58504a;
-	--hatch-fg-subtle:   #8a7f74;
-	--hatch-border:      #e6dccb;
-	--hatch-border-2:    #d5c8b1;
-
-	/* Single rust accent */
+	/* === BRAND TOKENS (the only authoritative hex in the file) === */
+	--hatch-bg:           #fbf7f1;
+	--hatch-fg:           #1c1815;
 	--hatch-primary:      #b34520;
-	--hatch-primary-soft: rgba(179, 69, 32, 0.08);
-	--hatch-primary-fg:   #fbf7f1;
 	--hatch-accent:       #b34520;
+	--hatch-secondary:    #58504a;
+
+	/* === DERIVED TOKENS — pure color-mix from the 4 brand colours === */
+	--hatch-bg-2:         color-mix( in oklab, var(--hatch-fg) 4%, var(--hatch-bg) );
+	--hatch-bg-3:         color-mix( in oklab, var(--hatch-fg) 10%, var(--hatch-bg) );
+	--hatch-fg-muted:     color-mix( in oklab, var(--hatch-fg) 65%, var(--hatch-bg) );
+	--hatch-fg-subtle:    color-mix( in oklab, var(--hatch-fg) 45%, var(--hatch-bg) );
+	--hatch-border:       color-mix( in oklab, var(--hatch-fg) 12%, var(--hatch-bg) );
+	--hatch-border-2:     color-mix( in oklab, var(--hatch-fg) 22%, var(--hatch-bg) );
+	--hatch-primary-soft: color-mix( in oklab, var(--hatch-primary) 10%, transparent );
+	--hatch-primary-fg:   var(--hatch-bg);
 }
 
 [data-hatch-theme="blog"][data-hatch-mode="dark"] {
-	--hatch-bg:          #15110d;
-	--hatch-bg-2:        #1d1813;
-	--hatch-bg-3:        #28201a;
-	--hatch-fg:          #f5ece0;
-	--hatch-fg-muted:    #b0a594;
-	--hatch-fg-subtle:   #7b7164;
-	--hatch-border:      #2e261e;
-	--hatch-border-2:    #423629;
+	--hatch-bg:           #15110d;
+	--hatch-fg:           #f5ece0;
 	--hatch-primary:      #e08054;
-	--hatch-primary-soft: rgba(224, 128, 84, 0.14);
-	--hatch-primary-fg:   #15110d;
 	--hatch-accent:       #e08054;
+	--hatch-secondary:    #b0a594;
 }
 
 @media (prefers-color-scheme: dark) {
 	:root[data-hatch-theme="blog"][data-hatch-mode="auto"] {
-		--hatch-bg:          #15110d;
-		--hatch-bg-2:        #1d1813;
-		--hatch-bg-3:        #28201a;
-		--hatch-fg:          #f5ece0;
-		--hatch-fg-muted:    #b0a594;
-		--hatch-fg-subtle:   #7b7164;
-		--hatch-border:      #2e261e;
-		--hatch-border-2:    #423629;
+		--hatch-bg:           #15110d;
+		--hatch-fg:           #f5ece0;
 		--hatch-primary:      #e08054;
-		--hatch-primary-soft: rgba(224, 128, 84, 0.14);
-		--hatch-primary-fg:   #15110d;
 		--hatch-accent:       #e08054;
+		--hatch-secondary:    #b0a594;
 	}
 }
 
@@ -116,16 +113,9 @@
 	color: var(--hatch-primary);
 	background: transparent;
 }
-[data-hatch-theme="blog"] .hatch-header nav a::after {
-	content: '';
-	position: absolute;
-	left: 14px; right: 14px; bottom: 2px;
-	height: 1px;
-	background: currentColor;
-	transform: scaleX(0);
-	transform-origin: left;
-	transition: transform .25s ease;
-}
+/* v0.3.10 — Removed the underline-on-hover animation. Per user direction
+   the nav should be plain — colour change only on hover, no extra ornament. */
+[data-hatch-theme="blog"] .hatch-header nav a::after { content: none; }
 [data-hatch-theme="blog"] .hatch-header nav a:hover::after,
 [data-hatch-theme="blog"] .hatch-header nav a.text-hatch-fg::after {
 	transform: scaleX(1);
