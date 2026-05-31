@@ -203,10 +203,11 @@ const theme = (features.theme || 'blog').toLowerCase();
             <svg class="hatch-cm-moon w-4 h-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           </button>
         )}
-        <a href={navItems[navItems.length - 1]?.href || '/blog'} class="hatch-aw-cta">
-          <span>Get started</span>
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
+        {/* v0.3.9 — Removed hardcoded "Get started" CTA. That was invented
+            filler that pointed at the last WP menu item, which on this site
+            happened to be "Post 105" — clicking "Get started" landed users
+            on a random post. If you want a CTA in the header, add it as a
+            real WP menu item with a "cta" CSS class. */}
       </div>
       <button type="button" class="hatch-hamburger lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-md text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2" aria-label="Open menu" aria-controls="hatch-mobile-drawer" aria-expanded="false">
         <svg class="h-5 w-5 hatch-icon-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>

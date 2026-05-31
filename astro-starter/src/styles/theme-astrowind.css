@@ -26,14 +26,21 @@
 	--hatch-border:      #e4e4e7;
 	--hatch-border-2:    #d4d4d8;
 
+	/* v0.3.9 — Theme defaults ONLY. WP admin → Design → Colors overrides
+	   these via inline style on <html>, so user-set palette wins. The
+	   `#7c3aed` / `#ec4899` here are theme suggestions, not commands. */
 	--hatch-primary:      #7c3aed;
 	--hatch-primary-soft: rgba(124, 58, 237, 0.10);
 	--hatch-primary-fg:   #ffffff;
 	--hatch-accent:       #ec4899;
 
-	--hatch-grad: linear-gradient(135deg, #7c3aed 0%, #ec4899 55%, #f59e0b 110%);
-	--hatch-grad-soft: radial-gradient(1200px 600px at 20% -10%, rgba(124, 58, 237, 0.12), transparent 60%),
-	                   radial-gradient(900px 500px at 90% 0%, rgba(236, 72, 153, 0.10), transparent 60%);
+	/* v0.3.9 — --hatch-grad and --hatch-grad-soft now derive from whatever
+	   --hatch-primary / --hatch-accent are at render time. If the user
+	   sets navy + indigo in admin, the CTA gradient becomes navy → indigo
+	   automatically — no more "why is my button purple when I picked navy?". */
+	--hatch-grad: linear-gradient(135deg, var(--hatch-primary) 0%, var(--hatch-accent) 100%);
+	--hatch-grad-soft: radial-gradient(1200px 600px at 20% -10%, color-mix(in oklab, var(--hatch-primary) 14%, transparent), transparent 60%),
+	                   radial-gradient(900px 500px at 90% 0%, color-mix(in oklab, var(--hatch-accent) 12%, transparent), transparent 60%);
 }
 
 [data-hatch-theme="astrowind"][data-hatch-mode="dark"] {
