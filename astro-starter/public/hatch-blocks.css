@@ -381,7 +381,8 @@
 .hatch-tabs-panel:not(.is-active) { display: none; }
 
 /* Variants */
-.hatch-tabs-underline .hatch-tabs-tab.is-active { box-shadow: inset 0 -2px 0 var( --hatch-primary, #ff6b35 ); }
+/* v0.3.10 — Removed duplicate underline (premium ::after pseudo at line ~607
+   already renders the scaling animated underline). Two underlines stacked. */
 .hatch-tabs-pills .hatch-tabs-nav { border: 0; gap: 0.5rem; }
 .hatch-tabs-pills .hatch-tabs-tab { border-radius: 999px; padding: 0.4em 0.9em; background: var( --hatch-surface-2, #f4f4f5 ); }
 .hatch-tabs-pills .hatch-tabs-tab.is-active { background: var( --hatch-fg, #0a0a0a ); color: var( --hatch-bg, #fff ); }
@@ -543,47 +544,87 @@ h3.hatch-heading { font-size: 1.25rem; font-weight: 600; }
 .hatch-paragraph { line-height: 1.65; color: #334155; font-size: 1rem; }
 
 /* ---- Button: gradient pill ----
-   The button block save() output bakes Tailwind utilities into the markup
-   (bg-primary, text-white, rounded-lg, px-5 py-2.5, hover:bg-primary/90,
-   focus:ring-*). To beat those without resorting to !important on every
-   line, we anchor the selectors to `a.hatch-button` (one extra type
-   specificity) AND override each Tailwind property explicitly. */
+   v0.3.10 — cascade root-cause fix. Previously the button block save()
+   emitted Tailwind utility classes (bg-primary, text-white, rounded-lg,
+   px-5 py-2.5, hover:bg-primary/90, focus:ring-*) which fought every
+   property here and forced !important guards. The save() now emits ONLY
+   semantic Hatch classes — .hatch-button + .hatch-button-{variant} +
+   .hatch-button-size-{s} + .hatch-button-radius-{r} — so no cascade
+   fight, no !important required. Themes can re-skin by overriding the
+   --hatch-primary / --hatch-accent tokens. */
 .hatch-button-wrap { display: inline-block; max-width: 100%; }
-a.hatch-button, button.hatch-button, .hatch-button {
+.hatch-button {
 	display: inline-flex; align-items: center; justify-content: center; gap: 0.5em;
-	padding: 0.75em 1.5em !important;
+	padding: 0.75em 1.5em;
 	min-height: 44px;
 	max-width: 100%;
 	white-space: nowrap;
 	border: 0;
-	border-radius: 999px !important;
+	border-radius: 999px;
 	font-weight: 600; font-size: 0.95rem; line-height: 1.2;
-	background: linear-gradient( 135deg, var( --hatch-primary, #6366f1 ) 0%, var( --hatch-accent, #8b5cf6 ) 100% ) !important;
-	color: #fff !important;
-	box-shadow: 0 8px 20px -8px rgba( 99, 102, 241, 0.55 );
+	background: linear-gradient( 135deg, var( --hatch-primary, #6366f1 ) 0%, var( --hatch-accent, #8b5cf6 ) 100% );
+	color: var( --hatch-primary-fg, #fff );
+	box-shadow: 0 8px 20px -8px color-mix( in oklab, var( --hatch-primary, #6366f1 ) 55%, transparent );
 	transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 	box-sizing: border-box;
-	text-decoration: none !important;
+	text-decoration: none;
 }
-a.hatch-button:hover, button.hatch-button:hover, .hatch-button:hover {
+.hatch-button:hover {
 	transform: translateY( -2px );
-	box-shadow: 0 14px 28px -10px rgba( 99, 102, 241, 0.65 );
+	box-shadow: 0 14px 28px -10px color-mix( in oklab, var( --hatch-primary, #6366f1 ) 65%, transparent );
 	filter: brightness( 1.05 );
-	background: linear-gradient( 135deg, var( --hatch-primary, #6366f1 ) 0%, var( --hatch-accent, #8b5cf6 ) 100% ) !important;
 }
-a.hatch-button:active, button.hatch-button:active, .hatch-button:active { transform: translateY( 0 ); }
-a.hatch-button:focus-visible { outline: 2px solid var( --hatch-primary, #6366f1 ); outline-offset: 3px; }
+.hatch-button:active { transform: translateY( 0 ); }
+.hatch-button:focus-visible { outline: 2px solid var( --hatch-primary, #6366f1 ); outline-offset: 3px; }
 
-/* Outline variant — when the button block ships .hatch-button-outline. */
-a.hatch-button-outline, button.hatch-button-outline {
-	background: transparent !important;
-	color: var( --hatch-fg, #0f172a ) !important;
+/* Variants */
+.hatch-button-secondary {
+	background: var( --hatch-bg-2, #f4f4f5 );
+	color: var( --hatch-fg, #0f172a );
+	box-shadow: inset 0 0 0 1px var( --hatch-border, rgba( 15, 23, 42, 0.08 ) );
+}
+.hatch-button-secondary:hover { background: var( --hatch-bg-3, #e5e5e7 ); }
+.hatch-button-outline {
+	background: transparent;
+	color: var( --hatch-fg, #0f172a );
 	box-shadow: inset 0 0 0 1.5px var( --hatch-fg, #0f172a );
 }
-a.hatch-button-outline:hover {
-	background: var( --hatch-fg, #0f172a ) !important;
-	color: var( --hatch-bg, #fff ) !important;
+.hatch-button-outline:hover {
+	background: var( --hatch-fg, #0f172a );
+	color: var( --hatch-bg, #fff );
 }
+.hatch-button-ghost {
+	background: transparent;
+	color: var( --hatch-fg, #0f172a );
+	box-shadow: none;
+}
+.hatch-button-ghost:hover { background: color-mix( in oklab, var( --hatch-fg, #0f172a ) 5%, transparent ); }
+.hatch-button-link {
+	background: transparent;
+	color: var( --hatch-primary, #6366f1 );
+	box-shadow: none;
+	padding: 0;
+	min-height: 0;
+	text-underline-offset: 4px;
+}
+.hatch-button-link:hover { text-decoration: underline; transform: none; filter: none; }
+
+/* Sizes */
+.hatch-button-size-xs { padding: 0.4em 0.85em; font-size: 0.75rem; min-height: 32px; }
+.hatch-button-size-sm { padding: 0.55em 1.1em; font-size: 0.85rem; min-height: 36px; }
+.hatch-button-size-md { padding: 0.75em 1.5em; font-size: 0.95rem; min-height: 44px; }
+.hatch-button-size-lg { padding: 0.9em 1.75em; font-size: 1.05rem; min-height: 52px; }
+.hatch-button-size-xl { padding: 1.05em 2.1em; font-size: 1.15rem; min-height: 60px; }
+
+/* Radii */
+.hatch-button-radius-none { border-radius: 0; }
+.hatch-button-radius-sm   { border-radius: 4px; }
+.hatch-button-radius-md   { border-radius: 8px; }
+.hatch-button-radius-lg   { border-radius: 12px; }
+.hatch-button-radius-xl   { border-radius: 16px; }
+.hatch-button-radius-full { border-radius: 999px; }
+
+.hatch-button-block { display: flex; width: 100%; }
 
 /* ---- Tabs: clean underline + smooth panel transition ---- */
 .hatch-tabs-nav {

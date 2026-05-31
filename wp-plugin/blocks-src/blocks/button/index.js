@@ -50,39 +50,36 @@ const RADII = [
 	{ label: 'Pill',   value: 'full' },
 ];
 
+/**
+ * v0.3.10 — Cascade root-cause fix. Previous output baked Tailwind utility
+ * classes (bg-primary, text-white, hover:bg-primary/90, px-5 py-2.5, etc.)
+ * into the saved markup, which then overrode the .hatch-button design
+ * tokens at the cascade level and forced us to ship !important guards.
+ *
+ * Now save() emits ONLY semantic Hatch classes — variant, size, radius —
+ * and the design lives entirely in hatch-blocks.css. Cascade is clean,
+ * no !important required, themes can re-style by overriding a single
+ * variable.
+ */
 function variantClasses( v ) {
-	switch ( v ) {
-		case 'primary':   return 'bg-primary text-white hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2';
-		case 'secondary': return 'bg-surface text-foreground hover:bg-border focus:ring-2 focus:ring-foreground/20';
-		case 'outline':   return 'border-2 border-foreground text-foreground hover:bg-foreground hover:text-background';
-		case 'ghost':     return 'text-foreground hover:bg-foreground/5';
-		case 'link':      return 'text-primary underline-offset-4 hover:underline px-0 py-0';
-		default:          return '';
-	}
+	return v ? `hatch-button-${ v }` : '';
 }
 
 function sizeClasses( s ) {
-	switch ( s ) {
-		case 'xs': return 'text-xs px-2.5 py-1.5';
-		case 'sm': return 'text-sm px-3 py-2';
-		case 'md': return 'text-base px-5 py-2.5';
-		case 'lg': return 'text-lg px-6 py-3';
-		case 'xl': return 'text-xl px-8 py-4';
-		default:   return '';
-	}
+	return s ? `hatch-button-size-${ s }` : '';
 }
 
 function radiusClass( r ) {
-	return r === 'none' ? 'rounded-none' : `rounded-${ r }`;
+	return r ? `hatch-button-radius-${ r }` : '';
 }
 
 function computeClasses( a ) {
 	return cx(
-		'hatch-button inline-flex items-center justify-center gap-2 font-medium transition-all duration-150',
+		'hatch-button',
 		variantClasses( a.variant ),
 		sizeClasses( a.size ),
 		radiusClass( a.radius ),
-		a.fullWidth ? 'w-full' : ''
+		a.fullWidth ? 'hatch-button-block' : ''
 	);
 }
 

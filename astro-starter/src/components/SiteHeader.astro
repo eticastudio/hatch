@@ -279,11 +279,9 @@ const theme = (features.theme || 'blog').toLowerCase();
         </nav>
       )}
       <div class="flex-1"></div>
-      <button type="button" class="hatch-docs-search hidden md:inline-flex items-center gap-2" aria-label="Search documentation (coming soon)" disabled>
-        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        <span class="hatch-docs-search-label">Search docs…</span>
-        <span class="hatch-docs-kbd" aria-hidden="true">⌘K</span>
-      </button>
+      {/* v0.3.10 — Removed the disabled "Search docs… ⌘K" pill. It was a
+          dead control that implied a feature (search) the headless engine
+          doesn't ship. Show nothing rather than a permanently-greyed CTA. */}
       <nav class="hidden md:flex items-center gap-4 shrink-0" aria-label="Primary">
         {navItems.map((item) => (
           <a href={item.href} target={item.target || undefined} class:list={['hatch-docs-nav-link', isActive(item.href) ? 'is-active' : '']}>{item.label}</a>

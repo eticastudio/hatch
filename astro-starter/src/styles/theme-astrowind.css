@@ -10,6 +10,12 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
+/**
+ * v0.3.10 — Brand tokens + derived shades via color-mix.
+ * Both --hatch-grad and --hatch-grad-soft already derive from
+ * --hatch-primary / --hatch-accent (v0.3.9), so changing the 4 admin
+ * pickers retints the entire surface, hero glow, CTA, footer band.
+ */
 :root[data-hatch-theme="astrowind"] {
 	--hatch-font-body:    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 	--hatch-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
@@ -17,62 +23,42 @@
 	--hatch-radius:       14px;
 	--hatch-max-width:    1240px;
 
-	--hatch-bg:          #ffffff;
-	--hatch-bg-2:        #fafafa;
-	--hatch-bg-3:        #f4f4f5;
-	--hatch-fg:          #09090b;
-	--hatch-fg-muted:    #52525b;
-	--hatch-fg-subtle:   #71717a;
-	--hatch-border:      #e4e4e7;
-	--hatch-border-2:    #d4d4d8;
-
-	/* v0.3.9 — Theme defaults ONLY. WP admin → Design → Colors overrides
-	   these via inline style on <html>, so user-set palette wins. The
-	   `#7c3aed` / `#ec4899` here are theme suggestions, not commands. */
+	/* === BRAND === */
+	--hatch-bg:           #ffffff;
+	--hatch-fg:           #09090b;
 	--hatch-primary:      #7c3aed;
-	--hatch-primary-soft: rgba(124, 58, 237, 0.10);
-	--hatch-primary-fg:   #ffffff;
 	--hatch-accent:       #ec4899;
+	--hatch-secondary:    #52525b;
 
-	/* v0.3.9 — --hatch-grad and --hatch-grad-soft now derive from whatever
-	   --hatch-primary / --hatch-accent are at render time. If the user
-	   sets navy + indigo in admin, the CTA gradient becomes navy → indigo
-	   automatically — no more "why is my button purple when I picked navy?". */
+	/* === DERIVED === */
+	--hatch-bg-2:         color-mix( in oklab, var(--hatch-fg) 2%, var(--hatch-bg) );
+	--hatch-bg-3:         color-mix( in oklab, var(--hatch-fg) 6%, var(--hatch-bg) );
+	--hatch-fg-muted:     color-mix( in oklab, var(--hatch-fg) 65%, var(--hatch-bg) );
+	--hatch-fg-subtle:    color-mix( in oklab, var(--hatch-fg) 45%, var(--hatch-bg) );
+	--hatch-border:       color-mix( in oklab, var(--hatch-fg) 11%, var(--hatch-bg) );
+	--hatch-border-2:     color-mix( in oklab, var(--hatch-fg) 20%, var(--hatch-bg) );
+	--hatch-primary-soft: color-mix( in oklab, var(--hatch-primary) 10%, transparent );
+	--hatch-primary-fg:   var(--hatch-bg);
+
 	--hatch-grad: linear-gradient(135deg, var(--hatch-primary) 0%, var(--hatch-accent) 100%);
 	--hatch-grad-soft: radial-gradient(1200px 600px at 20% -10%, color-mix(in oklab, var(--hatch-primary) 14%, transparent), transparent 60%),
 	                   radial-gradient(900px 500px at 90% 0%, color-mix(in oklab, var(--hatch-accent) 12%, transparent), transparent 60%);
 }
 
 [data-hatch-theme="astrowind"][data-hatch-mode="dark"] {
-	--hatch-bg:          #050510;
-	--hatch-bg-2:        #0d0c1f;
-	--hatch-bg-3:        #16142b;
-	--hatch-fg:          #f4f4f5;
-	--hatch-fg-muted:    #a1a1aa;
-	--hatch-fg-subtle:   #71717a;
-	--hatch-border:      #232038;
-	--hatch-border-2:    #36314f;
-	--hatch-primary:      #a78bfa;
-	--hatch-primary-soft: rgba(167, 139, 250, 0.14);
-	--hatch-primary-fg:   #050510;
+	--hatch-bg:           #050510;
+	--hatch-fg:           #f4f4f5;
+	--hatch-primary:      var(--hatch-primary);
 	--hatch-accent:       #f472b6;
-	--hatch-grad-soft: radial-gradient(1200px 600px at 20% -10%, rgba(167, 139, 250, 0.16), transparent 60%),
-	                   radial-gradient(900px 500px at 90% 0%, rgba(244, 114, 182, 0.10), transparent 60%);
+	--hatch-secondary:    #a1a1aa;
 }
 @media (prefers-color-scheme: dark) {
 	:root[data-hatch-theme="astrowind"][data-hatch-mode="auto"] {
-		--hatch-bg:          #050510;
-		--hatch-bg-2:        #0d0c1f;
-		--hatch-bg-3:        #16142b;
-		--hatch-fg:          #f4f4f5;
-		--hatch-fg-muted:    #a1a1aa;
-		--hatch-fg-subtle:   #71717a;
-		--hatch-border:      #232038;
-		--hatch-border-2:    #36314f;
-		--hatch-primary:      #a78bfa;
-		--hatch-primary-soft: rgba(167, 139, 250, 0.14);
-		--hatch-primary-fg:   #050510;
+		--hatch-bg:           #050510;
+		--hatch-fg:           #f4f4f5;
+		--hatch-primary:      var(--hatch-primary);
 		--hatch-accent:       #f472b6;
+		--hatch-secondary:    #a1a1aa;
 	}
 }
 
@@ -104,8 +90,8 @@
 	padding-left: 22px !important;
 	padding-right: 10px !important;
 	box-shadow:
-		0 1px 0 rgba(255, 255, 255, 0.04) inset,
-		0 8px 32px -12px rgba(124, 58, 237, 0.20),
+		0 1px 0 color-mix(in oklab, var(--hatch-bg) 4%, transparent) inset,
+		0 8px 32px -12px color-mix(in oklab, var(--hatch-primary) 20%, transparent),
 		0 2px 8px rgba(0, 0, 0, 0.04);
 	max-width: 1080px !important;
 	height: 58px !important;
@@ -118,10 +104,10 @@
 	justify-content: center;
 	border-radius: 8px;
 	background: var(--hatch-grad);
-	color: #fff;
+	color: var(--hatch-primary-fg);
 	font-weight: 700;
 	font-size: 14px;
-	box-shadow: 0 4px 12px -2px rgba(124, 58, 237, 0.4);
+	box-shadow: 0 4px 12px -2px color-mix(in oklab, var(--hatch-primary) 40%, transparent);
 }
 [data-hatch-theme="astrowind"] .hatch-aw-brand-name {
 	font-weight: 700;
@@ -151,22 +137,22 @@
 	align-items: center;
 	gap: 6px;
 	background: var(--hatch-grad);
-	color: #fff;
+	color: var(--hatch-primary-fg);
 	font-weight: 600;
 	font-size: 13.5px;
 	padding: 9px 16px;
 	border-radius: 999px;
 	text-decoration: none;
 	box-shadow:
-		0 1px 0 rgba(255, 255, 255, 0.2) inset,
-		0 6px 18px -4px rgba(124, 58, 237, 0.5);
+		0 1px 0 color-mix(in oklab, var(--hatch-bg) 20%, transparent) inset,
+		0 6px 18px -4px color-mix(in oklab, var(--hatch-primary) 50%, transparent);
 	transition: transform .15s, box-shadow .15s;
 }
 [data-hatch-theme="astrowind"] .hatch-aw-cta:hover {
 	transform: translateY(-1px);
 	box-shadow:
-		0 1px 0 rgba(255, 255, 255, 0.25) inset,
-		0 10px 28px -4px rgba(124, 58, 237, 0.6);
+		0 1px 0 color-mix(in oklab, var(--hatch-bg) 25%, transparent) inset,
+		0 10px 28px -4px color-mix(in oklab, var(--hatch-primary) 60%, transparent);
 }
 
 /* Typography — large display headings */
@@ -230,7 +216,7 @@
 	transform: translateY(-3px);
 	border-color: var(--hatch-primary);
 	box-shadow:
-		0 12px 32px -8px rgba(124, 58, 237, 0.20),
+		0 12px 32px -8px color-mix(in oklab, var(--hatch-primary) 20%, transparent),
 		0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
@@ -238,19 +224,19 @@
 [data-hatch-theme="astrowind"] .hatch-btn,
 [data-hatch-theme="astrowind"] .wp-block-button__link {
 	background: var(--hatch-grad);
-	color: #fff;
+	color: var(--hatch-primary-fg);
 	border: 0;
 	border-radius: 999px;
 	padding: 12px 24px;
 	font-weight: 600;
 	font-size: 14.5px;
-	box-shadow: 0 6px 20px -4px rgba(124, 58, 237, 0.4);
+	box-shadow: 0 6px 20px -4px color-mix(in oklab, var(--hatch-primary) 40%, transparent);
 }
 
 /* Footer */
 [data-hatch-theme="astrowind"] .hatch-footer-astrowind {
-	background: #050510;
-	color: #d4d4d8;
+	background: color-mix(in oklab, #000 92%, var(--hatch-fg));
+	color: var(--hatch-fg-muted);
 	margin-top: 5rem;
 	padding-top: 4rem;
 	padding-bottom: 2rem;
@@ -263,12 +249,12 @@
 	top: -200px; left: 50%;
 	transform: translateX(-50%);
 	width: 1000px; height: 400px;
-	background: radial-gradient(closest-side, rgba(124, 58, 237, 0.25), transparent 70%);
+	background: radial-gradient(closest-side, color-mix(in oklab, var(--hatch-primary) 25%, transparent), transparent 70%);
 	pointer-events: none;
 }
 [data-hatch-theme="astrowind"] .hatch-aw-foot-cta {
-	background: linear-gradient(135deg, rgba(124, 58, 237, 0.20), rgba(236, 72, 153, 0.16));
-	border: 1px solid rgba(167, 139, 250, 0.30);
+	background: linear-gradient(135deg, color-mix(in oklab, var(--hatch-primary) 20%, transparent), color-mix(in oklab, var(--hatch-accent) 16%, transparent));
+	border: 1px solid color-mix(in oklab, var(--hatch-primary) 30%, transparent);
 	border-radius: 20px;
 	padding: 2.5rem;
 	display: grid;
@@ -288,19 +274,19 @@
 	font-size: 11px;
 	text-transform: uppercase;
 	letter-spacing: 0.14em;
-	color: #a78bfa;
+	color: var(--hatch-primary);
 	margin-bottom: 0.5rem;
 }
 [data-hatch-theme="astrowind"] .hatch-aw-foot-cta-text h2 {
-	color: #fff;
+	color: var(--hatch-primary-fg);
 	font-size: clamp(1.5rem, 2vw + 1rem, 2.1rem);
 	font-weight: 700;
 	letter-spacing: -0.02em;
 	margin: 0 0 0.5rem;
-	-webkit-text-fill-color: #fff;
+	-webkit-text-fill-color: var(--hatch-primary-fg);
 }
 [data-hatch-theme="astrowind"] .hatch-aw-foot-cta-text p {
-	color: #a1a1aa;
+	color: var(--hatch-fg-muted);
 	font-size: 15px;
 	margin: 0;
 	max-width: 460px;
@@ -314,9 +300,9 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
-	background: rgba(255, 255, 255, 0.06);
-	color: #f4f4f5;
-	border: 1px solid rgba(255, 255, 255, 0.12);
+	background: color-mix(in oklab, var(--hatch-bg) 6%, transparent);
+	color: var(--hatch-fg);
+	border: 1px solid color-mix(in oklab, var(--hatch-bg) 12%, transparent);
 	padding: 11px 18px;
 	border-radius: 999px;
 	font-weight: 500;
@@ -324,13 +310,13 @@
 	text-decoration: none;
 	transition: background .15s;
 }
-[data-hatch-theme="astrowind"] .hatch-aw-cta-ghost:hover { background: rgba(255, 255, 255, 0.10); }
+[data-hatch-theme="astrowind"] .hatch-aw-cta-ghost:hover { background: color-mix(in oklab, var(--hatch-bg) 10%, transparent); }
 [data-hatch-theme="astrowind"] .hatch-aw-foot-grid {
 	display: grid;
 	grid-template-columns: 1.5fr 1fr 1fr 1fr;
 	gap: 2.5rem;
 	padding-bottom: 2.5rem;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	border-bottom: 1px solid color-mix(in oklab, var(--hatch-bg) 8%, transparent);
 	position: relative;
 	z-index: 1;
 }
@@ -343,12 +329,12 @@
 	gap: 8px;
 	font-weight: 700;
 	font-size: 16px;
-	color: #fff;
+	color: var(--hatch-primary-fg);
 	text-decoration: none;
 	margin-bottom: 0.6rem;
 }
 [data-hatch-theme="astrowind"] .hatch-aw-foot-tagline {
-	color: #a1a1aa;
+	color: var(--hatch-fg-muted);
 	font-size: 14px;
 	line-height: 1.55;
 	max-width: 280px;
@@ -359,24 +345,24 @@
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.14em;
-	color: #71717a;
+	color: var(--hatch-fg-subtle);
 	margin-bottom: 0.85rem;
 }
 [data-hatch-theme="astrowind"] .hatch-aw-foot-nav { display: flex; flex-direction: column; gap: 0.55rem; }
 [data-hatch-theme="astrowind"] .hatch-aw-foot-nav a {
-	color: #d4d4d8;
+	color: var(--hatch-fg-muted);
 	font-size: 14px;
 	text-decoration: none;
 	transition: color .15s;
 }
-[data-hatch-theme="astrowind"] .hatch-aw-foot-nav a:hover { color: #a78bfa; }
+[data-hatch-theme="astrowind"] .hatch-aw-foot-nav a:hover { color: var(--hatch-primary); }
 [data-hatch-theme="astrowind"] .hatch-aw-foot-bottom {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
 	padding-top: 1.5rem;
 	font-size: 12.5px;
-	color: #71717a;
+	color: var(--hatch-fg-subtle);
 	position: relative;
 	z-index: 1;
 }

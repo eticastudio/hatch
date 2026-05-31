@@ -10,6 +10,11 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 
+/**
+ * v0.3.10 — Brand tokens + derived shades via color-mix.
+ * Newspaper uses a distinct deeper border (mix of fg toward black) to
+ * preserve the heavy "rule" look of newsprint.
+ */
 :root[data-hatch-theme="astropaper"] {
 	--hatch-font-body:    'Cormorant Garamond', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
 	--hatch-font-heading: 'Playfair Display', 'Didot', 'Bodoni 72', Georgia, serif;
@@ -17,34 +22,30 @@
 	--hatch-radius:       0;
 	--hatch-max-width:    1180px;
 
-	/* Aged newsprint */
-	--hatch-bg:          #f7f3ec;
-	--hatch-bg-2:        #efe9dd;
-	--hatch-bg-3:        #e6dec9;
-	--hatch-fg:          #14110d;
-	--hatch-fg-muted:    #4a443c;
-	--hatch-fg-subtle:   #847b6e;
-	--hatch-border:      #2a241c;
-	--hatch-border-2:    #4a443c;
-
+	/* === BRAND === */
+	--hatch-bg:           #f7f3ec;
+	--hatch-fg:           #14110d;
 	--hatch-primary:      #14110d;
-	--hatch-primary-soft: rgba(20, 17, 13, 0.06);
-	--hatch-primary-fg:   #f7f3ec;
-	--hatch-accent:       #8b1a1a; /* a deep classic editorial red — sparingly */
+	--hatch-accent:       #8b1a1a;
+	--hatch-secondary:    #4a443c;
+
+	/* === DERIVED === */
+	--hatch-bg-2:         color-mix( in oklab, var(--hatch-fg) 5%, var(--hatch-bg) );
+	--hatch-bg-3:         color-mix( in oklab, var(--hatch-fg) 12%, var(--hatch-bg) );
+	--hatch-fg-muted:     color-mix( in oklab, var(--hatch-fg) 70%, var(--hatch-bg) );
+	--hatch-fg-subtle:    color-mix( in oklab, var(--hatch-fg) 45%, var(--hatch-bg) );
+	--hatch-border:       color-mix( in oklab, var(--hatch-fg) 85%, var(--hatch-bg) );
+	--hatch-border-2:     color-mix( in oklab, var(--hatch-fg) 65%, var(--hatch-bg) );
+	--hatch-primary-soft: color-mix( in oklab, var(--hatch-primary) 6%, transparent );
+	--hatch-primary-fg:   var(--hatch-bg);
 }
 
 [data-hatch-theme="astropaper"][data-hatch-mode="dark"] {
-	--hatch-bg:          #100e0a;
-	--hatch-bg-2:        #181511;
-	--hatch-bg-3:        #221d17;
-	--hatch-fg:          #f1ebda;
-	--hatch-fg-muted:    #b8afa0;
-	--hatch-fg-subtle:   #786f60;
-	--hatch-border:      #d8cdb4;
-	--hatch-border-2:    #948872;
+	--hatch-bg:           #100e0a;
+	--hatch-fg:           #f1ebda;
 	--hatch-primary:      #f1ebda;
-	--hatch-primary-fg:   #100e0a;
 	--hatch-accent:       #e07b7b;
+	--hatch-secondary:    #b8afa0;
 }
 
 [data-hatch-theme="astropaper"] body {

@@ -9,6 +9,9 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600&display=swap');
 
+/**
+ * v0.3.10 — Brand tokens + derived shades via color-mix.
+ */
 :root[data-hatch-theme="astronano"] {
 	--hatch-font-body:    'Lora', 'Iowan Old Style', Georgia, serif;
 	--hatch-font-heading: 'Lora', 'Iowan Old Style', Georgia, serif;
@@ -16,45 +19,38 @@
 	--hatch-radius:       0;
 	--hatch-max-width:    640px;
 
-	--hatch-bg:          #ffffff;
-	--hatch-bg-2:        #fafaf9;
-	--hatch-bg-3:        #f5f5f4;
-	--hatch-fg:          #1c1917;
-	--hatch-fg-muted:    #57534e;
-	--hatch-fg-subtle:   #a8a29e;
-	--hatch-border:      #e7e5e4;
-	--hatch-border-2:    #d6d3d1;
-
+	/* === BRAND === */
+	--hatch-bg:           #ffffff;
+	--hatch-fg:           #1c1917;
 	--hatch-primary:      #1c1917;
-	--hatch-primary-soft: rgba(28, 25, 23, 0.04);
-	--hatch-primary-fg:   #ffffff;
 	--hatch-accent:       #57534e;
+	--hatch-secondary:    #57534e;
+
+	/* === DERIVED === */
+	--hatch-bg-2:         color-mix( in oklab, var(--hatch-fg) 2%, var(--hatch-bg) );
+	--hatch-bg-3:         color-mix( in oklab, var(--hatch-fg) 6%, var(--hatch-bg) );
+	--hatch-fg-muted:     color-mix( in oklab, var(--hatch-fg) 65%, var(--hatch-bg) );
+	--hatch-fg-subtle:    color-mix( in oklab, var(--hatch-fg) 40%, var(--hatch-bg) );
+	--hatch-border:       color-mix( in oklab, var(--hatch-fg) 10%, var(--hatch-bg) );
+	--hatch-border-2:     color-mix( in oklab, var(--hatch-fg) 18%, var(--hatch-bg) );
+	--hatch-primary-soft: color-mix( in oklab, var(--hatch-primary) 5%, transparent );
+	--hatch-primary-fg:   var(--hatch-bg);
 }
 
 [data-hatch-theme="astronano"][data-hatch-mode="dark"] {
-	--hatch-bg:          #0c0c0c;
-	--hatch-bg-2:        #131313;
-	--hatch-bg-3:        #1a1a1a;
-	--hatch-fg:          #f5f5f4;
-	--hatch-fg-muted:    #a8a29e;
-	--hatch-fg-subtle:   #57534e;
-	--hatch-border:      #1c1c1c;
-	--hatch-border-2:    #292929;
+	--hatch-bg:           #0c0c0c;
+	--hatch-fg:           #f5f5f4;
 	--hatch-primary:      #f5f5f4;
-	--hatch-primary-fg:   #0c0c0c;
+	--hatch-accent:       #a8a29e;
+	--hatch-secondary:    #a8a29e;
 }
 @media (prefers-color-scheme: dark) {
 	:root[data-hatch-theme="astronano"][data-hatch-mode="auto"] {
-		--hatch-bg:          #0c0c0c;
-		--hatch-bg-2:        #131313;
-		--hatch-bg-3:        #1a1a1a;
-		--hatch-fg:          #f5f5f4;
-		--hatch-fg-muted:    #a8a29e;
-		--hatch-fg-subtle:   #57534e;
-		--hatch-border:      #1c1c1c;
-		--hatch-border-2:    #292929;
+		--hatch-bg:           #0c0c0c;
+		--hatch-fg:           #f5f5f4;
 		--hatch-primary:      #f5f5f4;
-		--hatch-primary-fg:   #0c0c0c;
+		--hatch-accent:       #a8a29e;
+		--hatch-secondary:    #a8a29e;
 	}
 }
 
