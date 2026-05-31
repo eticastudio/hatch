@@ -639,6 +639,34 @@ h3.hatch-heading { font-size: 1.25rem; font-weight: 600; }
 	color: var( --hatch-primary-fg, #fff );
 	text-decoration: none;
 }
+
+/* v0.3.15 — Same issue, same fix, for the Posts grid cards. SSR cards
+   are <a class="post-card group block"> inside .hatch-prose. The prose-link
+   rule applied underline to the card link AND inherited down to the title
+   <h3> + <time> + <span>. Strip it on the anchor AND all its descendants. */
+.hatch-prose a.post-card,
+.hatch-prose a.post-card *,
+[data-hatch-theme] .hatch-prose a.post-card,
+[data-hatch-theme] .hatch-prose a.post-card * {
+	text-decoration: none;
+}
+.hatch-prose a.post-card,
+[data-hatch-theme] .hatch-prose a.post-card {
+	color: var( --hatch-fg, #0f172a );
+}
+.hatch-prose a.post-card h3,
+[data-hatch-theme] .hatch-prose a.post-card h3 {
+	color: var( --hatch-fg, #0f172a );
+}
+
+/* v0.3.15 — Kill the cream `bg-hatch-bg-3` letterbox on the image wrapper.
+   The image is object-fit:cover and already fills the 16:10 box; the bg
+   was only there as a loading placeholder and showed as a cream rim
+   around images with non-16:10 natural aspect ratios. Empty cards keep
+   their own gradient placeholder, so removing the bg is safe. */
+.hatch-prose a.post-card > .aspect-\[16\/10\] {
+	background: transparent !important;
+}
 .hatch-prose a.hatch-button-outline,
 [data-hatch-theme] .hatch-prose a.hatch-button-outline,
 .hatch-prose a.hatch-button-ghost,
