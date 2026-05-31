@@ -397,6 +397,14 @@ class Hatch_Rest_Api {
 		$items = array();
 		foreach ( $q->posts as $post ) {
 			$thumb_id = (int) get_post_thumbnail_id( $post );
+			// v0.3.12 — Include primary category label so the home Posts grid
+			// can render the same UNCATEGORIZED/CATEGORY eyebrow that the
+			// Related-posts grid (PostCard.astro) already shows. Falls back
+			// to empty string when the post has no terms.
+			$cat_terms = get_the_terms( $post, 'category' );
+			$category = ( is_array( $cat_terms ) && ! empty( $cat_terms ) )
+				? (string) $cat_terms[0]->name
+				: '';
 			$items[] = array(
 				'id'                 => (int) $post->ID,
 				'slug'               => (string) $post->post_name,
@@ -405,6 +413,7 @@ class Hatch_Rest_Api {
 				'excerpt'            => wp_strip_all_tags( get_the_excerpt( $post ) ),
 				'featured_media_url' => $thumb_id ? (string) wp_get_attachment_image_url( $thumb_id, 'large' ) : '',
 				'featured_media_alt' => $thumb_id ? (string) get_post_meta( $thumb_id, '_wp_attachment_image_alt', true ) : '',
+				'category'           => $category,
 				'published'          => mysql_to_rfc3339( $post->post_date_gmt ),
 				'link'               => get_permalink( $post ),
 			);

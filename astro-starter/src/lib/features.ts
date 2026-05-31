@@ -468,16 +468,25 @@ async function fetchPostsForBlock(features: HatchFeatures, params: URLSearchPara
   }
 }
 
-function renderCard(p: HatchPostsItem, showImage: boolean, showExcerpt: boolean, showMeta: boolean): string {
+interface HatchPostsItemExt extends HatchPostsItem {
+  category?: string;
+}
+
+function renderCard(p: HatchPostsItemExt, showImage: boolean, showExcerpt: boolean, showMeta: boolean): string {
   const href = p.link || `/blog/${p.slug}`;
+  // v0.3.12 — Match PostCard.astro markup so home Posts and Related grids
+  // render identically. Category pill above title, image then text.
   const img = showImage && p.featured_media_url
     ? `<div class="hatch-post-card-image"><img src="${escAttr(p.featured_media_url)}" alt="${escAttr(p.featured_media_alt || '')}" loading="lazy" decoding="async"></div>`
+    : '';
+  const cat = p.category
+    ? `<span class="hatch-post-card-category">${escAttr(p.category)}</span>`
     : '';
   const excerpt = showExcerpt && p.excerpt ? `<p class="hatch-post-card-excerpt">${p.excerpt}</p>` : '';
   const meta = showMeta && p.published
     ? `<div class="hatch-post-card-meta">${new Date(p.published).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>`
     : '';
-  return `<a class="hatch-post-card" href="${escAttr(href)}">${img}<div class="hatch-post-card-body"><h3 class="hatch-post-card-title">${p.title || ''}</h3>${excerpt}${meta}</div></a>`;
+  return `<a class="hatch-post-card" href="${escAttr(href)}">${img}<div class="hatch-post-card-body">${cat}<h3 class="hatch-post-card-title">${p.title || ''}</h3>${excerpt}${meta}</div></a>`;
 }
 
 export async function renderHatchPostsBlocks(html: string, features: HatchFeatures): Promise<string> {
