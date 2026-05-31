@@ -447,37 +447,53 @@
 	margin-left: auto; margin-right: auto;
 }
 
-/* ---- Posts: card lift + image zoom ---- */
-.hatch-posts { gap: 1.75rem; }
+/* ---- Posts: EXACT clone of PostCard.astro / Related-grid look ----
+   v0.3.12 — Mirror what PostCard.astro renders for the Related grid:
+   no visible card frame, no border, no background — just the
+   image-or-placeholder (rounded, 16/10) with the title + meta sitting
+   beneath in clean type. Hover lifts the whole card subtly. This keeps
+   the home Posts grid and the single-post Related grid visually
+   inseparable as the user asked. */
+.hatch-posts { gap: 3rem 1.75rem; }
 .hatch-posts a.hatch-post-card {
-	background: #fff;
-	border: 1px solid rgba( 15, 23, 42, 0.08 );
-	border-radius: 14px;
-	overflow: hidden;
-	transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-	box-shadow: 0 1px 2px rgba( 15, 23, 42, 0.04 );
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	overflow: visible;
+	box-shadow: none;
+	transition: transform 0.25s ease;
 	display: flex; flex-direction: column;
 }
-.hatch-posts a.hatch-post-card:hover {
-	transform: translateY( -4px );
-	box-shadow: 0 24px 40px -20px rgba( 15, 23, 42, 0.18 );
-	border-color: rgba( 15, 23, 42, 0.16 );
+.hatch-posts a.hatch-post-card:hover { transform: translateY( -2px ); }
+.hatch-posts .hatch-post-card-image {
+	aspect-ratio: 16 / 10;
+	overflow: hidden;
+	background: var( --hatch-bg-3, #f4f4f5 );
+	border-radius: 12px;
+	margin-bottom: 1.25rem;
 }
-.hatch-posts .hatch-post-card-image { aspect-ratio: 16 / 10; overflow: hidden; }
 .hatch-posts .hatch-post-card-image img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
 	transition: transform 0.5s ease;
 }
-.hatch-posts a.hatch-post-card:hover .hatch-post-card-image img { transform: scale( 1.06 ); }
+.hatch-posts a.hatch-post-card:hover .hatch-post-card-image img { transform: scale( 1.04 ); }
 
 /* v0.3.6 — Designed placeholder for cards without a featured image. The card
    gets a soft gradient panel instead of an empty cream rectangle that looks
    broken. Used by .hatch-posts cards AND the shared PostCard.astro component
    (Related / Latest grids), so the look is consistent across the site. */
+/* v0.3.12 — Placeholder for cards without a featured image. Same
+   aspect ratio, same 12px radius, same bottom-margin as the image so the
+   home Posts grid and Related grid line up to the pixel. */
 .hatch-posts a.hatch-post-card:not(:has(.hatch-post-card-image))::before {
 	content: '';
 	display: block;
 	aspect-ratio: 16 / 10;
-	border-bottom: 1px solid rgba( 15, 23, 42, 0.06 );
+	border-radius: 12px;
+	margin-bottom: 1.25rem;
 }
 .hatch-posts a.hatch-post-card:not(:has(.hatch-post-card-image))::before,
 .hatch-card-placeholder {
@@ -496,14 +512,44 @@
 		radial-gradient( circle at 80% 20%, rgba( 245, 158, 11, 0.12 ), transparent 40% );
 	pointer-events: none;
 }
-.hatch-posts .hatch-post-card-body { padding: 1.1rem 1.2rem 1.3rem; flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
+/* v0.3.12 — No padding on body; the image/placeholder already has
+   margin-bottom 1.25rem so the title sits below it cleanly. Matches
+   PostCard.astro which has no card frame either — title flows directly
+   under the image. */
+.hatch-posts .hatch-post-card-body {
+	padding: 0;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
 .hatch-posts .hatch-post-card-title {
 	font-family: var( --hatch-font-heading, inherit );
-	font-size: 1.1rem; font-weight: 600; line-height: 1.3;
-	color: var( --hatch-fg, #0f172a ); margin: 0;
+	font-size: 1.125rem;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var( --hatch-fg, #0f172a );
+	margin: 0;
 	letter-spacing: -0.01em;
 }
-.hatch-posts .hatch-post-card-excerpt { color: #475569; font-size: 0.95rem; line-height: 1.55; margin: 0; }
+.hatch-posts .hatch-post-card-excerpt {
+	color: var( --hatch-fg-muted, #475569 );
+	font-size: 0.95rem;
+	line-height: 1.55;
+	margin: 0;
+}
+/* v0.3.12 — Category eyebrow (matches PostCard.astro's text-[11px]
+   uppercase tracking-wider text-hatch-primary). Same colour token, same
+   typography, so home grid category labels look identical to Related grid. */
+.hatch-posts .hatch-post-card-category {
+	display: inline-block;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var( --hatch-primary, #6366f1 );
+	margin-bottom: 0.5rem;
+}
 .hatch-posts .hatch-post-card-meta {
 	font-size: 0.78rem; font-weight: 500;
 	color: #64748b; text-transform: uppercase; letter-spacing: 0.06em;
