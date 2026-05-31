@@ -214,32 +214,15 @@ const navLinks = footerItems.length > 0
 )}
 
 {theme === 'astrowind' && (() => {
-  // v0.50.32 — Marketing footer with a hero CTA band at the top, then a
-  // structured 4-column nav (brand / Product / Resources / Company), then
-  // a polished bottom strip. CTA links to /blog + /rss.xml — real surfaces,
-  // not a fake form.
-  const third = Math.max(1, Math.ceil(navLinks.length / 3));
+  // v0.3.9 — Stripped invented "Stay in the loop / Follow new posts" CTA
+  // card. That was hardcoded filler the theme agent added; nothing in WP
+  // generated it, so it looked like the site had a feature it didn't.
+  // Footer now shows only data that actually exists: brand + WP menu items
+  // distributed across 3 columns + © year.
   return (
   <footer class="hatch-footer hatch-footer-astrowind mt-32">
     <div class="mx-auto px-5 sm:px-8" style="max-width: var(--hatch-max-width, 1160px);">
-      <div class="hatch-aw-foot-cta">
-        <div class="hatch-aw-foot-cta-text">
-          <span class="hatch-aw-eyebrow">Stay in the loop</span>
-          <h2>Follow new posts and product updates.</h2>
-          <p>Read the latest writing, or subscribe via the RSS feed for delivery into any reader.</p>
-        </div>
-        <div class="hatch-aw-foot-cta-actions">
-          <a href="/blog" class="hatch-aw-cta hatch-aw-cta-lg">
-            <span>Read the blog</span>
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          </a>
-          <a href="/rss.xml" class="hatch-aw-cta-ghost">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
-            <span>Subscribe via RSS</span>
-          </a>
-        </div>
-      </div>
-      <div class="hatch-aw-foot-grid">
+      <div class="hatch-aw-foot-grid hatch-aw-foot-grid-simple">
         <div class="hatch-aw-foot-brand">
           {logoUrl
             ? <a href="/" class="inline-block mb-3"><img src={logoUrl} alt={siteName} class="h-8 w-auto" loading="lazy" /></a>
@@ -249,30 +232,16 @@ const navLinks = footerItems.length > 0
               </a>}
           {tagline && <p class="hatch-aw-foot-tagline">{tagline}</p>}
         </div>
-        <div>
-          <h3 class="hatch-aw-foot-h">Product</h3>
-          <nav class="hatch-aw-foot-nav" aria-label="Product">
-            {navLinks.slice(0, third).map((link) => (
+        {/* v0.3.9 — Single honest nav column. Was 3 columns with invented
+            headers "Product / Resources / Company" that split a 2-link WP
+            menu into fake categories. Now mirrors what WP actually has. */}
+        {navLinks.length > 0 && (
+          <nav class="hatch-aw-foot-nav" aria-label="Footer">
+            {navLinks.map((link) => (
               <a href={link.href} target={link.target || undefined}>{link.label}</a>
             ))}
           </nav>
-        </div>
-        <div>
-          <h3 class="hatch-aw-foot-h">Resources</h3>
-          <nav class="hatch-aw-foot-nav" aria-label="Resources">
-            {navLinks.slice(third, third * 2).map((link) => (
-              <a href={link.href} target={link.target || undefined}>{link.label}</a>
-            ))}
-          </nav>
-        </div>
-        <div>
-          <h3 class="hatch-aw-foot-h">Company</h3>
-          <nav class="hatch-aw-foot-nav" aria-label="Company">
-            {navLinks.slice(third * 2).map((link) => (
-              <a href={link.href} target={link.target || undefined}>{link.label}</a>
-            ))}
-          </nav>
-        </div>
+        )}
       </div>
       <div class="hatch-aw-foot-bottom">
         <span>{`© ${year} ${siteName}. All rights reserved.`}</span>
