@@ -3,7 +3,7 @@
  * Plugin Name:       Hatch — Headless WordPress
  * Plugin URI:        https://github.com/adityaarsharma/hatch
  * Description:       Turn WordPress into a headless CMS with an Astro frontend. One-click deploy to Cloudflare / Vercel / VPS, security hardening, image proxy, REST bridge, and a React admin.
- * Version:           0.3.10
+ * Version:           0.3.11
  * Requires at least: 6.4
  * Tested up to:      6.9
  * Requires PHP:      7.4
@@ -20,7 +20,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'HATCH_VERSION', '0.3.10' );
+define( 'HATCH_VERSION', '0.3.11' );
 define( 'HATCH_PLUGIN_FILE', __FILE__ );
 define( 'HATCH_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'HATCH_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -540,7 +540,7 @@ final class Hatch {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
 
 		/**
-		 * v0.3.10 — Editor iframe parity. Since WP 5.9 the post-content area
+		 * v0.3.11 — Editor iframe parity. Since WP 5.9 the post-content area
 		 * runs inside an iframe and stylesheets enqueued via
 		 * enqueue_block_editor_assets() only reach the chrome, NOT the canvas.
 		 * add_editor_style() is the only API that injects into the iframe.

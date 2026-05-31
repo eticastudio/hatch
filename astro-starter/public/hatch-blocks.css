@@ -577,6 +577,32 @@ h3.hatch-heading { font-size: 1.25rem; font-weight: 600; }
 .hatch-button:active { transform: translateY( 0 ); }
 .hatch-button:focus-visible { outline: 2px solid var( --hatch-primary, #6366f1 ); outline-offset: 3px; }
 
+/* v0.3.11 — Restore button text colour when nested inside .hatch-prose.
+   Theme stylesheets set `.hatch-prose a { color: var(--hatch-primary);
+   text-decoration: underline }` for inline links — that wins (specificity
+   31) over `.hatch-button` (specificity 10) and the button text disappears
+   into its own background gradient. Element-anchor wins back the cascade
+   without !important. */
+.hatch-prose a.hatch-button,
+[data-hatch-theme] .hatch-prose a.hatch-button {
+	color: var( --hatch-primary-fg, #fff );
+	text-decoration: none;
+}
+.hatch-prose a.hatch-button-outline,
+[data-hatch-theme] .hatch-prose a.hatch-button-outline,
+.hatch-prose a.hatch-button-ghost,
+[data-hatch-theme] .hatch-prose a.hatch-button-ghost,
+.hatch-prose a.hatch-button-link,
+[data-hatch-theme] .hatch-prose a.hatch-button-link {
+	/* These variants intentionally use --hatch-primary or --hatch-fg for
+	   their text colour — re-assert here so the prose-link rule still loses. */
+	text-decoration: none;
+}
+.hatch-prose a.hatch-button-link,
+[data-hatch-theme] .hatch-prose a.hatch-button-link {
+	color: var( --hatch-primary, #6366f1 );
+}
+
 /* Variants */
 .hatch-button-secondary {
 	background: var( --hatch-bg-2, #f4f4f5 );
