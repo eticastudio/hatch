@@ -161,6 +161,11 @@
 	}
 
 	function hydratePosts(el) {
+		// v0.3.14 — Skip if the server already rendered the cards (SSR
+		// renderHatchPostsBlocks set data-hatch-hydrated="ssr"). Avoids a
+		// flash where the runtime would tear down the SSR'd cards and
+		// re-fetch them on the client.
+		if (el.getAttribute('data-hatch-hydrated') === 'ssr') return;
 		const wpBase = (window.HATCH_WP_BASE || '').replace(/\/$/, '');
 		if (!wpBase) {
 			el.innerHTML = '<p style="color:var(--hatch-muted)">[Posts] HATCH_WP_BASE not set.</p>';
