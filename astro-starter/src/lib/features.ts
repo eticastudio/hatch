@@ -45,14 +45,20 @@ export interface HatchCpt {
 
 export interface HatchSeoIntegration {
   detected: { slug: string; label: string; active: boolean };
-  mode: 'auto' | 'yoast' | 'rankmath' | 'seopress' | 'aioseo' | 'off';
+  // Slug catalog matches Hatch_Detector::KNOWN keys — RankMath > Yoast.
+  // 'seopress' / 'aioseo' were removed in v0.5.5 because they were emitted
+  // by detect_seo() without ever being registered as providers anywhere.
+  mode: 'auto' | 'rankmath' | 'yoast' | 'off';
   schema: boolean;
   sitemap: boolean;
 }
 
 export interface HatchFormsIntegration {
   detected: { slug: string; label: string; active: boolean };
-  mode: 'auto' | 'fluent_forms' | 'wpforms' | 'gravity' | 'off';
+  // Slug catalog matches Hatch_Detector::KNOWN keys — 'gravity_forms' (never
+  // 'gravity'), plus 'wpforms_pro' + 'cf7' now recognised. Priority order:
+  // WPForms > WPForms Pro > Fluent Forms > Gravity Forms > CF7.
+  mode: 'auto' | 'wpforms' | 'wpforms_pro' | 'fluent_forms' | 'gravity_forms' | 'cf7' | 'off';
   default_form_id: number;
 }
 
@@ -256,7 +262,9 @@ const FALLBACK: HatchFeatures = {
   integrations: INTEGRATIONS_FALLBACK,
   image_proxy_url: '',
   version: '',
-};
+  // v0.5.7 — ensure comments render by default when /features fetch fails.
+  content: { comments_enabled: true, comments_turnstile: false },
+} as HatchFeatures;
 
 let cached: { data: HatchFeatures; expires: number } | null = null;
 const CACHE_TTL_MS = 60 * 1000;
@@ -337,6 +345,17 @@ export async function getFeatures(): Promise<HatchFeatures> {
         : INTEGRATIONS_FALLBACK,
       image_proxy_url: data.image_proxy_url || '',
       version: data.version || '',
+      // v0.5.7 — content block (comments_enabled, comments_turnstile) was
+      // missing from the merge. That silently dropped WP's per-site
+      // Discussion toggle → deployed Astro always thought comments were
+      // off → HatchComments never rendered even when integration + WP
+      // Discussion both had comments enabled.
+      content: (data as any).content
+        ? {
+            comments_enabled:   !!(data as any).content.comments_enabled,
+            comments_turnstile: !!(data as any).content.comments_turnstile,
+          }
+        : { comments_enabled: true, comments_turnstile: false },
     };
     cached = { data: merged, expires: Date.now() + CACHE_TTL_MS };
     return merged;
@@ -411,144 +430,4 @@ export function rewriteContentImages(html: string, features: HatchFeatures, maxW
     const extra = `${hasLoading ? '' : ' loading="lazy"'}${hasDecoding ? '' : ' decoding="async"'}`;
     return `<img${before}src="${proxied}"${after}${extra}>`;
   });
-}
-
-/**
- * v0.3.5 — Server-render Hatch Posts blocks before the HTML hits the browser.
- *
- * The Posts block (`<div data-hatch-posts ...>`) used to render a loading
- * stub on the server and let `hatch-blocks.js` fetch + replace it client-side.
- * That meant every page with a Posts block showed an empty placeholder for
- * a few hundred ms, then card markup popped in and shifted the layout.
- *
- * Now we fetch the post list during SSR and inline the rendered card HTML
- * so the page arrives painted. The client runtime still hydrates dynamic
- * interactions (YouTube facade, Tabs, etc.) — it just no longer owns the
- * Posts render path. If the SSR fetch fails we leave the placeholder so
- * the client fallback still has a chance.
- */
-const POSTS_BLOCK_RE = /<div\b([^>]*?\bdata-hatch-posts\b[^>]*)>([\s\S]*?)<\/div>/gi;
-const ATTR_RE = /\bdata-([a-z-]+)=["']([^"']*)["']/gi;
-
-function attrs(s: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const m of s.matchAll(ATTR_RE)) out[m[1]] = m[2];
-  return out;
-}
-
-function escAttr(s: string): string {
-  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-}
-
-interface HatchPostsItem {
-  id: number;
-  slug: string;
-  link?: string;
-  title?: string;
-  excerpt?: string;
-  published?: string;
-  featured_media_url?: string;
-  featured_media_alt?: string;
-}
-
-async function fetchPostsForBlock(features: HatchFeatures, params: URLSearchParams): Promise<HatchPostsItem[]> {
-  const base = (features.site?.url || '').replace(/\/$/, '');
-  if (!base) return [];
-  try {
-    const res = await fetch(`${base}/wp-json/hatch/v1/content/list?${params.toString()}`, {
-      // SSR runs on the worker/Node side; cache here to keep the WP origin cool.
-      headers: { Accept: 'application/json' },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    const list = Array.isArray(data) ? data : (data?.items || []);
-    return list as HatchPostsItem[];
-  } catch {
-    return [];
-  }
-}
-
-interface HatchPostsItemExt extends HatchPostsItem {
-  category?: string;
-}
-
-/**
- * v0.3.14 — Relative date label, same algorithm as PostCard.astro's
- * formatDate(reading.date_format === 'relative') branch. "2 weeks ago",
- * "1 month ago" etc. so the home grid timestamps look identical to the
- * Related grid timestamps.
- */
-function relativeDate(iso: string): string {
-  const d = new Date(iso);
-  const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
-  if (diff === 0) return 'Today';
-  if (diff === 1) return 'Yesterday';
-  if (diff < 7)   return `${diff} ${diff === 1 ? 'day' : 'days'} ago`;
-  if (diff < 30)  { const w = Math.floor(diff/7);   return `${w} ${w === 1 ? 'week'  : 'weeks'}  ago`; }
-  if (diff < 365) { const m = Math.floor(diff/30);  return `${m} ${m === 1 ? 'month' : 'months'} ago`; }
-  const y = Math.floor(diff/365); return `${y} ${y === 1 ? 'year' : 'years'} ago`;
-}
-
-/**
- * v0.3.14 — SSR Posts card now emits the EXACT same markup as the default
- * variant of PostCard.astro (lines 89-109). Same Tailwind classes, same
- * structure, same relative date label, same category eyebrow. The home
- * "Latest writing" grid is now a copy-paste of "More in <category>".
- */
-function renderCard(p: HatchPostsItemExt, showImage: boolean, showExcerpt: boolean, showMeta: boolean): string {
-  const href = p.link || `/blog/${p.slug}`;
-  const imageInner = showImage && p.featured_media_url
-    ? `<img src="${escAttr(p.featured_media_url)}" alt="${escAttr(p.featured_media_alt || '')}" width="800" height="500" class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500" loading="lazy" decoding="async">`
-    : `<div class="w-full h-full hatch-card-placeholder"></div>`;
-  const cat = p.category
-    ? `<span class="inline-block text-[11px] uppercase tracking-wider font-medium text-hatch-primary mb-2">${escAttr(p.category)}</span>`
-    : '';
-  const excerpt = showExcerpt && p.excerpt
-    ? `<p class="mt-2 text-[14.5px] text-hatch-fg-muted line-clamp-2 leading-relaxed">${p.excerpt}</p>`
-    : '';
-  const meta = showMeta && p.published
-    ? `<div class="mt-3 flex items-center gap-2 text-[12.5px] text-hatch-fg-subtle"><time datetime="${escAttr(p.published)}">${relativeDate(p.published)}</time></div>`
-    : '';
-  return `<a href="${escAttr(href)}" class="post-card group block">`
-    + `<div class="aspect-[16/10] overflow-hidden rounded-lg bg-hatch-bg-3 mb-4">${imageInner}</div>`
-    + cat
-    + `<h3 class="text-lg font-semibold leading-snug tracking-tight group-hover:text-hatch-primary transition-colors line-clamp-2">${p.title || ''}</h3>`
-    + excerpt
-    + meta
-    + `</a>`;
-}
-
-export async function renderHatchPostsBlocks(html: string, features: HatchFeatures): Promise<string> {
-  if (!html || html.indexOf('data-hatch-posts') === -1) return html;
-  // Walk every Posts block, fetch, replace. Run sequentially because a single
-  // page rarely has more than 1–2 Posts blocks; parallel would just add WP load.
-  const matches = Array.from(html.matchAll(POSTS_BLOCK_RE));
-  let out = html;
-  for (const m of matches) {
-    const a = attrs(m[1] || '');
-    const params = new URLSearchParams();
-    if (a['post-type']) params.set('post_type', a['post-type']);
-    if (a['per-page']) params.set('per_page', a['per-page']);
-    if (a['taxonomy']) params.set('taxonomy', a['taxonomy']);
-    if (a['term']) params.set('term', a['term']);
-    if (a['author']) params.set('author', a['author']);
-    if (a['order-by']) params.set('orderby', a['order-by']);
-    if (a['order']) params.set('order', a['order']);
-    if (!params.has('per_page')) params.set('per_page', '6');
-
-    const items = await fetchPostsForBlock(features, params);
-    if (items.length === 0) continue; // leave loading stub for client fallback
-
-    const showImage   = a['show-image']   !== '0';
-    const showExcerpt = a['show-excerpt'] !== '0';
-    const showMeta    = a['show-meta']    !== '0';
-    const cards = items.map(p => renderCard(p, showImage, showExcerpt, showMeta)).join('');
-    // v0.3.14 — Replace the entire Posts block wrapper with the same grid
-    // markup the Related section uses (grid grid-cols-1 sm:grid-cols-2
-    // lg:grid-cols-3 gap-x-7 gap-y-12). Keep data-hatch-posts attr so the
-    // client runtime can detect already-hydrated blocks and skip them.
-    const replaced = `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-7 gap-y-12" data-hatch-posts data-hatch-hydrated="ssr">${cards}</div>`;
-    out = out.replace(m[0], replaced);
-  }
-  return out;
 }
