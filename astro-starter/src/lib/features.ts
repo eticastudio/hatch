@@ -431,3 +431,12 @@ export function rewriteContentImages(html: string, features: HatchFeatures, maxW
     return `<img${before}src="${proxied}"${after}${extra}>`;
   });
 }
+
+// v0.5.7 — safe stub for renderHatchPostsBlocks: returns HTML unchanged.
+// Removed unintentionally during a bad merge; the WP-static-homepage mode
+// (features.home.mode === 'page') is the only caller and just needs the
+// html back so `set:html` still injects the page content. Full block
+// server-render is a v0.6 nice-to-have; the pass-through is honest.
+export async function renderHatchPostsBlocks(html: string, _features: HatchFeatures): Promise<string> {
+  return html;
+}
