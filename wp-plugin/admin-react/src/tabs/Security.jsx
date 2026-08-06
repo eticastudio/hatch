@@ -64,7 +64,7 @@ export default function Security({ state, onDirty, setSetting }) {
 				</HxRow>
 				<HxRow
 					label="Hide usernames"
-					desc="/?author=1 and /wp-json/wp/v2/users return 404. Stops credential-stuffing recon."
+					desc="/?author=1 returns 404 and /wp-json/wp/v2/users returns 401 for anonymous visitors. Your frontend still reads authors. Stops credential-stuffing recon."
 				>
 					<HxToggle on={!!sec.block_enum} onChange={onToggle('security.block_enum')} />
 				</HxRow>

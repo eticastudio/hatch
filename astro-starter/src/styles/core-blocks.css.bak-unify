@@ -1,0 +1,1205 @@
+/**
+ * Hatch · Core Gutenberg block styles.
+ *
+ * v0.5 pivot — Hatch renders standard core Gutenberg blocks (no custom
+ * core Gutenberg blocks. Each theme gets its own visual language applied to the
+ * same core class names Gutenberg emits: `.wp-block-heading`,
+ * `.wp-block-paragraph`, `.wp-block-image`, `.wp-block-button`, etc.
+ *
+ * Writers use core blocks they already know. Themes render them coherently.
+ * No block-picker learning curve, no ongoing block-library maintenance.
+ *
+ * Structure of this file:
+ *   §1  Shared reset — makes core blocks predictable inside .hatch-prose
+ *   §2  Blog theme — editorial magazine (Fraunces serif, generous rhythm)
+ *   §3  Tech theme — terminal (JetBrains Mono, hairline dividers, dense)
+ *   §4  Docs theme — reference manual (Geist, structured, soft panels)
+ *
+ * All colors flow from CSS variables set by each theme file. No hex here.
+ */
+
+/* ==================================================================
+   §1  Shared reset — applied inside .hatch-prose regardless of theme.
+   Kills the browser and Gutenberg opinionated defaults so per-theme
+   stanzas below can start from a known baseline.
+   ================================================================== */
+
+.hatch-prose .wp-block-heading,
+.hatch-prose h1, .hatch-prose h2, .hatch-prose h3, .hatch-prose h4, .hatch-prose h5, .hatch-prose h6 {
+	font-family: var(--hatch-font-heading, inherit);
+	color: var(--hatch-fg);
+	line-height: 1.2;
+	letter-spacing: -0.015em;
+	margin-block: 1.8em 0.6em;
+}
+
+.hatch-prose > p,
+.hatch-prose .wp-block-paragraph {
+	color: var(--hatch-fg);
+	line-height: 1.7;
+	margin-block: 0 1.1em;
+}
+
+.hatch-prose .wp-block-image {
+	margin-block: 2em;
+}
+
+.hatch-prose .wp-block-image img {
+	max-width: 100%;
+	height: auto;
+	display: block;
+	border-radius: var(--hatch-radius, 4px);
+}
+
+.hatch-prose .wp-block-image figcaption {
+	font-size: 0.85em;
+	color: var(--hatch-fg-subtle);
+	text-align: center;
+	margin-top: 8px;
+}
+
+.hatch-prose .wp-block-list,
+.hatch-prose ul,
+.hatch-prose ol {
+	margin-block: 1em;
+	padding-left: 1.5em;
+	color: var(--hatch-fg);
+}
+
+.hatch-prose .wp-block-list li,
+.hatch-prose li {
+	margin-block: 0.35em;
+	line-height: 1.65;
+}
+
+.hatch-prose .wp-block-quote,
+.hatch-prose blockquote {
+	margin-block: 2em;
+	padding-left: 1.4em;
+	border-left: 3px solid var(--hatch-primary);
+	color: var(--hatch-fg-muted);
+	font-style: italic;
+}
+
+.hatch-prose .wp-block-quote cite,
+.hatch-prose blockquote cite {
+	display: block;
+	margin-top: 0.6em;
+	font-style: normal;
+	font-size: 0.9em;
+	color: var(--hatch-fg-subtle);
+}
+
+.hatch-prose .wp-block-pullquote {
+	margin-block: 2.5em;
+	padding: 1.5em 0;
+	border-top: 1px solid var(--hatch-border);
+	border-bottom: 1px solid var(--hatch-border);
+	text-align: center;
+	font-family: var(--hatch-font-heading, inherit);
+	font-size: 1.4em;
+	line-height: 1.35;
+	color: var(--hatch-fg);
+}
+
+.hatch-prose .wp-block-code,
+.hatch-prose code {
+	font-family: var(--hatch-font-mono, ui-monospace, monospace);
+	font-size: 0.9em;
+	background: var(--hatch-bg-2);
+	padding: 0.15em 0.4em;
+	border-radius: 3px;
+	color: var(--hatch-fg);
+}
+
+.hatch-prose .wp-block-code,
+.hatch-prose pre {
+	display: block;
+	padding: 1.1em 1.3em;
+	overflow-x: auto;
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius, 6px);
+	margin-block: 1.5em;
+	line-height: 1.5;
+	font-size: 0.9em;
+}
+
+.hatch-prose .wp-block-preformatted {
+	font-family: var(--hatch-font-mono, ui-monospace, monospace);
+	white-space: pre-wrap;
+	background: var(--hatch-bg-2);
+	padding: 1em 1.3em;
+	border-radius: var(--hatch-radius, 6px);
+	margin-block: 1.5em;
+	font-size: 0.9em;
+}
+
+.hatch-prose .wp-block-separator {
+	border: 0;
+	height: 1px;
+	background: var(--hatch-border);
+	margin-block: 3em;
+	max-width: 30%;
+	margin-inline: auto;
+}
+
+.hatch-prose .wp-block-separator.is-style-wide {
+	max-width: 100%;
+}
+
+.hatch-prose .wp-block-separator.is-style-dots {
+	background: transparent;
+	text-align: center;
+	line-height: 1;
+	height: auto;
+}
+
+.hatch-prose .wp-block-separator.is-style-dots::before {
+	content: '· · ·';
+	letter-spacing: 0.8em;
+	color: var(--hatch-fg-subtle);
+	font-size: 1.4em;
+}
+
+.hatch-prose .wp-block-table {
+	margin-block: 2em;
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.hatch-prose .wp-block-table th,
+.hatch-prose .wp-block-table td {
+	padding: 0.6em 0.9em;
+	border-bottom: 1px solid var(--hatch-border);
+	text-align: left;
+}
+
+.hatch-prose .wp-block-table th {
+	font-weight: 600;
+	color: var(--hatch-fg);
+	background: var(--hatch-bg-2);
+}
+
+.hatch-prose .wp-block-gallery {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 12px;
+	margin-block: 2em;
+}
+
+.hatch-prose .wp-block-embed,
+.hatch-prose .wp-block-video {
+	margin-block: 2em;
+}
+
+.hatch-prose .wp-block-embed iframe,
+.hatch-prose .wp-block-video video {
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	border-radius: var(--hatch-radius, 6px);
+	border: 0;
+	display: block;
+}
+
+.hatch-prose .wp-block-audio audio {
+	width: 100%;
+	margin-block: 1em;
+}
+
+.hatch-prose .wp-block-columns {
+	display: grid;
+	gap: 24px;
+	margin-block: 2em;
+}
+
+@media (min-width: 640px) {
+	.hatch-prose .wp-block-columns {
+		grid-template-columns: repeat(var(--wp-columns, 2), 1fr);
+	}
+}
+
+.hatch-prose .wp-block-cover {
+	position: relative;
+	padding: 3em 2em;
+	margin-block: 2em;
+	border-radius: var(--hatch-radius, 6px);
+	overflow: hidden;
+	color: #fff;
+}
+
+.hatch-prose .wp-block-cover .wp-block-cover__inner-container {
+	max-width: 680px;
+	margin: 0 auto;
+	text-align: center;
+}
+
+.hatch-prose .wp-block-button {
+	margin-block: 1.5em;
+}
+
+.hatch-prose .wp-block-button__link,
+.hatch-prose .wp-block-buttons a {
+	display: inline-block;
+	padding: 10px 22px;
+	background: var(--hatch-primary);
+	color: var(--hatch-primary-fg, #fff);
+	border-radius: var(--hatch-radius, 6px);
+	font-weight: 500;
+	text-decoration: none;
+	transition: background 160ms ease, transform 160ms ease;
+}
+
+.hatch-prose .wp-block-button__link:hover,
+.hatch-prose .wp-block-buttons a:hover {
+	background: color-mix(in oklab, var(--hatch-primary) 85%, black);
+	transform: translateY(-1px);
+}
+
+.hatch-prose .wp-block-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-block: 1.5em;
+}
+
+/* ==================================================================
+   §2  Blog theme — Editorial. Fraunces display, generous rhythm.
+   ================================================================== */
+
+[data-hatch-theme="blog"] .hatch-prose .wp-block-heading,
+[data-hatch-theme="blog"] .hatch-prose h1,
+[data-hatch-theme="blog"] .hatch-prose h2,
+[data-hatch-theme="blog"] .hatch-prose h3 {
+	font-family: 'Fraunces', var(--hatch-font-heading);
+	font-weight: 500;
+	font-variation-settings: 'opsz' 144, 'SOFT' 50;
+	letter-spacing: -0.025em;
+}
+
+[data-hatch-theme="blog"] .hatch-prose h1 { font-size: clamp(2rem, 4.4vw, 3.2rem); line-height: 1.05; }
+[data-hatch-theme="blog"] .hatch-prose h2 { font-size: clamp(1.65rem, 3vw, 2.2rem); line-height: 1.15; margin-block: 2.4em 0.5em; }
+[data-hatch-theme="blog"] .hatch-prose h3 { font-size: clamp(1.25rem, 2vw, 1.55rem); line-height: 1.25; }
+
+[data-hatch-theme="blog"] .hatch-prose > p:first-of-type::first-letter {
+	font-family: 'Fraunces', var(--hatch-font-heading);
+	font-size: 4em;
+	float: left;
+	line-height: 0.85;
+	margin: 0.08em 0.08em 0 -0.04em;
+	color: var(--hatch-primary);
+	font-weight: 500;
+}
+
+[data-hatch-theme="blog"] .hatch-prose .wp-block-quote,
+[data-hatch-theme="blog"] .hatch-prose blockquote {
+	font-family: 'Fraunces', var(--hatch-font-heading);
+	font-size: 1.35em;
+	font-variation-settings: 'opsz' 144, 'SOFT' 100;
+	line-height: 1.4;
+	border-left-width: 2px;
+	color: var(--hatch-fg);
+}
+
+[data-hatch-theme="blog"] .hatch-prose .wp-block-pullquote {
+	font-family: 'Fraunces', var(--hatch-font-heading);
+	font-variation-settings: 'opsz' 144, 'SOFT' 100;
+	font-size: 1.6em;
+}
+
+[data-hatch-theme="blog"] .hatch-prose .wp-block-separator {
+	max-width: 20%;
+}
+
+/* ==================================================================
+   §3  Tech theme — Terminal. Mono headings, hairline dividers, dense.
+   ================================================================== */
+
+[data-hatch-theme="tech"] .hatch-prose .wp-block-heading,
+[data-hatch-theme="tech"] .hatch-prose h1,
+[data-hatch-theme="tech"] .hatch-prose h2,
+[data-hatch-theme="tech"] .hatch-prose h3 {
+	font-family: 'JetBrains Mono', var(--hatch-font-mono);
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+[data-hatch-theme="tech"] .hatch-prose h1 { font-size: 2.2rem; }
+[data-hatch-theme="tech"] .hatch-prose h2 { font-size: 1.55rem; margin-block: 2em 0.6em; }
+[data-hatch-theme="tech"] .hatch-prose h3 { font-size: 1.2rem; margin-block: 1.6em 0.4em; }
+
+[data-hatch-theme="tech"] .hatch-prose h2::before {
+	content: '#';
+	color: var(--hatch-primary);
+	margin-right: 10px;
+	opacity: 0.7;
+}
+[data-hatch-theme="tech"] .hatch-prose h3::before {
+	content: '##';
+	color: var(--hatch-primary);
+	margin-right: 8px;
+	opacity: 0.55;
+}
+
+[data-hatch-theme="tech"] .hatch-prose > p,
+[data-hatch-theme="tech"] .hatch-prose .wp-block-paragraph {
+	font-size: 16px;
+	line-height: 1.6;
+}
+
+[data-hatch-theme="tech"] .hatch-prose code {
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	color: var(--hatch-accent);
+}
+
+[data-hatch-theme="tech"] .hatch-prose .wp-block-code,
+[data-hatch-theme="tech"] .hatch-prose pre {
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	font-size: 13.5px;
+	line-height: 1.55;
+}
+
+[data-hatch-theme="tech"] .hatch-prose .wp-block-quote,
+[data-hatch-theme="tech"] .hatch-prose blockquote {
+	background: var(--hatch-bg-2);
+	padding: 14px 20px;
+	border-left: 2px solid var(--hatch-primary);
+	font-style: normal;
+	font-size: 0.96em;
+	color: var(--hatch-fg-muted);
+}
+
+[data-hatch-theme="tech"] .hatch-prose .wp-block-separator {
+	background: var(--hatch-border);
+	max-width: 100%;
+	margin-block: 2.2em;
+}
+
+[data-hatch-theme="tech"] .hatch-prose .wp-block-button__link,
+[data-hatch-theme="tech"] .hatch-prose .wp-block-buttons a {
+	font-family: 'JetBrains Mono', var(--hatch-font-mono);
+	font-size: 13px;
+	padding: 9px 16px;
+	background: var(--hatch-fg);
+	color: var(--hatch-bg);
+	border-radius: 3px;
+}
+
+[data-hatch-theme="tech"] .hatch-prose .wp-block-button__link::before,
+[data-hatch-theme="tech"] .hatch-prose .wp-block-buttons a::before {
+	content: '> ';
+	color: var(--hatch-primary);
+}
+
+/* ==================================================================
+   §4  Docs theme — Reference manual. Geist grotesk, structured panels.
+   ================================================================== */
+
+[data-hatch-theme="docs"] .hatch-prose .wp-block-heading,
+[data-hatch-theme="docs"] .hatch-prose h1,
+[data-hatch-theme="docs"] .hatch-prose h2,
+[data-hatch-theme="docs"] .hatch-prose h3 {
+	font-family: 'Geist', var(--hatch-font-heading);
+	font-weight: 600;
+	letter-spacing: -0.022em;
+	line-height: 1.18;
+	scroll-margin-top: 80px;
+}
+
+[data-hatch-theme="docs"] .hatch-prose h1 { font-size: 2rem; }
+[data-hatch-theme="docs"] .hatch-prose h2 { font-size: 1.55rem; margin-block: 2.1em 0.6em; }
+[data-hatch-theme="docs"] .hatch-prose h3 { font-size: 1.2rem; margin-block: 1.6em 0.4em; }
+
+[data-hatch-theme="docs"] .hatch-prose > p,
+[data-hatch-theme="docs"] .hatch-prose .wp-block-paragraph {
+	font-size: 16px;
+	line-height: 1.72;
+}
+
+[data-hatch-theme="docs"] .hatch-prose code {
+	background: var(--hatch-bg-2);
+	color: var(--hatch-fg);
+	font-family: 'Geist Mono', var(--hatch-font-mono);
+}
+
+[data-hatch-theme="docs"] .hatch-prose .wp-block-code,
+[data-hatch-theme="docs"] .hatch-prose pre {
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	font-family: 'Geist Mono', var(--hatch-font-mono);
+	font-size: 13.5px;
+	line-height: 1.55;
+}
+
+/* Docs "Note" panel — signature block. */
+[data-hatch-theme="docs"] .hatch-prose .wp-block-quote,
+[data-hatch-theme="docs"] .hatch-prose blockquote {
+	background: color-mix(in oklab, var(--hatch-primary) 7%, var(--hatch-bg));
+	border: 1px solid color-mix(in oklab, var(--hatch-primary) 22%, var(--hatch-bg));
+	border-left: 3px solid var(--hatch-primary);
+	border-radius: var(--hatch-radius, 6px);
+	padding: 16px 20px;
+	font-style: normal;
+	font-size: 0.96em;
+	color: var(--hatch-fg);
+}
+
+[data-hatch-theme="docs"] .hatch-prose .wp-block-button__link,
+[data-hatch-theme="docs"] .hatch-prose .wp-block-buttons a {
+	background: var(--hatch-primary);
+	color: var(--hatch-primary-fg, #fff);
+	border-radius: var(--hatch-radius, 6px);
+	font-weight: 500;
+}
+
+/* ================================================================
+ * §5  Code-block copy button (all 3 themes, tuned per-theme below)
+ *     v0.5 polish — matches Vercel/Stripe/MDN/Tailwind pattern.
+ *     Positioned by inline JS setting `position:relative` on <pre>.
+ * ================================================================ */
+.hatch-prose pre .hatch-copy-btn {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	padding: 4px 10px;
+	font-family: var(--hatch-font-mono, ui-monospace, monospace);
+	font-size: 11px;
+	line-height: 1;
+	letter-spacing: 0.02em;
+	color: var(--hatch-fg-muted);
+	background: color-mix(in oklab, var(--hatch-bg-2) 85%, transparent);
+	border: 1px solid var(--hatch-border);
+	border-radius: 4px;
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 120ms ease, color 120ms ease, background 120ms ease;
+}
+.hatch-prose pre:hover .hatch-copy-btn,
+.hatch-prose pre:focus-within .hatch-copy-btn,
+.hatch-prose pre .hatch-copy-btn:focus { opacity: 1; }
+.hatch-prose pre .hatch-copy-btn:hover {
+	color: var(--hatch-fg);
+	background: var(--hatch-bg);
+}
+
+/* Tech theme — always visible, terminal-style */
+[data-hatch-theme="tech"] .hatch-prose pre .hatch-copy-btn {
+	opacity: 0.75;
+	text-transform: uppercase;
+	border-color: color-mix(in oklab, var(--hatch-primary) 40%, var(--hatch-border));
+}
+[data-hatch-theme="tech"] .hatch-prose pre:hover .hatch-copy-btn {
+	color: var(--hatch-primary);
+	border-color: var(--hatch-primary);
+}
+
+/* Docs theme — subtle, high contrast on hover */
+[data-hatch-theme="docs"] .hatch-prose pre .hatch-copy-btn {
+	border-radius: 6px;
+	font-weight: 500;
+}
+
+/* ================================================================
+ * §6  Gap-closer blocks (v0.5.1) — verse, details, file
+ *     These three had no explicit styling. Base defaults + minimal
+ *     per-theme signatures below.
+ * ================================================================ */
+
+/* --- Verse (poetry) — preserve whitespace + slight italic serif --- */
+.hatch-prose .wp-block-verse {
+	font-family: var(--hatch-font-heading);
+	font-style: italic;
+	font-size: 1.05em;
+	line-height: 1.8;
+	white-space: pre-wrap;
+	color: var(--hatch-fg);
+	margin-block: 2em;
+	padding-inline-start: 1.2em;
+	border-inline-start: 1px solid var(--hatch-border);
+}
+
+/* --- Details / Accordion — summary chrome + expand indicator --- */
+.hatch-prose .wp-block-details {
+	margin-block: 1.5em;
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius, 6px);
+	background: var(--hatch-bg-2);
+	overflow: hidden;
+	transition: box-shadow 160ms ease;
+}
+.hatch-prose .wp-block-details > summary {
+	cursor: pointer;
+	padding: 0.9em 1.1em;
+	font-weight: 600;
+	color: var(--hatch-fg);
+	list-style: none;
+	position: relative;
+	padding-inline-end: 2.4em;
+	transition: background 140ms ease;
+}
+.hatch-prose .wp-block-details > summary::-webkit-details-marker { display: none; }
+.hatch-prose .wp-block-details > summary::after {
+	content: "";
+	position: absolute;
+	right: 1.1em;
+	top: 50%;
+	width: 8px;
+	height: 8px;
+	margin-top: -6px;
+	border-right: 2px solid var(--hatch-fg-muted);
+	border-bottom: 2px solid var(--hatch-fg-muted);
+	transform: rotate(45deg);
+	transition: transform 200ms ease;
+}
+.hatch-prose .wp-block-details[open] > summary::after {
+	transform: rotate(-135deg);
+	margin-top: -2px;
+}
+.hatch-prose .wp-block-details > summary:hover { background: var(--hatch-bg); }
+.hatch-prose .wp-block-details > *:not(summary) {
+	padding: 0 1.1em 1em;
+	color: var(--hatch-fg);
+}
+
+/* --- File (download link + button) --- */
+.hatch-prose .wp-block-file {
+	margin-block: 1.5em;
+	display: flex;
+	align-items: center;
+	gap: 1em;
+	padding: 1em 1.2em;
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius, 6px);
+}
+.hatch-prose .wp-block-file a:first-child {
+	flex: 1;
+	color: var(--hatch-fg);
+	font-weight: 500;
+	text-decoration: none;
+}
+.hatch-prose .wp-block-file a:first-child::before {
+	content: "";
+	display: inline-block;
+	width: 16px;
+	height: 20px;
+	margin-inline-end: 0.6em;
+	vertical-align: -4px;
+	background: var(--hatch-fg-muted);
+	mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/><polyline points='14 2 14 8 20 8'/></svg>");
+	-webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/><polyline points='14 2 14 8 20 8'/></svg>");
+	mask-repeat: no-repeat;
+	mask-size: contain;
+	-webkit-mask-repeat: no-repeat;
+	-webkit-mask-size: contain;
+}
+.hatch-prose .wp-block-file .wp-block-file__button {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.5em 1em;
+	background: var(--hatch-primary);
+	color: var(--hatch-primary-fg, #fff);
+	border-radius: var(--hatch-radius, 6px);
+	font-size: 0.9em;
+	font-weight: 500;
+	text-decoration: none;
+	transition: opacity 140ms ease;
+}
+.hatch-prose .wp-block-file .wp-block-file__button:hover { opacity: 0.85; }
+
+/* --- Per-theme signatures --- */
+
+/* Blog — verse in warmer serif italic */
+[data-hatch-theme="blog"] .hatch-prose .wp-block-verse {
+	color: var(--hatch-fg-muted);
+	border-inline-start-color: var(--hatch-primary);
+}
+[data-hatch-theme="blog"] .hatch-prose .wp-block-details > summary {
+	font-family: var(--hatch-font-heading);
+}
+
+/* Tech — verse mono, details as terminal-panel */
+[data-hatch-theme="tech"] .hatch-prose .wp-block-verse {
+	font-family: var(--hatch-font-mono);
+	font-style: normal;
+	font-size: 0.95em;
+	border-inline-start-color: var(--hatch-primary);
+}
+[data-hatch-theme="tech"] .hatch-prose .wp-block-details {
+	border-radius: 3px;
+}
+[data-hatch-theme="tech"] .hatch-prose .wp-block-details > summary {
+	font-family: var(--hatch-font-mono);
+	text-transform: none;
+}
+[data-hatch-theme="tech"] .hatch-prose .wp-block-details > summary::before {
+	content: "▸ ";
+	color: var(--hatch-primary);
+	margin-inline-end: 0.3em;
+}
+[data-hatch-theme="tech"] .hatch-prose .wp-block-details[open] > summary::before {
+	content: "▾ ";
+}
+[data-hatch-theme="tech"] .hatch-prose .wp-block-details > summary::after {
+	display: none;
+}
+
+/* Docs — details flatter with tint, file button rounded */
+[data-hatch-theme="docs"] .hatch-prose .wp-block-details {
+	background: color-mix(in oklab, var(--hatch-primary) 4%, var(--hatch-bg-2));
+	border-color: color-mix(in oklab, var(--hatch-primary) 15%, var(--hatch-border));
+}
+[data-hatch-theme="docs"] .hatch-prose .wp-block-details > summary {
+	font-weight: 600;
+	color: var(--hatch-primary);
+}
+[data-hatch-theme="docs"] .hatch-prose .wp-block-file .wp-block-file__button {
+	border-radius: 8px;
+}
+
+/* ================================================================
+ * §7  Query loop + post-listing blocks (v0.5.1)
+ *     Pages assembled with these show post cards, category chips,
+ *     latest-posts strips, pagination. Base styling for all themes;
+ *     per-theme flair follows.
+ * ================================================================ */
+
+/* --- Query wrapper (grid + spacing) --- */
+.hatch-prose .wp-block-query {
+	margin-block: 2em;
+}
+.hatch-prose .wp-block-post-template {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: grid;
+	gap: 2em;
+	grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+	.hatch-prose .wp-block-post-template.is-layout-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 900px) {
+	.hatch-prose .wp-block-post-template.is-layout-grid.columns-3 { grid-template-columns: repeat(3, 1fr); }
+	.hatch-prose .wp-block-post-template.is-layout-grid.columns-4 { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* v0.5.4 — Post-template cards match PostCard.astro DNA so Home "Latest
+   from the blog", /blog listing, related-posts strip, and every wp:query
+   loop render as ONE visual language. Image-first, borderless, primary
+   category eyebrow, serif title, muted date. */
+.hatch-prose .wp-block-post-template > li {
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	padding: 0;
+	list-style: none;
+	transition: transform 160ms ease;
+}
+.hatch-prose .wp-block-post-template > li:hover {
+	transform: none;
+}
+
+/* Featured image — rounded, 16:10 aspect, matches PostCard.astro exactly */
+.hatch-prose .wp-block-post-featured-image {
+	display: block;
+	overflow: hidden;
+	border-radius: var(--hatch-radius, 6px);
+	background: var(--hatch-bg-3, var(--hatch-bg-2));
+	aspect-ratio: 16 / 10;
+	margin-block: 0 1em;
+}
+.hatch-prose .wp-block-post-featured-image a {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+.hatch-prose .wp-block-post-featured-image img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	transition: transform 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.hatch-prose .wp-block-post-template > li:hover .wp-block-post-featured-image img {
+	transform: scale(1.03);
+}
+
+/* Placeholder — wp:query skips <figure> when a post has no featured image,
+   which leaves cards in the same grid with different top silhouettes.
+   PostCard.astro always renders a placeholder div; we mirror that here via
+   ::before on any <li> missing a .wp-block-post-featured-image child. */
+.hatch-prose .wp-block-post-template > li:not(:has(.wp-block-post-featured-image))::before {
+	content: '';
+	display: block;
+	width: 100%;
+	aspect-ratio: 16 / 10;
+	border-radius: var(--hatch-radius, 6px);
+	background: var(--hatch-bg-3, var(--hatch-bg-2));
+	margin-block: 0 1em;
+}
+
+/* Category eyebrow — matches PostCard.astro:
+   text-[11px] uppercase tracking-wider font-medium text-hatch-primary mb-2 */
+.hatch-prose .wp-block-post-terms,
+.hatch-prose .taxonomy-category.wp-block-post-terms {
+	font-size: 11px;
+	color: var(--hatch-primary);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	font-weight: 500;
+	margin-block: 0 0.5em;
+	line-height: 1.2;
+	display: inline-block;
+}
+.hatch-prose .wp-block-post-terms a {
+	color: inherit;
+	text-decoration: none;
+}
+.hatch-prose .wp-block-post-terms a:hover {
+	color: var(--hatch-fg);
+}
+
+/* Title — matches PostCard.astro:
+   text-lg font-semibold leading-snug tracking-tight (line-clamp-2) */
+.hatch-prose .wp-block-post-title {
+	font-family: var(--hatch-font-heading);
+	font-size: 1.125rem;
+	line-height: 1.375;
+	font-weight: 600;
+	margin-block: 0 0.5em;
+	letter-spacing: -0.01em;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+.hatch-prose .wp-block-post-title a {
+	color: var(--hatch-fg);
+	text-decoration: none;
+}
+.hatch-prose .wp-block-post-title a:hover {
+	color: var(--hatch-primary);
+}
+
+/* Excerpt — matches PostCard.astro:
+   text-[14.5px] text-hatch-fg-muted line-clamp-2 leading-relaxed */
+.hatch-prose .wp-block-post-excerpt {
+	color: var(--hatch-fg-muted);
+	font-size: 14.5px;
+	line-height: 1.625;
+	margin-block: 0.5em 0.5em;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+/* Date — matches PostCard.astro: text-[12.5px] text-hatch-fg-subtle */
+.hatch-prose .wp-block-post-date {
+	font-size: 12.5px;
+	color: var(--hatch-fg-subtle);
+	font-feature-settings: 'tnum';
+	margin-block: 0.75em 0;
+	text-transform: none;
+	letter-spacing: 0;
+}
+.hatch-prose .wp-block-post-featured-image img {
+	width: 100%;
+	height: auto;
+	aspect-ratio: 16 / 9;
+	object-fit: cover;
+	border-radius: var(--hatch-radius, 6px);
+	margin-block-end: 1em;
+}
+.hatch-prose .wp-block-post-terms {
+	font-size: 0.8em;
+	color: var(--hatch-fg-subtle);
+	margin-block: 0.4em 0;
+}
+.hatch-prose .wp-block-post-terms a {
+	color: var(--hatch-primary);
+	text-decoration: none;
+}
+.hatch-prose .wp-block-post-author {
+	font-size: 0.85em;
+	color: var(--hatch-fg-muted);
+}
+
+/* --- Pagination --- */
+.hatch-prose .wp-block-query-pagination {
+	display: flex;
+	gap: 0.75em;
+	align-items: center;
+	justify-content: center;
+	margin-block: 2.5em;
+	flex-wrap: wrap;
+}
+.hatch-prose .wp-block-query-pagination a,
+.hatch-prose .wp-block-query-pagination-next,
+.hatch-prose .wp-block-query-pagination-previous {
+	padding: 0.5em 0.9em;
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius, 6px);
+	color: var(--hatch-fg-muted);
+	text-decoration: none;
+	transition: border-color 140ms ease, color 140ms ease;
+}
+.hatch-prose .wp-block-query-pagination a:hover {
+	border-color: var(--hatch-primary);
+	color: var(--hatch-fg);
+}
+.hatch-prose .wp-block-query-pagination-numbers .current {
+	color: var(--hatch-primary);
+	font-weight: 600;
+}
+.hatch-prose .wp-block-query-no-results {
+	text-align: center;
+	color: var(--hatch-fg-subtle);
+	font-style: italic;
+	padding: 3em 1em;
+}
+
+/* --- Legacy widget blocks (latest-posts, categories, tag-cloud, search) --- */
+.hatch-prose .wp-block-latest-posts {
+	list-style: none;
+	padding: 0;
+	margin: 1.5em 0;
+	display: grid;
+	gap: 1em;
+}
+.hatch-prose .wp-block-latest-posts li a {
+	font-family: var(--hatch-font-heading);
+	font-weight: 500;
+	color: var(--hatch-fg);
+	text-decoration: none;
+}
+.hatch-prose .wp-block-latest-posts li a:hover { color: var(--hatch-primary); }
+.hatch-prose .wp-block-latest-posts__post-date {
+	font-size: 0.85em;
+	color: var(--hatch-fg-subtle);
+	font-feature-settings: 'tnum';
+	margin-inline-start: 0.5em;
+}
+
+.hatch-prose .wp-block-categories,
+.hatch-prose .wp-block-tag-cloud {
+	list-style: none;
+	padding: 0;
+	margin: 1.5em 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5em;
+}
+.hatch-prose .wp-block-categories a,
+.hatch-prose .wp-block-tag-cloud a {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.4em 0.85em;
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	border-radius: 999px;
+	color: var(--hatch-fg-muted);
+	font-size: 0.85em;
+	text-decoration: none;
+	transition: border-color 140ms ease, color 140ms ease;
+}
+.hatch-prose .wp-block-categories a:hover,
+.hatch-prose .wp-block-tag-cloud a:hover {
+	border-color: var(--hatch-primary);
+	color: var(--hatch-fg);
+}
+
+.hatch-prose .wp-block-search__inside-wrapper {
+	display: flex;
+	gap: 0.5em;
+	align-items: stretch;
+	max-width: 480px;
+}
+.hatch-prose .wp-block-search__input {
+	flex: 1;
+	padding: 0.6em 0.9em;
+	background: var(--hatch-bg);
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius, 6px);
+	color: var(--hatch-fg);
+	font-size: 0.95em;
+}
+.hatch-prose .wp-block-search__input:focus {
+	outline: none;
+	border-color: var(--hatch-primary);
+}
+.hatch-prose .wp-block-search__button {
+	padding: 0.6em 1.1em;
+	background: var(--hatch-primary);
+	color: var(--hatch-primary-fg, #fff);
+	border: 0;
+	border-radius: var(--hatch-radius, 6px);
+	font-weight: 500;
+	cursor: pointer;
+}
+
+/* ================================================================
+ * §8  Base-only → per-theme signature upgrade for existing blocks
+ *     (turns the ● dots into ✅ across the matrix)
+ * ================================================================ */
+
+/* ---------- list — bullet character per theme ---------- */
+[data-hatch-theme="blog"] .hatch-prose ul li::marker { color: var(--hatch-primary); }
+[data-hatch-theme="tech"] .hatch-prose ul li::marker { content: "› "; color: var(--hatch-primary); }
+[data-hatch-theme="docs"] .hatch-prose ul li::marker { content: "▪  "; color: var(--hatch-fg-muted); }
+[data-hatch-theme="blog"] .hatch-prose ol li::marker { color: var(--hatch-fg-muted); font-family: var(--hatch-font-heading); font-style: italic; }
+
+/* ---------- image caption per theme ---------- */
+[data-hatch-theme="blog"] .hatch-prose figure.wp-block-image figcaption {
+	font-family: var(--hatch-font-heading);
+	font-style: italic;
+	font-size: 0.9em;
+	color: var(--hatch-fg-muted);
+	text-align: center;
+	margin-block-start: 0.75em;
+}
+[data-hatch-theme="tech"] .hatch-prose figure.wp-block-image figcaption {
+	font-family: var(--hatch-font-mono);
+	font-size: 0.8em;
+	color: var(--hatch-fg-subtle);
+	text-align: left;
+	margin-block-start: 0.6em;
+}
+[data-hatch-theme="tech"] .hatch-prose figure.wp-block-image figcaption::before {
+	content: "// ";
+	color: var(--hatch-primary);
+}
+[data-hatch-theme="docs"] .hatch-prose figure.wp-block-image figcaption {
+	font-size: 0.85em;
+	color: var(--hatch-fg-muted);
+	border-inline-start: 3px solid var(--hatch-primary);
+	padding-inline-start: 0.75em;
+	margin-block-start: 0.75em;
+}
+
+/* ---------- table per theme ---------- */
+[data-hatch-theme="blog"] .hatch-prose table {
+	border-collapse: collapse;
+}
+[data-hatch-theme="blog"] .hatch-prose table th {
+	font-family: var(--hatch-font-heading);
+	font-weight: 500;
+	text-align: left;
+	padding: 0.75em 1em;
+	border-bottom: 2px solid var(--hatch-border);
+}
+[data-hatch-theme="blog"] .hatch-prose table td {
+	padding: 0.75em 1em;
+	border-bottom: 1px solid var(--hatch-border);
+}
+[data-hatch-theme="blog"] .hatch-prose table tbody tr:nth-child(even) {
+	background: color-mix(in oklab, var(--hatch-primary) 3%, transparent);
+}
+
+[data-hatch-theme="tech"] .hatch-prose table {
+	font-family: var(--hatch-font-mono);
+	font-size: 0.9em;
+	border-collapse: collapse;
+}
+[data-hatch-theme="tech"] .hatch-prose table th {
+	text-transform: uppercase;
+	color: var(--hatch-primary);
+	letter-spacing: 0.06em;
+	font-size: 0.85em;
+	padding: 0.6em 0.9em;
+	text-align: left;
+	border-bottom: 1px dashed var(--hatch-border);
+}
+[data-hatch-theme="tech"] .hatch-prose table td {
+	padding: 0.5em 0.9em;
+	border-bottom: 1px dashed var(--hatch-border);
+}
+
+[data-hatch-theme="docs"] .hatch-prose table {
+	border-collapse: separate;
+	border-spacing: 0;
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius, 6px);
+	overflow: hidden;
+	width: 100%;
+}
+[data-hatch-theme="docs"] .hatch-prose table th {
+	padding: 0.7em 1em;
+	text-align: left;
+	background: var(--hatch-bg-2);
+	font-weight: 600;
+	font-size: 0.9em;
+	border-bottom: 1px solid var(--hatch-border);
+}
+[data-hatch-theme="docs"] .hatch-prose table td {
+	padding: 0.65em 1em;
+	border-bottom: 1px solid var(--hatch-border);
+	font-size: 0.92em;
+}
+[data-hatch-theme="docs"] .hatch-prose table tr:last-child td { border-bottom: 0; }
+
+/* ---------- cover per theme ---------- */
+[data-hatch-theme="blog"] .hatch-prose .wp-block-cover {
+	border-radius: var(--hatch-radius, 6px);
+	overflow: hidden;
+}
+[data-hatch-theme="blog"] .hatch-prose .wp-block-cover__inner-container h2 {
+	font-family: var(--hatch-font-heading);
+}
+[data-hatch-theme="tech"] .hatch-prose .wp-block-cover {
+	border: 1px dashed color-mix(in oklab, var(--hatch-primary) 40%, transparent);
+	border-radius: 3px;
+}
+[data-hatch-theme="docs"] .hatch-prose .wp-block-cover {
+	border-radius: 8px;
+	box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* ---------- pullquote per theme (Blog already styled; add tech + docs) ---------- */
+[data-hatch-theme="tech"] .hatch-prose .wp-block-pullquote {
+	border-block: 1px dashed var(--hatch-border);
+	padding-block: 1.5em;
+	font-family: var(--hatch-font-mono);
+	font-size: 1.05em;
+	color: var(--hatch-primary);
+	text-align: left;
+	margin-block: 2em 0;
+}
+[data-hatch-theme="tech"] .hatch-prose .wp-block-pullquote::before {
+	content: "> ";
+	color: var(--hatch-fg-subtle);
+}
+[data-hatch-theme="docs"] .hatch-prose .wp-block-pullquote {
+	background: color-mix(in oklab, var(--hatch-primary) 5%, transparent);
+	border-inline-start: 3px solid var(--hatch-primary);
+	padding: 1.5em 1.75em;
+	font-size: 1.15em;
+	line-height: 1.4;
+	margin-block: 2em;
+	border-radius: 0 var(--hatch-radius, 6px) var(--hatch-radius, 6px) 0;
+}
+
+/* ---------- separator per theme (Docs was base-only) ---------- */
+[data-hatch-theme="docs"] .hatch-prose hr,
+[data-hatch-theme="docs"] .hatch-prose .wp-block-separator {
+	border: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, var(--hatch-border), transparent);
+	margin-block: 3em;
+}
+
+/* ---------- gallery gap per theme ---------- */
+[data-hatch-theme="blog"] .hatch-prose .wp-block-gallery { gap: 1.5em; }
+[data-hatch-theme="tech"] .hatch-prose .wp-block-gallery { gap: 4px; }
+[data-hatch-theme="docs"] .hatch-prose .wp-block-gallery { gap: 1em; }
+
+/* ---------- columns gap per theme ---------- */
+[data-hatch-theme="blog"] .hatch-prose .wp-block-columns { column-gap: 2em; }
+[data-hatch-theme="tech"] .hatch-prose .wp-block-columns { column-gap: 1.5em; }
+[data-hatch-theme="docs"] .hatch-prose .wp-block-columns { column-gap: 2.5em; }
+
+/* ================================================================
+ * §9  Fluent Forms bridge — Hatch-token styling on Fluent markup
+ *     Contract: Fluent renders HTML with its own class names; Hatch
+ *     paints them with global tokens so form UI matches the theme.
+ *     No Fluent CSS/JS loaded on Astro origin — this is Hatchs own.
+ * ================================================================ */
+.hatch-prose .frm-fluent-form,
+.frm-fluent-form {
+	max-width: 640px;
+	margin: 1.5em 0;
+	display: flex;
+	flex-direction: column;
+	gap: 1em;
+}
+.frm-fluent-form .ff-el-group,
+.frm-fluent-form .ff-el-form-control {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.frm-fluent-form label,
+.frm-fluent-form .ff-el-input--label label {
+	font-size: 0.9em;
+	font-weight: 500;
+	color: var(--hatch-fg);
+}
+.frm-fluent-form input[type="text"],
+.frm-fluent-form input[type="email"],
+.frm-fluent-form input[type="tel"],
+.frm-fluent-form select,
+.frm-fluent-form textarea {
+	width: 100%;
+	padding: 0.7em 0.9em;
+	background: var(--hatch-bg);
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius, 6px);
+	color: var(--hatch-fg);
+	font-family: var(--hatch-font-body);
+	font-size: 0.95em;
+	transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.frm-fluent-form textarea { min-height: 120px; resize: vertical; }
+.frm-fluent-form input:focus,
+.frm-fluent-form select:focus,
+.frm-fluent-form textarea:focus {
+	outline: none;
+	border-color: var(--hatch-primary);
+	box-shadow: 0 0 0 3px color-mix(in oklab, var(--hatch-primary) 18%, transparent);
+}
+.frm-fluent-form button[type="submit"],
+.frm-fluent-form .ff-btn {
+	align-self: flex-start;
+	padding: 0.7em 1.6em;
+	background: var(--hatch-primary);
+	color: var(--hatch-primary-fg, #fff);
+	border: 0;
+	border-radius: var(--hatch-radius, 6px);
+	font-weight: 500;
+	font-size: 0.95em;
+	cursor: pointer;
+	transition: opacity 140ms ease, transform 60ms ease;
+}
+.frm-fluent-form button[type="submit"]:hover,
+.frm-fluent-form .ff-btn:hover {
+	opacity: 0.92;
+}
+.frm-fluent-form button[type="submit"]:active {
+	transform: translateY(1px);
+}
+.frm-fluent-form .ff-el-form-required { color: var(--hatch-primary); }
+
+/* ================================================================
+ * §10 Cover-block overlay text — always uses Global tokens
+ *     Kills hardcoded inline #fff/#000 on Cover inner containers.
+ *     The overlay is dark by default (dimRatio 40-60), so inner text
+ *     inherits --hatch-primary-fg which is white-ish in every theme.
+ *     No per-page color override. No theme disconnect.
+ * ================================================================ */
+.hatch-prose .wp-block-cover .wp-block-cover__inner-container,
+.hatch-prose .wp-block-cover .wp-block-cover__inner-container h1,
+.hatch-prose .wp-block-cover .wp-block-cover__inner-container h2,
+.hatch-prose .wp-block-cover .wp-block-cover__inner-container h3,
+.hatch-prose .wp-block-cover .wp-block-cover__inner-container p,
+.hatch-prose .wp-block-cover .wp-block-cover__inner-container a {
+	color: var(--hatch-primary-fg, #ffffff);
+}
+.hatch-prose .wp-block-cover .wp-block-cover__inner-container .wp-block-button__link {
+	color: var(--hatch-primary-fg, #ffffff);
+}
+/* Outline-style button on Cover — border matches inherited text color */
+.hatch-prose .wp-block-cover .wp-block-cover__inner-container .is-style-outline .wp-block-button__link {
+	background: transparent;
+	border: 1px solid currentColor;
+}
+
+/* Fullwidth Cover breaks out of .hatch-prose padding to touch the viewport
+   edges. Adds negative margin equal to the container padding so the image
+   spans full width even inside the article. */
+.hatch-prose .wp-block-cover.alignfull {
+	margin-inline: calc(-1 * var(--hatch-max-width, 1180px) / 2 - 50vw + var(--hatch-max-width, 1180px) / 2);
+	margin-inline: calc(50% - 50vw);
+	width: 100vw;
+	max-width: none;
+}

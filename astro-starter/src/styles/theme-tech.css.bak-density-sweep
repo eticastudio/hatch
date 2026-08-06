@@ -1,0 +1,541 @@
+/**
+ * Hatch · Tech theme — Terminal / changelog aesthetic.
+ *
+ * Design language (v0.4.0 foundation, gpt-taste audited):
+ *   - JetBrains Mono for all display + code; Inter only for long body text.
+ *   - Inky neutral palette, terminal-cyan accent (not the SaaS blue).
+ *   - Hairline 1px borders everywhere; no shadows; no gradients.
+ *   - Dense vertical rhythm (56px sections); cards feel like code blocks.
+ *   - Header is a left-aligned mono prompt with right-aligned mono nav.
+ *   - Footer reads like a CLI prompt line.
+ *
+ * @since 0.4.0  · gpt-taste foundation rewrite
+ */
+
+:root[data-hatch-theme="tech"] {
+	--hatch-font-body:    'Inter', ui-sans-serif, system-ui, sans-serif;
+	--hatch-font-heading: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+	--hatch-font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+	/* v0.5.3 — theme default disabled; design tokens win: --hatch-radius:       3px; */
+	/* v0.5.3 — theme default disabled; design tokens win: --hatch-max-width:    1240px; */
+	--hatch-reading-width: 760px;
+
+	/* Brand axis — terminal cyan over inky neutral. */
+	/* v0.6.1 — Design tab BG/FG pickers win. Defaults below kick in if empty. */
+	--hatch-bg:           var(--hatch-bg-design, #f7f8fa);
+	--hatch-fg:           var(--hatch-fg-design, #0b0d10);
+	/* v0.5.3 — theme default disabled; Design tab tokens win: --hatch-primary: #0891b2 (darker cyan) */
+	/* v0.5.3 — theme default disabled; design tokens win: --hatch-primary-fg:   #ffffff; */
+	--hatch-accent:       #a855f7;  /* keyword-purple — code-tag accent */
+
+	/* Surface ramp — slate-leaning, NOT warm. Distinguishes from blog. */
+	--hatch-bg-2:         #eef0f3;
+	--hatch-bg-3:         #e2e6ec;
+	--hatch-bg-4:         #cfd5dd;
+
+	--hatch-fg-muted:     #3a414b;
+	--hatch-fg-subtle:    #6b727e;
+
+	--hatch-border:        #d8dde4;
+	--hatch-border-strong: #aab3bf;
+}
+
+/* Dark mode flips to deep terminal background — the signature look. */
+[data-hatch-theme="tech"][data-hatch-mode="dark"] {
+	/* v0.6.1 — Auto-derive from user's brand.bg via oklab color-mix.
+	   Cool cyan brand → cool dark; warm brand → warm dark; neutral → neutral. */
+	--hatch-bg:         color-mix(in oklab, var(--hatch-bg-design, #f7f8fa)  6%, #000);
+	--hatch-fg:         color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 92%, #fff);
+	--hatch-accent:     color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 55%, #000);
+
+	/* Surface ramp derives off the new dark --hatch-bg */
+	--hatch-bg-2:       color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 10%, #000);
+	--hatch-bg-3:       color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 16%, #000);
+	--hatch-bg-4:       color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 22%, #000);
+
+	--hatch-fg-muted:   color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 60%, #000);
+	--hatch-fg-subtle:  color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 40%, #000);
+
+	--hatch-border:        color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 15%, #000);
+	--hatch-border-strong: color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 25%, #000);
+}
+
+/* === Base typography ============================================== */
+
+[data-hatch-theme="tech"] body {
+	font-family: var(--hatch-font-body);
+	font-feature-settings: 'cv11', 'ss03';
+	font-size: 15.5px;
+	line-height: 1.6;
+}
+
+[data-hatch-theme="tech"] h1,
+[data-hatch-theme="tech"] h2,
+[data-hatch-theme="tech"] h3,
+[data-hatch-theme="tech"] h4 {
+	font-family: var(--hatch-font-heading);
+	letter-spacing: -0.01em;
+	font-weight: 600;
+	line-height: 1.12;
+}
+
+/* === Header — mono prompt left, mono nav right ==================== */
+
+[data-hatch-theme="tech"] .hatch-header {
+	background: var(--hatch-bg);
+	border-bottom: 1px solid var(--hatch-border);
+}
+
+[data-hatch-theme="tech"] .hatch-header-inner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24px;
+	padding-block: 16px;
+	font-family: var(--hatch-font-mono);
+}
+
+[data-hatch-theme="tech"] .hatch-tech-brand {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 8px;
+	font-size: 14px;
+	color: var(--hatch-fg);
+}
+
+[data-hatch-theme="tech"] .hatch-tech-brand::before {
+	content: '~/';
+	color: var(--hatch-primary);
+	font-weight: 500;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-nav {
+	display: inline-flex;
+	gap: 0;
+	align-items: center;
+	font-size: 13px;
+}
+
+/* Nav links — restraint pass dropped the vertical separator on every
+   item (it was reading as a UI control bar, not a nav). Spacing alone
+   carries the rhythm now; hover state shows where you are. */
+[data-hatch-theme="tech"] .hatch-tech-nav a {
+	color: var(--hatch-fg-muted);
+	padding: 6px 4px;
+	margin: 0 8px;
+	transition: color 140ms ease;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-nav a:hover,
+[data-hatch-theme="tech"] .hatch-tech-nav a.is-active {
+	color: var(--hatch-primary);
+}
+
+/* === Hero — terminal block on home ================================ */
+
+[data-hatch-theme="tech"] .hatch-tech-hero {
+	padding-block: 80px 56px;
+	display: flex;
+	flex-direction: column;
+	gap: 28px;
+	align-items: flex-start;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-hero-prompt {
+	font-family: var(--hatch-font-mono);
+	font-size: 13px;
+	color: var(--hatch-fg-subtle);
+}
+
+[data-hatch-theme="tech"] .hatch-tech-hero-prompt::before {
+	content: '$ ';
+	color: var(--hatch-primary);
+}
+
+[data-hatch-theme="tech"] .hatch-tech-hero h1 {
+	font-size: clamp(2.2rem, 4.6vw, 4rem);
+	max-width: 18ch;
+	letter-spacing: -0.02em;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-hero h1 .tok-keyword { color: var(--hatch-accent); }
+[data-hatch-theme="tech"] .hatch-tech-hero h1 .tok-string  { color: var(--hatch-primary); }
+
+[data-hatch-theme="tech"] .hatch-tech-hero-lede {
+	font-size: 16px;
+	color: var(--hatch-fg-muted);
+	max-width: 60ch;
+	line-height: 1.6;
+}
+
+/* === Card — hairline frame, no shadow ============================ */
+
+[data-hatch-theme="tech"] .hatch-card,
+[data-hatch-theme="tech"] .hatch-post-card {
+	background: var(--hatch-bg);
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius);
+	padding: 20px;
+	transition: border-color 160ms ease, transform 160ms ease;
+}
+
+[data-hatch-theme="tech"] .hatch-card:hover,
+[data-hatch-theme="tech"] .hatch-post-card:hover {
+	border-color: var(--hatch-primary);
+}
+
+[data-hatch-theme="tech"] .hatch-card-media,
+[data-hatch-theme="tech"] .hatch-post-card-media {
+	aspect-ratio: 16 / 9;
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	border-radius: 2px;
+	overflow: hidden;
+	margin-bottom: 16px;
+}
+
+[data-hatch-theme="tech"] .hatch-card-media img,
+[data-hatch-theme="tech"] .hatch-post-card-media img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+[data-hatch-theme="tech"] .hatch-card-eyebrow,
+[data-hatch-theme="tech"] .hatch-post-card-eyebrow {
+	font-family: var(--hatch-font-mono);
+	font-size: 11.5px;
+	color: var(--hatch-primary);
+	margin-bottom: 8px;
+}
+
+[data-hatch-theme="tech"] .hatch-card-eyebrow::before,
+[data-hatch-theme="tech"] .hatch-post-card-eyebrow::before {
+	content: '> ';
+	opacity: 0.7;
+}
+
+[data-hatch-theme="tech"] .hatch-card-title,
+[data-hatch-theme="tech"] .hatch-post-card-title {
+	font-family: var(--hatch-font-heading);
+	font-size: 1.1rem;
+	font-weight: 600;
+	line-height: 1.25;
+	color: var(--hatch-fg);
+}
+
+[data-hatch-theme="tech"] .hatch-card-meta,
+[data-hatch-theme="tech"] .hatch-post-card-meta {
+	font-family: var(--hatch-font-mono);
+	font-size: 12px;
+	color: var(--hatch-fg-subtle);
+	margin-top: 10px;
+}
+
+/* === Reading column ============================================== */
+
+[data-hatch-theme="tech"] .hatch-prose {
+	max-width: var(--hatch-reading-width);
+	font-size: 16px;
+	line-height: 1.7;
+	color: var(--hatch-fg);
+}
+
+[data-hatch-theme="tech"] .hatch-prose h2 {
+	font-family: var(--hatch-font-heading);
+	font-size: 1.5rem;
+	margin-block: 2em 0.6em;
+	color: var(--hatch-fg);
+}
+
+[data-hatch-theme="tech"] .hatch-prose h2::before {
+	content: '#';
+	color: var(--hatch-primary);
+	margin-right: 10px;
+	opacity: 0.7;
+}
+
+[data-hatch-theme="tech"] .hatch-prose h3 {
+	font-family: var(--hatch-font-heading);
+	font-size: 1.2rem;
+	margin-block: 1.6em 0.4em;
+}
+
+[data-hatch-theme="tech"] .hatch-prose h3::before {
+	content: '##';
+	color: var(--hatch-primary);
+	margin-right: 8px;
+	opacity: 0.55;
+}
+
+[data-hatch-theme="tech"] .hatch-prose a {
+	color: var(--hatch-primary);
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 3px;
+}
+
+[data-hatch-theme="tech"] .hatch-prose code {
+	font-family: var(--hatch-font-mono);
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	padding: 1px 6px;
+	border-radius: 3px;
+	font-size: 0.88em;
+	color: var(--hatch-accent);
+}
+
+[data-hatch-theme="tech"] .hatch-prose pre {
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius);
+	padding: 18px 20px;
+	overflow-x: auto;
+	font-size: 13.5px;
+	line-height: 1.55;
+}
+
+[data-hatch-theme="tech"] .hatch-prose pre code {
+	background: transparent;
+	border: 0;
+	padding: 0;
+	color: var(--hatch-fg);
+}
+
+[data-hatch-theme="tech"] .hatch-prose blockquote {
+	border-left: 2px solid var(--hatch-primary);
+	background: var(--hatch-bg-2);
+	padding: 14px 20px;
+	margin-block: 1.6em;
+	font-size: 0.96em;
+	color: var(--hatch-fg-muted);
+}
+
+/* === Footer — CLI prompt feel ==================================== */
+
+[data-hatch-theme="tech"] .hatch-footer {
+	background: var(--hatch-bg);
+	border-top: 1px solid var(--hatch-border);
+	padding-block: 36px 44px;
+	font-family: var(--hatch-font-mono);
+	font-size: 13px;
+	color: var(--hatch-fg-muted);
+}
+
+[data-hatch-theme="tech"] .hatch-footer-prompt::before {
+	content: '~ $ ';
+	color: var(--hatch-primary);
+	font-weight: 500;
+}
+
+[data-hatch-theme="tech"] .hatch-footer-links {
+	display: inline-flex;
+	gap: 0;
+	margin-top: 14px;
+	flex-wrap: wrap;
+}
+
+[data-hatch-theme="tech"] .hatch-footer-links a {
+	color: var(--hatch-fg-muted);
+	padding-right: 14px;
+	margin-right: 14px;
+	border-right: 1px solid var(--hatch-border);
+	transition: color 140ms ease;
+}
+
+[data-hatch-theme="tech"] .hatch-footer-links a:last-child {
+	border-right: 0;
+	padding-right: 0;
+	margin-right: 0;
+}
+
+[data-hatch-theme="tech"] .hatch-footer-links a:hover {
+	color: var(--hatch-primary);
+}
+
+[data-hatch-theme="tech"] .hatch-footer-meta {
+	margin-top: 22px;
+	font-size: 11.5px;
+	color: var(--hatch-fg-subtle);
+}
+
+/* === Buttons ====================================================== */
+
+[data-hatch-theme="tech"] .hatch-button,
+[data-hatch-theme="tech"] .hatch-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 9px 16px;
+	background: var(--hatch-fg);
+	color: var(--hatch-bg);
+	font-family: var(--hatch-font-mono);
+	font-size: 13px;
+	font-weight: 500;
+	border-radius: var(--hatch-radius);
+	border: 1px solid var(--hatch-fg);
+	transition: background 140ms ease, color 140ms ease;
+}
+
+[data-hatch-theme="tech"] .hatch-button::before,
+[data-hatch-theme="tech"] .hatch-btn::before {
+	content: '> ';
+	color: var(--hatch-primary);
+}
+
+[data-hatch-theme="tech"] .hatch-button:hover,
+[data-hatch-theme="tech"] .hatch-btn:hover {
+	background: var(--hatch-primary);
+	color: var(--hatch-primary-fg);
+	border-color: var(--hatch-primary);
+}
+
+[data-hatch-theme="tech"] .hatch-button[data-variant="ghost"] {
+	background: transparent;
+	color: var(--hatch-fg);
+	border-color: var(--hatch-border-strong);
+}
+
+/* === Home: masonry of variable-height cards ====================== */
+
+/* CSS columns deliver real masonry across every modern browser today.
+   grid-auto-rows: masonry is Firefox-only as of 2026. The card sits in
+   the column flow; `break-inside: avoid` keeps each card whole. */
+[data-hatch-theme="tech"] .hatch-tech-masonry {
+	column-count: 1;
+	column-gap: 16px;
+	padding-block: 32px 80px;
+}
+
+@media (min-width: 640px) {
+	[data-hatch-theme="tech"] .hatch-tech-masonry { column-count: 2; }
+}
+
+@media (min-width: 1000px) {
+	[data-hatch-theme="tech"] .hatch-tech-masonry { column-count: 3; }
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card {
+	break-inside: avoid;
+	display: inline-block;
+	width: 100%;
+	margin-bottom: 16px;
+	background: var(--hatch-bg);
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius);
+	transition: border-color 160ms ease;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card:hover {
+	border-color: var(--hatch-primary);
+}
+
+/* The data-span attribute drives different aspect ratios so the columns
+   stagger naturally instead of looking like a vanilla grid. */
+[data-hatch-theme="tech"] .hatch-tech-card-media-link {
+	display: block;
+	overflow: hidden;
+	border-bottom: 1px solid var(--hatch-border);
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card[data-span="normal"] .hatch-tech-card-media {
+	aspect-ratio: 16 / 9;
+}
+[data-hatch-theme="tech"] .hatch-tech-card[data-span="tall"] .hatch-tech-card-media {
+	aspect-ratio: 3 / 4;
+}
+[data-hatch-theme="tech"] .hatch-tech-card[data-span="short"] .hatch-tech-card-media {
+	aspect-ratio: 21 / 9;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-media {
+	width: 100%;
+	height: auto;
+	object-fit: cover;
+	background: var(--hatch-bg-2);
+	display: block;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-body {
+	padding: 16px 18px 18px;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-eyebrow {
+	display: inline-block;
+	font-family: var(--hatch-font-mono);
+	font-size: 11px;
+	color: var(--hatch-primary);
+	margin-bottom: 8px;
+	letter-spacing: 0;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-eyebrow::before {
+	content: '> ';
+	opacity: 0.7;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-title {
+	font-family: var(--hatch-font-heading);
+	font-size: 1.05rem;
+	font-weight: 600;
+	line-height: 1.25;
+	margin-bottom: 8px;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-title a {
+	color: var(--hatch-fg);
+	transition: color 140ms ease;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-title a:hover {
+	color: var(--hatch-primary);
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-excerpt {
+	font-size: 13.5px;
+	color: var(--hatch-fg-muted);
+	line-height: 1.55;
+	margin-bottom: 12px;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-meta {
+	font-family: var(--hatch-font-mono);
+	font-size: 11.5px;
+	color: var(--hatch-fg-subtle);
+}
+
+/* ============================================================
+ * v0.5 — Tech theme sidebar polish (terminal aesthetic)
+ * ============================================================ */
+[data-hatch-theme="tech"] .hatch-sidebar {
+	gap: 32px;
+	font-family: var(--hatch-font-mono);
+	font-size: 13px;
+}
+[data-hatch-theme="tech"] .hatch-sidebar-title {
+	font-family: var(--hatch-font-mono);
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	color: var(--hatch-primary);
+	margin-bottom: 12px;
+}
+[data-hatch-theme="tech"] .hatch-sidebar-title::before {
+	content: "# ";
+	color: var(--hatch-fg-subtle);
+}
+[data-hatch-theme="tech"] .hatch-sidebar-item {
+	border-radius: 0;
+	padding: 6px 10px;
+	border-left: 2px solid transparent;
+}
+[data-hatch-theme="tech"] .hatch-sidebar-item.is-active {
+	box-shadow: none;
+	border-left-color: var(--hatch-primary);
+	background: color-mix(in oklab, var(--hatch-primary) 6%, transparent);
+	color: var(--hatch-primary);
+}
+[data-hatch-theme="tech"] .hatch-sidebar-count {
+	font-family: var(--hatch-font-mono);
+	font-size: 11px;
+	color: var(--hatch-fg-subtle);
+}

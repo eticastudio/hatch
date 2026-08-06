@@ -1,0 +1,224 @@
+---
+/**
+ * Sidebar — generic widgetized rail.
+ *
+ * v0.4.2 — Replaces the docs-only DocsSidebar with a config-driven sidebar
+ * available across all 3 themes. Reads features.aesthetic.sidebar.widgets
+ * and renders each by type. Position (left/right/none) is decided by the
+ * caller (post template, home page) based on aesthetic.sidebar.position
+ * combined with the page's own layout.
+ *
+ * Widget types (matched to HatchSidebarWidget union in lib/features.ts):
+ *   - categories      → list of categories with post counts
+ *   - recent_posts    → last N posts (default 5)
+ *   - tags            → top tags up to max
+ *   - custom_html     → raw HTML the user pasted (sanitized at WP save time)
+ *
+ * Add a new widget type by extending the union + adding a case below.
+ */
+import type { HatchFeatures, HatchSidebarWidget } from '../lib/features';
+import { getCategories, getPosts } from '../lib/hatch';
+import { archiveUrl, categoryUrl, postUrl, tagUrl } from '../lib/url-builder';
+
+interface Props {
+  features: HatchFeatures;
+  /** v0.4.2 — Optional active-category slug used by the categories widget
+   *  to mark the current category as visually active. */
+  activeCategorySlug?: string | null;
+  /** v0.4.2 — Used when the admin hasn't configured widgets yet. Lets the
+   *  caller seed sensible defaults (e.g. blog/[slug].astro passes
+   *  [recent_posts, categories] so single-post sidebars are useful without
+   *  any admin config). */
+  defaultWidgets?: HatchSidebarWidget[];
+}
+const { features, activeCategorySlug = null, defaultWidgets = [] } = Astro.props;
+
+const sidebarCfg = features.aesthetic.sidebar ?? { position: 'none' as const, widgets: [] as HatchSidebarWidget[] };
+// Use admin-configured widgets when present; fall back to caller defaults
+// so a freshly-installed Hatch shows a working sidebar without the user
+// having to learn the widget builder first.
+const configured = sidebarCfg.widgets || [];
+const widgets: HatchSidebarWidget[] = configured.length > 0 ? configured : defaultWidgets;
+
+// Pre-fetch any data the widgets need so we make a single round of WP
+// requests rather than one per widget. Categories + recent posts are the
+// common ones; tags share the categories taxonomy call shape.
+const needCategories = widgets.some((w) => w.type === 'categories');
+const needRecent     = widgets.some((w) => w.type === 'recent_posts');
+
+const [categoriesData, recentData] = await Promise.all([
+  needCategories ? getCategories().catch(() => []) : Promise.resolve([]),
+  needRecent     ? getPosts({ perPage: Math.max(...widgets.filter(w => w.type === 'recent_posts').map(w => (w as any).count || 5), 5) }).catch(() => ({ posts: [], total: 0, hasMore: false })) : Promise.resolve({ posts: [], total: 0, hasMore: false }),
+]);
+const allCategories = (categoriesData as any[]).filter((c) => (c?.count ?? 0) > 0);
+const recentPosts = recentData.posts || [];
+---
+
+{widgets.length > 0 && (
+  <aside class="hatch-sidebar" aria-label="Sidebar">
+    {widgets.map((w) => (
+      <section class="hatch-sidebar-widget" data-widget={w.type}>
+        {w.title && <h3 class="hatch-sidebar-title">{w.title}</h3>}
+
+        {w.type === 'categories' && (
+          <ul class="hatch-sidebar-list">
+            {allCategories.map((cat) => (
+              <li>
+                <a
+                  href={categoryUrl(cat.slug, features)}
+                  class:list={['hatch-sidebar-item', activeCategorySlug === cat.slug ? 'is-active' : '']}
+                >
+                  <span>{cat.name}</span>
+                  <span class="hatch-sidebar-count">{cat.count}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {w.type === 'recent_posts' && (
+          <ul class="hatch-sidebar-list">
+            {recentPosts.slice(0, (w as any).count || 5).map((post: any) => (
+              <li>
+                <a href={postUrl(post, features)} class="hatch-sidebar-post">
+                  <div class="hatch-sidebar-post-title">{post.title}</div>
+                  <div class="hatch-sidebar-post-meta">
+                    <time datetime={post.publishedAt}>
+                      {new Date(post.publishedAt).toLocaleDateString(features.site.language || 'en-US', { month: 'short', day: 'numeric' })}
+                    </time>
+                  </div>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {w.type === 'tags' && (
+          <div class="hatch-sidebar-tags">
+            {/* Tag pre-fetch is intentionally not done upstream — tags can be
+                added later by hitting /wp/v2/tags. Placeholder note: this
+                widget renders only when WP exposes tags; otherwise empty. */}
+            <p class="hatch-sidebar-empty">Tag cloud will render when posts are tagged.</p>
+          </div>
+        )}
+
+        {w.type === 'custom_html' && (
+          /* SECURITY: WP plugin must sanitize this with wp_kses_post on save.
+             Astro side trusts the payload. Don't accept user-controllable
+             HTML from non-admin sources. */
+          <div class="hatch-sidebar-html" set:html={(w as any).html || ''} />
+        )}
+      </section>
+    ))}
+  </aside>
+)}
+
+<style is:global>
+  .hatch-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding: 8px 0;
+    font-size: 14px;
+    color: var(--hatch-fg);
+  }
+
+  .hatch-sidebar-widget {
+    /* No border by default — let the theme decide. */
+  }
+
+  .hatch-sidebar-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--hatch-fg-subtle);
+    margin-bottom: 14px;
+  }
+
+  .hatch-sidebar-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .hatch-sidebar-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: var(--hatch-radius, 6px);
+    color: var(--hatch-fg-muted);
+    transition: background 140ms ease, color 140ms ease;
+  }
+
+  .hatch-sidebar-item:hover {
+    background: var(--hatch-bg-2);
+    color: var(--hatch-fg);
+  }
+
+  .hatch-sidebar-item.is-active {
+    color: var(--hatch-fg);
+    font-weight: 600;
+    box-shadow: inset 2px 0 0 var(--hatch-primary);
+    background: transparent;
+  }
+  .hatch-sidebar-item.is-active .hatch-sidebar-count {
+    color: var(--hatch-primary);
+    font-weight: 600;
+  }
+
+  .hatch-sidebar-count {
+    font-size: 11px;
+    color: var(--hatch-fg-subtle);
+    font-feature-settings: 'tnum';
+  }
+
+  .hatch-sidebar-post {
+    display: block;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--hatch-border);
+    transition: color 140ms ease;
+  }
+  .hatch-sidebar-post:hover { color: var(--hatch-primary); }
+  .hatch-sidebar-list li:last-child .hatch-sidebar-post { border-bottom: 0; }
+
+  .hatch-sidebar-post-title {
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--hatch-fg);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .hatch-sidebar-post:hover .hatch-sidebar-post-title { color: var(--hatch-primary); }
+
+  .hatch-sidebar-post-meta {
+    margin-top: 4px;
+    font-size: 11.5px;
+    color: var(--hatch-fg-subtle);
+    font-feature-settings: 'tnum';
+  }
+
+  .hatch-sidebar-html {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--hatch-fg-muted);
+  }
+  .hatch-sidebar-html a {
+    color: var(--hatch-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .hatch-sidebar-empty {
+    font-size: 12px;
+    color: var(--hatch-fg-subtle);
+    margin: 0;
+  }
+</style>

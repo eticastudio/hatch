@@ -1,0 +1,113 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/theme.json",
+	"version": 3,
+	"__meta": {
+		"purpose": "Hatch token contract shared by the WordPress block editor and the Astro frontend. Every palette / font-size / spacing slug listed here is a promise: the editor will show it in the picker, the Astro frontend has a matching `--hatch-*` CSS variable + `.has-<slug>-color` class binding in `src/styles/core-blocks.css`. Do not add or rename a slug on one side without the other — the semantic-token guarantee dies the moment they drift.",
+		"deployment": "Mirror this file into the WordPress companion theme at `wp-plugin/companion-theme/theme.json` so the block editor picks up the same tokens. A future release should generate both from a single source of truth to prevent drift.",
+		"colorSlugContract": "The color slugs below must stay 1:1 with the .has-*-color / .has-*-background-color rules in astro-starter/src/styles/core-blocks.css §17."
+	},
+	"settings": {
+		"appearanceTools": true,
+		"useRootPaddingAwareAlignments": true,
+		"color": {
+			"custom": false,
+			"customDuotone": false,
+			"customGradient": false,
+			"defaultDuotone": false,
+			"defaultGradients": false,
+			"defaultPalette": false,
+			"palette": [
+				{ "slug": "primary",        "name": "Primary",           "color": "var(--hatch-primary)" },
+				{ "slug": "primary-fg",     "name": "Primary Foreground", "color": "var(--hatch-primary-fg)" },
+				{ "slug": "primary-soft",   "name": "Primary Soft",       "color": "var(--hatch-primary-soft)" },
+				{ "slug": "foreground",     "name": "Foreground",         "color": "var(--hatch-fg)" },
+				{ "slug": "muted",          "name": "Muted Foreground",   "color": "var(--hatch-fg-muted)" },
+				{ "slug": "subtle",         "name": "Subtle Foreground",  "color": "var(--hatch-fg-subtle)" },
+				{ "slug": "background",     "name": "Background",         "color": "var(--hatch-bg)" },
+				{ "slug": "background-2",   "name": "Background 2",       "color": "var(--hatch-bg-2)" },
+				{ "slug": "background-3",   "name": "Background 3",       "color": "var(--hatch-bg-3)" },
+				{ "slug": "border",         "name": "Border",             "color": "var(--hatch-border)" }
+			]
+		},
+		"typography": {
+			"customFontSize": false,
+			"dropCap": false,
+			"fluid": true,
+			"lineHeight": true,
+			"textDecoration": true,
+			"textTransform": true,
+			"letterSpacing": true,
+			"writingMode": false,
+			"fontFamilies": [
+				{ "slug": "body",    "name": "Body",    "fontFamily": "var(--hatch-font-body, ui-sans-serif, system-ui, sans-serif)" },
+				{ "slug": "heading", "name": "Heading", "fontFamily": "var(--hatch-font-heading, ui-sans-serif, system-ui, sans-serif)" },
+				{ "slug": "mono",    "name": "Mono",    "fontFamily": "var(--hatch-font-mono, ui-monospace, SFMono-Regular, monospace)" }
+			],
+			"fontSizes": [
+				{ "slug": "x-small",  "name": "Extra Small", "size": "0.75em",  "fluid": false },
+				{ "slug": "small",    "name": "Small",       "size": "0.85em",  "fluid": false },
+				{ "slug": "medium",   "name": "Medium",      "size": "1.05em",  "fluid": false },
+				{ "slug": "large",    "name": "Large",       "size": "1.35em",  "fluid": false },
+				{ "slug": "x-large",  "name": "Extra Large", "size": "1.65em",  "fluid": false },
+				{ "slug": "xx-large", "name": "Huge",        "size": "2em",     "fluid": false }
+			]
+		},
+		"spacing": {
+			"customSpacingSize": false,
+			"padding": true,
+			"margin": true,
+			"blockGap": true,
+			"units": [ "px", "em", "rem", "vh", "vw", "%" ],
+			"spacingSizes": [
+				{ "slug": "10", "name": "1 · Tight",   "size": "var(--hatch-space-1)" },
+				{ "slug": "20", "name": "2 · Compact", "size": "var(--hatch-space-2)" },
+				{ "slug": "30", "name": "3 · Snug",    "size": "var(--hatch-space-3)" },
+				{ "slug": "40", "name": "4 · Regular", "size": "var(--hatch-space-4)" },
+				{ "slug": "50", "name": "5 · Roomy",   "size": "var(--hatch-space-5)" },
+				{ "slug": "60", "name": "6 · Wide",    "size": "var(--hatch-space-6)" },
+				{ "slug": "70", "name": "7 · Spacious", "size": "var(--hatch-space-7)" },
+				{ "slug": "80", "name": "8 · Vast",    "size": "var(--hatch-space-8)" }
+			]
+		},
+		"border": {
+			"color": true,
+			"radius": true,
+			"style": true,
+			"width": true
+		},
+		"layout": {
+			"contentSize": "68ch",
+			"wideSize": "1120px"
+		},
+		"blocks": {
+			"core/button": {
+				"border": { "radius": true },
+				"color":  { "background": true, "text": true }
+			},
+			"core/cover": {
+				"color":  { "background": true, "text": true }
+			},
+			"core/group": {
+				"spacing": { "padding": true, "margin": true }
+			}
+		}
+	},
+	"styles": {
+		"color": {
+			"background": "var(--hatch-bg)",
+			"text":       "var(--hatch-fg)"
+		},
+		"typography": {
+			"fontFamily": "var(--hatch-font-body, ui-sans-serif, system-ui, sans-serif)",
+			"lineHeight": "1.65"
+		},
+		"elements": {
+			"link": {
+				"color": { "text": "var(--hatch-primary)" }
+			},
+			"h1": { "typography": { "fontFamily": "var(--hatch-font-heading, inherit)", "fontSize": "var(--hatch-h1-size, clamp(2.125rem, 4vw, 2.75rem))" } },
+			"h2": { "typography": { "fontFamily": "var(--hatch-font-heading, inherit)", "fontSize": "var(--hatch-h2-size, clamp(1.5rem, 2.4vw, 1.75rem))" } },
+			"h3": { "typography": { "fontFamily": "var(--hatch-font-heading, inherit)", "fontSize": "var(--hatch-h3-size, 1.35rem)" } }
+		}
+	}
+}
