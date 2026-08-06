@@ -1,0 +1,12 @@
+{
+  "name": "hatch-consistency",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "install-browsers": "playwright install chromium",
+    "check": "playwright test --reporter=list"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}

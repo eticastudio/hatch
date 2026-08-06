@@ -62,7 +62,9 @@ services:
       - wp_data:/var/www/html
 
   astro:
-    image: node:20-alpine
+    # Astro 6.x requires Node >= 22.12 — node:20 exits at boot with
+    # "Node.js v20 is not supported by Astro!".
+    image: node:22-alpine
     container_name: hatch_astro
     restart: unless-stopped
     depends_on:
