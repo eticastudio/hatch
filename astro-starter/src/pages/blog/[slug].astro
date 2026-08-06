@@ -50,7 +50,13 @@ const showShare       = hasFeature(features, 'sticky_share');
 const showAuthorBio   = hasFeature(features, 'author_bio');
 const showRelated     = hasFeature(features, 'related_posts');
 const showPrevNext    = hasFeature(features, 'next_prev_nav');
-const showComments    = hasFeature(features, 'comments');
+// v0.5.7 — was `hasFeature(features, 'comments')` which reads features.features.comments
+// (never set anywhere). The real source of truth for comments-on is
+// features.content.comments_enabled (WP's per-site Discussion toggle) OR
+// features.integrations.comments.enabled (Hatch's admin toggle). Either
+// being true means "render the section."
+const showComments    = !!(features as any)?.content?.comments_enabled
+                      || !!features.integrations?.comments?.enabled;
 
 // v0.50.15 — aesthetic groups
 const share         = aesthetic.share;
