@@ -429,28 +429,52 @@ function BrokerForm({ provider, tokenName, tokenUrl, tokenUrlLabel, tokenPagePro
 	const [save, setSave]   = useState(true);
 	const providerLabel = provider === 'cloudflare' ? 'Cloudflare' : 'Vercel';
 
+	const tempSuffix = provider === 'vercel' ? '.vercel.app' : '.workers.dev';
 	return (
-		<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-			<HxGL>Step 1. Get an API token</HxGL>
-			<p className="hx-desc" style={{ color: 'var(--hx-muted)', lineHeight: 1.55, margin: '4px 0 10px' }}>
-				{tokenPagePrompt}
+		<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+			{/* v0.5.7 — flat form. No numbered "Step 1/2". Just three fields:
+			    Get-token button (opens CF/Vercel page with permissions
+			    prefilled), API token, Deploy. Custom domain is optional and
+			    forwarded to the broker (mountMode + subPath come from
+			    Sub-step A above). */}
+			<p className="hx-desc" style={{ color: 'var(--hx-muted)', lineHeight: 1.55, margin: 0 }}>
+				Paste your {providerLabel} API token — Hatch builds and deploys Astro to a live <span className="hx-mono">{tempSuffix}</span> URL. Point a CNAME at it later when you're ready for a custom domain.
 			</p>
+
 			<div>
 				<HxBtn href={tokenUrl}>
-					{tokenUrlLabel}
+					Get {providerLabel} API token
 					<HxIcon size={13} color="currentColor">
 						<path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
 						<polyline points="15 3 21 3 21 9" />
 						<line x1="10" y1="14" x2="21" y2="3" />
 					</HxIcon>
 				</HxBtn>
+				<p className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.5, margin: '6px 0 0' }}>
+					{tokenPagePrompt}
+				</p>
 			</div>
 
-			<HxGL>Step 2. Paste and deploy</HxGL>
+			{provider === 'cloudflare' && (
+				<details style={{ borderRadius: 8, border: '1px solid var(--hx-border)', padding: 0 }}>
+					<summary style={{ cursor: 'pointer', padding: '10px 12px', fontSize: 12, fontWeight: 600, color: 'var(--hx-fg)', listStyle: 'none' }}>
+						How to create the token — Workers template + 1 extra row
+					</summary>
+					<div style={{ padding: '10px 14px 14px', borderTop: '1px solid var(--hx-border)', fontSize: 12.5, color: 'var(--hx-fg)', lineHeight: 1.7 }}>
+						<div><strong>Step 1.</strong> Create Token → pick <strong>"Edit Cloudflare Workers"</strong> (built-in preset).</div>
+						<div style={{ marginTop: 6 }}><strong>Step 2.</strong> Click <em>+ Add more</em> and add ONE row:</div>
+						<div style={{ paddingLeft: 12, marginTop: 4 }}>
+							<span className="hx-mono">User</span> · <span className="hx-mono">Memberships</span> · <span className="hx-mono">Read</span>
+						</div>
+						<div style={{ marginTop: 8, color: 'var(--hx-muted)' }}>Account Resources → <span className="hx-mono">Include · your account</span>. Continue → Create → copy.</div>
+					</div>
+				</details>
+			)}
+
 			<form
 				method="post"
 				action={adminPostUrl}
-				style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}
+				style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 2 }}
 			>
 				<input type="hidden" name="action"    value="hatch_start_deploy" />
 				<input type="hidden" name="_wpnonce"  value={deployNonce} />
@@ -459,16 +483,21 @@ function BrokerForm({ provider, tokenName, tokenUrl, tokenUrlLabel, tokenPagePro
 				<input type="hidden" name="subPath"   value={subPath} />
 				<input type="hidden" name="domain"    value={(domain || '').trim()} />
 
-				<HxInp
-					type="password"
-					name={tokenName}
-					placeholder={`Paste your ${providerLabel} API token`}
-					value={token}
-					onChange={(e) => setToken(e.target.value)}
-					mono
-					autoComplete="off"
-					spellCheck={false}
-				/>
+				<div>
+					<span className="hx-label" style={{ fontWeight: 600, color: 'var(--hx-fg)', display: 'block', marginBottom: 6 }}>
+						{providerLabel} API token
+					</span>
+					<HxInp
+						type="password"
+						name={tokenName}
+						placeholder={`Paste your ${providerLabel} API token`}
+						value={token}
+						onChange={(e) => setToken(e.target.value)}
+						mono
+						autoComplete="off"
+						spellCheck={false}
+					/>
+				</div>
 
 				<label className="hx-checkbox hx-help" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--hx-muted)', cursor: 'pointer' }}>
 					<input
@@ -483,7 +512,7 @@ function BrokerForm({ provider, tokenName, tokenUrl, tokenUrlLabel, tokenPagePro
 
 				<div>
 					<HxBtn type="submit" disabled={!token.trim()}>
-						Build and deploy
+						Build and deploy to {providerLabel}
 						<HxIcon size={13} color="currentColor"><path d="M5 12h14M12 5l7 7-7 7" /></HxIcon>
 					</HxBtn>
 				</div>
