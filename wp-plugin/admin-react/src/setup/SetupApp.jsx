@@ -424,7 +424,7 @@ function Step2Theme({ boot, onBack }) {
 
 // ── Step 3 helper: broker form (Cloudflare + Vercel share this shape) ─────
 
-function BrokerForm({ provider, tokenName, tokenUrl, tokenUrlLabel, tokenPagePrompt, adminPostUrl, deployNonce }) {
+function BrokerForm({ provider, tokenName, tokenUrl, tokenUrlLabel, tokenPagePrompt, adminPostUrl, deployNonce, mountMode = 'root', subPath = '/blog', domain = '' }) {
 	const [token, setToken] = useState('');
 	const [save, setSave]   = useState(true);
 	const providerLabel = provider === 'cloudflare' ? 'Cloudflare' : 'Vercel';
@@ -452,9 +452,12 @@ function BrokerForm({ provider, tokenName, tokenUrl, tokenUrlLabel, tokenPagePro
 				action={adminPostUrl}
 				style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}
 			>
-				<input type="hidden" name="action"   value="hatch_start_deploy" />
-				<input type="hidden" name="_wpnonce" value={deployNonce} />
-				<input type="hidden" name="provider" value={provider} />
+				<input type="hidden" name="action"    value="hatch_start_deploy" />
+				<input type="hidden" name="_wpnonce"  value={deployNonce} />
+				<input type="hidden" name="provider"  value={provider} />
+				<input type="hidden" name="mountMode" value={mountMode} />
+				<input type="hidden" name="subPath"   value={subPath} />
+				<input type="hidden" name="domain"    value={(domain || '').trim()} />
 
 				<HxInp
 					type="password"
@@ -500,6 +503,12 @@ function Step3Deploy({ boot, onBack }) {
 	const [open, setOpen] = useState('cloudflare');
 	const [manualUrl, setManualUrl] = useState('');
 	const [selfMode, setSelfMode] = useState('agent');
+	// v0.5.7 — Sub-step A restored: user picks Root domain vs Subfolder BEFORE
+	// choosing provider. Values forward to the deploy form as hidden inputs
+	// (mountMode + subPath) → PHP admin-post handler → broker /prepare.
+	const [mountMode, setMountMode] = useState(setup.mountMode || 'root');
+	const [subPath, setSubPath]     = useState(setup.subfolderPath || '/blog');
+	const [deployDomain, setDeployDomain] = useState(setup.deployDomain || boot.siteHost || '');
 
 	const envPairs = [
 		{ k: 'WP_API_URL',           v: setup.wpApiUrl     || '' },
@@ -546,6 +555,60 @@ function Step3Deploy({ boot, onBack }) {
 				title="Deploy your frontend"
 				lede="WordPress is connected. Pick where the public frontend lives. Hatch handles the build automatically."
 			/>
+
+			{/* v0.5.7 — Sub-step A: mount mode picker (Root vs Subfolder). */}
+			<HxCard style={{ padding: 18 }}>
+				<HxHead
+					iconChildren={I.globe}
+					iconColor="var(--hx-primary)"
+					title="Where does the Astro frontend serve?"
+					desc="Pick Root when a new domain is dedicated to the headless frontend. Pick Subfolder to add /blog to an existing WordPress site."
+					mb={14}
+				/>
+				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+					<button
+						type="button"
+						onClick={() => setMountMode('root')}
+						style={{
+							textAlign: 'left', padding: '14px 16px', borderRadius: 10,
+							border: `2px solid ${mountMode === 'root' ? 'var(--hx-primary)' : 'var(--hx-border)'}`,
+							background: mountMode === 'root' ? 'var(--hx-surface-2)' : 'var(--hx-surface)',
+							cursor: 'pointer', fontFamily: 'inherit',
+						}}
+					>
+						<div style={{ fontSize: 15, fontWeight: 700, color: 'var(--hx-fg)', marginBottom: 4 }}>Root domain</div>
+						<div className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.5 }}>Astro serves the whole domain. One CNAME, no reverse-proxy config.</div>
+					</button>
+					<button
+						type="button"
+						onClick={() => setMountMode('subfolder')}
+						style={{
+							textAlign: 'left', padding: '14px 16px', borderRadius: 10,
+							border: `2px solid ${mountMode === 'subfolder' ? 'var(--hx-primary)' : 'var(--hx-border)'}`,
+							background: mountMode === 'subfolder' ? 'var(--hx-surface-2)' : 'var(--hx-surface)',
+							cursor: 'pointer', fontFamily: 'inherit',
+						}}
+					>
+						<div style={{ fontSize: 15, fontWeight: 700, color: 'var(--hx-fg)', marginBottom: 4 }}>Subfolder</div>
+						<div className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.5 }}>Add {subPath} to your existing WordPress. Needs reverse-proxy access on your host.</div>
+					</button>
+				</div>
+				{mountMode === 'subfolder' && (
+					<div style={{ marginTop: 14 }}>
+						<span className="hx-label" style={{ fontWeight: 600, color: 'var(--hx-fg)', display: 'block', marginBottom: 6 }}>
+							Subfolder path
+						</span>
+						<HxInp
+							type="text"
+							value={subPath}
+							onChange={(e) => setSubPath(e.target.value)}
+							placeholder="/blog"
+							mono
+							spellCheck={false}
+						/>
+					</div>
+				)}
+			</HxCard>
 
 			<div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 				{options.map((o) => {
@@ -618,6 +681,9 @@ function Step3Deploy({ boot, onBack }) {
 											tokenPagePrompt="Required permissions are pre-filled. On the Cloudflare page, click Create Token, then copy the value."
 											adminPostUrl={boot.adminPostUrl}
 											deployNonce={deployNonce}
+											mountMode={mountMode}
+											subPath={subPath}
+											domain={deployDomain}
 										/>
 									)}
 
@@ -630,6 +696,9 @@ function Step3Deploy({ boot, onBack }) {
 											tokenPagePrompt="On the Vercel page, click Create Token, give it any name, scope to your personal account, then copy the value."
 											adminPostUrl={boot.adminPostUrl}
 											deployNonce={deployNonce}
+											mountMode={mountMode}
+											subPath={subPath}
+											domain={deployDomain}
 										/>
 									)}
 
