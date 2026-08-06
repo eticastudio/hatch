@@ -171,15 +171,7 @@ class Hatch_Features {
 				'description' => __( 'Documentation layout with sidebar category nav + search.', 'hatch' ),
 				'icon'        => '📚',
 			),
-			// v0.5.7 — only the three themes that are actually finished and
-			// tested end to end: Editorial / Terminal / Docs. Newspaper /
-			// Marketing / Minimal are parked (their component sets sit in
-			// astro-starter/src/components/theme/_archive/); they never went
-			// through the button, block-CSS and form passes the three core
-			// themes got. A "Custom" slot was tried and pulled back out: every
-			// theme token lives behind a [data-hatch-theme="<slug>"] selector,
-			// so an unrecognised slug matches no rule and the page renders
-			// with unstyled defaults. Custom needs its own token set first.
+			// v0.5.7 — 3 themes, all fully tested end-to-end.
 		);
 	}
 
