@@ -1,0 +1,163 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/theme.json",
+  "version": 3,
+  "settings": {
+    "appearanceTools": false,
+    "border": {
+      "color": false,
+      "radius": false,
+      "style": false,
+      "width": false
+    },
+    "color": {
+      "background": true,
+      "custom": false,
+      "customDuotone": false,
+      "customGradient": false,
+      "defaultDuotones": false,
+      "defaultGradients": false,
+      "defaultPalette": false,
+      "text": true,
+      "link": true,
+      "palette": [
+        {
+          "slug": "primary",
+          "color": "var(--hatch-primary)",
+          "name": "Hatch Primary"
+        },
+        {
+          "slug": "secondary",
+          "color": "var(--hatch-secondary)",
+          "name": "Hatch Secondary"
+        },
+        {
+          "slug": "accent",
+          "color": "var(--hatch-accent)",
+          "name": "Hatch Accent"
+        },
+        {
+          "slug": "background",
+          "color": "var(--hatch-bg)",
+          "name": "Background"
+        },
+        {
+          "slug": "background-alt",
+          "color": "var(--hatch-bg-2)",
+          "name": "Background (alt)"
+        },
+        {
+          "slug": "foreground",
+          "color": "var(--hatch-fg)",
+          "name": "Text"
+        },
+        {
+          "slug": "foreground-muted",
+          "color": "var(--hatch-fg-muted)",
+          "name": "Text (muted)"
+        },
+        {
+          "slug": "foreground-subtle",
+          "color": "var(--hatch-fg-subtle)",
+          "name": "Text (subtle)"
+        },
+        {
+          "slug": "border",
+          "color": "var(--hatch-border)",
+          "name": "Border"
+        }
+      ]
+    },
+    "layout": {
+      "contentSize": "720px",
+      "wideSize": "1180px"
+    },
+    "spacing": {
+      "customSpacingSize": false,
+      "margin": false,
+      "padding": false,
+      "blockGap": false,
+      "units": [],
+      "spacingScale": {
+        "steps": 0
+      },
+      "spacingSizes": []
+    },
+    "typography": {
+      "customFontSize": false,
+      "dropCap": false,
+      "fluid": false,
+      "fontStyle": false,
+      "fontWeight": true,
+      "letterSpacing": false,
+      "lineHeight": false,
+      "textAlign": true,
+      "textColumns": false,
+      "textDecoration": false,
+      "textTransform": false,
+      "writingMode": false,
+      "fontFamilies": [
+        {
+          "slug": "heading",
+          "fontFamily": "var(--hatch-font-heading)",
+          "name": "Hatch Heading"
+        },
+        {
+          "slug": "body",
+          "fontFamily": "var(--hatch-font-body)",
+          "name": "Hatch Body"
+        },
+        {
+          "slug": "mono",
+          "fontFamily": "var(--hatch-font-mono)",
+          "name": "Hatch Mono"
+        }
+      ],
+      "fontSizes": [
+        { "slug": "small",   "size": "0.875rem", "name": "Small"   },
+        { "slug": "medium",  "size": "1rem",     "name": "Medium"  },
+        { "slug": "large",   "size": "1.25rem",  "name": "Large"   },
+        { "slug": "x-large", "size": "1.75rem",  "name": "X-Large" }
+      ]
+    },
+    "shadow": {
+      "defaultPresets": false
+    },
+    "blocks": {
+      "core/paragraph": {
+        "color": {
+          "background": false,
+          "text": true
+        }
+      },
+      "core/heading": {
+        "color": {
+          "background": false,
+          "text": true
+        }
+      }
+    }
+  },
+  "styles": {
+    "color": {
+      "background": "var(--hatch-bg)",
+      "text": "var(--hatch-fg)"
+    },
+    "typography": {
+      "fontFamily": "var(--hatch-font-body)",
+      "lineHeight": "1.7"
+    },
+    "elements": {
+      "link": {
+        "color": {
+          "text": "var(--hatch-primary)"
+        }
+      },
+      "h1": { "typography": { "fontFamily": "var(--hatch-font-heading)" } },
+      "h2": { "typography": { "fontFamily": "var(--hatch-font-heading)" } },
+      "h3": { "typography": { "fontFamily": "var(--hatch-font-heading)" } },
+      "h4": { "typography": { "fontFamily": "var(--hatch-font-heading)" } },
+      "h5": { "typography": { "fontFamily": "var(--hatch-font-heading)" } },
+      "h6": { "typography": { "fontFamily": "var(--hatch-font-heading)" } }
+    }
+  }
+}

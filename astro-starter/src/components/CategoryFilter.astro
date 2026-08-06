@@ -1,0 +1,140 @@
+---
+/**
+ * CategoryFilter — top-of-home filter strip.
+ *
+ * v0.4.2 — Reusable across all 3 themes. Renders an "All" link + one link
+ * per category. Active state is decorated when the current URL matches the
+ * category URL. Each theme wraps it in its own per-theme container class so
+ * the visual treatment (chips / pills / mono-list) follows the theme CSS
+ * without per-theme markup duplication.
+ *
+ * Props:
+ *   categories       — array from getCategories() (slug, name, count)
+ *   activeCategory   — currently-selected slug (null when "All" is active)
+ *   features         — needed by url-builder for category URLs
+ *   variant          — visual flavor: 'chips' (blog) | 'mono' (tech) | 'tabs' (docs)
+ */
+import type { HatchFeatures } from '../lib/features';
+import { archiveUrl, categoryUrl } from '../lib/url-builder';
+
+interface Category { slug: string; name: string; count: number; }
+interface Props {
+  categories: Category[];
+  activeCategory?: string | null;
+  features: HatchFeatures;
+  variant?: 'chips' | 'mono' | 'tabs';
+}
+
+const {
+  categories,
+  activeCategory = null,
+  features,
+  variant = 'chips',
+} = Astro.props;
+
+const allHref = archiveUrl(features);
+---
+
+{categories.length > 0 && (
+  <nav class={`hatch-catfilter hatch-catfilter--${variant}`} aria-label="Filter posts by category">
+    <a href={allHref} class:list={['hatch-catfilter-item', !activeCategory ? 'is-active' : '']}>
+      All
+    </a>
+    {categories.map((cat) => (
+      <a
+        href={categoryUrl(cat.slug, features)}
+        class:list={['hatch-catfilter-item', activeCategory === cat.slug ? 'is-active' : '']}
+      >
+        <span>{cat.name}</span>
+        <span class="hatch-catfilter-count">{cat.count}</span>
+      </a>
+    ))}
+  </nav>
+)}
+
+<style is:global>
+  /* Base: horizontal scrollable strip, hides scrollbar visually. */
+  .hatch-catfilter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding-block: 14px;
+    scrollbar-width: none;
+  }
+  .hatch-catfilter::-webkit-scrollbar { display: none; }
+
+  .hatch-catfilter-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    font-size: 13.5px;
+    white-space: nowrap;
+    transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+  }
+
+  .hatch-catfilter-count {
+    font-size: 11.5px;
+    opacity: 0.6;
+    font-feature-settings: 'tnum';
+  }
+
+  /* Chips — blog editorial flavor. Pill borders, hover fills bg-2. */
+  .hatch-catfilter--chips .hatch-catfilter-item {
+    border: 1px solid var(--hatch-border);
+    border-radius: 999px;
+    color: var(--hatch-fg-muted);
+  }
+  .hatch-catfilter--chips .hatch-catfilter-item:hover {
+    color: var(--hatch-fg);
+    border-color: var(--hatch-fg);
+    background: var(--hatch-bg-2);
+  }
+  .hatch-catfilter--chips .hatch-catfilter-item.is-active {
+    color: var(--hatch-bg);
+    background: var(--hatch-fg);
+    border-color: var(--hatch-fg);
+  }
+
+  /* Mono — tech terminal flavor. No border, mono font, divider between. */
+  .hatch-catfilter--mono {
+    font-family: var(--hatch-font-mono, ui-monospace, monospace);
+    border-top: 1px solid var(--hatch-border);
+    border-bottom: 1px solid var(--hatch-border);
+    gap: 0;
+  }
+  .hatch-catfilter--mono .hatch-catfilter-item {
+    padding: 10px 14px;
+    color: var(--hatch-fg-muted);
+    border-right: 1px solid var(--hatch-border);
+    font-size: 13px;
+  }
+  .hatch-catfilter--mono .hatch-catfilter-item:last-child {
+    border-right: 0;
+  }
+  .hatch-catfilter--mono .hatch-catfilter-item:hover,
+  .hatch-catfilter--mono .hatch-catfilter-item.is-active {
+    color: var(--hatch-primary);
+    background: var(--hatch-bg-2);
+  }
+  .hatch-catfilter--mono .hatch-catfilter-item.is-active::before {
+    content: '> ';
+    opacity: 0.7;
+  }
+
+  /* Tabs — docs reference flavor. Subtle, padded, hover bg-2. */
+  .hatch-catfilter--tabs .hatch-catfilter-item {
+    border-radius: var(--hatch-radius, 6px);
+    color: var(--hatch-fg-muted);
+    padding: 8px 14px;
+  }
+  .hatch-catfilter--tabs .hatch-catfilter-item:hover {
+    background: var(--hatch-bg-2);
+    color: var(--hatch-fg);
+  }
+  .hatch-catfilter--tabs .hatch-catfilter-item.is-active {
+    background: color-mix(in oklab, var(--hatch-primary) 14%, var(--hatch-bg));
+    color: var(--hatch-primary);
+  }
+</style>

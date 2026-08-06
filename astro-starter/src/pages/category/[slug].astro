@@ -1,0 +1,14 @@
+---
+/**
+ * Legacy WP-native category URL: /category/<slug>/  →  /blog/category/<slug>/
+ *
+ * v0.7.0 — /blog is the canonical mount for every taxonomy archive. This
+ * route now 301-redirects (not silently rewrites) so a request never
+ * resolves at TWO URLs at once (that was a duplicate-content SEO defect).
+ * Kept as a redirect (not deleted) so any inbound links from the WP-native
+ * era survive the migration and pass link equity to the canonical URL.
+ */
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/blog/');
+return Astro.redirect(`/blog/category/${slug}/`, 301);
+---

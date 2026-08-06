@@ -275,7 +275,12 @@ export async function getCategories(): Promise<Category[]> {
 }
 
 export async function getAuthors(): Promise<Author[]> {
-  const res = await wpFetch('/users?who=authors&per_page=50');
+  // v0.5.7 — `who=authors` is a privileged parameter: WordPress requires the
+  // `list_users` capability for it and answers 401 `rest_forbidden_who` to an
+  // unauthenticated frontend. That silently emptied the author list, which
+  // 404'd every author archive and hid every author bio card. The modern,
+  // public equivalent is `has_published_posts`.
+  const res = await wpFetch('/users?has_published_posts=true&per_page=50');
   if (!res.ok) return [];
   const data = await res.json();
   return data.map((u: { id: number; name: string; slug: string; avatar_urls?: Record<string, string>; description?: string }) => ({

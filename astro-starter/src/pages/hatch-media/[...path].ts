@@ -91,9 +91,18 @@ export const GET: APIRoute = async ({ params, request, url }) => {
 		upstream = await fetch(upstreamUrl, {
 			signal: AbortSignal.timeout(30_000), // longer for video
 			headers: { 'User-Agent': 'Hatch-Media-Proxy/1.0' },
+			// `manual` matters: for a missing upload WordPress answers with a
+			// 30x "guessed URL" redirect pointed at WP_HOME. Following it from
+			// inside the container hits an unreachable host, the fetch throws,
+			// and a plain 404 surfaces to the browser as a 504. Don't follow.
+			redirect: 'manual',
 		});
 	} catch {
 		return new Response('Upstream timeout', { status: 504 });
+	}
+
+	if (upstream.status >= 300 && upstream.status < 400) {
+		return new Response('Not found', { status: 404 });
 	}
 
 	if (!upstream.ok) {

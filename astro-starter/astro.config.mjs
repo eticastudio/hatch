@@ -102,6 +102,16 @@ export default defineConfig({
   },
   vite: {
     plugins: [ tailwindcss() ],
+    // v0.5.7 — the WP container calls the revalidate webhook at
+    // http://astro:4321/api/revalidate (docker service name), and a
+    // cloudflared tunnel fronts dev with a *.trycloudflare.com Host. Vite's
+    // dev server rejects both with "Blocked request. This host is not
+    // allowed." (403) before Astro ever sees the request, so a WP admin save
+    // never reached the frontend locally. Dev server only — the built
+    // adapter output does not use Vite's host check.
+    server: {
+      allowedHosts: [ 'astro', 'localhost', '127.0.0.1', '.trycloudflare.com' ],
+    },
     // v0.50.31 — Vendored themes/ removed (Path X chosen). Hatch ships its
     // own per-theme components under src/components/theme/<name>/, all
     // reading the same --hatch-* CSS-var contract. No upstream SHA pinning,

@@ -1,0 +1,226 @@
+---
+/**
+ * <HatchForm />
+ *
+ * Ships the hydration script + zero-bloat form runtime for pages that
+ * embed WordPress form-plugin shortcodes ([fluentform id=X], etc.).
+ *
+ * Contract:
+ *  - The WP `/hatch/v1/content` endpoint replaces every supported form
+ *    shortcode inside `post_content` with a marker div:
+ *        <div class="hatch-form-mount"
+ *             data-hatch-form-id="{id}"
+ *             data-hatch-form-provider="{fluent|wpforms|gravity|cf7}">
+ *        </div>
+ *  - This component (dropped once into pages that set:html post content)
+ *    finds every marker, fetches its normalized schema from
+ *    `/hatch/v1/forms/{provider}/{id}`, and renders a plain <form> using
+ *    theme tokens only (.hatch-form + variants). Zero plugin CSS/JS ever
+ *    ships to the frontend.
+ *  - Submission POSTs `{fields:{name:value,...}}` back to
+ *    `/hatch/v1/forms/{provider}/{id}/submit`; the plugin runs its own
+ *    validation / spam / notification pipelines server-side.
+ */
+
+---
+
+<script is:inline>
+  (function () {
+    if (window.__hatchFormHydrated) return;
+    window.__hatchFormHydrated = true;
+
+    // v0.8 — schema + submit both go through the Astro-origin proxy at
+    // /api/hatch-form/{provider}/{id}[/submit]. Keeps the browser on
+    // one origin and hides the private docker WP hostname.
+    const schemaUrl = (provider, id) => `/api/hatch-form/${provider}/${id}`;
+
+    function el(tag, attrs, ...children) {
+      const node = document.createElement(tag);
+      if (attrs) {
+        for (const [k, v] of Object.entries(attrs)) {
+          if (v === false || v == null) continue;
+          if (k === 'class') node.className = v;
+          else if (k === 'html') node.innerHTML = v;
+          else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
+          else node.setAttribute(k, v === true ? '' : v);
+        }
+      }
+      for (const c of children) {
+        if (c == null) continue;
+        node.append(c instanceof Node ? c : document.createTextNode(c));
+      }
+      return node;
+    }
+
+    function renderField(f) {
+      const id = `hf-${f.name}-${Math.random().toString(36).slice(2, 7)}`;
+      const wrap = el('div', { class: 'hatch-form__field', 'data-type': f.type });
+
+      if (f.type === 'html') {
+        wrap.classList.add('hatch-form__html');
+        wrap.innerHTML = f.html || '';
+        return wrap;
+      }
+      if (f.type === 'hidden') {
+        return el('input', { type: 'hidden', name: f.name, value: f.default || '' });
+      }
+
+      if (f.label) {
+        wrap.append(el('label', { class: 'hatch-form__label', for: id },
+          f.label,
+          f.required ? el('span', { class: 'hatch-form__req', 'aria-hidden': 'true' }, ' *') : null,
+        ));
+      }
+
+      let input;
+      const common = {
+        id, name: f.name,
+        placeholder: f.placeholder || null,
+        required: f.required || null,
+        class: 'hatch-form__input',
+      };
+
+      if (f.type === 'textarea') {
+        input = el('textarea', { ...common, rows: 5 });
+        if (f.default) input.value = f.default;
+      } else if (f.type === 'select') {
+        input = el('select', common);
+        if (!f.required) input.append(el('option', { value: '' }, f.placeholder || '—'));
+        for (const opt of (f.options || [])) {
+          const o = el('option', { value: opt.value }, opt.label);
+          if (opt.value === f.default) o.selected = true;
+          input.append(o);
+        }
+      } else if (f.type === 'radio' || f.type === 'checkbox') {
+        input = el('div', { class: `hatch-form__choices hatch-form__choices--${f.type}` });
+        for (const opt of (f.options || [])) {
+          const cid = `${id}-${opt.value.replace(/[^a-z0-9]/gi, '')}`;
+          input.append(el('label', { class: 'hatch-form__choice', for: cid },
+            el('input', {
+              type: f.type, id: cid,
+              name: f.type === 'checkbox' ? `${f.name}[]` : f.name,
+              value: opt.value,
+              required: f.required && f.type === 'radio' ? '' : null,
+            }),
+            el('span', null, opt.label),
+          ));
+        }
+      } else {
+        input = el('input', { ...common, type: f.type });
+        if (f.default) input.value = f.default;
+      }
+
+      wrap.append(input);
+      return wrap;
+    }
+
+    function collectValues(form) {
+      const out = {};
+      const fd = new FormData(form);
+      for (const [k, v] of fd.entries()) {
+        // arrays for checkbox[] etc.
+        const key = k.replace(/\[\]$/, '');
+        if (k.endsWith('[]')) {
+          if (!Array.isArray(out[key])) out[key] = [];
+          out[key].push(v);
+        } else if (key in out) {
+          out[key] = Array.isArray(out[key]) ? [...out[key], v] : [out[key], v];
+        } else {
+          out[key] = v;
+        }
+      }
+      return out;
+    }
+
+    async function hydrate(mount) {
+      const id = mount.getAttribute('data-hatch-form-id');
+      const provider = mount.getAttribute('data-hatch-form-provider');
+      if (!id || !provider) return;
+
+      // Loading placeholder using theme tokens.
+      mount.innerHTML = '';
+      mount.classList.add('hatch-form-scope');
+      mount.append(el('div', { class: 'hatch-form__loading' }, 'Loading form…'));
+
+      let schema;
+      try {
+        const res = await fetch(schemaUrl(provider, id), { credentials: 'omit' });
+        schema = await res.json();
+        if (!res.ok || !schema.ok) throw new Error(schema.msg || schema.error || 'schema_failed');
+      } catch (e) {
+        mount.innerHTML = '';
+        mount.append(el('div', { class: 'hatch-form__error' }, 'Form is unavailable right now.'));
+        return;
+      }
+
+      const form = el('form', {
+        class: 'hatch-form',
+        novalidate: '',
+        'data-provider': provider,
+        'data-form-id': id,
+      });
+
+      if (schema.title) {
+        form.append(el('h3', { class: 'hatch-form__title' }, schema.title));
+      }
+      for (const f of (schema.fields || [])) {
+        form.append(renderField(f));
+      }
+      const submitBtn = el('button', {
+        type: 'submit',
+        class: 'hatch-form__submit hatch-btn hatch-btn--primary',
+      }, schema.i18n?.submit_label || schema.submit?.button_text || 'Submit');
+      const status = el('div', { class: 'hatch-form__status', 'aria-live': 'polite' });
+      form.append(el('div', { class: 'hatch-form__actions' }, submitBtn));
+      form.append(status);
+
+      form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        status.textContent = '';
+        status.className = 'hatch-form__status';
+        submitBtn.disabled = true;
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = schema.i18n?.sending || 'Sending…';
+
+        try {
+          const res = await fetch(schema.submit.url, {
+            method: schema.submit.method || 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ fields: collectValues(form) }),
+            credentials: 'omit',
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.ok) {
+            form.reset();
+            status.classList.add('hatch-form__status--success');
+            status.textContent = data.message || schema.i18n?.success_msg || 'Thanks — your message has been received.';
+          } else {
+            status.classList.add('hatch-form__status--error');
+            const errs = data.errors ? Object.values(data.errors).flat().join(' ') : '';
+            status.textContent = errs || data.msg || schema.i18n?.error_msg || 'Something went wrong.';
+          }
+        } catch (e) {
+          status.classList.add('hatch-form__status--error');
+          status.textContent = schema.i18n?.error_msg || 'Something went wrong.';
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        }
+      });
+
+      mount.innerHTML = '';
+      mount.append(form);
+    }
+
+    function boot() {
+      const mounts = document.querySelectorAll('[data-hatch-form-id][data-hatch-form-provider]');
+      mounts.forEach((m) => { hydrate(m); });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot);
+    } else {
+      boot();
+    }
+  })();
+</script>

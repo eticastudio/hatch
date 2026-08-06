@@ -1,0 +1,99 @@
+---
+/**
+ * AstroPaper theme single — serif editorial column with newspaper feel.
+ * Narrower max-width, centered hero, byline as italic dateline.
+ */
+import ShareRow from '../ShareRow.astro';
+import HatchImage from '../../HatchImage.astro';
+
+interface Props {
+  post: any; features: any; toc: any[]; related: any[]; adjacent: any;
+  dateLabel: string; updatedLabel: string; canonical: string; bodyHtml: string; flags: any;
+}
+const { post, features, toc, adjacent, dateLabel, updatedLabel, canonical, bodyHtml, flags } = Astro.props;
+// v0.50.31 — Sidebar position is the dominant control (see SingleBase.astro).
+const showSidebar = flags.sidebarSide !== "none" && toc.length > 0;
+---
+<article class="mx-auto px-5 sm:px-8 py-12 sm:py-16" style="max-width: var(--hatch-max-width, 1160px); font-family: var(--hatch-font-heading);">
+  {flags.showBreadcrumb && (
+    <nav aria-label="Breadcrumb" class="flex items-center justify-center gap-2 text-[11px] uppercase tracking-widest text-hatch-fg-subtle mb-6 flex-wrap">
+      {post.category && <><a href={`/blog/category/${post.category.slug}`} class="hover:text-hatch-primary transition-colors">{post.category.name}</a><span class="opacity-60">·</span></>}
+      <time datetime={post.publishedAt}>{dateLabel}</time>
+    </nav>
+  )}
+
+  <header class="max-w-2xl mx-auto mb-8 text-center">
+    <h1 class="text-3xl sm:text-5xl font-bold tracking-tight leading-[1.05]" style="font-family: var(--hatch-font-heading);">{post.title}</h1>
+    {post.excerpt && <p class="mt-4 text-[16px] italic text-hatch-fg-muted leading-relaxed">— {post.excerpt} —</p>}
+    <div class="mt-6 flex items-center justify-center flex-wrap gap-x-4 gap-y-2 text-[12px] uppercase tracking-widest text-hatch-fg-subtle">
+      {post.author && (
+        <a href={`/blog/author/${post.author.slug}`} class="flex items-center gap-2 hover:text-hatch-primary transition-colors">
+          {post.author.avatar && <img src={post.author.avatar} alt={post.author.name} width="22" height="22" class={`${flags.avatarShape}`} loading="lazy" />}
+          <span>By {post.author.name}</span>
+        </a>
+      )}
+      {flags.showReadingTime && <><span>·</span><span>{flags.readingTimeText(post.readMinutes)}</span></>}
+    </div>
+  </header>
+
+  {flags.showHeroImage && (
+    <div class="aspect-[3/2] overflow-hidden mb-12 max-w-3xl mx-auto" style="border-top: 1px solid var(--hatch-fg); border-bottom: 1px solid var(--hatch-fg);">
+      <HatchImage src={post.featuredImage} alt={post.title} class="w-full h-full object-cover" width={1200} height={800} />
+    </div>
+  )}
+
+  {/* v0.50.31 — Newspaper aesthetic is single-column by design. To honor
+      the Sidebar control without breaking the look, when sidebar is enabled
+      AND the post has h2/h3 headings, we render a slim "In this issue" TOC
+      strip ABOVE the body (italic newspaper byline style) instead of a
+      side column. Sidebar=none keeps the original clean centered look. */}
+  {showSidebar && (
+    <div class="max-w-2xl mx-auto mb-8 py-4 text-center" style="border-top: 1px dotted var(--hatch-fg); border-bottom: 1px dotted var(--hatch-fg);">
+      <p class="text-[10px] uppercase tracking-[0.25em] text-hatch-fg-subtle mb-2">In this issue</p>
+      <nav class="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[12px] italic" aria-label="Table of Contents">
+        {toc.map((item: any) => (
+          <a href={`#${item.id}`} class="text-hatch-fg-muted hover:text-hatch-primary transition-colors">{item.text}</a>
+        ))}
+      </nav>
+    </div>
+  )}
+  <div class="max-w-2xl mx-auto">
+    <div class="hatch-prose">
+      <div set:html={bodyHtml} />
+    </div>
+
+    {flags.showShare && (
+      <div class="mt-12 pt-8 flex justify-center" style="border-top: 1px solid var(--hatch-fg);">
+        <ShareRow features={features} title={post.title} url={canonical} />
+      </div>
+    )}
+
+    {flags.showAuthorBio && post.author?.description && (
+      <div class="mt-12 pt-8 text-center" style="border-top: 1px solid var(--hatch-border);">
+        {post.author.avatar && <img src={post.author.avatar} alt={post.author.name} width="56" height="56" class={`${flags.avatarShape} mx-auto mb-3`} loading="lazy" />}
+        <a href={`/blog/author/${post.author.slug}`} class="font-semibold text-hatch-fg hover:text-hatch-primary text-[15px]">{post.author.name}</a>
+        <p class="text-[14px] text-hatch-fg-muted mt-2 leading-relaxed max-w-md mx-auto italic">{post.author.description}</p>
+      </div>
+    )}
+
+    {flags.showPrevNext && (adjacent.prev || adjacent.next) && (
+      <nav class="mt-12 pt-8 grid grid-cols-1 sm:grid-cols-2 gap-6 text-center" style="border-top: 3px double var(--hatch-fg);" aria-label="Post navigation">
+        {adjacent.prev && (
+          <a href={`/blog/${adjacent.prev.slug}`} class="group">
+            <span class="text-[10px] uppercase tracking-widest text-hatch-fg-subtle">Previous Article</span>
+            <div class="mt-2 italic text-hatch-fg group-hover:text-hatch-primary transition-colors">{adjacent.prev.title}</div>
+          </a>
+        )}
+        {adjacent.next && (
+          <a href={`/blog/${adjacent.next.slug}`} class="group">
+            <span class="text-[10px] uppercase tracking-widest text-hatch-fg-subtle">Next Article</span>
+            <div class="mt-2 italic text-hatch-fg group-hover:text-hatch-primary transition-colors">{adjacent.next.title}</div>
+          </a>
+        )}
+      </nav>
+    )}
+
+    <slot name="related" />
+    <slot name="comments" />
+  </div>
+</article>

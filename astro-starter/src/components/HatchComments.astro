@@ -59,7 +59,11 @@ if (enabled && base) {
   }
 }
 
-const submitUrl = `${base}/hatch/v1/comments`;
+// v0.5.7 — submit same-origin. `base` is a server-only WP origin (under
+// docker compose it is `http://wp`, unresolvable from the browser), so
+// pointing the form at it broke every local submission and leaked the WP
+// host into the page. /api/comments proxies to WP server-side instead.
+const submitUrl = '/api/comments';
 const fmt = (iso: string) =>
   new Date(iso).toLocaleDateString(features.site.language || 'en-US', {
     month: 'short',

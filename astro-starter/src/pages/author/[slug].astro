@@ -1,0 +1,11 @@
+---
+/**
+ * Legacy WP-native author URL: /author/<slug>/  →  /blog/author/<slug>/
+ *
+ * v0.7.0 — 301-redirects to the canonical /blog/author/<slug>/. See
+ * src/pages/category/[slug].astro for the full rationale.
+ */
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/blog/');
+return Astro.redirect(`/blog/author/${slug}/`, 301);
+---

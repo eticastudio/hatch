@@ -1,0 +1,12 @@
+---
+/**
+ * Legacy WP-native tag URL: /tag/<slug>/  →  /blog/tag/<slug>/
+ *
+ * v0.7.0 — 301-redirects to the canonical /blog/tag/<slug>/ so the archive
+ * lives at ONE URL, not two. See src/pages/category/[slug].astro for the
+ * full rationale.
+ */
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/blog/');
+return Astro.redirect(`/blog/tag/${slug}/`, 301);
+---

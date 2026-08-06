@@ -46,6 +46,109 @@ class Hatch_Revalidate {
 		add_action( 'save_post', array( $this, 'on_post_change' ), 10, 3 );
 		add_action( 'delete_post', array( $this, 'on_post_delete' ) );
 		add_action( 'transition_post_status', array( $this, 'on_status_change' ), 10, 3 );
+
+		// v0.5.7 — site settings never invalidated the frontend cache. Only
+		// post events fired, so changing the site title (or any Hatch design /
+		// content option) left the deployed frontend serving its cached
+		// /features payload — the browser tab kept the old title until the
+		// isolate happened to recycle. Options are read through /features
+		// exactly like posts are, so they need the same webhook.
+		foreach ( self::WATCHED_OPTIONS as $option ) {
+			add_action( "update_option_{$option}", array( $this, 'on_setting_change' ), 10, 3 );
+		}
+		add_action( 'updated_option', array( $this, 'on_hatch_option_change' ), 10, 3 );
+	}
+
+	/**
+	 * Core WP options that appear in the /features payload.
+	 *
+	 * @var array<string>
+	 */
+	const WATCHED_OPTIONS = array(
+		'blogname',
+		'blogdescription',
+		'blog_public',
+		'WPLANG',
+		'site_icon',
+		'page_on_front',
+		'show_on_front',
+		'default_comment_status',
+	);
+
+	/**
+	 * A watched core option changed.
+	 *
+	 * @param mixed  $old_value Previous value.
+	 * @param mixed  $value     New value.
+	 * @param string $option    Option name.
+	 * @return void
+	 */
+	public function on_setting_change( $old_value, $value, $option ): void {
+		if ( $old_value === $value ) {
+			return;
+		}
+		$this->fire_settings_once( (string) $option );
+	}
+
+	/**
+	 * Debounced settings webhook. Saving the Design tab writes dozens of
+	 * options in one request; the frontend only needs to be told once, and
+	 * `fire()` itself writes `hatch_last_revalidate_at`, which would re-enter
+	 * this handler. One flag solves both.
+	 *
+	 * @param string $option Option that triggered the fire.
+	 * @return void
+	 */
+	private function fire_settings_once( string $option ): void {
+		if ( $this->settings_fired ) {
+			return;
+		}
+		$this->settings_fired = true;
+		$this->fire( array(
+			'event'  => 'settings_updated',
+			'option' => $option,
+			'tag'    => 'features',
+		) );
+	}
+
+	/**
+	 * Per-request guard for the settings webhook.
+	 *
+	 * @var bool
+	 */
+	private $settings_fired = false;
+
+	/**
+	 * Any `hatch_*` option changed — design tokens, theme, content toggles.
+	 * These all surface through /features, so they invalidate the same cache.
+	 *
+	 * @param string $option    Option name.
+	 * @param mixed  $old_value Previous value.
+	 * @param mixed  $value     New value.
+	 * @return void
+	 */
+	public function on_hatch_option_change( $option, $old_value, $value ): void {
+		$option = (string) $option;
+		if ( 0 !== strpos( $option, 'hatch_' ) ) {
+			return;
+		}
+		// Bookkeeping options that never reach the frontend — firing on these
+		// would webhook-storm on every deploy poll and status refresh.
+		$ignored = array(
+			'hatch_deploy_status',
+			'hatch_deploy_log',
+			'hatch_last_revalidate',
+			'hatch_last_revalidate_at',
+			'hatch_connection_status',
+			'hatch_telemetry_queue',
+		);
+		if ( in_array( $option, $ignored, true ) ) {
+			return;
+		}
+		if ( $old_value === $value ) {
+			return;
+		}
+		$this->fire_settings_once( $option );
 	}
 
 	/**

@@ -541,14 +541,28 @@ const theme = (features.theme || 'blog').toLowerCase();
         }
       };
       try {
+        // The mode the server rendered — i.e. the site's configured Color
+        // mode from the Design tab.
+        var siteMode = document.documentElement.getAttribute('data-hatch-mode') || 'auto';
+
+        // v0.5.7 — a visitor preference must never outlive the admin's own
+        // setting. Previously any saved value was replayed on every load, so
+        // one earlier click on the toggle pinned the site to dark forever:
+        // switching Color mode to Light in wp-admin appeared to do nothing,
+        // because this script overwrote it again on the next paint. We now
+        // remember which site mode the preference was made against and drop
+        // the preference as soon as the admin changes that setting.
+        var base = localStorage.getItem('hatch-color-mode-base');
+        if (base !== siteMode) {
+          localStorage.removeItem('hatch-color-mode');
+          localStorage.setItem('hatch-color-mode-base', siteMode);
+        }
+
         var saved = localStorage.getItem('hatch-color-mode');
         if (saved) apply(saved);
-        else {
-          var cur = document.documentElement.getAttribute('data-hatch-mode') || 'auto';
-          if (cur === 'auto') {
-            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            apply(prefersDark ? 'dark' : 'light');
-          }
+        else if (siteMode === 'auto') {
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          apply(prefersDark ? 'dark' : 'light');
         }
       } catch (e) {}
       btn.addEventListener('click', function () {
