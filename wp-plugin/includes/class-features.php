@@ -171,15 +171,26 @@ class Hatch_Features {
 				'description' => __( 'Documentation layout with sidebar category nav + search.', 'hatch' ),
 				'icon'        => '📚',
 			),
-			// v0.5.7 — only the three themes that are actually finished and
-			// tested end to end: Editorial / Terminal / Docs. Newspaper /
-			// Marketing / Minimal are parked (their component sets sit in
-			// astro-starter/src/components/theme/_archive/); they never went
-			// through the button, block-CSS and form passes the three core
-			// themes got. A "Custom" slot was tried and pulled back out: every
-			// theme token lives behind a [data-hatch-theme="<slug>"] selector,
-			// so an unrecognised slug matches no rule and the page renders
-			// with unstyled defaults. Custom needs its own token set first.
+			'astropaper' => array(
+				'label'       => __( 'Newspaper', 'hatch' ),
+				'description' => __( 'Serif editorial column with newspaper masthead + drop-cap.', 'hatch' ),
+				'icon'        => '🗒️',
+			),
+			'astrowind' => array(
+				'label'       => __( 'Marketing', 'hatch' ),
+				'description' => __( 'Business / marketing layout with big hero, CTA, multi-col footer.', 'hatch' ),
+				'icon'        => '🌬️',
+			),
+			'astronano' => array(
+				'label'       => __( 'Minimal', 'hatch' ),
+				'description' => __( 'Ultra-minimal. Just words. Narrow column, no decoration.', 'hatch' ),
+				'icon'        => '🔬',
+			),
+			// v0.5.7 — restored 6-theme catalog per user request. Editorial /
+			// Terminal / Docs are the fully-tested three; Newspaper / Marketing
+			// / Minimal ship with their archived component sets in
+			// astro-starter/src/components/theme/_archive/ and are wired but
+			// less polished. Docs / demos should mention that caveat.
 		);
 	}
 
