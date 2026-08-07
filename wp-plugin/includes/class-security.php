@@ -35,17 +35,6 @@ class Hatch_Security {
 	 * Wire up filters.
 	 */
 	private function __construct() {
-		// v0.5.7 — this must be wired unconditionally. It was registered only
-		// inside the `harden_rest` branch, but it is a *prerequisite* for the
-		// headless frontend to authenticate at all: WordPress refuses to
-		// validate Application Passwords over plain HTTP, which every
-		// Docker / reverse-proxy / RunCloud setup is behind the proxy. With
-		// `harden_rest` off, the frontend's Basic auth was silently rejected,
-		// is_user_logged_in() stayed false, and every authenticated read
-		// (authors, drafts, private meta) failed. Enabling App Passwords is
-		// not itself a relaxation — the auth check remains the control.
-		add_filter( 'wp_is_application_passwords_available', array( $this, 'enable_app_passwords_for_rest_basic_auth' ), 99 );
-
 		if ( get_option( 'hatch_security_harden_rest', 1 ) ) {
 			// v0.50.10 — switched from rest_authentication_errors (which fires
 			// BEFORE WP's lazy auth chain — the $current_user global gets
@@ -79,17 +68,7 @@ class Hatch_Security {
 			add_action( 'init', array( $this, 'block_user_enumeration' ) );
 			// Also block the REST users endpoint independently so the claim holds
 			// even when the REST lock is off (the lock is a separate toggle).
-			//
-			// v0.5.7 — was `rest_endpoints` + remove_users_endpoint(), which
-			// deletes the route for EVERYONE before authentication is resolved.
-			// Two costs: the admin label promises "/wp/v2/users → 401" but a
-			// deleted route answers 404, and the headless frontend — which
-			// authenticates with an Application Password — lost author data
-			// entirely, so every author archive 404'd and every author bio
-			// card silently vanished. rest_pre_dispatch runs AFTER auth, so
-			// anonymous callers still get their 401 while the authenticated
-			// frontend keeps working.
-			add_filter( 'rest_pre_dispatch', array( $this, 'block_users_list_for_anon' ), 10, 3 );
+			add_filter( 'rest_endpoints', array( $this, 'remove_users_endpoint' ) );
 		}
 		// Force CMS subdomain to noindex/nofollow always (this is a headless backend, must never appear in search)
 		if ( get_option( 'hatch_security_force_noindex', 1 ) ) {

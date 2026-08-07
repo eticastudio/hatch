@@ -1,339 +1,504 @@
 /**
- * Hatch · Tech theme — Dark devblog / terminal aesthetic.
+ * Hatch · Tech theme — Terminal / changelog aesthetic.
  *
- * Direction: pure black bg, neon cyan accent, JetBrains Mono throughout,
- * sharp 4px radius, terminal-style header with $ prompt + ─ separators,
- * ASCII-flavored footer. Always dark — there's no light variant.
+ * Design language (v0.4.0 foundation, gpt-taste audited):
+ *   - JetBrains Mono for all display + code; Inter only for long body text.
+ *   - Inky neutral palette, terminal-cyan accent (not the SaaS blue).
+ *   - Hairline 1px borders everywhere; no shadows; no gradients.
+ *   - Dense vertical rhythm (56px sections); cards feel like code blocks.
+ *   - Header is a left-aligned mono prompt with right-aligned mono nav.
+ *   - Footer reads like a CLI prompt line.
  *
- * @since 0.50.5 · v0.4 rewrite 2026-05-30
+ * @since 0.4.0  · gpt-taste foundation rewrite
  */
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
-
-/**
- * v0.3.10 — Brand tokens hold the only literal hex. Surfaces, borders,
- * muted text all derive via color-mix from those 4 colours.
- */
 :root[data-hatch-theme="tech"] {
 	--hatch-font-body:    'Inter', ui-sans-serif, system-ui, sans-serif;
 	--hatch-font-heading: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 	--hatch-font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-	--hatch-radius:       4px;
-	--hatch-max-width:    1080px;
+	--hatch-radius:       3px;
+	--hatch-max-width:    1240px;
+	--hatch-reading-width: 760px;
 
-	/* === BRAND === */
-	--hatch-bg:           #06070a;
-	--hatch-fg:           #e6edf3;
-	--hatch-primary:      #22d3ee;
-	--hatch-accent:       #a78bfa;
-	--hatch-secondary:    #9ba3af;
+	/* Brand axis — terminal cyan over inky neutral. */
+	/* v0.6.1 — Design tab BG/FG pickers win. Defaults below kick in if empty. */
+	--hatch-bg:           var(--hatch-bg-design, #f7f8fa);
+	--hatch-fg:           var(--hatch-fg-design, #0b0d10);
+	/* v0.5.3 — theme default disabled; Design tab tokens win: --hatch-primary: #0891b2 (cyan) */
+	--hatch-primary-fg:   #ffffff;
+	--hatch-accent:       #a855f7;  /* keyword-purple — code-tag accent */
 
-	/* === DERIVED === */
-	--hatch-bg-2:         color-mix( in oklab, var(--hatch-fg) 4%, var(--hatch-bg) );
-	--hatch-bg-3:         color-mix( in oklab, var(--hatch-fg) 9%, var(--hatch-bg) );
-	--hatch-fg-muted:     color-mix( in oklab, var(--hatch-fg) 65%, var(--hatch-bg) );
-	--hatch-fg-subtle:    color-mix( in oklab, var(--hatch-fg) 35%, var(--hatch-bg) );
-	--hatch-border:       color-mix( in oklab, var(--hatch-fg) 12%, var(--hatch-bg) );
-	--hatch-border-2:     color-mix( in oklab, var(--hatch-fg) 20%, var(--hatch-bg) );
-	--hatch-primary-soft: color-mix( in oklab, var(--hatch-primary) 10%, transparent );
-	--hatch-primary-fg:   var(--hatch-bg);
+	/* Surface ramp — slate-leaning, NOT warm. Distinguishes from blog. */
+	--hatch-bg-2:         #eef0f3;
+	--hatch-bg-3:         #e2e6ec;
+	--hatch-bg-4:         #cfd5dd;
+
+	--hatch-fg-muted:     #3a414b;
+	--hatch-fg-subtle:    #6b727e;
+
+	--hatch-border:        #d8dde4;
+	--hatch-border-strong: #aab3bf;
 }
 
-/* Tech is ALWAYS dark; ignore color-mode preference. */
-[data-hatch-theme="tech"][data-hatch-mode="light"] {
-	--hatch-bg:           #06070a;
-	--hatch-fg:           #e6edf3;
+/* Dark mode flips to deep terminal background — the signature look. */
+[data-hatch-theme="tech"][data-hatch-mode="dark"] {
+	--hatch-bg:         #0b0d10;
+	--hatch-fg:         #e6e9ee;
+	/* v0.5.3 — theme default disabled; Design tab tokens win: --hatch-primary: #22d3ee (dark cyan) */
+	--hatch-primary-fg: #0b0d10;
+	--hatch-accent:     #c084fc;
+
+	--hatch-bg-2:       #11141a;
+	--hatch-bg-3:       #1a1f27;
+	--hatch-bg-4:       color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 22%, #000);
+
+	--hatch-fg-muted:   color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 60%, #000);
+	--hatch-fg-subtle:  color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 40%, #000);
+
+	--hatch-border:        color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 15%, #000);
+	--hatch-border-strong: color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 25%, #000);
 }
+
+/* === Base typography ============================================== */
 
 [data-hatch-theme="tech"] body {
-	background:
-		radial-gradient(1200px 600px at 50% -10%, color-mix( in oklab, var(--hatch-primary) 8%, transparent ), transparent 60%),
-		var(--hatch-bg);
-	color: var(--hatch-fg);
 	font-family: var(--hatch-font-body);
-	font-size: 15px;
-	line-height: 1.65;
+	font-feature-settings: 'cv11', 'ss03';
+	font-size: 15.5px;
+	line-height: 1.6;
 }
 
-/* Header — sticky terminal bar */
-[data-hatch-theme="tech"] .hatch-header-tech {
-	background: color-mix( in oklab, var(--hatch-bg) 85%, transparent );
-	-webkit-backdrop-filter: blur(10px);
-	backdrop-filter: blur(10px);
+[data-hatch-theme="tech"] h1,
+[data-hatch-theme="tech"] h2,
+[data-hatch-theme="tech"] h3,
+[data-hatch-theme="tech"] h4 {
+	font-family: var(--hatch-font-heading);
+	letter-spacing: -0.01em;
+	font-weight: 600;
+	line-height: 1.12;
+}
+
+/* === Header — mono prompt left, mono nav right ==================== */
+
+[data-hatch-theme="tech"] .hatch-header {
+	background: var(--hatch-bg);
 	border-bottom: 1px solid var(--hatch-border);
 }
-[data-hatch-theme="tech"] .hatch-tech-stripe {
-	height: 2px;
-	background: linear-gradient(90deg, transparent, var(--hatch-primary) 30%, var(--hatch-accent) 70%, transparent);
-	opacity: 0.85;
-}
-[data-hatch-theme="tech"] .hatch-tech-brand {
+
+[data-hatch-theme="tech"] .hatch-header-inner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24px;
+	padding-block: 16px;
 	font-family: var(--hatch-font-mono);
-	font-weight: 600;
-	font-size: 14.5px;
-	letter-spacing: -0.005em;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-brand {
 	display: inline-flex;
 	align-items: baseline;
-	gap: 1px;
+	gap: 8px;
+	font-size: 14px;
+	color: var(--hatch-fg);
 }
-[data-hatch-theme="tech"] .hatch-tech-prompt { color: var(--hatch-fg-subtle); }
-[data-hatch-theme="tech"] .hatch-tech-name { color: var(--hatch-fg); }
-[data-hatch-theme="tech"] .hatch-tech-caret {
-	color: var(--hatch-primary);
-	margin-left: 4px;
-	animation: hatch-tech-blink 1.1s steps(1) infinite;
-}
-@keyframes hatch-tech-blink { 50% { opacity: 0; } }
 
-[data-hatch-theme="tech"] .hatch-tech-link {
+[data-hatch-theme="tech"] .hatch-tech-brand::before {
+	content: '~/';
+	color: var(--hatch-primary);
+	font-weight: 500;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-nav {
+	display: inline-flex;
+	gap: 0;
+	align-items: center;
+	font-size: 13px;
+}
+
+/* Nav links — restraint pass dropped the vertical separator on every
+   item (it was reading as a UI control bar, not a nav). Spacing alone
+   carries the rhythm now; hover state shows where you are. */
+[data-hatch-theme="tech"] .hatch-tech-nav a {
+	color: var(--hatch-fg-muted);
+	padding: 6px 4px;
+	margin: 0 8px;
+	transition: color 140ms ease;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-nav a:hover,
+[data-hatch-theme="tech"] .hatch-tech-nav a.is-active {
+	color: var(--hatch-primary);
+}
+
+/* === Hero — terminal block on home ================================ */
+
+[data-hatch-theme="tech"] .hatch-tech-hero {
+	padding-block: 80px 56px;
+	display: flex;
+	flex-direction: column;
+	gap: 28px;
+	align-items: flex-start;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-hero-prompt {
 	font-family: var(--hatch-font-mono);
 	font-size: 13px;
+	color: var(--hatch-fg-subtle);
+}
+
+[data-hatch-theme="tech"] .hatch-tech-hero-prompt::before {
+	content: '$ ';
+	color: var(--hatch-primary);
+}
+
+[data-hatch-theme="tech"] .hatch-tech-hero h1 {
+	font-size: clamp(2.2rem, 4.6vw, 4rem);
+	max-width: 18ch;
+	letter-spacing: -0.02em;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-hero h1 .tok-keyword { color: var(--hatch-accent); }
+[data-hatch-theme="tech"] .hatch-tech-hero h1 .tok-string  { color: var(--hatch-primary); }
+
+[data-hatch-theme="tech"] .hatch-tech-hero-lede {
+	font-size: 16px;
 	color: var(--hatch-fg-muted);
-	text-decoration: none;
-	padding: 4px 8px;
-	transition: color .15s;
-	display: inline-flex;
-	align-items: center;
+	max-width: 60ch;
+	line-height: 1.6;
 }
-[data-hatch-theme="tech"] .hatch-tech-link:hover { color: var(--hatch-primary); }
-[data-hatch-theme="tech"] .hatch-tech-link.is-active { color: var(--hatch-primary); }
-[data-hatch-theme="tech"] .hatch-tech-link-arrow { color: var(--hatch-primary); margin-right: 2px; }
-[data-hatch-theme="tech"] .hatch-tech-sep {
-	color: var(--hatch-border-2);
-	font-family: var(--hatch-font-mono);
-	margin: 0 2px;
-	user-select: none;
+
+/* === Card — hairline frame, no shadow ============================ */
+
+[data-hatch-theme="tech"] .hatch-card,
+[data-hatch-theme="tech"] .hatch-post-card {
+	background: var(--hatch-bg);
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius);
+	padding: 20px;
+	transition: border-color 160ms ease, transform 160ms ease;
 }
-[data-hatch-theme="tech"] .hatch-tech-status {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
+
+[data-hatch-theme="tech"] .hatch-card:hover,
+[data-hatch-theme="tech"] .hatch-post-card:hover {
+	border-color: var(--hatch-primary);
+}
+
+[data-hatch-theme="tech"] .hatch-card-media,
+[data-hatch-theme="tech"] .hatch-post-card-media {
+	aspect-ratio: 16 / 9;
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
+	border-radius: 2px;
+	overflow: hidden;
+	margin-bottom: 16px;
+}
+
+[data-hatch-theme="tech"] .hatch-card-media img,
+[data-hatch-theme="tech"] .hatch-post-card-media img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+[data-hatch-theme="tech"] .hatch-card-eyebrow,
+[data-hatch-theme="tech"] .hatch-post-card-eyebrow {
 	font-family: var(--hatch-font-mono);
 	font-size: 11.5px;
+	color: var(--hatch-primary);
+	margin-bottom: 8px;
+}
+
+[data-hatch-theme="tech"] .hatch-card-eyebrow::before,
+[data-hatch-theme="tech"] .hatch-post-card-eyebrow::before {
+	content: '> ';
+	opacity: 0.7;
+}
+
+[data-hatch-theme="tech"] .hatch-card-title,
+[data-hatch-theme="tech"] .hatch-post-card-title {
+	font-family: var(--hatch-font-heading);
+	font-size: 1.1rem;
+	font-weight: 600;
+	line-height: 1.25;
+	color: var(--hatch-fg);
+}
+
+[data-hatch-theme="tech"] .hatch-card-meta,
+[data-hatch-theme="tech"] .hatch-post-card-meta {
+	font-family: var(--hatch-font-mono);
+	font-size: 12px;
 	color: var(--hatch-fg-subtle);
-	padding: 4px 10px;
-	border: 1px solid var(--hatch-border);
-	border-radius: 99px;
-	background: var(--hatch-bg-2);
-}
-[data-hatch-theme="tech"] .hatch-tech-status-dot {
-	width: 6px;
-	height: 6px;
-	border-radius: 50%;
-	background: var(--hatch-primary);
-	box-shadow: 0 0 8px var(--hatch-primary);
+	margin-top: 10px;
 }
 
-/* Typography */
-/* v0.3.3 — scope mono markdown headers to .hatch-prose only. The unqualified
-   rule was leaking `###` into Post card titles (which use h3) and any other
-   h3 in the page chrome. Drop-cap-style affordances belong on body copy. */
-[data-hatch-theme="tech"] .hatch-prose h1,
-[data-hatch-theme="tech"] h1.hatch-heading {
-	font-family: var(--hatch-font-mono);
-	font-weight: 700;
-	font-size: clamp(2rem, 3vw + 1rem, 3rem);
-	letter-spacing: -0.02em;
-	line-height: 1.12;
-	color: var(--hatch-fg);
-}
-[data-hatch-theme="tech"] .hatch-prose h1::before,
-[data-hatch-theme="tech"] h1.hatch-heading::before {
-	content: '# ';
-	color: var(--hatch-primary);
-	font-weight: 600;
-}
-[data-hatch-theme="tech"] .hatch-prose h2,
-[data-hatch-theme="tech"] h2.hatch-heading {
-	font-family: var(--hatch-font-mono);
-	font-weight: 600;
-	font-size: clamp(1.4rem, 1vw + 1.1rem, 1.75rem);
-	color: var(--hatch-fg);
-}
-[data-hatch-theme="tech"] .hatch-prose h2::before,
-[data-hatch-theme="tech"] h2.hatch-heading::before {
-	content: '## ';
-	color: var(--hatch-primary);
-}
-[data-hatch-theme="tech"] .hatch-prose h3,
-[data-hatch-theme="tech"] h3.hatch-heading {
-	font-family: var(--hatch-font-mono);
-	font-weight: 600;
-	font-size: clamp(1.1rem, 0.5vw + 1rem, 1.25rem);
-	color: var(--hatch-fg);
-}
-[data-hatch-theme="tech"] .hatch-prose h3::before,
-[data-hatch-theme="tech"] h3.hatch-heading::before { content: '### '; color: var(--hatch-primary); }
-
-/* Post card titles use h3 internally — never decorate them with markdown
-   prefixes (they're navigation, not body copy). */
-[data-hatch-theme="tech"] .hatch-post-card h3,
-[data-hatch-theme="tech"] .hatch-post-card-title { color: var(--hatch-fg); }
-[data-hatch-theme="tech"] .hatch-post-card h3::before,
-[data-hatch-theme="tech"] .hatch-post-card-title::before { content: none; }
-
-/* Dark post cards for tech theme. The shared hatch-blocks.css renders cards
-   as white surfaces by default; on a near-black page that's a jarring slab
-   AND the white text inside disappears. Override to a tech-aligned dark card
-   with a cyan-tinted border + glow on hover. */
-[data-hatch-theme="tech"] .hatch-posts a.hatch-post-card {
-	background: var(--hatch-bg-2);
-	border-color: color-mix( in oklab, var(--hatch-primary) 14%, transparent );
-	box-shadow: 0 1px 0 color-mix( in oklab, var(--hatch-primary) 4%, transparent );
-}
-[data-hatch-theme="tech"] .hatch-posts a.hatch-post-card:hover {
-	border-color: color-mix( in oklab, var(--hatch-primary) 32%, transparent );
-	box-shadow: 0 18px 36px -22px color-mix( in oklab, var(--hatch-primary) 32%, transparent );
-}
-[data-hatch-theme="tech"] .hatch-post-card-title { color: var(--hatch-fg); }
-[data-hatch-theme="tech"] .hatch-post-card-excerpt { color: var(--hatch-fg-muted); }
-[data-hatch-theme="tech"] .hatch-post-card-meta { color: var(--hatch-fg-subtle); }
-[data-hatch-theme="tech"] .hatch-post-card-image { background: var(--hatch-bg-3); }
-
-/* Accordion in dark theme */
-[data-hatch-theme="tech"] .hatch-accordion-item { border-color: var(--hatch-border); }
-[data-hatch-theme="tech"] .hatch-accordion-item summary { color: var(--hatch-fg); }
-[data-hatch-theme="tech"] .hatch-accordion-body { color: var(--hatch-fg-muted); }
+/* === Reading column ============================================== */
 
 [data-hatch-theme="tech"] .hatch-prose {
+	max-width: var(--hatch-reading-width);
 	font-size: 16px;
-	line-height: 1.75;
+	line-height: 1.7;
 	color: var(--hatch-fg);
-	max-width: 720px;
 }
+
+[data-hatch-theme="tech"] .hatch-prose h2 {
+	font-family: var(--hatch-font-heading);
+	font-size: 1.5rem;
+	margin-block: 2em 0.6em;
+	color: var(--hatch-fg);
+}
+
+[data-hatch-theme="tech"] .hatch-prose h2::before {
+	content: '#';
+	color: var(--hatch-primary);
+	margin-right: 10px;
+	opacity: 0.7;
+}
+
+[data-hatch-theme="tech"] .hatch-prose h3 {
+	font-family: var(--hatch-font-heading);
+	font-size: 1.2rem;
+	margin-block: 1.6em 0.4em;
+}
+
+[data-hatch-theme="tech"] .hatch-prose h3::before {
+	content: '##';
+	color: var(--hatch-primary);
+	margin-right: 8px;
+	opacity: 0.55;
+}
+
 [data-hatch-theme="tech"] .hatch-prose a {
 	color: var(--hatch-primary);
 	text-decoration: underline;
 	text-decoration-thickness: 1px;
 	text-underline-offset: 3px;
-	text-decoration-color: var(--hatch-border-2);
 }
-[data-hatch-theme="tech"] .hatch-prose a:hover { text-decoration-color: var(--hatch-primary); }
+
 [data-hatch-theme="tech"] .hatch-prose code {
 	font-family: var(--hatch-font-mono);
-	background: var(--hatch-bg-3);
-	color: var(--hatch-primary);
+	background: var(--hatch-bg-2);
+	border: 1px solid var(--hatch-border);
 	padding: 1px 6px;
 	border-radius: 3px;
 	font-size: 0.88em;
-	border: 1px solid var(--hatch-border);
-}
-[data-hatch-theme="tech"] .hatch-prose pre {
-	background: color-mix( in oklab, var(--hatch-bg) 80%, #000 );
-	border: 1px solid var(--hatch-border);
-	border-radius: 4px;
-	box-shadow: 0 0 0 1px var(--hatch-primary-soft) inset;
-}
-[data-hatch-theme="tech"] .hatch-prose blockquote {
-	border-left: 2px solid var(--hatch-primary);
-	background: var(--hatch-primary-soft);
-	padding: 0.7em 1.1em;
-	font-style: normal;
-	font-family: var(--hatch-font-mono);
-	font-size: 0.93em;
+	color: var(--hatch-accent);
 }
 
-[data-hatch-theme="tech"] .hatch-post-card {
+[data-hatch-theme="tech"] .hatch-prose pre {
 	background: var(--hatch-bg-2);
 	border: 1px solid var(--hatch-border);
-	border-radius: 4px;
-	transition: border-color .15s, transform .15s;
-	position: relative;
-}
-[data-hatch-theme="tech"] .hatch-post-card:hover {
-	border-color: var(--hatch-primary);
-	transform: translateY(-2px);
-}
-[data-hatch-theme="tech"] .hatch-post-card::before {
-	content: '$';
-	position: absolute;
-	top: 12px; left: 14px;
-	font-family: var(--hatch-font-mono);
-	color: var(--hatch-primary);
-	font-size: 12px;
-	opacity: 0.6;
-}
-
-[data-hatch-theme="tech"] .hatch-btn,
-[data-hatch-theme="tech"] .wp-block-button__link {
-	background: var(--hatch-primary);
-	color: var(--hatch-primary-fg);
-	border: 0;
-	border-radius: 4px;
-	font-family: var(--hatch-font-mono);
-	font-weight: 600;
-	padding: 9px 16px;
+	border-radius: var(--hatch-radius);
+	padding: 18px 20px;
+	overflow-x: auto;
 	font-size: 13.5px;
+	line-height: 1.55;
 }
-[data-hatch-theme="tech"] .hatch-btn:hover { box-shadow: 0 0 24px var(--hatch-primary-soft); }
 
-/* Footer */
-[data-hatch-theme="tech"] .hatch-footer-tech {
+[data-hatch-theme="tech"] .hatch-prose pre code {
+	background: transparent;
+	border: 0;
+	padding: 0;
+	color: var(--hatch-fg);
+}
+
+[data-hatch-theme="tech"] .hatch-prose blockquote {
+	border-left: 2px solid var(--hatch-primary);
+	background: var(--hatch-bg-2);
+	padding: 14px 20px;
+	margin-block: 1.6em;
+	font-size: 0.96em;
+	color: var(--hatch-fg-muted);
+}
+
+/* === Footer — CLI prompt feel ==================================== */
+
+[data-hatch-theme="tech"] .hatch-footer {
 	background: var(--hatch-bg);
 	border-top: 1px solid var(--hatch-border);
-}
-[data-hatch-theme="tech"] .hatch-tech-foot-grid {
-	display: grid;
-	grid-template-columns: 1.5fr 1fr 1fr;
-	gap: 3rem;
-	padding-bottom: 2rem;
-	border-bottom: 1px dashed var(--hatch-border);
-}
-@media (max-width: 760px) {
-	[data-hatch-theme="tech"] .hatch-tech-foot-grid { grid-template-columns: 1fr; gap: 2rem; }
-}
-[data-hatch-theme="tech"] .hatch-tech-foot-brand { margin-bottom: 0.5rem; }
-[data-hatch-theme="tech"] .hatch-tech-foot-desc {
-	color: var(--hatch-fg-muted);
-	font-size: 13.5px;
-	line-height: 1.6;
-	max-width: 320px;
-}
-[data-hatch-theme="tech"] .hatch-tech-foot-h {
-	display: flex;
-	align-items: center;
-	gap: 6px;
+	padding-block: 36px 44px;
 	font-family: var(--hatch-font-mono);
-	color: var(--hatch-fg-subtle);
-	font-size: 12px;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
-	margin-bottom: 0.85rem;
-}
-[data-hatch-theme="tech"] .hatch-tech-foot-h-arrow { color: var(--hatch-primary); }
-[data-hatch-theme="tech"] .hatch-tech-foot-nav { display: flex; flex-direction: column; gap: 0.45rem; font-family: var(--hatch-font-mono); }
-[data-hatch-theme="tech"] .hatch-tech-foot-nav a {
-	color: var(--hatch-fg-muted);
-	text-decoration: none;
 	font-size: 13px;
-	transition: color .15s;
+	color: var(--hatch-fg-muted);
+}
+
+[data-hatch-theme="tech"] .hatch-footer-prompt::before {
+	content: '~ $ ';
+	color: var(--hatch-primary);
+	font-weight: 500;
+}
+
+[data-hatch-theme="tech"] .hatch-footer-links {
 	display: inline-flex;
-	align-items: baseline;
-	gap: 6px;
+	gap: 0;
+	margin-top: 14px;
+	flex-wrap: wrap;
 }
-[data-hatch-theme="tech"] .hatch-tech-foot-nav a:hover { color: var(--hatch-primary); }
-[data-hatch-theme="tech"] .hatch-tech-foot-bullet { color: var(--hatch-primary); opacity: 0.7; }
-[data-hatch-theme="tech"] .hatch-tech-foot-meta {
-	font-family: var(--hatch-font-mono);
-	font-size: 13px;
+
+[data-hatch-theme="tech"] .hatch-footer-links a {
 	color: var(--hatch-fg-muted);
+	padding-right: 14px;
+	margin-right: 14px;
+	border-right: 1px solid var(--hatch-border);
+	transition: color 140ms ease;
 }
-[data-hatch-theme="tech"] .hatch-tech-foot-meta > div {
-	display: flex;
-	justify-content: space-between;
-	padding: 4px 0;
-	border-bottom: 1px dashed var(--hatch-border);
+
+[data-hatch-theme="tech"] .hatch-footer-links a:last-child {
+	border-right: 0;
+	padding-right: 0;
+	margin-right: 0;
 }
-[data-hatch-theme="tech"] .hatch-tech-foot-meta dt { color: var(--hatch-fg-subtle); }
-[data-hatch-theme="tech"] .hatch-tech-foot-meta dd { color: var(--hatch-fg); display: inline-flex; align-items: center; gap: 6px; }
-[data-hatch-theme="tech"] .hatch-tech-foot-bottom {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding-top: 1.5rem;
-	font-family: var(--hatch-font-mono);
-	font-size: 12.5px;
+
+[data-hatch-theme="tech"] .hatch-footer-links a:hover {
+	color: var(--hatch-primary);
+}
+
+[data-hatch-theme="tech"] .hatch-footer-meta {
+	margin-top: 22px;
+	font-size: 11.5px;
 	color: var(--hatch-fg-subtle);
 }
-[data-hatch-theme="tech"] .hatch-tech-foot-prompt { display: inline-flex; align-items: baseline; gap: 4px; }
-[data-hatch-theme="tech"] .hatch-tech-foot-right { display: inline-flex; align-items: center; gap: 1rem; }
+
+/* === Buttons ====================================================== */
+
+[data-hatch-theme="tech"] .hatch-button,
+[data-hatch-theme="tech"] .hatch-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 9px 16px;
+	background: var(--hatch-fg);
+	color: var(--hatch-bg);
+	font-family: var(--hatch-font-mono);
+	font-size: 13px;
+	font-weight: 500;
+	border-radius: var(--hatch-radius);
+	border: 1px solid var(--hatch-fg);
+	transition: background 140ms ease, color 140ms ease;
+}
+
+[data-hatch-theme="tech"] .hatch-button::before,
+[data-hatch-theme="tech"] .hatch-btn::before {
+	content: '> ';
+	color: var(--hatch-primary);
+}
+
+[data-hatch-theme="tech"] .hatch-button:hover,
+[data-hatch-theme="tech"] .hatch-btn:hover {
+	background: var(--hatch-primary);
+	color: var(--hatch-primary-fg);
+	border-color: var(--hatch-primary);
+}
+
+[data-hatch-theme="tech"] .hatch-button[data-variant="ghost"] {
+	background: transparent;
+	color: var(--hatch-fg);
+	border-color: var(--hatch-border-strong);
+}
+
+/* === Home: masonry of variable-height cards ====================== */
+
+/* CSS columns deliver real masonry across every modern browser today.
+   grid-auto-rows: masonry is Firefox-only as of 2026. The card sits in
+   the column flow; `break-inside: avoid` keeps each card whole. */
+[data-hatch-theme="tech"] .hatch-tech-masonry {
+	column-count: 1;
+	column-gap: 16px;
+	padding-block: 32px 80px;
+}
+
+@media (min-width: 640px) {
+	[data-hatch-theme="tech"] .hatch-tech-masonry { column-count: 2; }
+}
+
+@media (min-width: 1000px) {
+	[data-hatch-theme="tech"] .hatch-tech-masonry { column-count: 3; }
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card {
+	break-inside: avoid;
+	display: inline-block;
+	width: 100%;
+	margin-bottom: 16px;
+	background: var(--hatch-bg);
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius);
+	transition: border-color 160ms ease;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card:hover {
+	border-color: var(--hatch-primary);
+}
+
+/* The data-span attribute drives different aspect ratios so the columns
+   stagger naturally instead of looking like a vanilla grid. */
+[data-hatch-theme="tech"] .hatch-tech-card-media-link {
+	display: block;
+	overflow: hidden;
+	border-bottom: 1px solid var(--hatch-border);
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card[data-span="normal"] .hatch-tech-card-media {
+	aspect-ratio: 16 / 9;
+}
+[data-hatch-theme="tech"] .hatch-tech-card[data-span="tall"] .hatch-tech-card-media {
+	aspect-ratio: 3 / 4;
+}
+[data-hatch-theme="tech"] .hatch-tech-card[data-span="short"] .hatch-tech-card-media {
+	aspect-ratio: 21 / 9;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-media {
+	width: 100%;
+	height: auto;
+	object-fit: cover;
+	background: var(--hatch-bg-2);
+	display: block;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-body {
+	padding: 16px 18px 18px;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-eyebrow {
+	display: inline-block;
+	font-family: var(--hatch-font-mono);
+	font-size: 11px;
+	color: var(--hatch-primary);
+	margin-bottom: 8px;
+	letter-spacing: 0;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-eyebrow::before {
+	content: '> ';
+	opacity: 0.7;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-title {
+	font-family: var(--hatch-font-heading);
+	font-size: 1.05rem;
+	font-weight: 600;
+	line-height: 1.25;
+	margin-bottom: 8px;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-title a {
+	color: var(--hatch-fg);
+	transition: color 140ms ease;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-title a:hover {
+	color: var(--hatch-primary);
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-excerpt {
+	font-size: 13.5px;
+	color: var(--hatch-fg-muted);
+	line-height: 1.55;
+	margin-bottom: 12px;
+}
+
+[data-hatch-theme="tech"] .hatch-tech-card-meta {
+	font-family: var(--hatch-font-mono);
+	font-size: 11.5px;
+	color: var(--hatch-fg-subtle);
+}

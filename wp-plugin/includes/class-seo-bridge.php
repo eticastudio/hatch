@@ -113,57 +113,11 @@ class Hatch_Seo_Bridge {
 	 * @return string
 	 */
 	private static function build_fallback_head( string $url ): string {
-		$site_name = get_bloginfo( 'name' );
-
-		// v0.5.7 — this used to ignore $url completely and always emit the site
-		// name + tagline. With no SEO plugin installed (the default install!)
-		// that meant EVERY page — every post, every archive — shipped the same
-		// <title>, no canonical and no OG tags. Worse, the frontend layout
-		// suppresses its own correct <title> whenever this head is non-empty,
-		// so the fallback actively replaced good metadata with wrong metadata.
-		$post_id = url_to_postid( self::derive_internal_url( $url ) );
-
-		if ( ! $post_id ) {
-			return sprintf(
-				'<title>%s</title><meta name="description" content="%s"/><link rel="canonical" href="%s"/><meta name="robots" content="index, follow"/><meta property="og:title" content="%s"/><meta property="og:site_name" content="%s"/><meta property="og:url" content="%s"/><meta property="og:type" content="website"/>',
-				esc_html( $site_name ),
-				esc_attr( get_bloginfo( 'description' ) ),
-				esc_url( $url ),
-				esc_attr( $site_name ),
-				esc_attr( $site_name ),
-				esc_url( $url )
-			);
-		}
-
-		$post  = get_post( $post_id );
-		$title = wp_strip_all_tags( get_the_title( $post_id ) );
-		$desc  = has_excerpt( $post_id )
-			? wp_strip_all_tags( get_the_excerpt( $post_id ) )
-			: wp_trim_words( wp_strip_all_tags( strip_shortcodes( (string) $post->post_content ) ), 30, '' );
-
-		$head = sprintf(
-			'<title>%s</title><meta name="description" content="%s"/><link rel="canonical" href="%s"/><meta name="robots" content="index, follow"/><meta property="og:title" content="%s"/><meta property="og:description" content="%s"/><meta property="og:site_name" content="%s"/><meta property="og:url" content="%s"/><meta property="og:type" content="article"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="%s"/><meta name="twitter:description" content="%s"/>',
-			esc_html( $title . ' — ' . $site_name ),
-			esc_attr( $desc ),
-			esc_url( $url ),
-			esc_attr( $title ),
-			esc_attr( $desc ),
-			esc_attr( $site_name ),
-			esc_url( $url ),
-			esc_attr( $title ),
-			esc_attr( $desc )
+		return sprintf(
+			'<title>%s</title><meta name="description" content="%s"/><meta name="robots" content="index, follow"/>',
+			esc_html( get_bloginfo( 'name' ) ),
+			esc_attr( get_bloginfo( 'description' ) )
 		);
-
-		$thumb = get_the_post_thumbnail_url( $post_id, 'full' );
-		if ( $thumb ) {
-			$head .= sprintf(
-				'<meta property="og:image" content="%s"/><meta name="twitter:image" content="%s"/>',
-				esc_url( $thumb ),
-				esc_url( $thumb )
-			);
-		}
-
-		return $head;
 	}
 
 	/**

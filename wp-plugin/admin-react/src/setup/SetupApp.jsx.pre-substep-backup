@@ -12,7 +12,7 @@
  *  • Section heads use HxHead, not hand-rolled icon boxes.
  *  • Info / callout panels use HxCard, not ad-hoc styled <div>.
  */
-import { useState, Fragment } from '@wordpress/element';
+import { useState } from '@wordpress/element';
 import { HxIcon, HxBtn, HxBadge, HxCard, HxHead, HxInp, HxGL, HxSeg } from '../components.jsx';
 import { TP } from '../theme-previews.jsx';
 
@@ -325,12 +325,7 @@ function Step2Theme({ boot, onBack }) {
 				<input type="hidden" name="hatch_setup_step" value="2" />
 				<input type="hidden" name="hatch_theme" value={selected} />
 
-				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
-					{/* v0.5.7 — Custom theme tile always shown as 4th slot. Fork
-					    astro-starter, drop your own layout into themes/<slug>/,
-					    it appears here on next boot state refresh. Doc link
-					    points to the how-to guide bundled at
-					    hatch/docs/CUSTOM-THEME-BOILERPLATE.md */}
+				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
 					{themes.map((t) => {
 						const sel = selected === t.id;
 						return (
@@ -401,30 +396,39 @@ function Step2Theme({ boot, onBack }) {
 							</div>
 						);
 					})}
-					{/* v0.5.7 — Custom theme tile — 4th slot after the 3 built-ins.
-					    Non-selectable placeholder; clicking opens the guide. */}
-					<div
+					{/* v0.5.7 — Custom Theme 4th slot. Non-selectable; opens the local
+					    boilerplate MD shipped with the plugin so devs can fork the
+					    astro-starter, drop layouts into themes/<slug>/ and see them
+					    appear here on next boot state refresh. */}
+					<a
+						href={(boot.pluginBaseUrl || '/wp-content/plugins/hatch/') + 'docs/CUSTOM-THEME-BOILERPLATE.md'}
+						target="_blank"
+						rel="noopener noreferrer"
 						style={{
 							border: '1px dashed var(--hx-border)',
 							borderRadius: 12,
 							padding: '14px 16px',
+							cursor: 'pointer',
 							background: 'var(--hx-surface)',
+							textDecoration: 'none',
 							display: 'flex',
 							flexDirection: 'column',
+							transition: 'border-color .18s var(--hx-ease), background .18s var(--hx-ease)',
 						}}
+						onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--hx-primary)'; }}
+						onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--hx-border)'; }}
 					>
-						<div style={{ marginBottom: 10, borderRadius: 6, border: '1px solid rgba(0,0,0,0.06)', aspectRatio: '16/10', display: 'grid', placeItems: 'center', color: 'var(--hx-muted)', fontSize: 32 }}>
+						<div style={{ marginBottom: 10, borderRadius: 6, border: '1px solid rgba(0,0,0,0.06)', aspectRatio: '16/10', display: 'grid', placeItems: 'center', color: 'var(--hx-muted)', fontSize: 32, background: 'repeating-linear-gradient(45deg, var(--hx-surface-2), var(--hx-surface-2) 6px, transparent 6px, transparent 12px)' }}>
 							<span aria-hidden="true">＋</span>
 						</div>
 						<div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6, marginBottom: 2 }}>
 							<div className="hx-desc" style={{ fontWeight: 700, color: 'var(--hx-fg)' }}>Custom theme</div>
 							<span className="hx-help" style={{ color: 'var(--hx-subtle)', whiteSpace: 'nowrap' }}>MIT · fork</span>
 						</div>
-						<div className="hx-help" style={{ color: 'var(--hx-subtle)', marginBottom: 6 }}>by <span style={{ color: 'var(--hx-muted)' }}>you</span> · MIT</div>
 						<div className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.5 }}>
-							Fork the Astro starter shipped inside this plugin's <span className="hx-mono">astro-starter/</span>. Ship your own layout, components, and CSS while keeping every Hatch bridge live.
+							Fork the Astro starter shipped in this plugin. Ship your own layout, components and CSS while keeping every Hatch bridge live.
 						</div>
-					</div>
+					</a>
 				</div>
 
 				<HxCard status="info" style={{ padding: '14px 16px' }}>
@@ -454,80 +458,48 @@ function Step2Theme({ boot, onBack }) {
 
 // ── Step 3 helper: broker form (Cloudflare + Vercel share this shape) ─────
 
-function BrokerForm({ provider, tokenName, tokenUrl, tokenUrlLabel, tokenPagePrompt, adminPostUrl, deployNonce, mountMode = 'root', subPath = '/blog', domain = '' }) {
+function BrokerForm({ provider, tokenName, tokenUrl, tokenUrlLabel, tokenPagePrompt, adminPostUrl, deployNonce }) {
 	const [token, setToken] = useState('');
 	const [save, setSave]   = useState(true);
 	const providerLabel = provider === 'cloudflare' ? 'Cloudflare' : 'Vercel';
 
-	const tempSuffix = provider === 'vercel' ? '.vercel.app' : '.workers.dev';
 	return (
-		<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-			{/* v0.5.7 — flat form. No numbered "Step 1/2". Just three fields:
-			    Get-token button (opens CF/Vercel page with permissions
-			    prefilled), API token, Deploy. Custom domain is optional and
-			    forwarded to the broker (mountMode + subPath come from
-			    Sub-step A above). */}
-			<p className="hx-desc" style={{ color: 'var(--hx-muted)', lineHeight: 1.55, margin: 0 }}>
-				Paste your {providerLabel} API token — Hatch builds and deploys Astro to a live <span className="hx-mono">{tempSuffix}</span> URL. Point a CNAME at it later when you're ready for a custom domain.
+		<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+			<HxGL>Step 1. Get an API token</HxGL>
+			<p className="hx-desc" style={{ color: 'var(--hx-muted)', lineHeight: 1.55, margin: '4px 0 10px' }}>
+				{tokenPagePrompt}
 			</p>
-
 			<div>
 				<HxBtn href={tokenUrl}>
-					Get {providerLabel} API token
+					{tokenUrlLabel}
 					<HxIcon size={13} color="currentColor">
 						<path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
 						<polyline points="15 3 21 3 21 9" />
 						<line x1="10" y1="14" x2="21" y2="3" />
 					</HxIcon>
 				</HxBtn>
-				<p className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.5, margin: '6px 0 0' }}>
-					{tokenPagePrompt}
-				</p>
 			</div>
 
-			{provider === 'cloudflare' && (
-				<details style={{ borderRadius: 8, border: '1px solid var(--hx-border)', padding: 0 }}>
-					<summary style={{ cursor: 'pointer', padding: '10px 12px', fontSize: 12, fontWeight: 600, color: 'var(--hx-fg)', listStyle: 'none' }}>
-						How to create the token — Workers template + 1 extra row
-					</summary>
-					<div style={{ padding: '10px 14px 14px', borderTop: '1px solid var(--hx-border)', fontSize: 12.5, color: 'var(--hx-fg)', lineHeight: 1.7 }}>
-						<div><strong>Step 1.</strong> Create Token → pick <strong>"Edit Cloudflare Workers"</strong> (built-in preset).</div>
-						<div style={{ marginTop: 6 }}><strong>Step 2.</strong> Click <em>+ Add more</em> and add ONE row:</div>
-						<div style={{ paddingLeft: 12, marginTop: 4 }}>
-							<span className="hx-mono">User</span> · <span className="hx-mono">Memberships</span> · <span className="hx-mono">Read</span>
-						</div>
-						<div style={{ marginTop: 8, color: 'var(--hx-muted)' }}>Account Resources → <span className="hx-mono">Include · your account</span>. Continue → Create → copy.</div>
-					</div>
-				</details>
-			)}
-
+			<HxGL>Step 2. Paste and deploy</HxGL>
 			<form
 				method="post"
 				action={adminPostUrl}
-				style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 2 }}
+				style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}
 			>
-				<input type="hidden" name="action"    value="hatch_start_deploy" />
-				<input type="hidden" name="_wpnonce"  value={deployNonce} />
-				<input type="hidden" name="provider"  value={provider} />
-				<input type="hidden" name="mountMode" value={mountMode} />
-				<input type="hidden" name="subPath"   value={subPath} />
-				<input type="hidden" name="domain"    value={(domain || '').trim()} />
+				<input type="hidden" name="action"   value="hatch_start_deploy" />
+				<input type="hidden" name="_wpnonce" value={deployNonce} />
+				<input type="hidden" name="provider" value={provider} />
 
-				<div>
-					<span className="hx-label" style={{ fontWeight: 600, color: 'var(--hx-fg)', display: 'block', marginBottom: 6 }}>
-						{providerLabel} API token
-					</span>
-					<HxInp
-						type="password"
-						name={tokenName}
-						placeholder={`Paste your ${providerLabel} API token`}
-						value={token}
-						onChange={(e) => setToken(e.target.value)}
-						mono
-						autoComplete="off"
-						spellCheck={false}
-					/>
-				</div>
+				<HxInp
+					type="password"
+					name={tokenName}
+					placeholder={`Paste your ${providerLabel} API token`}
+					value={token}
+					onChange={(e) => setToken(e.target.value)}
+					mono
+					autoComplete="off"
+					spellCheck={false}
+				/>
 
 				<label className="hx-checkbox hx-help" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--hx-muted)', cursor: 'pointer' }}>
 					<input
@@ -542,7 +514,7 @@ function BrokerForm({ provider, tokenName, tokenUrl, tokenUrlLabel, tokenPagePro
 
 				<div>
 					<HxBtn type="submit" disabled={!token.trim()}>
-						Build and deploy to {providerLabel}
+						Build and deploy
 						<HxIcon size={13} color="currentColor"><path d="M5 12h14M12 5l7 7-7 7" /></HxIcon>
 					</HxBtn>
 				</div>
@@ -557,160 +529,11 @@ function BrokerForm({ provider, tokenName, tokenUrl, tokenUrlLabel, tokenPagePro
 
 // ── Step 3: Deploy ─────────────────────────────────────────────────────────
 
-// v0.5.7 — Sub-step progress strip inside Step 3. Small pill tracker so
-// the user always knows where they are in the 3-step deploy flow:
-//   A · Location    (Root vs Subfolder)
-//   B · Astro host  (CF / Vercel / Self / Netlify)
-//   C · Connect     (snippets or DNS record)
-// Clickable so a user who scrolled ahead can jump back.
-function SubStepStrip({ subStep, onJump }) {
-	const items = [
-		{ id: 'A', label: 'Location' },
-		{ id: 'B', label: 'Astro host' },
-		{ id: 'C', label: 'Connect' },
-	];
-	const activeIndex = items.findIndex((it) => it.id === subStep);
-	return (
-		<div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, justifyContent: 'center' }}>
-			{items.map((it, i) => {
-				const done    = i < activeIndex;
-				const current = it.id === subStep;
-				return (
-					<Fragment key={it.id}>
-						<button
-							type="button"
-							onClick={() => onJump && onJump(it.id)}
-							style={{
-								display: 'inline-flex', alignItems: 'center', gap: 8,
-								padding: '4px 10px 4px 4px',
-								borderRadius: 999,
-								border: '1px solid transparent',
-								background: 'transparent',
-								cursor: 'pointer',
-								fontFamily: 'inherit',
-							}}
-						>
-							<span
-								style={{
-									width: 22, height: 22, borderRadius: 999,
-									display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-									fontSize: 11, fontWeight: 700,
-									background: current ? 'var(--hx-primary)' : done ? 'var(--hx-success)' : 'var(--hx-surface-2)',
-									color:      (current || done) ? '#fff' : 'var(--hx-subtle)',
-									border: `1px solid ${current ? 'var(--hx-primary)' : done ? 'var(--hx-success)' : 'var(--hx-border)'}`,
-								}}
-							>
-								{done ? '✓' : it.id}
-							</span>
-							<span style={{ color: current ? 'var(--hx-fg)' : 'var(--hx-subtle)', fontWeight: current ? 600 : 500 }}>
-								{it.label}
-							</span>
-						</button>
-						{i < items.length - 1 && <span style={{ color: 'var(--hx-border)' }}>·</span>}
-					</Fragment>
-				);
-			})}
-		</div>
-	);
-}
-
-// v0.5.7 — Reverse-proxy snippet card. Three-tab picker (Nginx / Apache
-// / Cloudflare Worker). Each tab emits a copy-paste config block the user
-// pastes into their WP host's web-server config, mapping the subfolder
-// path (default /blog) to the Astro origin URL returned by the deploy.
-function ReverseProxySnippets({ subPath, parentHost, astroOrigin }) {
-	const [tab, setTab] = useState('nginx');
-	const origin = astroOrigin || '<paste-your-astro-origin-after-deploy>';
-	const nginxSnippet = `# /etc/nginx/sites-available/${parentHost}\nlocation ${subPath}/ {\n    proxy_pass ${origin}/;\n    proxy_set_header Host $host;\n    proxy_set_header X-Forwarded-For $remote_addr;\n    proxy_set_header X-Forwarded-Host ${parentHost};\n    proxy_ssl_server_name on;\n}`;
-	const apacheSnippet = `# /etc/apache2/sites-available/${parentHost}.conf\n<IfModule mod_proxy.c>\n    ProxyPreserveHost On\n    ProxyPass        ${subPath}/ ${origin}/\n    ProxyPassReverse ${subPath}/ ${origin}/\n</IfModule>`;
-	const cloudflareSnippet = `// Cloudflare Worker route: ${parentHost}${subPath}/*\nexport default {\n  async fetch(request) {\n    const url = new URL(request.url);\n    const origin = "${origin}";\n    const rest   = url.pathname.replace(/^${subPath.replace(/\//g, '\\/')}/, '');\n    return fetch(origin + rest + url.search, request);\n  }\n};`;
-	const map = { nginx: nginxSnippet, apache: apacheSnippet, cloudflare: cloudflareSnippet };
-	return (
-		<div>
-			<div style={{ marginBottom: 12 }}>
-				<HxSeg
-					value={tab}
-					onChange={setTab}
-					options={[
-						{ value: 'nginx',      label: 'Nginx' },
-						{ value: 'apache',     label: 'Apache / LiteSpeed' },
-						{ value: 'cloudflare', label: 'Cloudflare Worker' },
-					]}
-				/>
-			</div>
-			<CodeBlock copyText={map[tab]}>{map[tab]}</CodeBlock>
-			<p className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.55, margin: '10px 0 0' }}>
-				{tab === 'nginx'      && <>Reload with <span className="hx-mono">sudo nginx -s reload</span> after saving.</>}
-				{tab === 'apache'     && <>Reload Apache / LiteSpeed after saving. RunCloud users: paste under "Custom Config" for the web app.</>}
-				{tab === 'cloudflare' && <>Deploy the Worker, then add a route matching <span className="hx-mono">{parentHost}{subPath}/*</span>.</>}
-			</p>
-		</div>
-	);
-}
-
-// v0.5.7 — DNS record card for Root-domain mode on non-CF providers.
-// Vercel uses A + CNAME pair (their canonical). Others get a CNAME. Astro
-// origin is empty until deploy finishes — shows a "finish Deploy first"
-// warning card in that case.
-function DnsRecordTable({ parentHost, provider, astroOrigin }) {
-	const originHost = String(astroOrigin || '').replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
-	if ( ! originHost ) {
-		return (
-			<HxCard status="warn" style={{ padding: '12px 14px', margin: 0 }}>
-				<div className="hx-desc" style={{ color: 'var(--hx-fg)', lineHeight: 1.55 }}>
-					<strong>Finish the Deploy above first.</strong> The DNS target comes from your deployed Astro URL — Hatch fills it in here after the build finishes.
-				</div>
-			</HxCard>
-		);
-	}
-	const isIp = /^(\d{1,3}\.){3}\d{1,3}$/.test(originHost);
-	const rows = ( provider === 'vercel' )
-		? [
-			{ name: '@',   type: 'A',     value: '76.76.21.21' },
-			{ name: 'www', type: 'CNAME', value: 'cname.vercel-dns.com' },
-		]
-		: isIp
-			? [ { name: '@', type: 'A',     value: originHost } ]
-			: [ { name: '@', type: 'CNAME', value: originHost } ];
-	return (
-		<div style={{ overflowX: 'auto' }}>
-			<table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-				<thead>
-					<tr style={{ background: 'var(--hx-surface-2)', color: 'var(--hx-subtle)' }}>
-						<th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Name</th>
-						<th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Type</th>
-						<th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Value</th>
-					</tr>
-				</thead>
-				<tbody>
-					{rows.map((r) => (
-						<tr key={`${r.name}-${r.type}`} style={{ borderTop: '1px solid var(--hx-border)' }}>
-							<td style={{ padding: '10px 12px', fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace' }}>{r.name}</td>
-							<td style={{ padding: '10px 12px', fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace' }}>{r.type}</td>
-							<td style={{ padding: '10px 12px', fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', wordBreak: 'break-all' }}>{r.value}</td>
-						</tr>
-					))}
-				</tbody>
-			</table>
-		</div>
-	);
-}
-
 function Step3Deploy({ boot, onBack }) {
 	const setup = boot.state?.setup || {};
-	// v0.5.7 — sub-step tracker inside Step 3. A/B/C sub-flow so the user
-	// walks Location → Astro host → Connect in a linear sequence. Values
-	// persist across refresh via setup.subStep (PHP boot state).
-	const [subStep, setSubStep] = useState(setup.subStep || 'A');
 	const [open, setOpen] = useState('cloudflare');
 	const [manualUrl, setManualUrl] = useState('');
 	const [selfMode, setSelfMode] = useState('agent');
-	// v0.5.7 — Sub-step A restored: user picks Root domain vs Subfolder BEFORE
-	// choosing provider. Values forward to the deploy form as hidden inputs
-	// (mountMode + subPath) → PHP admin-post handler → broker /prepare.
-	const [mountMode, setMountMode] = useState(setup.mountMode || 'root');
-	const [subPath, setSubPath]     = useState(setup.subfolderPath || '/blog');
-	const [deployDomain, setDeployDomain] = useState(setup.deployDomain || boot.siteHost || '');
 
 	const envPairs = [
 		{ k: 'WP_API_URL',           v: setup.wpApiUrl     || '' },
@@ -742,12 +565,9 @@ function Step3Deploy({ boot, onBack }) {
 			label: 'Self-hosted',
 			desc: 'VPS, dedicated, or local. Install the agent or paste a URL.',
 		},
-		// v0.5.7 — Netlify Coming Soon per user feedback. Broker route ships
-		// with plugin but hasn't been smoke-tested end-to-end yet; tile is
-		// visible-but-disabled so users know it's on the roadmap.
 		{
 			id: 'netlify',
-			icon: I.zap || I.server,
+			icon: I.zap,
 			iconColor: '#14b8a6',
 			label: 'Netlify',
 			desc: 'Continuous deploys, edge functions, atomic rollbacks.',
@@ -766,92 +586,23 @@ function Step3Deploy({ boot, onBack }) {
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 			<PageHeading
 				title="Deploy your frontend"
-				lede="Three small decisions: where the site lives, where Astro runs, and how the two connect."
+				lede="WordPress is connected. Pick where the public frontend lives. Hatch handles the build automatically."
 			/>
 
-			<SubStepStrip subStep={subStep} onJump={setSubStep} />
-
-			{subStep === 'A' && (
-				<HxGL>Sub-step 1 of 3 · Deploy location</HxGL>
-			)}
-			{subStep === 'B' && (
-				<HxGL>Sub-step 2 of 3 · Where Astro runs</HxGL>
-			)}
-			{subStep === 'C' && (
-				<HxGL>Sub-step 3 of 3 · Connect the pieces</HxGL>
-			)}
-
-			{/* v0.5.7 — Sub-step A: mount mode picker (Root vs Subfolder). */}
-			{subStep === 'A' && (
-			<HxCard style={{ padding: 18 }}>
-				<HxHead
-					iconChildren={I.globe}
-					iconColor="var(--hx-primary)"
-					title="Where does the Astro frontend serve?"
-					desc="Pick Root when a new domain is dedicated to the headless frontend. Pick Subfolder to add /blog to an existing WordPress site."
-					mb={14}
-				/>
-				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
-					<button
-						type="button"
-						onClick={() => setMountMode('root')}
-						style={{
-							textAlign: 'left', padding: '14px 16px', borderRadius: 10,
-							border: `2px solid ${mountMode === 'root' ? 'var(--hx-primary)' : 'var(--hx-border)'}`,
-							background: mountMode === 'root' ? 'var(--hx-surface-2)' : 'var(--hx-surface)',
-							cursor: 'pointer', fontFamily: 'inherit',
-						}}
-					>
-						<div style={{ fontSize: 15, fontWeight: 700, color: 'var(--hx-fg)', marginBottom: 4 }}>Root domain</div>
-						<div className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.5 }}>Astro serves the whole domain. One CNAME, no reverse-proxy config.</div>
-					</button>
-					<button
-						type="button"
-						onClick={() => setMountMode('subfolder')}
-						style={{
-							textAlign: 'left', padding: '14px 16px', borderRadius: 10,
-							border: `2px solid ${mountMode === 'subfolder' ? 'var(--hx-primary)' : 'var(--hx-border)'}`,
-							background: mountMode === 'subfolder' ? 'var(--hx-surface-2)' : 'var(--hx-surface)',
-							cursor: 'pointer', fontFamily: 'inherit',
-						}}
-					>
-						<div style={{ fontSize: 15, fontWeight: 700, color: 'var(--hx-fg)', marginBottom: 4 }}>Subfolder</div>
-						<div className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.5 }}>Add {subPath} to your existing WordPress. Needs reverse-proxy access on your host.</div>
-					</button>
-				</div>
-				{mountMode === 'subfolder' && (
-					<div style={{ marginTop: 14 }}>
-						<span className="hx-label" style={{ fontWeight: 600, color: 'var(--hx-fg)', display: 'block', marginBottom: 6 }}>
-							Subfolder path
-						</span>
-						<HxInp
-							type="text"
-							value={subPath}
-							onChange={(e) => setSubPath(e.target.value)}
-							placeholder="/blog"
-							mono
-							spellCheck={false}
-						/>
-					</div>
-				)}
-			</HxCard>
-			)}
-
-			{subStep === 'B' && (
 			<div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 				{options.map((o) => {
 					const isOpen = open === o.id;
-					const disabled = !!o.comingSoon;
 					return (
-						<HxCard key={o.id} style={{ padding: 0, overflow: 'hidden', opacity: disabled ? 0.55 : 1 }}>
+						<HxCard key={o.id} style={{ padding: 0, overflow: 'hidden' }}>
 							<div
-								onClick={() => { if ( disabled ) return; setOpen(isOpen ? null : o.id); }}
+								onClick={() => { if (o.comingSoon) return; setOpen(isOpen ? null : o.id); }}
+								data-coming-soon={o.comingSoon ? 'true' : undefined}
 								style={{
 									display: 'flex',
 									alignItems: 'center',
 									gap: 14,
 									padding: '14px 18px',
-									cursor: disabled ? 'not-allowed' : 'pointer',
+									cursor: 'pointer',
 								}}
 							>
 								<div
@@ -911,9 +662,6 @@ function Step3Deploy({ boot, onBack }) {
 											tokenPagePrompt="Required permissions are pre-filled. On the Cloudflare page, click Create Token, then copy the value."
 											adminPostUrl={boot.adminPostUrl}
 											deployNonce={deployNonce}
-											mountMode={mountMode}
-											subPath={subPath}
-											domain={deployDomain}
 										/>
 									)}
 
@@ -926,9 +674,6 @@ function Step3Deploy({ boot, onBack }) {
 											tokenPagePrompt="On the Vercel page, click Create Token, give it any name, scope to your personal account, then copy the value."
 											adminPostUrl={boot.adminPostUrl}
 											deployNonce={deployNonce}
-											mountMode={mountMode}
-											subPath={subPath}
-											domain={deployDomain}
 										/>
 									)}
 
@@ -967,88 +712,15 @@ function Step3Deploy({ boot, onBack }) {
 					);
 				})}
 			</div>
-			)}
-
-			{/* v0.5.7 — Reverse-proxy snippets. Shown when Subfolder mode is
-			    active. Cloudflare Workers handles path routing natively via
-			    the /prepare bindWorkerToDomain step, so the CF picker doesn't
-			    need this card — but Vercel / Self-hosted / manual deploys
-			    do. User picks nginx / apache / cloudflare-worker tab and
-			    copies the block into their WP host config. */}
-			{subStep === 'C' && mountMode === 'subfolder' && open !== 'cloudflare' && (
-				<HxCard style={{ padding: 18 }}>
-					<HxHead
-						iconChildren={I.server}
-						iconColor="var(--hx-primary)"
-						title={`Reverse-proxy ${subPath} to your Astro frontend`}
-						desc="Pick your web-server, copy the snippet, paste into the config, reload. Only needed if you're deploying to a non-Cloudflare host."
-						mb={12}
-					/>
-					<ReverseProxySnippets
-						subPath={subPath || '/blog'}
-						parentHost={boot.siteHost || 'yourdomain.com'}
-						astroOrigin={setup.astroOrigin || '<paste-your-astro-origin-after-deploy>'}
-					/>
-				</HxCard>
-			)}
-
-			{subStep === 'C' && mountMode === 'root' && open !== 'cloudflare' && (
-				<HxCard style={{ padding: 18 }}>
-					<HxHead
-						iconChildren={I.globe}
-						iconColor="var(--hx-primary)"
-						title="Add one DNS record"
-						desc={`Point ${boot.siteHost || 'your domain'} at your Astro deploy. Propagation is usually under 5 minutes.`}
-						mb={12}
-					/>
-					<DnsRecordTable
-						parentHost={boot.siteHost || 'yourdomain.com'}
-						provider={open || 'vercel'}
-						astroOrigin={setup.astroOrigin || ''}
-					/>
-				</HxCard>
-			)}
-
-			{subStep === 'C' && open === 'cloudflare' && (
-				<HxCard style={{ padding: 18 }}>
-					<HxHead
-						iconChildren={I.check}
-						iconColor="var(--hx-success)"
-						title="Cloudflare handles routing — nothing to configure"
-						desc={mountMode === 'root'
-							? `The Worker deploy in Sub-step B binds ${boot.siteHost || 'your domain'} directly. Click Launch when ready.`
-							: `The Worker route bound in Sub-step B intercepts ${subPath} — WordPress keeps everything else. Click Launch.`}
-						mb={0}
-					/>
-				</HxCard>
-			)}
 
 			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-				<HxBtn variant="ghost" onClick={() => {
-					if ( subStep === 'A' ) onBack();
-					else if ( subStep === 'B' ) setSubStep('A');
-					else setSubStep('B');
-				}}>
+				<HxBtn variant="ghost" onClick={onBack}>
 					<HxIcon size={14} color="currentColor">{I.arrowL}</HxIcon>
 					Back
 				</HxBtn>
-				{subStep === 'A' && (
-					<HxBtn variant="brand" onClick={() => setSubStep('B')}>
-						Next: pick where Astro runs
-						<HxIcon size={14} color="currentColor">{I.arrowR}</HxIcon>
-					</HxBtn>
-				)}
-				{subStep === 'B' && (
-					<HxBtn variant="brand" onClick={() => setSubStep('C')}>
-						Next: connect the pieces
-						<HxIcon size={14} color="currentColor">{I.arrowR}</HxIcon>
-					</HxBtn>
-				)}
-				{subStep === 'C' && (
-					<HxBtn variant="brand" href={setup.completeUrl || '#'}>
-						Launch site ↗
-					</HxBtn>
-				)}
+				<HxBtn variant="brand" href={setup.completeUrl || '#'}>
+					Launch site ↗
+				</HxBtn>
 			</div>
 
 			<p className="hx-help" style={{ textAlign: 'center', marginTop: 6, color: 'var(--hx-subtle)' }}>

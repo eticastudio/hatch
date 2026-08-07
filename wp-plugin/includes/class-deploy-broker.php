@@ -146,20 +146,6 @@ class Hatch_Deploy_Broker {
 			admin_url( 'admin-post.php' )
 		);
 
-		// v0.5.7 — CF end-to-end broker payload includes user's domain +
-		// mount mode + subpath. Broker's /prepare handler stashes them on
-		// the ticket, deployToCloudflare() reads them to bind Worker route
-		// + DNS record. Empty values → broker skips bind step (deploys to
-		// .workers.dev only), so it's safe to always forward.
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended
-		$user_domain     = isset( $_POST['domain'] )    ? sanitize_text_field( wp_unslash( (string) $_POST['domain'] ) )    : '';
-		$user_mount      = isset( $_POST['mountMode'] ) ? sanitize_key( wp_unslash( (string) $_POST['mountMode'] ) )        : '';
-		$user_path       = isset( $_POST['subPath'] )   ? sanitize_text_field( wp_unslash( (string) $_POST['subPath'] ) )   : '';
-		$user_project    = isset( $_POST['projectName'] ) ? sanitize_key( wp_unslash( (string) $_POST['projectName'] ) )     : '';
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
-		$user_mount  = ( 'root' === $user_mount ) ? 'root' : 'subfolder';
-		$user_path   = '' !== $user_path ? $user_path : '/blog';
-
 		// Call broker /prepare server-to-server.
 		$prepare_url = self::base_url() . '/deploy/' . $provider . '/prepare';
 		$body        = array(
@@ -168,10 +154,6 @@ class Hatch_Deploy_Broker {
 			'wp_pass'        => $fresh['password'],
 			'webhook_secret' => $webhook_secret,
 			'return_url'     => $return_url,
-			'domain'         => $user_domain,
-			'mount_mode'     => $user_mount,
-			'sub_path'       => $user_path,
-			'project_name'   => $user_project,
 			$token_field     => $token,
 		);
 		$response = wp_remote_post( $prepare_url, array(

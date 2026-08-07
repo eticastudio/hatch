@@ -984,9 +984,13 @@ function hatch_react_setup_state(): array {
 	// VPS install script URL — filterable per old v0.50.10 contract so
 	// self-hosters can override at the PHP layer. React reads this from
 	// boot state, never hardcodes.
+	// v0.7.2 — script bundled inside the plugin at scripts/install-vps.sh.
+	// The one-liner below `cat`s the local file over SSH so no remote fetch
+	// is needed. Filterable so self-hosters can point at their own mirror.
+	$local_script  = HATCH_PLUGIN_DIR . 'scripts/install-vps.sh';
 	$vps_install_url = (string) apply_filters(
 		'hatch/vps_install_script_url',
-		'https://raw.githubusercontent.com/adityaarsharma/hatch/main/scripts/install-vps.sh'
+		file_exists( $local_script ) ? plugins_url( 'scripts/install-vps.sh', HATCH_PLUGIN_FILE ) : ''
 	);
 
 	// Single copy-paste one-liner that mirrors old setup-wizard.php lines 500-505.
@@ -1026,7 +1030,7 @@ function hatch_react_setup_state(): array {
 		'envBlock'       => $env_block,
 		'vpsInstallUrl'  => $vps_install_url,
 		'vpsOneLiner'    => $vps_one_liner,
-		'vpsDocsUrl'     => 'https://github.com/adityaarsharma/hatch/blob/main/docs/hosting/vps-runcloud.md',
+		'vpsDocsUrl'     => '',
 		'skipUrl'        => wp_nonce_url( admin_url( 'admin.php?page=hatch-setup&hatch_skip_setup=1' ), 'hatch_skip_setup' ),
 		'completeUrl'    => wp_nonce_url( admin_url( 'admin.php?page=hatch-setup&hatch_complete_setup=1' ), 'hatch_complete_setup' ),
 		'startDeployUrl' => wp_nonce_url( add_query_arg( 'action', 'hatch_start_deploy', admin_url( 'admin-post.php' ) ), 'hatch_start_deploy' ),
@@ -1158,6 +1162,23 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 		'show_credit' => 'hatch_show_credit',
 	);
 
+	// v0.5.7 — batch aggregate writes. Design tab saves fire 6+ per-key
+	// update_option calls against the SAME nested-group option
+	// (hatch_design_brand, hatch_perf, hatch_code_snippets, etc.). Each
+	// is a get→mutate→write round-trip. Buffer per-option; flush once at end.
+	$aggregate_cache = array();
+	$aggregate_dirty = array();
+	$load_agg = static function( $opt_key ) use ( &$aggregate_cache ) {
+		if ( ! array_key_exists( $opt_key, $aggregate_cache ) ) {
+			$aggregate_cache[ $opt_key ] = (array) get_option( $opt_key, array() );
+		}
+		return $aggregate_cache[ $opt_key ];
+	};
+	$mark_agg = static function( $opt_key, $value ) use ( &$aggregate_cache, &$aggregate_dirty ) {
+		$aggregate_cache[ $opt_key ] = $value;
+		$aggregate_dirty[ $opt_key ] = true;
+	};
+
 	foreach ( $body as $path => $value ) {
 		$path = (string) $path;
 
@@ -1197,9 +1218,9 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 		// Code snippets (GTM only at the moment).
 		if ( 0 === strpos( $path, 'snippets.' ) ) {
 			$key      = substr( $path, 9 );
-			$snippets = (array) get_option( 'hatch_code_snippets', array() );
+			$snippets = $load_agg( 'hatch_code_snippets' );
 			$snippets[ $key ] = sanitize_text_field( (string) $value );
-			update_option( 'hatch_code_snippets', $snippets, false );
+			$mark_agg( 'hatch_code_snippets', $snippets );
 			$applied[ $path ] = $snippets[ $key ];
 			continue;
 		}
@@ -1245,8 +1266,8 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 
 		// Performance struct.
 		if ( isset( $perf_keys[ $path ] ) ) {
-			$perf = (array) get_option( 'hatch_perf', array() );
 			$sub  = $perf_keys[ $path ];
+			$perf = $load_agg( 'hatch_perf' );
 			if ( in_array( $sub, array( 'prefetch_enabled', 'compress_html', 'partytown_enabled' ), true ) ) {
 				$perf[ $sub ] = (bool) $value ? 1 : 0;
 			} elseif ( 'assets_prefix' === $sub ) {
@@ -1254,7 +1275,7 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 			} else {
 				$perf[ $sub ] = sanitize_text_field( (string) $value );
 			}
-			update_option( 'hatch_perf', $perf, false );
+			$mark_agg( 'hatch_perf', $perf );
 			$applied[ $path ] = $perf[ $sub ];
 			continue;
 		}
@@ -1333,7 +1354,7 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 		foreach ( $nested_groups as $prefix => $opt_key ) {
 			if ( 0 === strpos( $path, $prefix ) ) {
 				$sub = substr( $path, strlen( $prefix ) );
-				$store = (array) get_option( $opt_key, array() );
+				$store = $load_agg( $opt_key );
 				if ( is_bool( $value ) ) {
 					$store[ $sub ] = (bool) $value;
 				} elseif ( is_int( $value ) || is_float( $value ) ) {
@@ -1341,11 +1362,17 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 				} else {
 					$store[ $sub ] = sanitize_text_field( (string) $value );
 				}
-				update_option( $opt_key, $store, false );
+				$mark_agg( $opt_key, $store );
 				$applied[ $path ] = $store[ $sub ];
 				continue 2;
 			}
 		}
+	}
+
+	// v0.5.7 — Flush deferred aggregate writes. One update_option per touched
+	// option key, regardless of how many sub-keys the React admin sent.
+	foreach ( $aggregate_dirty as $opt_key => $_true ) {
+		update_option( $opt_key, $aggregate_cache[ $opt_key ], false );
 	}
 
 	// v0.50.11 — CRITICAL: every React save writes to scattered new option keys

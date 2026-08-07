@@ -274,7 +274,6 @@ export default function Content({ state, onDirty, setSetting }) {
 	const content  = state.content  || {};
 	const menus    = state.menus    || [];
 	const forms    = state.forms    || { detected: false, plugin: null, count: 0 };
-	const plugins  = state.pluginBridge || [];
 	const ts       = state.turnstile || {};
 	const coreSync = state.coreSync || null;
 
@@ -304,23 +303,6 @@ export default function Content({ state, onDirty, setSetting }) {
 		onDirty();
 	};
 
-	// Plugin Bridge — capability-based. Each entry is a frontend feature; Hatch
-	// auto-detects which WordPress plugin is providing it. Server overrides via
-	// `state.pluginBridge`. Forms / SEO / Sitemap live here (not as their own
-	// Hatch routes) because the established WP plugins already do these well
-	// — Hatch's job is to surface them, not duplicate them.
-	const featureBridges = plugins.length > 0 ? plugins : [
-		{ feature: 'Forms',           providers: ['Fluent Forms', 'Gravity Forms', 'WPForms', 'Contact Form 7'],  detected: false, providerName: null, d: 'Form rendering + submissions handled by the form plugin itself; Hatch just relays the embed shortcode.' },
-		{ feature: 'SEO + Sitemap',   providers: ['RankMath', 'Yoast SEO', 'AIOSEO'],                              detected: false, providerName: null, d: 'sitemap.xml, rss.xml, robots.txt, and JSON-LD schema all sourced from your SEO plugin.' },
-		{ feature: 'Redirects',       providers: ['RankMath', 'Yoast Premium', 'Redirection'],                     detected: false, providerName: null, d: 'Redirect rules pulled live so the Astro middleware honors them.' },
-		{ feature: 'eCommerce',       providers: ['WooCommerce', 'Easy Digital Downloads', 'WP EasyCart'],         detected: false, providerName: null, d: 'Products, cart, and checkout on the frontend.' },
-		{ feature: 'Custom Fields',   providers: ['ACF', 'Meta Box', 'Pods', 'JetEngine'],                         detected: false, providerName: null, d: 'Custom field values exposed in REST + post meta.' },
-		{ feature: 'Email Newsletter',providers: ['FluentCRM', 'Mailchimp for WP', 'Newsletter', 'MailPoet'],      detected: false, providerName: null, d: 'Opt-in forms and subscriber lists bridged to the frontend.' },
-		{ feature: 'Memberships',     providers: ['MemberPress', 'Paid Memberships Pro', 'Restrict Content Pro'],  detected: false, providerName: null, d: 'Gated content, member-only routes, paid tiers.' },
-		{ feature: 'Code Snippets',   providers: ['WPCode', 'Code Snippets', 'Advanced Scripts'],                  detected: false, providerName: null, d: 'Inject your snippets globally without editing theme files.' },
-		{ feature: 'Data Tables',     providers: ['TablePress', 'wpDataTables', 'Posts Table Pro'],                detected: false, providerName: null, d: 'Responsive tables rendered as frontend components.' },
-	];
-
 	return (
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
@@ -343,61 +325,6 @@ export default function Content({ state, onDirty, setSetting }) {
 			    sit alongside WP's native comment settings → one mental
 			    model instead of split UI. */}
 
-
-			{/* Plugin Bridge — capability-based */}
-			<HxCard>
-				<HxHead
-					iconChildren={<>
-						<path d="M20.24 12.24a6 6 0 00-8.49-8.49L5 10.5V19h8.5zM16 8L2 22M17.5 15H9" />
-					</>}
-					iconColor="#8b5cf6"
-					title="Plugin Bridge"
-					desc="Frontend capabilities Hatch can wire up. Each one auto-detects whichever WordPress plugin is installed and bridges its data to your headless site."
-				/>
-				<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-					{featureBridges.map((b) => {
-						const detected = !!b.detected;
-						// Tolerate the legacy PHP shape ({n, d, detected}) by deriving
-						// a feature category from the plugin name when needed.
-						const LEGACY_CATEGORY = {
-							WooCommerce: 'eCommerce',
-							ACF:         'Custom Fields',
-							FluentCRM:   'Email Newsletter',
-							MemberPress: 'Memberships',
-							WPCode:      'Code Snippets',
-							TablePress:  'Data Tables',
-						};
-						const name = b.feature || LEGACY_CATEGORY[b.n] || b.n || 'Capability';
-						const providers = b.providers && b.providers.length ? b.providers : (b.n ? [b.n] : []);
-						return (
-							<div
-								key={name}
-								style={{
-									border: '1px solid var(--hx-border)',
-									borderRadius: 10,
-									padding: '12px 14px',
-									background: detected ? ibg('#8b5cf6') : 'var(--hx-surface)',
-								}}
-							>
-								<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, gap: 8 }}>
-									<span className="hx-desc" style={{ fontWeight: 600, color: 'var(--hx-fg)' }}>{name}</span>
-									<span title={detected ? '' : `Supported plugins:\n• ${providers.join('\n• ')}`} style={{ cursor: detected ? 'default' : 'help' }}>
-                                        <HxBadge color={detected ? 'green' : 'neutral'}>
-                                            {detected ? `Detected · ${b.providerName || b.n || ''}`.replace(/ · $/, '') : 'Not detected'}
-                                        </HxBadge>
-                                    </span>
-								</div>
-								<div className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.5, marginBottom: 6 }}>{b.d}</div>
-								{providers.length > 0 && (
-									<div className="hx-help" style={{ color: 'var(--hx-subtle)' }}>
-										Supports: <span style={{ color: 'var(--hx-muted)' }}>{providers.join(', ')}</span>
-									</div>
-								)}
-							</div>
-						);
-					})}
-				</div>
-			</HxCard>
 
 
 			{/* v0.50.31 — Third-party keys & services. Two integrations, that's

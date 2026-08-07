@@ -171,7 +171,15 @@ class Hatch_Features {
 				'description' => __( 'Documentation layout with sidebar category nav + search.', 'hatch' ),
 				'icon'        => '📚',
 			),
-			// v0.5.7 — 3 themes, all fully tested end-to-end.
+			// v0.5.7 — only the three themes that are actually finished and
+			// tested end to end: Editorial / Terminal / Docs. Newspaper /
+			// Marketing / Minimal are parked (their component sets sit in
+			// astro-starter/src/components/theme/_archive/); they never went
+			// through the button, block-CSS and form passes the three core
+			// themes got. A "Custom" slot was tried and pulled back out: every
+			// theme token lives behind a [data-hatch-theme="<slug>"] selector,
+			// so an unrecognised slug matches no rule and the page renders
+			// with unstyled defaults. Custom needs its own token set first.
 		);
 	}
 
@@ -339,15 +347,6 @@ class Hatch_Features {
 			// design.md parsed cache so we hydrate them here at payload time.
 			$design['borders']     = (array) get_option( 'hatch_design_borders',     array( 'color' => '#e5e5e5', 'shadow' => 'soft' ) );
 			$design['breakpoints'] = (array) get_option( 'hatch_design_breakpoints', array( 'mobile' => 640, 'tablet' => 1024, 'desktop' => 1280 ) );
-
-			// v0.5.7 — Color mode was a zombie control. The Design tab writes
-			// `hatch_design_mode` (light / dark / auto) and the admin boot
-			// state reads it back, so the UI looked correct — but the design
-			// loader hardcodes brand.mode = 'auto' and nothing merged the
-			// option into this payload. PageLayout renders
-			// data-hatch-mode="auto", so a site explicitly set to Light still
-			// followed the visitor's OS and rendered dark.
-			$design['brand']['mode'] = (string) get_option( 'hatch_design_mode', 'auto' );
 		}
 
 		// v0.50.15 — Aesthetic option groups. Pure key-value pass-through:

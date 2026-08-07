@@ -1,12 +1,13 @@
 ---
 /**
- * Legacy WP-native tag URL: /tag/<slug>/  →  /blog/tag/<slug>/
+ * Tag archive at the WP-native URL: /tag/<slug>/
  *
- * v0.7.0 — 301-redirects to the canonical /blog/tag/<slug>/ so the archive
- * lives at ONE URL, not two. See src/pages/category/[slug].astro for the
- * full rationale.
+ * v0.4.2 — Routes /tag/* to the full archive template living at
+ * /blog/tag/[slug].astro. URL adapter only — keeps the WP `/tag/<slug>/`
+ * permalink convention so inbound links survive a migration. Same
+ * pattern as /category/[slug].astro.
  */
 const { slug } = Astro.params;
-if (!slug) return Astro.redirect('/blog/');
-return Astro.redirect(`/blog/tag/${slug}/`, 301);
+if (!slug) return Astro.redirect('/');
+return Astro.rewrite(`/blog/tag/${slug}`);
 ---

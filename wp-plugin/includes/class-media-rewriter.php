@@ -101,17 +101,6 @@ class Hatch_Media_Rewriter {
 			$content
 		);
 
-		// v0.5.7 — self-heal stale frontends. Older dev sessions saved fully
-		// rewritten `<old-frontend>/hatch-media/…` URLs straight into
-		// post_content, and every redeploy changes the frontend host, so those
-		// URLs 404 forever. Any /hatch-media/ URL pointing anywhere other than
-		// the current frontend is wrong by definition — repoint it.
-		$content = preg_replace(
-			'#https?://[^/"\'\s]+' . preg_quote( self::ROUTE, '#' ) . '#',
-			$new_prefix,
-			$content
-		);
-
 		return $content;
 	}
 
