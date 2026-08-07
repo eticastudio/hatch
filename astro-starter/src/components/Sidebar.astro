@@ -130,10 +130,10 @@ const recentPosts = recentData.posts || [];
   .hatch-sidebar-title {
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--hatch-fg-subtle);
-    margin-bottom: 14px;
+    margin-bottom: 12px;
   }
 
   .hatch-sidebar-list {
@@ -149,7 +149,7 @@ const recentPosts = recentData.posts || [];
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
+    padding: 6px 10px;
     border-radius: var(--hatch-radius, 6px);
     color: var(--hatch-fg-muted);
     transition: background 140ms ease, color 140ms ease;
@@ -161,14 +161,10 @@ const recentPosts = recentData.posts || [];
   }
 
   .hatch-sidebar-item.is-active {
-    color: var(--hatch-fg);
-    font-weight: 600;
-    box-shadow: inset 2px 0 0 var(--hatch-primary);
-    background: transparent;
-  }
-  .hatch-sidebar-item.is-active .hatch-sidebar-count {
+    background: color-mix(in oklab, var(--hatch-primary) 10%, transparent);
     color: var(--hatch-primary);
-    font-weight: 600;
+    font-weight: 500;
+    box-shadow: inset 2px 0 0 var(--hatch-primary);
   }
 
   .hatch-sidebar-count {

@@ -1,14 +1,16 @@
 ---
 /**
- * Legacy WP-native category URL: /category/<slug>/  →  /blog/category/<slug>/
+ * Category archive at the WP-native URL: /category/<slug>/
  *
- * v0.7.0 — /blog is the canonical mount for every taxonomy archive. This
- * route now 301-redirects (not silently rewrites) so a request never
- * resolves at TWO URLs at once (that was a duplicate-content SEO defect).
- * Kept as a redirect (not deleted) so any inbound links from the WP-native
- * era survive the migration and pass link equity to the canonical URL.
+ * v0.4.2 — Routes /category/* to the full archive template living at
+ * /blog/category/[slug].astro. Single source of truth for the archive
+ * layout; this file is just a URL adapter so links built via
+ * lib/url-builder.categoryUrl() (default `category_base = "category"`)
+ * resolve to a real page. Mirrors WP's `/category/<slug>/` permalink
+ * convention so existing inbound links keep working when a site
+ * migrates from WordPress to a Hatch frontend.
  */
 const { slug } = Astro.params;
-if (!slug) return Astro.redirect('/blog/');
-return Astro.redirect(`/blog/category/${slug}/`, 301);
+if (!slug) return Astro.redirect('/');
+return Astro.rewrite(`/blog/category/${slug}`);
 ---

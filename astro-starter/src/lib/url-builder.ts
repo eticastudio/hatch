@@ -57,48 +57,48 @@ const ensureTrailingSlash = (s: string) =>
 /**
  * Build the URL for a single post.
  *
- * v0.7.0 — /blog is the canonical mount for POSTS in every Hatch site,
- * regardless of what permalink shape WordPress has on the origin. The whole
- * product pitch is "adds a fast static /blog subfolder to any parent site"
- * — every post link MUST resolve at /blog/<slug>/. Emitting /<slug>/ (the
- * WP-native shape) caused the same content to be reachable at two URLs
- * (200 at /<slug>/, 200 at /blog/<slug>/) which is a duplicate-content SEO
- * defect and defeats the subfolder-mount promise.
- *
- * Resolution:
- *   1. If post.link is a same-origin URL, extract just the slug and rebuild
- *      as /blog/<slug>/. (Origin-different links are external — return as-is.)
- *   2. Else use post.slug directly.
- *
- * The root-level catch-all ([...slug].astro) 301-redirects any incidental
- * hits at /<slug>/ (from old inbound links) to /blog/<slug>/.
+ * Resolution order:
+ *   1. Honor post.link if the caller provided it (we trust WP's own URL).
+ *   2. Else expand features.site.permalink_structure with the post's slug
+ *      (and categorySlug if needed).
+ *   3. Else fall back to `/<slug>/` — the most common modern WP setup.
  */
 export function postUrl(post: LinkablePost, features?: HatchFeatures): string {
-  // Prefer the explicit slug; only fall back to parsing post.link when slug
-  // is missing (some legacy payloads pass link without slug).
-  let slug = trim(post.slug);
-  if (!slug && post.link) {
+  if (post.link) {
+    // WP gave us a full URL. Strip the origin if it matches site.url so
+    // the link stays relative (Astro routing happier with same-origin paths).
     try {
       const u = new URL(post.link);
       const siteOrigin = features?.site?.url ? new URL(features.site.url).origin : '';
-      if (!siteOrigin || u.origin === siteOrigin) {
-        // Take the last non-empty path segment as the slug.
-        const parts = u.pathname.split('/').filter(Boolean);
-        slug = parts[parts.length - 1] || '';
-      } else {
-        // Cross-origin link (e.g. multisite) — pass through untouched.
-        return post.link;
+      if (siteOrigin && u.origin === siteOrigin) {
+        return u.pathname + u.search + u.hash;
       }
+      return post.link;
     } catch {
-      // Not a valid absolute URL — treat as raw slug fallback.
-      slug = trim(post.link);
+      // Not a valid absolute URL — treat as path.
+      return ensureLeadingSlash(post.link);
     }
   }
-  if (!slug) {
-    // Truly unknown — plain-permalink server fallback (?p=ID).
-    return post.id ? `/?p=${post.id}` : '/blog/';
+
+  const struct = (features?.site as any)?.permalink_structure || '';
+  if (!struct) {
+    // Plain permalinks (?p=ID). Best we can do without an id: fall back
+    // to /<slug>/ — most modern installs use postname permalinks anyway.
+    return post.id ? `/?p=${post.id}` : `/${post.slug}/`;
   }
-  return `/blog/${slug}/`;
+
+  // Expand the structure with what we know.
+  let path = struct
+    .replace(/%postname%/g, post.slug)
+    .replace(/%category%/g, post.categorySlug || 'uncategorized')
+    // Tokens we can't fill (year/month/day/post_id/author) get stripped to
+    // avoid emitting literal "%year%". Caller can supply post.link to
+    // bypass this if they need date-based URLs.
+    .replace(/%[a-z_]+%/g, '')
+    // Collapse any double slashes left by stripped tokens.
+    .replace(/\/+/g, '/');
+
+  return ensureTrailingSlash(ensureLeadingSlash(path));
 }
 
 /**
@@ -129,29 +129,27 @@ export function hasArchive(features?: HatchFeatures): boolean {
 }
 
 /**
- * URL for a category archive.
+ * URL for a category archive. Honors WP's category_base option (default
+ * "category" → /category/<slug>/, custom "topics" → /topics/<slug>/).
  *
- * v0.7.0 — Every taxonomy archive lives under /blog/ so the entire content
- * surface (posts + archives) sits inside the subfolder mount. Root-level
- * /category/<slug>/ 301s to /blog/category/<slug>/ via the URL adapter at
- * src/pages/category/[slug].astro. Honors WP's category_base for the last
- * segment (default "category" → /blog/category/<slug>/, custom "topics" →
- * /blog/topics/<slug>/).
+ * Note: this is the WP-native archive URL. The current Hatch Astro starter
+ * also ships /blog/category/<slug>/ as a legacy route — that route will
+ * 301 to this canonical URL in a follow-up.
  */
 export function categoryUrl(slug: string, features?: HatchFeatures): string {
   const base = (features?.site as any)?.category_base || 'category';
-  return `/blog/${trim(base)}/${trim(slug)}/`;
+  return `/${trim(base)}/${trim(slug)}/`;
 }
 
 /** URL for a tag archive. Same contract as categoryUrl. */
 export function tagUrl(slug: string, features?: HatchFeatures): string {
   const base = (features?.site as any)?.tag_base || 'tag';
-  return `/blog/${trim(base)}/${trim(slug)}/`;
+  return `/${trim(base)}/${trim(slug)}/`;
 }
 
-/** URL for an author archive. Under /blog/ so it 301s cleanly from /author/*. */
+/** URL for an author archive. WP convention: /author/<slug>/. */
 export function authorUrl(slug: string): string {
-  return `/blog/author/${trim(slug)}/`;
+  return `/author/${trim(slug)}/`;
 }
 
 /** Search results URL. WP convention: /?s=query, but Astro starter uses /search?q=. */
