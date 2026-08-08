@@ -202,7 +202,7 @@ const tk = themeKey(features);
   <article class="mx-auto px-5 sm:px-8 py-10 sm:py-14" style={articleMaxWStyle}>
 
     {showBreadcrumb && (
-      <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[12.5px] text-hatch-fg-subtle mb-8 flex-wrap">
+      <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[13px] text-hatch-fg-subtle mb-8 flex-wrap">
         <a href="/" class="hover:text-hatch-fg transition-colors">Home</a>
         <span class="text-hatch-fg-subtle">{breadcrumbSep}</span>
         <a href="/blog" class="hover:text-hatch-fg transition-colors">Blog</a>
@@ -225,7 +225,7 @@ const tk = themeKey(features);
         </a>
       )}
       <h1 class="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight leading-[1.1]" set:html={post.title} />
-      <div class="mt-6 flex items-center flex-wrap gap-x-4 gap-y-2 text-[13.5px] text-hatch-fg-muted">
+      <div class="mt-6 flex items-center flex-wrap gap-x-4 gap-y-2 text-[14px] text-hatch-fg-muted">
         {post.author && (
           <a href={`/blog/author/${post.author.slug}`} class="flex items-center gap-2 hover:text-hatch-fg transition-colors">
             {post.author.avatar && <img src={post.author.avatar} alt="" width="24" height="24" class={avatarShape} loading="lazy" />}
@@ -242,7 +242,7 @@ const tk = themeKey(features);
         )}
       </div>
       {showUpdated && updatedDifferent && (
-        <p class="mt-2 text-[12px] text-hatch-fg-subtle italic">Last updated {updatedLabel}</p>
+        <p class="mt-2 text-[13px] text-hatch-fg-subtle italic">Last updated {updatedLabel}</p>
       )}
     </header>
 
@@ -307,7 +307,7 @@ const tk = themeKey(features);
     {post.tags.length > 0 && (
       <div class="flex flex-wrap items-center gap-2 pt-10 mt-12 border-t border-hatch-border">
         {post.tags.map((tag) => (
-          <span class="px-3 py-1 rounded-full text-[12px] bg-hatch-bg-2 text-hatch-fg-muted border border-hatch-border">{tag}</span>
+          <span class="px-3 py-1 rounded-full text-[13px] bg-hatch-bg-2 text-hatch-fg-muted border border-hatch-border">{tag}</span>
         ))}
       </div>
     )}
@@ -319,7 +319,7 @@ const tk = themeKey(features);
         floating left rail. */}
     {showShare && (share.x || share.linkedin || share.whatsapp || share.copy || share.facebook || share.reddit || share.email) && (
       <div class={share.position === 'sticky' ? 'hidden lg:flex flex-col fixed left-6 top-1/2 -translate-y-1/2 gap-2 z-40' : 'flex items-center gap-2 mt-8 pt-6 border-t border-hatch-border'}>
-        {share.position !== 'sticky' && <span class="text-[12.5px] text-hatch-fg-subtle mr-2">Share</span>}
+        {share.position !== 'sticky' && <span class="text-[13px] text-hatch-fg-subtle mr-2">Share</span>}
         {share.x && (
           <a href={`https://twitter.com/intent/tweet?text=${shareText}`} target="_blank" rel="noopener noreferrer" aria-label="Share on X" title="Share on X" class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-hatch-border text-hatch-fg-muted hover:text-hatch-fg hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors">
             <svg viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>

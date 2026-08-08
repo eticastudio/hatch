@@ -146,6 +146,18 @@ class Hatch_Deploy_Broker {
 			admin_url( 'admin-post.php' )
 		);
 
+		// v0.5.7 — wizard Sub-step A hidden inputs (mountMode + subPath + domain).
+		// Broker uses these to decide whether to bind a Worker to a subfolder
+		// route or the root of the domain. Missing = broker defaults to root.
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$mount_mode = isset( $_POST['mountMode'] ) ? sanitize_key( wp_unslash( (string) $_POST['mountMode'] ) ) : 'root';
+		if ( ! in_array( $mount_mode, array( 'root', 'subfolder' ), true ) ) {
+			$mount_mode = 'root';
+		}
+		$sub_path = isset( $_POST['subPath'] ) ? '/' . ltrim( sanitize_text_field( wp_unslash( (string) $_POST['subPath'] ) ), '/' ) : '/blog';
+		$custom_domain = isset( $_POST['domain'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['domain'] ) ) : '';
+		// phpcs:enable
+
 		// Call broker /prepare server-to-server.
 		$prepare_url = self::base_url() . '/deploy/' . $provider . '/prepare';
 		$body        = array(
@@ -154,6 +166,9 @@ class Hatch_Deploy_Broker {
 			'wp_pass'        => $fresh['password'],
 			'webhook_secret' => $webhook_secret,
 			'return_url'     => $return_url,
+			'mountMode'      => $mount_mode,
+			'subPath'        => $sub_path,
+			'domain'         => $custom_domain,
 			$token_field     => $token,
 		);
 		$response = wp_remote_post( $prepare_url, array(

@@ -3,7 +3,7 @@
  * Plugin Name:       Hatch — Headless WordPress
  * Plugin URI:        https://github.com/adityaarsharma/hatch
  * Description:       Turn WordPress into a headless CMS with an Astro frontend. One-click deploy to Cloudflare / Vercel / VPS, security hardening, image proxy, REST bridge, and a React admin.
- * Version:           0.7.3
+ * Version:           0.7.5
  * Requires at least: 6.4
  * Tested up to:      6.9
  * Requires PHP:      7.4
@@ -20,7 +20,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'HATCH_VERSION', '0.7.3' );
+define( 'HATCH_VERSION', '0.7.5' );
 define( 'HATCH_PLUGIN_FILE', __FILE__ );
 define( 'HATCH_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'HATCH_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -423,6 +423,9 @@ require_once HATCH_PLUGIN_DIR . 'includes/class-blocks-tailwind-runtime.php';
 // V0.22 — integrations + headless comments + headless forms + companion theme.
 require_once HATCH_PLUGIN_DIR . 'includes/class-integrations.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-headless-comments.php';
+// v0.7.5 — Strip third-party admin notices (WooCommerce Action Scheduler,
+// SEO plugin nags, review prompts, etc.) on Hatch's own admin screens.
+require_once HATCH_PLUGIN_DIR . 'includes/class-admin-quiet.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-headless-forms.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-companion-theme-installer.php';
 // v0.50.x — periodic HEAD probe for CF/Vercel project URLs so the heartbeat

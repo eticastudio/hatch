@@ -82,32 +82,53 @@ function hatch_handle_save_manual_target(): void {
  * @return void
  */
 function hatch_setup_wizard_maybe_redirect_first_run(): void {
+	// Hard idempotency: ONLY ever redirect once per install. Prevents
+	// admin from bouncing repeatedly if the activation transient gets
+	// re-set for any reason (upgrader, WP-CLI, manual reactivate).
+	if ( get_option( 'hatch_first_run_redirected' ) ) {
+		delete_transient( 'hatch_just_activated' );
+		return;
+	}
 	if ( ! get_transient( 'hatch_just_activated' ) ) {
 		return;
 	}
 	if ( wp_doing_ajax() || ( defined( 'DOING_CRON' ) && DOING_CRON ) ) {
 		return;
 	}
+	if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+		return;
+	}
 	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+	// Only bounce on top-level GET admin loads.
+	if ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'GET' !== strtoupper( (string) $_SERVER['REQUEST_METHOD'] ) ) {
 		return;
 	}
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	if ( isset( $_GET['page'] ) && 'hatch-setup' === $_GET['page'] ) {
+		delete_transient( 'hatch_just_activated' );
+		update_option( 'hatch_first_run_redirected', time(), false );
 		return; // already there
 	}
 	// Don't bounce if wizard already completed.
 	if ( get_option( 'hatch_setup_wizard_completed' ) ) {
 		delete_transient( 'hatch_just_activated' );
+		update_option( 'hatch_first_run_redirected', time(), false );
 		return;
 	}
 	delete_transient( 'hatch_just_activated' );
+	update_option( 'hatch_first_run_redirected', time(), false );
 	wp_safe_redirect( admin_url( 'admin.php?page=hatch-setup' ) );
 	exit;
 }
 
 function hatch_setup_wizard_menu(): void {
+	// Hidden submenu — pass empty string, NOT null. Passing null triggers
+	// a "Passing null to str_contains()" deprecation warning inside
+	// wp-admin/admin-header.php on PHP 8.1+.
 	add_submenu_page(
-		null,
+		'',
 		__( 'Hatch Setup', 'hatch' ),
 		'Hatch Setup',
 		'manage_options',

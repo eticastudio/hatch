@@ -209,10 +209,21 @@ export default function Design({ state, onDirty, setSetting }) {
 				{/* Brand Colors — one HxRow per color so every row has the
 				    same label/desc/control rhythm as the toggles. */}
 				<HxGL>Brand colors</HxGL>
-				{Object.entries(brand).map(([k, v], idx, arr) => (
+				{/* Whitelist canonical brand color slots. The stored option can carry
+				    legacy siblings (bg, fg, font_heading) — rendering ALL keys as
+				    <input type="color"> created duplicate "Background/Bg" rows and
+				    a broken color picker on the font_heading string. */}
+				{[
+					['primary',    'Primary'],
+					['secondary',  'Secondary'],
+					['accent',     'Accent'],
+					['background', 'Background'],
+				].map(([k, label]) => {
+					const v = brand[k] || '#000000';
+					return (
 					<HxRow
 						key={k}
-						label={k.charAt(0).toUpperCase() + k.slice(1)}
+						label={label}
 						desc={null}
 					>
 						<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -227,7 +238,8 @@ export default function Design({ state, onDirty, setSetting }) {
 							</div>
 						</div>
 					</HxRow>
-				))}
+					);
+				})}
 				<ChipRow
 					label="Color mode"
 					desc="Light / Dark / Auto. Auto follows the visitor's OS preference."

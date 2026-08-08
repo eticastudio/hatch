@@ -21,6 +21,7 @@ interface Props {
   format?: 'webp' | 'avif';
   quality?: number;
   loading?: 'lazy' | 'eager';
+  fetchpriority?: 'high' | 'low' | 'auto';
   decoding?: 'async' | 'sync' | 'auto';
   class?: string;
   style?: string;
@@ -37,6 +38,7 @@ const {
   format = 'webp',
   quality,
   loading = 'lazy',
+  fetchpriority,
   decoding = 'async',
   class: className,
   style,
@@ -61,6 +63,7 @@ const srcset = width && optimized !== optimized2x ? `${optimized} 1x, ${optimize
   width={width}
   height={height}
   loading={loading}
+  fetchpriority={fetchpriority}
   decoding={decoding}
   class={className}
   style={style}

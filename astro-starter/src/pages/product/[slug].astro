@@ -1,0 +1,165 @@
+---
+/**
+ * WooCommerce product detail — MVP.
+ *
+ * Fetches a single product from Hatch's read-only bridge
+ * (`/wp-json/hatch/v1/store/products?slug=<slug>`), renders image + title +
+ * price + short description + an "Add to cart" form that POSTs to the WC
+ * Store API (`/wp-json/wc/store/v1/cart/add-item`).
+ *
+ * The Store API accepts cart adds without auth using its own nonce, but for
+ * the demo we short-circuit: the form falls back to `?add-to-cart=<id>` on
+ * the WP origin so the classic Woo cart handler catches it. That works
+ * without any auth handshake and lets the checkout flow be exercised on the
+ * WP side. Real headless checkout ships in v0.7.
+ *
+ * @since 0.7.4
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import { WP_API_URL } from 'astro:env/server';
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/');
+
+const base = (WP_API_URL || '').replace(/\/wp-json\/?$/, '').replace(/\/$/, '');
+if (!base) {
+  Astro.response.status = 500;
+  return new Response('WP_API_URL not configured', { status: 500 });
+}
+
+type WooProduct = {
+  id: number;
+  slug: string;
+  name: string;
+  permalink: string;
+  short: string;
+  price: string;
+  regular_price: string;
+  sale_price: string;
+  currency: string;
+  on_sale: boolean;
+  in_stock: boolean;
+  image: string;
+  rating: number;
+  rating_count: number;
+  categories?: Array<{ name: string; slug: string }>;
+};
+
+let product: WooProduct | null = null;
+let fetchErr: string | null = null;
+
+try {
+  const listUrl = `${base}/wp-json/hatch/v1/store/products?per_page=100`;
+  const res = await fetch(listUrl, { headers: { Accept: 'application/json' } });
+  if (res.ok) {
+    const data = (await res.json()) as { products?: WooProduct[] };
+    product = (data.products || []).find((p) => p.slug === slug) || null;
+  } else {
+    fetchErr = `HTTP ${res.status}`;
+  }
+} catch (err) {
+  fetchErr = (err as Error).message;
+}
+
+if (!product) {
+  Astro.response.status = 404;
+}
+
+const currencySymbol = product?.currency === 'USD' ? '$' : (product?.currency || '');
+const priceDisplay = product ? `${currencySymbol}${product.price || product.regular_price || '0'}` : '';
+const addToCartHref = product ? `${base}/?add-to-cart=${product.id}` : '#';
+const checkoutHref = `${base}/checkout/`;
+---
+
+<PageLayout title={product ? product.name : 'Product not found'} description={product?.short || ''}>
+  <main class="mx-auto max-w-4xl px-6 py-16">
+    {!product && (
+      <div class="rounded-lg border border-hatch-border bg-hatch-surface p-8 text-center">
+        <h1 class="text-2xl font-semibold text-hatch-fg mb-2">Product not found</h1>
+        <p class="text-sm text-hatch-muted">
+          {fetchErr
+            ? `Couldn't reach the WooCommerce bridge (${fetchErr}).`
+            : `No published product matches "${slug}".`}
+        </p>
+        <a href="/" class="mt-4 inline-block text-hatch-primary underline">Return home</a>
+      </div>
+    )}
+
+    {product && (
+      <article class="grid grid-cols-1 gap-10 md:grid-cols-2">
+        <div class="rounded-lg overflow-hidden bg-hatch-surface border border-hatch-border">
+          {product.image ? (
+            <img
+              src={product.image}
+              alt={product.name}
+              width="600"
+              height="600"
+              class="w-full h-auto object-cover"
+              loading="eager"
+            />
+          ) : (
+            <div class="aspect-square flex items-center justify-center text-hatch-muted text-sm">
+              No product image
+            </div>
+          )}
+        </div>
+
+        <div class="flex flex-col gap-4">
+          {product.categories && product.categories.length > 0 && (
+            <div class="text-xs uppercase tracking-wider text-hatch-muted">
+              {product.categories.map((c) => c.name).join(' · ')}
+            </div>
+          )}
+
+          <h1 class="text-3xl md:text-4xl font-bold text-hatch-fg leading-tight">
+            {product.name}
+          </h1>
+
+          <div class="flex items-baseline gap-3">
+            <div class="text-2xl font-semibold text-hatch-fg">{priceDisplay}</div>
+            {product.on_sale && product.regular_price && product.regular_price !== product.price && (
+              <div class="text-lg text-hatch-muted line-through">
+                {currencySymbol}{product.regular_price}
+              </div>
+            )}
+          </div>
+
+          <div class="text-sm text-hatch-muted">
+            {product.in_stock ? '✓ In stock' : '✗ Out of stock'}
+          </div>
+
+          {product.short && (
+            <div class="prose prose-sm text-hatch-fg" set:html={product.short} />
+          )}
+
+          <form method="get" action={addToCartHref} class="mt-2 flex flex-wrap gap-3">
+            <button
+              type="submit"
+              disabled={!product.in_stock}
+              class="rounded-md bg-hatch-primary px-6 py-3 text-white font-medium hover:bg-hatch-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              Add to cart
+            </button>
+            <a
+              href={checkoutHref}
+              class="rounded-md border border-hatch-border px-6 py-3 text-hatch-fg font-medium hover:bg-hatch-surface transition"
+            >
+              Checkout on WordPress ↗
+            </a>
+          </form>
+
+          <details class="mt-6 text-xs text-hatch-muted">
+            <summary class="cursor-pointer font-medium">Bridge details</summary>
+            <div class="mt-2 space-y-1 font-mono">
+              <div>Product ID: {product.id}</div>
+              <div>Slug: {product.slug}</div>
+              <div>Source: <code>/wp-json/hatch/v1/store/products</code></div>
+              <div>Cart POST: <code>/wp-json/wc/store/v1/cart</code></div>
+              <div>Checkout: <code>{base}/checkout/</code></div>
+            </div>
+          </details>
+        </div>
+      </article>
+    )}
+  </main>
+</PageLayout>
