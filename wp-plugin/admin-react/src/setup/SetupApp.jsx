@@ -198,9 +198,11 @@ function Step1Welcome({ boot, onContinue }) {
 	const allGood = total > 0 && passed === total;
 	const hasChecks = total > 0;
 	// v0.7.5 — Gate Continue on critical failures. Warnings (c.warn) are
-	// soft and don't block; only hard fails (neither ok nor warn) do.
-	const criticalFails = checks.filter((c) => !c.ok && !c.warn).length;
-	const blocked = criticalFails > 0;
+	// v0.7.5 — soft-warn model: every preflight item is informational.
+	// User can Continue even if items fail — they're diagnostics, not gates.
+	// App-passwords disable is a common "warning" that shouldn't block the video.
+	const criticalFails = 0;
+	const blocked = false;
 
 	const headIcon  = !hasChecks ? I.info    : allGood ? I.check : I.alert;
 	const headColor = !hasChecks ? 'var(--hx-muted)' : allGood ? 'var(--hx-success)' : 'var(--hx-warning)';
