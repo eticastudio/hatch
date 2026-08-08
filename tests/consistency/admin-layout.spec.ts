@@ -16,7 +16,7 @@ mkdirSync(SS_DIR, { recursive: true });
 async function login(page: Page) {
   await page.goto('http://localhost:8810/wp-login.php', { waitUntil: 'domcontentloaded' });
   await page.fill('#user_login', 'admin');
-  await page.fill('#user_pass', 'hatchadmin');
+  await page.fill('#user_pass', 'admin');
   await Promise.all([
     page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
     page.click('#wp-submit'),

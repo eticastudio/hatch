@@ -197,6 +197,10 @@ function Step1Welcome({ boot, onContinue }) {
 	const total  = checks.length;
 	const allGood = total > 0 && passed === total;
 	const hasChecks = total > 0;
+	// v0.7.5 — Gate Continue on critical failures. Warnings (c.warn) are
+	// soft and don't block; only hard fails (neither ok nor warn) do.
+	const criticalFails = checks.filter((c) => !c.ok && !c.warn).length;
+	const blocked = criticalFails > 0;
 
 	const headIcon  = !hasChecks ? I.info    : allGood ? I.check : I.alert;
 	const headColor = !hasChecks ? 'var(--hx-muted)' : allGood ? 'var(--hx-success)' : 'var(--hx-warning)';
@@ -243,7 +247,7 @@ function Step1Welcome({ boot, onContinue }) {
 				>
 					Skip wizard, I'll configure manually
 				</a>
-				<HxBtn variant="brand" onClick={onContinue}>
+				<HxBtn variant="brand" onClick={onContinue} disabled={blocked} title={blocked ? `Fix ${criticalFails} critical issue${criticalFails === 1 ? '' : 's'} above to continue.` : undefined}>
 					Continue
 					<HxIcon size={14} color="currentColor">{I.arrowR}</HxIcon>
 				</HxBtn>
@@ -402,8 +406,12 @@ function Step2Theme({ boot, onBack }) {
 						);
 					})}
 					{/* v0.5.7 — Custom theme tile — 4th slot after the 3 built-ins.
-					    Non-selectable placeholder; clicking opens the guide. */}
-					<div
+					    Non-selectable placeholder; clicking opens the guide in a
+					    new tab (bundled at wp-content/plugins/hatch/docs/CUSTOM-THEME-BOILERPLATE.md). */}
+					<a
+						href={(boot.pluginUrl || '/wp-content/plugins/hatch/').replace(/\/?$/, '/') + 'docs/CUSTOM-THEME-BOILERPLATE.md'}
+						target="_blank"
+						rel="noopener noreferrer"
 						style={{
 							border: '1px dashed var(--hx-border)',
 							borderRadius: 12,
@@ -411,6 +419,9 @@ function Step2Theme({ boot, onBack }) {
 							background: 'var(--hx-surface)',
 							display: 'flex',
 							flexDirection: 'column',
+							textDecoration: 'none',
+							color: 'inherit',
+							cursor: 'pointer',
 						}}
 					>
 						<div style={{ marginBottom: 10, borderRadius: 6, border: '1px solid rgba(0,0,0,0.06)', aspectRatio: '16/10', display: 'grid', placeItems: 'center', color: 'var(--hx-muted)', fontSize: 32 }}>
@@ -424,7 +435,10 @@ function Step2Theme({ boot, onBack }) {
 						<div className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.5 }}>
 							Fork the Astro starter shipped inside this plugin's <span className="hx-mono">astro-starter/</span>. Ship your own layout, components, and CSS while keeping every Hatch bridge live.
 						</div>
-					</div>
+						<div className="hx-help" style={{ color: 'var(--hx-primary)', marginTop: 8, fontWeight: 600 }}>
+							Read the boilerplate guide ↗
+						</div>
+					</a>
 				</div>
 
 				<HxCard status="info" style={{ padding: '14px 16px' }}>
@@ -733,7 +747,7 @@ function Step3Deploy({ boot, onBack }) {
 			icon: I.vercel,
 			iconColor: 'var(--hx-fg)',
 			label: 'Vercel',
-			desc: 'Best-in-class DX. Free hobby tier. One-click deploy.',
+			desc: 'Push-to-deploy with preview URLs and edge caching.',
 		},
 		{
 			id: 'self',

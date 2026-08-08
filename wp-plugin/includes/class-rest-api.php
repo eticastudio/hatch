@@ -172,7 +172,11 @@ class Hatch_Rest_Api {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'route_menus' ),
-				'permission_callback' => array( $this, 'permission_authenticated' ),
+				// v0.7.4 — menus are public data (rendered on every public frontend
+				// page). External SSR clients (CF Worker) hit this endpoint with
+				// Basic Auth which doesn't set is_user_logged_in(); requiring auth
+				// silently broke the site header menu. Return true — no PII exposed.
+				'permission_callback' => '__return_true',
 			)
 		);
 
@@ -182,7 +186,7 @@ class Hatch_Rest_Api {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'route_menu_items' ),
-				'permission_callback' => array( $this, 'permission_authenticated' ),
+				'permission_callback' => '__return_true',
 				'args'                => array(
 					'location' => array(
 						'required'          => true,

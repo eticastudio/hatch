@@ -268,6 +268,12 @@ const FALLBACK: HatchFeatures = {
 
 let cached: { data: HatchFeatures; expires: number } | null = null;
 const CACHE_TTL_MS = 60 * 1000;
+// v0.5.8 — in-flight dedupe. Under concurrent SSR (10+ page loads at once)
+// the same /features fetch would fire N times, saturate WP, and time out —
+// showing FALLBACK instead of real theme tokens. Coalesce to one in-flight
+// request; every caller in the same tick awaits the same promise.
+let inflight: Promise<HatchFeatures> | null = null;
+const FETCH_TIMEOUT_MS = 5000;
 
 /**
  * Drop the in-memory features cache. Called by the revalidate webhook so a
@@ -289,15 +295,20 @@ export async function getFeatures(): Promise<HatchFeatures> {
     console.warn('[hatch] WP_API_URL not set — using fallback features');
     return FALLBACK;
   }
+  if (inflight) return inflight;
+  inflight = (async () => {
   try {
     // /hatch/v1/features lives under the same WP root as wp/v2 — strip /wp/v2
     // off the configured base to find the Hatch namespace.
     const base = WP_API.replace(/\/wp\/v2\/?$/, '');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     const res = await fetch(`${base}/hatch/v1/features`, {
       headers,
       // Don't let WP's own cache hand us stale data — we cache here in-process.
       cache: 'no-store',
-    });
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timer));
     if (!res.ok) {
       console.warn('[hatch] /features returned', res.status, '— using fallback');
       return FALLBACK;
@@ -332,7 +343,15 @@ export async function getFeatures(): Promise<HatchFeatures> {
       // at request time. Falls back to defaults if WP plugin is older.
       perf: { ...PERF_FALLBACK, ...(data.perf || {}) },
       features: { ...FALLBACK.features, ...(data.features || {}) },
-      site: { ...FALLBACK.site, ...(data.site || {}) },
+      site: (() => {
+        const merged = { ...FALLBACK.site, ...(data.site || {}) };
+        // v0.5.9 — allow deploy-time override of site.url (e.g. when WP is
+        // behind a tunnel with siteurl=localhost, but the public frontend
+        // lives at a CF Worker URL). Canonical + og:url use this.
+        const override = (import.meta.env.PUBLIC_SITE_URL as string | undefined) || '';
+        if (override) merged.url = override.replace(/\/$/, '');
+        return merged;
+      })(),
       home: { ...FALLBACK.home, ...(data.home || {}) },
       cpts: Array.isArray(data.cpts) ? data.cpts : [],
       integrations: data.integrations
@@ -363,6 +382,8 @@ export async function getFeatures(): Promise<HatchFeatures> {
     console.warn('[hatch] /features fetch failed:', (err as Error).message);
     return FALLBACK;
   }
+  })().finally(() => { inflight = null; });
+  return inflight;
 }
 
 /**

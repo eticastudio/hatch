@@ -115,12 +115,7 @@ test.describe.serial('v0.6 Frontend token wiring', () => {
       );
       execSync('sleep 7');
 
-      // v0.7 — networkidle never fires against `astro dev` because Vite HMR
-      // keeps a live event-source open. Use `load` + a short settle wait.
-      // v0.7 — Navigate to /about which contains a real wp-block-button in
-      // .hatch-prose (home posts-listing has none). Verifies token → render.
-      await page.goto('/about', { waitUntil: 'load', timeout: 90_000 });
-      await page.waitForTimeout(300);
+      await page.goto('/', { waitUntil: 'networkidle' });
       const seen = await page.evaluate(() => {
         const rs = getComputedStyle(document.documentElement);
         const btn = document.querySelector('.wp-block-button__link:not(.is-style-outline)');

@@ -1,6 +1,32 @@
 {
-  "name": "hatch-e2e",
+  "name": "hatch-wp",
+  "version": "0.5.0",
+  "description": "Hatch — headless WordPress engine. WP plugin that turns your WordPress into a fast, unhackable Astro frontend. Uses standard core Gutenberg blocks only.",
+  "license": "MIT",
+  "author": "Aditya Sharma <hi@adityaarsharma.com>",
+  "homepage": "https://github.com/adityaarsharma/hatch",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adityaarsharma/hatch.git",
+    "directory": "wp-plugin"
+  },
   "private": true,
-  "scripts": { "test": "playwright test", "ui": "playwright test --ui" },
-  "devDependencies": { "@playwright/test": "^1.48.0" }
+  "scripts": {
+    "build:admin": "wp-scripts build admin-react/src/index.jsx --output-path=build/admin",
+    "watch:admin": "wp-scripts start admin-react/src/index.jsx --output-path=build/admin",
+    "build": "npm run build:admin",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@wordpress/components": "^28.0.0",
+    "@wordpress/data": "^10.0.0",
+    "@wordpress/element": "^6.0.0",
+    "@wordpress/i18n": "^5.0.0",
+    "@wordpress/icons": "^10.0.0",
+    "clsx": "^2.1.1"
+  },
+  "devDependencies": {
+    "@wordpress/scripts": "^28.0.0",
+    "typescript": "^5.4.0"
+  }
 }

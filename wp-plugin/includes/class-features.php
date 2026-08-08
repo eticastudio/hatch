@@ -331,6 +331,25 @@ class Hatch_Features {
 					'moderate'      => (bool) $ia['comments']['moderate'],
 					'turnstile'     => (bool) $ia['comments']['turnstile'],
 				),
+				// v0.7.4 — Bridge tab needs a live plugin-detection map so the
+				// WooCommerce / ACF / Rank Math / Redirection cards can flip
+				// between "Active" and "Not detected" from a single fetch.
+				'woocommerce' => class_exists( 'WooCommerce' ),
+				'plugins'     => array(
+					'woocommerce'            => class_exists( 'WooCommerce' ),
+					'advanced-custom-fields' => class_exists( 'ACF' ) || function_exists( 'get_field' ),
+					'acf'                    => class_exists( 'ACF' ) || function_exists( 'get_field' ),
+					'seo-by-rank-math'       => class_exists( 'RankMath' ),
+					'rankmath'               => class_exists( 'RankMath' ),
+					'wordpress-seo'          => defined( 'WPSEO_VERSION' ),
+					'yoast'                  => defined( 'WPSEO_VERSION' ),
+					'redirection'            => class_exists( 'Redirection' ) || defined( 'REDIRECTION_VERSION' ) || class_exists( '\\Red_Item' ),
+					'wpforms'                => defined( 'WPFORMS_VERSION' ),
+					'fluent_forms'           => defined( 'FLUENTFORM' ),
+					'cf7'                    => defined( 'WPCF7_VERSION' ),
+					'fluent_smtp'            => defined( 'FLUENTMAIL' ),
+					'rankready'              => defined( 'RANKREADY_VERSION' ) || class_exists( 'RankReady' ),
+				),
 			);
 		}
 

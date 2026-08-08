@@ -180,6 +180,7 @@ function hatch_react_boot_state(): array {
 		'adminUrl' => admin_url( 'admin.php?page=hatch' ),
 		'setupUrl' => admin_url( 'admin.php?page=hatch-setup' ),
 		'adminPostUrl' => admin_url( 'admin-post.php' ),
+		'pluginUrl' => plugins_url( '/', HATCH_PLUGIN_FILE ),
 		'version'  => HATCH_VERSION,
 		'page'     => $page,
 		'step'     => $step,

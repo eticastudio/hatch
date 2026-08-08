@@ -158,6 +158,8 @@ function App() {
 						gap: 2,
 						border: '1px solid var(--hx-border)',
 					}}
+					role="tablist"
+					aria-label="Hatch settings tabs"
 				>
 					{TABS.map(({ id, label }) => {
 						const active = tab === id;
@@ -165,6 +167,11 @@ function App() {
 						return (
 							<button
 								key={id}
+								role="tab"
+								id={`hatch-tab-${id}`}
+								aria-selected={active}
+								aria-controls={`hatch-panel-${id}`}
+								tabIndex={active ? 0 : -1}
 								onClick={() => setTab(id)}
 								style={{
 									padding: '8px 18px',
@@ -206,7 +213,13 @@ function App() {
 
 			{/* ── Tab content ──────────────────────────────────────────── */}
 			<div style={{ maxWidth: 760, margin: '24px auto 0', padding: '0 24px' }}>
-				<div key={tab} className="hatch-tab-enter">
+				<div
+					key={tab}
+					className="hatch-tab-enter"
+					role="tabpanel"
+					id={`hatch-panel-${tab}`}
+					aria-labelledby={`hatch-tab-${tab}`}
+				>
 					<Current
 						state={state}
 						onDirty={onDirty}

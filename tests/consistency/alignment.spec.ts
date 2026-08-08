@@ -13,11 +13,7 @@ const CANARY = '/blog/core-gutenberg-block-sanity-check/';
 
 test.describe.serial('v0.6 Alignment classes', () => {
   test('text alignment: left / center / right / justify', async ({ page }) => {
-    // v0.7 — `networkidle` never fires against `astro dev` because Vite's
-    // HMR keeps a live event-source open. Switching to `load` so the test
-    // can actually run; add a short wait for the CSS to settle.
-    await page.goto(CANARY, { waitUntil: 'load', timeout: 60_000 });
-    await page.waitForTimeout(400);
+    await page.goto(CANARY, { waitUntil: 'networkidle' });
     const result = await page.evaluate(() => {
       const scan = (sel: string) => {
         const el = document.querySelector(sel);
@@ -39,11 +35,7 @@ test.describe.serial('v0.6 Alignment classes', () => {
   });
 
   test('block alignment: alignleft floats left with margin-right', async ({ page }) => {
-    // v0.7 — `networkidle` never fires against `astro dev` because Vite's
-    // HMR keeps a live event-source open. Switching to `load` so the test
-    // can actually run; add a short wait for the CSS to settle.
-    await page.goto(CANARY, { waitUntil: 'load', timeout: 60_000 });
-    await page.waitForTimeout(400);
+    await page.goto(CANARY, { waitUntil: 'networkidle' });
     const r = await page.evaluate(() => {
       const el = document.querySelector('.canary-left');
       if (!el) return null;
@@ -56,11 +48,7 @@ test.describe.serial('v0.6 Alignment classes', () => {
   });
 
   test('block alignment: alignright floats right with margin-left', async ({ page }) => {
-    // v0.7 — `networkidle` never fires against `astro dev` because Vite's
-    // HMR keeps a live event-source open. Switching to `load` so the test
-    // can actually run; add a short wait for the CSS to settle.
-    await page.goto(CANARY, { waitUntil: 'load', timeout: 60_000 });
-    await page.waitForTimeout(400);
+    await page.goto(CANARY, { waitUntil: 'networkidle' });
     const r = await page.evaluate(() => {
       const el = document.querySelector('.canary-right');
       if (!el) return null;
@@ -74,11 +62,7 @@ test.describe.serial('v0.6 Alignment classes', () => {
 
   test('block alignment: aligncenter truly centers via equal auto-margins', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    // v0.7 — `networkidle` never fires against `astro dev` because Vite's
-    // HMR keeps a live event-source open. Switching to `load` so the test
-    // can actually run; add a short wait for the CSS to settle.
-    await page.goto(CANARY, { waitUntil: 'load', timeout: 60_000 });
-    await page.waitForTimeout(400);
+    await page.goto(CANARY, { waitUntil: 'networkidle' });
     const r = await page.evaluate(() => {
       const el = document.querySelector('.canary-center');
       if (!el) return null;
@@ -106,11 +90,7 @@ test.describe.serial('v0.6 Alignment classes', () => {
 
   test('block alignment: alignwide extends beyond prose column', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    // v0.7 — `networkidle` never fires against `astro dev` because Vite's
-    // HMR keeps a live event-source open. Switching to `load` so the test
-    // can actually run; add a short wait for the CSS to settle.
-    await page.goto(CANARY, { waitUntil: 'load', timeout: 60_000 });
-    await page.waitForTimeout(400);
+    await page.goto(CANARY, { waitUntil: 'networkidle' });
     const r = await page.evaluate(() => {
       const el = document.querySelector('.canary-wide');
       if (!el) return null;
@@ -126,11 +106,7 @@ test.describe.serial('v0.6 Alignment classes', () => {
 
   test('block alignment: alignfull spans full viewport', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    // v0.7 — `networkidle` never fires against `astro dev` because Vite's
-    // HMR keeps a live event-source open. Switching to `load` so the test
-    // can actually run; add a short wait for the CSS to settle.
-    await page.goto(CANARY, { waitUntil: 'load', timeout: 60_000 });
-    await page.waitForTimeout(400);
+    await page.goto(CANARY, { waitUntil: 'networkidle' });
     const r = await page.evaluate(() => {
       const el = document.querySelector('.canary-full');
       if (!el) return null;
@@ -145,11 +121,7 @@ test.describe.serial('v0.6 Alignment classes', () => {
   });
 
   test('font-size presets scale monotonically', async ({ page }) => {
-    // v0.7 — `networkidle` never fires against `astro dev` because Vite's
-    // HMR keeps a live event-source open. Switching to `load` so the test
-    // can actually run; add a short wait for the CSS to settle.
-    await page.goto(CANARY, { waitUntil: 'load', timeout: 60_000 });
-    await page.waitForTimeout(400);
+    await page.goto(CANARY, { waitUntil: 'networkidle' });
     const r = await page.evaluate(() => {
       const grab = (sel: string) => {
         const el = document.querySelector(sel);

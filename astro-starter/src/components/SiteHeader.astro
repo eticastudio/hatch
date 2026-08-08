@@ -180,7 +180,7 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
   <nav class="mx-auto px-5 sm:px-8 py-3 flex flex-col gap-1" aria-label="Primary mobile" style="max-width: var(--hatch-max-width, 1180px)">
     {navItems.map((item) => (
       <a href={item.href} target={item.target || undefined}
-         class:list={['px-3 py-3 rounded-md text-[15px] font-medium transition-colors',
+         class:list={['px-3 py-3 rounded-md text-[14px] font-medium transition-colors',
                       isActive(item.href) ? 'text-hatch-fg bg-hatch-bg-3' : 'text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2']}>
         {item.label}
       </a>

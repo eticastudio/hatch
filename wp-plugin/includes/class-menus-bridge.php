@@ -91,6 +91,13 @@ class Hatch_Menus_Bridge {
 		$out = array();
 		foreach ( $items as $item ) {
 			$url = (string) $item->url;
+			// v0.7.4 — normalize away ANY host prefix, not just wp_home.
+			// The url-rewrite mu-plugin can inject tunnel/public host via
+			// post_link filter, which breaks the home_url strip below.
+			// wp_make_link_relative safely converts //host/path → /path.
+			if ( preg_match( '#^https?://#', $url ) ) {
+				$url = wp_make_link_relative( $url );
+			}
 
 			// Convert absolute internal WP URLs to root-relative paths.
 			if ( 0 === strpos( $url, $wp_home_slash ) ) {

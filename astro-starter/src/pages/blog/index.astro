@@ -67,7 +67,7 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
       <h1 class="text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.05]">
         {activeCategory ? activeCategory.name : 'Blog'}
       </h1>
-      <p class="mt-3 text-[14.5px] text-hatch-fg-muted">
+      <p class="mt-3 text-[14px] text-hatch-fg-muted">
         {total} {total === 1 ? 'post' : 'posts'}
         {activeCategory && <> in <strong class="text-hatch-fg font-medium">{activeCategory.name}</strong></>}
       </p>
@@ -130,7 +130,7 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
               <a
                 href={`/blog?page=${n}${activeCategory ? `&category=${activeCategory.slug}` : ''}`}
                 class:list={[
-                  'px-3.5 py-1.5 rounded-md text-[13.5px] font-medium border transition-colors',
+                  'px-3.5 py-1.5 rounded-md text-[14px] font-medium border transition-colors',
                   n === page ? 'bg-hatch-fg text-hatch-bg border-hatch-fg' : 'border-hatch-border text-hatch-fg-muted hover:border-hatch-fg hover:text-hatch-fg'
                 ]}
               >{n}</a>
@@ -139,7 +139,7 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
         ) : (
           <a
             href={`/blog?page=${page + 1}${activeCategory ? `&category=${activeCategory.slug}` : ''}`}
-            class="px-6 py-2.5 rounded-md text-[13.5px] font-medium border border-hatch-border hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors"
+            class="px-6 py-2.5 rounded-md text-[14px] font-medium border border-hatch-border hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors"
           >
             Load more →
           </a>
