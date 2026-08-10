@@ -12,7 +12,9 @@
 # cloudflare adapter produces, so the build pipeline is unchanged.
 
 name = "hatch-frontend"
-main = "./dist/_worker.js/index.js"
+# main handled by @astrojs/cloudflare v13 + @cloudflare/vite-plugin; setting it here is read
+# at CONFIG time, before dist exists, and aborts the build.
+# main = "./dist/_worker.js/index.js"
 compatibility_date = "2025-09-01"
 compatibility_flags = [ "nodejs_compat" ]
 
