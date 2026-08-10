@@ -15,6 +15,30 @@ import PostCard from '@/components/PostCard.astro';
 import HatchImage from '@/components/HatchImage.astro';
 import { getPosts, getCategories, getPageById } from '@/lib/hatch';
 import { getFeatures, rewriteContentImages, renderHatchPostsBlocks } from '@/lib/features';
+import { tryPassthrough } from '@/lib/passthrough';
+
+// PASSTHROUGH FIRST — see src/lib/passthrough.ts for why.
+//
+// Everything below this line REBUILDS a page from WordPress data: it fetches
+// `content`, injects it into this layout, and wraps it in this frontend's own
+// chrome and CSS. That is why headless pages drift from the real site — the
+// builder's per-instance CSS, the theme's header/footer geometry and the
+// scripts that animate them do not travel with a content field. Measured on a
+// live pair: header 182px against WordPress's 158, footer 151 against 589,
+// navbar collapsed onto three rows.
+//
+// When the bridge can hand over WordPress's COMPLETE document, serve that
+// instead and skip the reconstruction entirely. Same measurement afterwards:
+// 158 / 589 / one row, identical to WordPress.
+//
+// Returns null whenever there is nothing to hand over — an older bridge, the
+// feature switched off, a page it cannot render — so the blog-style home and
+// the onboarding placeholder below are untouched. The front page needs its own
+// call because it resolves through getPageById() rather than the catch-all's
+// slug lookup, and an empty slug is what tells WordPress "the configured front
+// page".
+const frontPassthrough = await tryPassthrough('');
+if (frontPassthrough) return frontPassthrough;
 
 const features = await getFeatures();
 

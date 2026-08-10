@@ -14,6 +14,7 @@ import PageLayout from '@/layouts/PageLayout.astro';
 import HatchImage from '@/components/HatchImage.astro';
 import { getPageBySlug, getContentBySlug } from '@/lib/hatch';
 import { getFeatures, rewriteContentImages } from '@/lib/features';
+import { tryPassthrough } from '@/lib/passthrough';
 
 const { slug } = Astro.params;
 const slugStr = Array.isArray(slug) ? slug.join('/') : (slug || '');
@@ -21,6 +22,19 @@ const slugStr = Array.isArray(slug) ? slug.join('/') : (slug || '');
 if (!slugStr) {
   return Astro.redirect('/');
 }
+
+// PASSTHROUGH FIRST — see src/lib/passthrough.ts, and the note in index.astro.
+//
+// If the bridge can hand over WordPress's complete document for this path, serve
+// it and skip the reconstruction below. This one call covers every public post
+// type and every hierarchical path, because the bridge resolves the slug against
+// WordPress itself rather than against a route convention.
+//
+// null means "nothing to hand over" — the lookup below then runs exactly as
+// before, so an older bridge or a path WordPress does not recognise behaves
+// identically to today.
+const passthrough = await tryPassthrough(slugStr);
+if (passthrough) return passthrough;
 
 // v0.50.31 — Catch-all now resolves ANY public post type: page first
 // (preserves the legacy fast-path), then any CPT (products, courses, docs,

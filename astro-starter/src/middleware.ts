@@ -238,13 +238,44 @@ const SECURITY_HEADERS: Record<string, string> = {
   'Strict-Transport-Security': 'max-age=15768000; includeSubDomains',
 };
 
+// A CAPTURED WORDPRESS DOCUMENT DOES NOT GET THIS APP'S CSP.
+//
+// The policy above is right for pages this frontend renders itself: it knows its
+// own components and its own asset hosts. A passthrough response is not one of
+// those — it IS WordPress's own document, byte for byte, and it loads whatever
+// that site loads: a smooth-scroll library from a CDN, a video embed, an icon
+// font from the WP origin, a chat widget, a page builder's runtime, an analytics
+// beacon. A frontend cannot enumerate that in advance for a site it has never
+// seen, and every attempt to do so breaks on the next site.
+//
+// Observed on a real deployment, all from one hardcoded allowlist:
+//   lenis.min.js blocked by script-src  -> scrolling not smooth
+//   embed iframes blocked by frame-src  -> "This content is blocked"
+//   eicons.woff2 blocked by font-src    -> icons missing
+//   the builder's common.min.js blocked -> scroll animations dead
+//
+// Widening the list (adding `https:`) was the first instinct and is still a
+// guess: it excludes http:, blob: and data:, any of which some real site needs.
+// The honest position is that this frontend has no basis for a policy over a
+// document it did not author, so it asserts none and leaves the origin's own
+// security posture to govern. Pages Hatch renders itself are unaffected.
+//
+// Everything else in the header set — nosniff, Referrer-Policy, X-Frame-Options,
+// Permissions-Policy, HSTS — is content-agnostic and still applied, so the page
+// still cannot be framed or MIME-sniffed.
+const PASSTHROUGH_MARKER = 'x-hatch-passthrough';
+
 function attachSecurityHeaders(res: Response): Response {
   // HTML responses get the full CSP; assets get the minimal subset (no CSP
   // because some hosts apply CSP to images/fonts and break them).
   const ctype = res.headers.get('content-type') || '';
   if (!ctype.includes('text/html')) return res;
   const headers = new Headers(res.headers);
+  // Set by tryPassthrough(). Internal only — stripped before the response ships.
+  const isPassthrough = headers.has(PASSTHROUGH_MARKER);
+  headers.delete(PASSTHROUGH_MARKER);
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+    if (isPassthrough && k === 'Content-Security-Policy') continue;
     if (!headers.has(k)) headers.set(k, v);
   }
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
