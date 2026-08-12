@@ -16,17 +16,30 @@ export default function Design({ state, onDirty, setSetting }) {
 		astrowind:  { previewKey: 'AstroWind',  col: 'var(--hx-info)' },
 		astronano:  { previewKey: 'Astro Nano', col: 'var(--hx-text-subtle)' },
 	};
-	const themes = (state.themes || []).map((t) => ({
-		id:         t.id,
-		name:       t.label || t.id,
-		desc:       t.desc  || '',
-		demo:       t.demo  || '',
-		author:     t.author|| '',
-		repo:       t.repo  || '',
-		license:    t.license || '',
-		previewKey: themeMeta[t.id]?.previewKey || 'Blog',
-		col:        themeMeta[t.id]?.col || 'var(--hx-text-subtle)',
-	}));
+	const themes = [
+		...(state.themes || []).map((t) => ({
+			id:         t.id,
+			name:       t.label || t.id,
+			desc:       t.desc  || '',
+			demo:       t.demo  || '',
+			author:     t.author|| '',
+			repo:       t.repo  || '',
+			license:    t.license || '',
+			previewKey: themeMeta[t.id]?.previewKey || 'Blog',
+			col:        themeMeta[t.id]?.col || 'var(--hx-text-subtle)',
+		})),
+		{
+			id:         'custom',
+			name:       'Custom Theme',
+			desc:       'Fork a starter or drop in your own Astro theme. Point Hatch at its git repo, we handle the deploy.',
+			demo:       '',
+			author:     '',
+			repo:       '',
+			license:    'Coming soon',
+			previewKey: 'Blog',
+			col:        'var(--hx-text-subtle)',
+		},
+	];
 
 	const theme = (state.design?.theme || 'astropaper').toLowerCase();
 	const brand = state.design?.brand || { primary: 'var(--hx-primary)', secondary: 'var(--hx-text)', accent: '#6366f1', background: 'var(--hx-bg)' };

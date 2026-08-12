@@ -662,10 +662,11 @@ export default function PluginBridge({ state }) {
 				</div>
 				<div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 					{[
-						{ label: 'Per-post membership gate',       ver: 'v0.6', desc: 'Detects MemberPress/RCP/PMP; frontend enforcement lands in v0.6.' },
-						{ label: 'Multilingual (Polylang / WPML)', ver: 'v0.6', desc: 'Detected via Hatch_Detector; language switcher UI = v0.6.' },
-						{ label: 'Woo storefront on Astro',        ver: 'v0.7', desc: 'Product cards + checkout templates in v0.7.' },
-						{ label: 'Contact Form 7 auto-render',     ver: 'docs', desc: 'CF7 has no native REST; switch to WPForms or Fluent for headless.' },
+						{ label: 'Per-post membership gate',       ver: 'Coming soon', desc: 'Detects MemberPress/RCP/PMP; frontend enforcement lands next release.' },
+						{ label: 'Multilingual (Polylang / WPML)', ver: 'Coming soon', desc: 'Detected via Hatch_Detector; language switcher UI ships next release.' },
+						{ label: 'Stripe card checkout',           ver: 'Coming soon', desc: 'Stripe iframe already renders on checkout; PaymentIntent bridge ships next release.' },
+						{ label: 'PayPal Smart Buttons',           ver: 'Coming soon', desc: 'PayPal REST integration ships alongside Stripe next release.' },
+						{ label: 'Contact Form 7 auto-render',     ver: 'Coming soon', desc: 'CF7 has no native REST; use WPForms or Fluent Forms today, CF7 shim ships later.' },
 					].map((r) => (
 						<div key={r.label} style={{
 							display: 'flex',
