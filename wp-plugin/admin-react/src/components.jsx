@@ -85,8 +85,12 @@ export const HxToggle = ({ on, onChange, ariaLabel }) => (
 // ─── HxBtn ─────────────────────────────────────────────────────────────────
 export const HxBtn = ({ children, variant = 'default', onClick, size = 'md', style: sx = {}, disabled, type = 'button', href, full }) => {
 	const [hov, setHov] = useState(false);
+	// v0.50.26. default variant used `bg: --hx-fg` (black in light, white in dark)
+	// with a hard-coded `#fff` fg, so in dark mode the button rendered white-on-white
+	// (the "Visit live site" bug on the Connection tab). fg now uses --hx-surface so
+	// it inverts correctly: light gives black bg + white text, dark gives white bg + dark text.
 	const v = {
-		default: { bg: 'var(--hx-fg)', fg: '#fff', bd: 'none', wt: 600 },
+		default: { bg: 'var(--hx-fg)', fg: 'var(--hx-surface)', bd: 'none', wt: 600 },
 		brand:   { bg: 'var(--hx-primary)', fg: '#fff', bd: 'none', wt: 600 },
 		ghost:   { bg: 'var(--hx-surface)', fg: 'var(--hx-fg)', bd: '1px solid var(--hx-border-2)', wt: 500 },
 		danger:  { bg: 'var(--hx-danger)', fg: '#fff', bd: 'none', wt: 600 },
