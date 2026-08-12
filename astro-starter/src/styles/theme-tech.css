@@ -118,16 +118,30 @@
 /* Nav links — restraint pass dropped the vertical separator on every
    item (it was reading as a UI control bar, not a nav). Spacing alone
    carries the rhythm now; hover state shows where you are. */
+/* v0.5.3 — nav-link hover (#181 clean-room fix).
+   Terminal personality: sharp inversion. Background flips to the primary
+   accent and text flips to the page bg — no half-measures. 100ms linear
+   so it reads instant, not decorative. Padding widened slightly so the
+   inverted swatch has breathing room. Three properties change on hover
+   (background, color, box-shadow ring) — measurable, honest. */
 [data-hatch-theme="tech"] .hatch-tech-nav a {
 	color: var(--hatch-fg-muted);
-	padding: 6px 4px;
-	margin: 0 8px;
-	transition: color 140ms ease;
+	padding: 6px 10px;
+	margin: 0 4px;
+	background: transparent;
+	box-shadow: inset 0 0 0 0 var(--hatch-primary);
+	transition:
+		color 100ms linear,
+		background 100ms linear,
+		box-shadow 100ms linear;
 }
 
 [data-hatch-theme="tech"] .hatch-tech-nav a:hover,
+[data-hatch-theme="tech"] .hatch-tech-nav a:focus-visible,
 [data-hatch-theme="tech"] .hatch-tech-nav a.is-active {
-	color: var(--hatch-primary);
+	color: var(--hatch-bg);
+	background: var(--hatch-primary);
+	box-shadow: inset 0 -2px 0 0 var(--hatch-fg);
 }
 
 /* === Hero — terminal block on home ================================ */
