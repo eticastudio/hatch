@@ -617,3 +617,104 @@
 	font-size: 0.8rem;
 	border-radius: 6px;
 }
+
+/* =====================================================================
+ * v0.7.9 · Final linear-style polish pass (2026-08-12)
+ * Cool gray, medium-weight sans, 8pt grid, sidebar active-rail,
+ * TOC hover indent, note/warning/tip callouts.
+ * Taste seed: taste-linear (never mixed).
+ * ===================================================================== */
+
+[data-hatch-theme="docs"] .hatch-prose,
+[data-hatch-theme="docs"] .wp-block-post-content {
+	font-weight: 400;
+	line-height: 1.65;
+}
+
+[data-hatch-theme="docs"] h1,
+[data-hatch-theme="docs"] h2,
+[data-hatch-theme="docs"] h3,
+[data-hatch-theme="docs"] .wp-block-post-title {
+	font-weight: 600;
+	letter-spacing: -0.014em;
+}
+
+/* Sidebar active-rail: 3px left accent, no background flourish. */
+[data-hatch-theme="docs"] .hatch-sidebar a,
+[data-hatch-theme="docs"] .hatch-docs-sidebar a,
+[data-hatch-theme="docs"] .wp-block-navigation__container a {
+	position: relative;
+	display: block;
+	padding: 0.35rem 0.75rem 0.35rem 1rem;
+	color: var(--color-hatch-fg-muted);
+	border-radius: 0 6px 6px 0;
+	transition: color 160ms ease, background 160ms ease, transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-hatch-theme="docs"] .hatch-sidebar a:hover,
+[data-hatch-theme="docs"] .hatch-docs-sidebar a:hover {
+	color: var(--color-hatch-fg);
+	background: color-mix(in oklab, var(--color-hatch-bg-2) 65%, transparent);
+	transform: translateX(2px);
+}
+[data-hatch-theme="docs"] .hatch-sidebar a[aria-current="page"],
+[data-hatch-theme="docs"] .hatch-sidebar a.is-active,
+[data-hatch-theme="docs"] .hatch-docs-sidebar a[aria-current="page"] {
+	color: var(--color-hatch-primary);
+	background: color-mix(in oklab, var(--color-hatch-primary) 8%, transparent);
+	font-weight: 500;
+}
+[data-hatch-theme="docs"] .hatch-sidebar a[aria-current="page"]::before,
+[data-hatch-theme="docs"] .hatch-sidebar a.is-active::before,
+[data-hatch-theme="docs"] .hatch-docs-sidebar a[aria-current="page"]::before {
+	content: "";
+	position: absolute;
+	inset: 4px auto 4px 0;
+	width: 3px;
+	background: var(--color-hatch-primary);
+	border-radius: 3px;
+}
+
+/* TOC hover: subtle indent, no color shift required. */
+[data-hatch-theme="docs"] .hatch-toc a,
+[data-hatch-theme="docs"] nav[aria-label*="Table" i] a {
+	display: block;
+	padding: 0.2rem 0.5rem;
+	color: var(--color-hatch-fg-muted);
+	border-radius: 4px;
+	transition: color 140ms ease, transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-hatch-theme="docs"] .hatch-toc a:hover,
+[data-hatch-theme="docs"] nav[aria-label*="Table" i] a:hover {
+	color: var(--color-hatch-fg);
+	transform: translateX(2px);
+}
+
+/* Callouts: note / warning / tip. Left color rule + tinted bg. */
+[data-hatch-theme="docs"] .hatch-callout,
+[data-hatch-theme="docs"] .wp-block-hatch-callout {
+	border-left: 3px solid var(--color-hatch-primary);
+	background: color-mix(in oklab, var(--color-hatch-primary) 6%, var(--color-hatch-bg));
+	padding: 1rem 1.25rem;
+	border-radius: 0 6px 6px 0;
+	margin: 1.5rem 0;
+	font-size: 0.95rem;
+	line-height: 1.6;
+}
+[data-hatch-theme="docs"] .hatch-callout[data-kind="warning"] {
+	border-left-color: #d97706;
+	background: color-mix(in oklab, #d97706 8%, var(--color-hatch-bg));
+}
+[data-hatch-theme="docs"] .hatch-callout[data-kind="tip"] {
+	border-left-color: #059669;
+	background: color-mix(in oklab, #059669 8%, var(--color-hatch-bg));
+}
+[data-hatch-theme="docs"] .hatch-callout[data-kind="danger"] {
+	border-left-color: #dc2626;
+	background: color-mix(in oklab, #dc2626 8%, var(--color-hatch-bg));
+}
+
+/* Cool gray dark mode — calm, not inky. */
+[data-hatch-theme="docs"][data-hatch-mode="dark"] {
+	--hatch-bg: #0e1116;
+	--hatch-fg: #e6e9ef;
+}

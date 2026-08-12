@@ -593,3 +593,76 @@
 [data-hatch-theme="tech"] .hatch-cart-line {
 	border-bottom: 1px dashed var(--color-hatch-border);
 }
+
+/* =====================================================================
+ * v0.7.9 · Final dev-marketing polish pass (2026-08-12)
+ * Geometric grotesk (Inter), 6px radii, tight line-height 1.5,
+ * code blocks with left highlight bar, uppercase eyebrows.
+ * Taste seed: taste-vercel (never mixed).
+ * ===================================================================== */
+
+[data-hatch-theme="tech"] {
+	--hatch-radius-sharp: 6px;
+}
+
+[data-hatch-theme="tech"] body,
+[data-hatch-theme="tech"] .hatch-prose {
+	line-height: 1.55;
+}
+
+/* Uppercase eyebrow tags. Applied to `.hatch-eyebrow`, `.wp-block-post-terms`
+   and any element carrying `data-eyebrow`. */
+[data-hatch-theme="tech"] .hatch-eyebrow,
+[data-hatch-theme="tech"] .wp-block-post-terms,
+[data-hatch-theme="tech"] [data-eyebrow] {
+	font-family: var(--hatch-font-mono);
+	font-size: 10px;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--color-hatch-primary);
+	font-weight: 600;
+}
+
+/* Code blocks: left highlight bar in primary. Sharper corners. */
+[data-hatch-theme="tech"] .hatch-prose pre,
+[data-hatch-theme="tech"] .wp-block-code,
+[data-hatch-theme="tech"] .wp-block-preformatted,
+[data-hatch-theme="tech"] pre.hatch-code {
+	position: relative;
+	border-radius: 6px;
+	border: 1px solid var(--color-hatch-border);
+	background: var(--color-hatch-bg-2);
+	color: var(--color-hatch-fg);
+	padding-left: 1.5rem;
+	font-family: var(--hatch-font-mono);
+	font-size: 0.9rem;
+	line-height: 1.6;
+}
+[data-hatch-theme="tech"] .hatch-prose pre::before,
+[data-hatch-theme="tech"] .wp-block-code::before,
+[data-hatch-theme="tech"] .wp-block-preformatted::before {
+	content: "";
+	position: absolute;
+	inset: 0 auto 0 0;
+	width: 3px;
+	background: var(--color-hatch-primary);
+	border-radius: 6px 0 0 6px;
+}
+
+/* Cards + panels honour the sharper 6px radius. */
+[data-hatch-theme="tech"] .hatch-card,
+[data-hatch-theme="tech"] .hatch-panel,
+[data-hatch-theme="tech"] .wp-block-post {
+	border-radius: 6px;
+}
+
+/* Near-black + saturated primary in dark mode. */
+[data-hatch-theme="tech"][data-hatch-mode="dark"] {
+	--hatch-bg: #060709;
+	--hatch-fg: #eef2f6;
+}
+[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-prose pre,
+[data-hatch-theme="tech"][data-hatch-mode="dark"] .wp-block-code {
+	background: #0d1015;
+	border-color: color-mix(in oklab, var(--color-hatch-fg) 12%, transparent);
+}
