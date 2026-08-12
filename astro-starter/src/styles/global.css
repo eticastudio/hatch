@@ -189,3 +189,90 @@ body {
 	font-weight: 600;
 	background: var(--color-hatch-bg-2);
 }
+
+/* Feel: applied per `make-interfaces-feel-better` skill (2026-08-12).
+   Font smoothing on the root, text-wrap balance on headings, pretty
+   on body, tabular numerals on prices/dates/counters, subtle image
+   outlines, scale-on-press on every button, kill transition:all
+   globally, focus ring on every interactive element. */
+html {
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+h1, h2, h3, h4,
+.wp-block-post-title,
+.hatch-hero-title,
+.hatch-heading {
+	text-wrap: balance;
+}
+p, li, blockquote, .hatch-prose {
+	text-wrap: pretty;
+}
+/* Tabular numerals on anything that ticks: prices, dates, counters,
+   comment counts, times, code. Prevents layout shift on updates. */
+.price, .amount, .money,
+.wp-block-post-date, time,
+.hatch-price, .hatch-count, .hatch-num, .tabular,
+code, kbd, samp, output,
+[class*="woocommerce-Price"] {
+	font-variant-numeric: tabular-nums;
+}
+/* Subtle image outline for consistent edge depth. Pure black in light,
+   pure white in dark (never a tinted neutral, per the skill guidance:
+   tinted picks up surface color and reads as dirt on the edge). */
+img, video, picture {
+	outline: 1px solid rgba(0, 0, 0, 0.1);
+	outline-offset: -1px;
+}
+@media (prefers-color-scheme: dark) {
+	img, video, picture {
+		outline-color: rgba(255, 255, 255, 0.1);
+	}
+}
+[data-hatch-mode="dark"] img,
+[data-hatch-mode="dark"] video,
+[data-hatch-mode="dark"] picture {
+	outline-color: rgba(255, 255, 255, 0.1);
+}
+[data-hatch-mode="light"] img,
+[data-hatch-mode="light"] video,
+[data-hatch-mode="light"] picture {
+	outline-color: rgba(0, 0, 0, 0.1);
+}
+/* Scale-on-press on every button. Tactile 0.96 (per skill: below 0.95
+   feels exaggerated, at or above 0.96 feels right). Transition on
+   transform only, never `all`. */
+button,
+.wp-block-button__link,
+.hatch-btn,
+.hatch-form__submit,
+[role="button"],
+input[type="submit"],
+input[type="button"] {
+	transition-property: transform, background-color, border-color, color, box-shadow, opacity;
+	transition-duration: 160ms;
+	transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+button:not(:disabled):active,
+.wp-block-button__link:not(:disabled):active,
+.hatch-btn:not(:disabled):active,
+.hatch-form__submit:not(:disabled):active,
+[role="button"]:not(:disabled):active,
+input[type="submit"]:not(:disabled):active,
+input[type="button"]:not(:disabled):active {
+	transform: scale(0.96);
+}
+/* Focus ring: 2px primary + 2px offset + 4px inner radius. Every
+   interactive element, one baseline. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[role="tab"]:focus-visible,
+[role="button"]:focus-visible {
+	outline: 2px solid var(--color-hatch-primary, currentColor);
+	outline-offset: 2px;
+	border-radius: 4px;
+}
