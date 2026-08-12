@@ -58,11 +58,92 @@ function Chevron({ open }) {
 	);
 }
 
+/**
+ * Clean-room line-art glyphs for the Bridge category header. Drawn fresh from
+ * geometric primitives. No derivative work from Lucide, Phosphor, Feather,
+ * Heroicons, or any other icon library. 18x18 viewBox, 1.5 stroke, round
+ * caps and joins so the strokes read consistently at the 32-square container.
+ */
+function HatchIcon({ children, size = 18 }) {
+	return (
+		<svg
+			width={size}
+			height={size}
+			viewBox="0 0 18 18"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="1.5"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			aria-hidden="true"
+			style={{ display: 'block', flexShrink: 0 }}
+		>
+			{children}
+		</svg>
+	);
+}
+
+const ICONS = {
+	seo: (
+		<HatchIcon>
+			<circle cx="8" cy="8" r="4.5" />
+			<path d="M11.4 11.4 15 15" />
+		</HatchIcon>
+	),
+	forms: (
+		<HatchIcon>
+			<path d="M4 2.5h6.5L14 6v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z" />
+			<path d="M10.5 2.5V6H14" />
+			<path d="M5.5 9.5h6M5.5 12.5h4" />
+		</HatchIcon>
+	),
+	redirects: (
+		<HatchIcon>
+			<path d="M4 6h7.5a3.5 3.5 0 0 1 0 7H8.5" />
+			<path d="m6.5 3.5-2.5 2.5 2.5 2.5" />
+		</HatchIcon>
+	),
+	woocommerce: (
+		<HatchIcon>
+			<path d="M4 6h10l-.85 8.5a1 1 0 0 1-1 .9H5.85a1 1 0 0 1-1-.9L4 6z" />
+			<path d="M6.75 6V4.25a2.25 2.25 0 0 1 4.5 0V6" />
+		</HatchIcon>
+	),
+	smtp: (
+		<HatchIcon>
+			<path d="M15.5 2.5 2.5 7.75l5 1.75 2 5 6-12z" />
+			<path d="m7.5 9.5 3-3" />
+		</HatchIcon>
+	),
+	custom_fields: (
+		<HatchIcon>
+			<path d="M3 5h4M11 5h4" />
+			<circle cx="9" cy="5" r="1.5" />
+			<path d="M3 9h8M14 9h1" />
+			<circle cx="12" cy="9" r="1.5" />
+			<path d="M3 13h2M9 13h6" />
+			<circle cx="7" cy="13" r="1.5" />
+		</HatchIcon>
+	),
+	cpt_manager: (
+		<HatchIcon>
+			<path d="M9 2 2.5 5 9 8l6.5-3L9 2z" />
+			<path d="M2.5 9 9 12l6.5-3" />
+			<path d="M2.5 13 9 16l6.5-3" />
+		</HatchIcon>
+	),
+	membership: (
+		<HatchIcon>
+			<path d="M9 2 3 4v5c0 3.5 2.5 6.5 6 7.5 3.5-1 6-4 6-7.5V4L9 2z" />
+			<path d="m6.5 9 2 2 3.5-3.5" />
+		</HatchIcon>
+	),
+};
+
 const CATS = [
 	{
 		id: 'seo',
 		label: 'SEO',
-		icon: '🔍',
 		outcome: 'Meta tags, schema, sitemap, and canonical URLs flow to Astro from your SEO plugin.',
 		exposes: [
 			'/hatch/v1/seo-head?url={url}',
@@ -84,7 +165,6 @@ const CATS = [
 	{
 		id: 'forms',
 		label: 'Forms',
-		icon: '📝',
 		outcome: 'Astro renders native <HatchForm> from schema; POSTs back through WordPress. Zero plugin CSS or JS ships.',
 		exposes: [
 			'/hatch/v1/forms',
@@ -104,7 +184,6 @@ const CATS = [
 	{
 		id: 'redirects',
 		label: 'Redirects',
-		icon: '↪',
 		outcome: 'Astro enforces 301/302 rules at the edge, pulled from the plugin.',
 		exposes: [
 			'/hatch/v1/redirects',
@@ -122,7 +201,6 @@ const CATS = [
 	{
 		id: 'woocommerce',
 		label: 'E-commerce',
-		icon: '🛒',
 		outcome: 'Products, categories, cart, and checkout exposed over REST. Astro renders /product/<slug> live.',
 		// Full endpoint list — Hatch's own /hatch/v1/store/* (nonce-friendly,
 		// no consumer-key handshake needed for reads) PLUS the native
@@ -148,7 +226,6 @@ const CATS = [
 	{
 		id: 'smtp',
 		label: 'Email delivery (SMTP)',
-		icon: '✉',
 		outcome: 'Server-side only. Astro form submissions trigger wp_mail() through your SMTP transport. No REST needed on the frontend.',
 		exposes: [
 			'wp_mail() transport (server-side)',
@@ -167,7 +244,6 @@ const CATS = [
 	{
 		id: 'custom_fields',
 		label: 'Custom Fields',
-		icon: '🔧',
 		outcome: 'Custom field values ride on WP core REST when the group has Show-in-REST enabled. Astro reads them at page render.',
 		exposes: [
 			'/wp/v2/{post_type}?acf_format=standard',
@@ -187,7 +263,6 @@ const CATS = [
 	{
 		id: 'cpt_manager',
 		label: 'Custom Post Types',
-		icon: '📄',
 		outcome: 'Registered CPTs auto-picked up by Astro via WP core REST plus Hatch content router. Zero extra config.',
 		exposes: [
 			'/wp/v2/{cpt}',
@@ -205,7 +280,6 @@ const CATS = [
 	{
 		id: 'membership',
 		label: 'Memberships',
-		icon: '🔐',
 		outcome: 'Membership tiers detected now; per-post gating enforcement on Astro lands in v0.6.',
 		exposes: ['Tier list', 'Member status', 'Content gating (v0.6)'],
 		comingSoon: true,
@@ -255,7 +329,24 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 			>
 				<div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
 					<span style={{ color: 'var(--hx-muted)' }}><Chevron open={open} /></span>
-					<span style={{ fontSize: 16 }}>{cat.icon}</span>
+					<span
+						aria-hidden="true"
+						style={{
+							width: 32,
+							height: 32,
+							borderRadius: 8,
+							flexShrink: 0,
+							display: 'grid',
+							placeItems: 'center',
+							background: isOn
+								? 'color-mix(in oklab, var(--hx-primary) 8%, var(--hx-surface-2, var(--hx-surface)))'
+								: 'var(--hx-surface-2, var(--hx-surface))',
+							color: isOn ? 'var(--hx-primary)' : 'var(--hx-muted)',
+							transition: 'background var(--hx-ease, 200ms ease), color var(--hx-ease, 200ms ease)',
+						}}
+					>
+						{ICONS[cat.id]}
+					</span>
 					<span style={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
 						{cat.label}
 					</span>
