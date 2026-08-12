@@ -68,22 +68,27 @@ export function designToCssVars(design: any | null | undefined): string {
   const bpTablet  = Number(bp.tablet)  || 1024;
   const bpDesktop = Number(bp.desktop) || 1280;
 
+  // v0.7.8: Inline only user-color tokens so themes stay visually distinct.
+  // Fonts, radius, and max-width are OWNED by the theme CSS files
+  // (theme-blog/tech/docs.css) so each theme renders with its own signature.
+  // Inline `style=""` has (1,0,0,0) specificity and beats any theme
+  // selector, so inlining fonts/radius/max-width made all 3 themes render
+  // identically (blog Fraunces, tech JetBrains Mono, docs Geist all
+  // silently overridden to the Design-tab default font).
+  //
+  // Layout tokens with no per-theme override (density, button-radius,
+  // shadow, border-color, breakpoints) stay inline because themes don't
+  // currently redefine them and we still want Design-tab control there.
+  //
+  // User customization of theme-owned tokens (custom font, custom max-width)
+  // is v0.8 scope: add a "user override" flag per token; inline when set.
   const vars: Record<string, string> = {
     '--hatch-primary': b.primary,
     '--hatch-accent': b.accent,
     '--hatch-fg-design': b.fg,
     '--hatch-bg-design': b.bg,
-    // v0.50.29 — Single quotes around the font name. Double quotes get
-    // HTML-entity-encoded to &quot; when Astro stringifies the style
-    // attribute, which the browser can't parse → font silently falls back
-    // to system default. Single quotes pass through untouched.
-    '--hatch-font-heading': `'${b.font_heading}', ui-sans-serif, system-ui, -apple-system, sans-serif`,
-    '--hatch-font-body':    `'${b.font_body}', ui-sans-serif, system-ui, -apple-system, sans-serif`,
-    '--hatch-font-mono':    `'${b.font_mono}', ui-monospace, SFMono-Regular, Menlo, monospace`,
     '--hatch-density': density,
-    '--hatch-radius': radius,
     '--hatch-button-radius': buttonStyle,
-    '--hatch-max-width': `${maxWidth}px`,
     '--hatch-border-color': borderColor,
     '--hatch-shadow': shadow,
     '--hatch-bp-mobile':  `${bpMobile}px`,
