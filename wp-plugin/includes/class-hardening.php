@@ -127,6 +127,9 @@ class Hatch_Hardening {
 			// Best-effort .htaccess for Apache-style hosts.
 			self::ensure_uploads_options_indexes_off();
 		}
+		// Backlog #147 — always show the write-failure notice when the
+		// transient is set, regardless of which sub-feature triggered it.
+		add_action( 'admin_notices', array( __CLASS__, 'notice_htaccess_write_failed' ) );
 	}
 
 	/**
@@ -181,8 +184,13 @@ class Hatch_Hardening {
 		if ( ! is_string( $req ) ) return;
 		$req = strtolower( $req );
 		$is_login = ( false !== strpos( $req, 'wp-login.php' ) );
-		$is_admin_root = ( '/wp-admin/' === $req || '/wp-admin' === $req );
-		if ( ! $is_login && ! $is_admin_root ) return;
+		// Backlog #146 — deep admin paths (/wp-admin/edit.php etc.) used to
+		// bypass the gate because the check was strict-equal on /wp-admin/.
+		// Gate on the whole /wp-admin(/…) prefix. WordPress core still
+		// redirects unauthed admin requests to wp-login.php, which this
+		// same handler catches — belt-and-braces, no bypass on either leg.
+		$is_admin = (bool) preg_match( '#^/wp-admin(/|$)#', $req );
+		if ( ! $is_login && ! $is_admin ) return;
 
 		// Never gate logged-in admins — recovery-safe.
 		if ( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
@@ -362,12 +370,46 @@ class Hatch_Hardening {
 	 */
 	private static function ensure_uploads_options_indexes_off(): void {
 		$dir = wp_get_upload_dir();
-		if ( empty( $dir['basedir'] ) || ! is_writable( $dir['basedir'] ) ) return;
-		$file = trailingslashit( $dir['basedir'] ) . '.htaccess';
+		if ( empty( $dir['basedir'] ) ) return;
+		$base = (string) $dir['basedir'];
+		$file = trailingslashit( $base ) . '.htaccess';
+
+		// Backlog #147 — preflight writability so we can raise a real admin
+		// notice instead of a silent @-suppressed failure. The uploads dir
+		// is writable on almost every host, but some managed WP stacks
+		// mount it read-only for the PHP-FPM user; those cases used to
+		// leave directory listings on forever without any operator signal.
+		$writable = is_writable( $base ) || ( file_exists( $file ) && is_writable( $file ) );
+		if ( ! $writable ) {
+			set_transient( 'hatch_htaccess_write_failed', $file, DAY_IN_SECONDS );
+			return;
+		}
+
 		$existing = file_exists( $file ) ? (string) @file_get_contents( $file ) : '';
 		if ( false !== strpos( $existing, '# Hatch fortress — no directory listings' ) ) return;
 		$snippet = "\n# Hatch fortress — no directory listings\nOptions -Indexes\n";
-		@file_put_contents( $file, $existing . $snippet );
+		$wrote   = @file_put_contents( $file, $existing . $snippet );
+		if ( false === $wrote ) {
+			set_transient( 'hatch_htaccess_write_failed', $file, DAY_IN_SECONDS );
+			return;
+		}
+		delete_transient( 'hatch_htaccess_write_failed' );
+	}
+
+	/**
+	 * Backlog #147 — surface uploads/.htaccess write failures. Registered
+	 * from the loader once per request; auto-clears when the writer
+	 * eventually succeeds.
+	 */
+	public static function notice_htaccess_write_failed(): void {
+		if ( ! current_user_can( 'manage_options' ) ) return;
+		$path = (string) get_transient( 'hatch_htaccess_write_failed' );
+		if ( '' === $path ) return;
+		echo '<div class="notice notice-warning is-dismissible"><p><strong>' .
+			esc_html__( 'Hatch hardening: could not write .htaccess in uploads.', 'hatch' ) .
+			'</strong> ' .
+			esc_html( sprintf( __( 'Path: %s — directory listings + PHP execution blocks are not applied. Grant the web-server user write access to that path, or apply the equivalent server-level rules.', 'hatch' ), $path ) ) .
+			'</p></div>';
 	}
 
 	/**

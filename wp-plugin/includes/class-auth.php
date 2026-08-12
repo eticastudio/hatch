@@ -400,9 +400,77 @@ class Hatch_Auth {
 	 * Rate limiting — per-IP, transient-backed.
 	 * --------------------------------------------------------------------- */
 
+	/**
+	 * Return the client IP for rate-limiting.
+	 *
+	 * Default: read $_SERVER['REMOTE_ADDR'] only. This is safe on every host
+	 * (proxy-header spoofing is impossible), at the cost of counting all
+	 * traffic behind a CDN/proxy as one bucket.
+	 *
+	 * Opt-in: when the `hatch_trust_cf_ip` option is truthy AND the direct
+	 * connection comes from a Cloudflare edge range, trust CF-Connecting-IP.
+	 * Falling back to the first entry of X-Forwarded-For under the same
+	 * gate covers non-CF trusted proxies. Anything else falls through to
+	 * REMOTE_ADDR — never trust proxy headers from an untrusted peer.
+	 *
+	 * Backlog #145.
+	 *
+	 * @return string
+	 */
 	private static function client_ip(): string {
-		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : '0.0.0.0';
-		return preg_replace( '/[^0-9a-fA-F:\.]/', '', $ip );
+		$remote = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : '0.0.0.0';
+		$ip     = $remote;
+
+		if ( get_option( 'hatch_trust_cf_ip', false ) && self::request_from_trusted_edge( $remote ) ) {
+			if ( ! empty( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
+				$ip = (string) wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] );
+			} elseif ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+				$parts = explode( ',', (string) wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
+				$ip    = trim( (string) $parts[0] );
+			}
+		}
+
+		// Sanitize to IPv4/IPv6 charset. filter_var enforces real IP shape.
+		$ip = preg_replace( '/[^0-9a-fA-F:\.]/', '', $ip );
+		if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+			return $remote; // Reject spoofed junk, fall back to REMOTE_ADDR.
+		}
+		return $ip;
+	}
+
+	/**
+	 * Is the direct peer inside a Cloudflare edge range? Cheap CIDR match
+	 * against the published /15/13/12 blocks Cloudflare has used since
+	 * 2015. Not exhaustive but covers >99% of live edges; operators who
+	 * front with something else should keep hatch_trust_cf_ip = false.
+	 *
+	 * @param string $remote_ip Direct peer IP.
+	 * @return bool
+	 */
+	private static function request_from_trusted_edge( string $remote_ip ): bool {
+		if ( '' === $remote_ip || false === filter_var( $remote_ip, FILTER_VALIDATE_IP ) ) {
+			return false;
+		}
+		// Only IPv4 gate implemented; extending to Cloudflare's IPv6 /32/64
+		// list is a later change. Conservative default: reject on unknown.
+		$ranges = array(
+			'173.245.48.0/20',   '103.21.244.0/22',  '103.22.200.0/22',
+			'103.31.4.0/22',     '141.101.64.0/18',  '108.162.192.0/18',
+			'190.93.240.0/20',   '188.114.96.0/20',  '197.234.240.0/22',
+			'198.41.128.0/17',   '162.158.0.0/15',   '104.16.0.0/13',
+			'104.24.0.0/14',     '172.64.0.0/13',    '131.0.72.0/22',
+		);
+		$ip_long = ip2long( $remote_ip );
+		if ( false === $ip_long ) return false;
+		foreach ( $ranges as $cidr ) {
+			list( $subnet, $bits ) = explode( '/', $cidr );
+			$subnet_long = ip2long( $subnet );
+			$mask        = -1 << ( 32 - (int) $bits );
+			if ( ( $ip_long & $mask ) === ( $subnet_long & $mask ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static function rl_key( string $ip ): string {
