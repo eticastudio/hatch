@@ -198,6 +198,7 @@ class Hatch_Forms_Bridge {
 			'placeholder' => isset( $attrs['placeholder'] ) ? $attrs['placeholder'] : '',
 			'required'    => ! empty( $sett['validation_rules']['required']['value'] ),
 			'default'     => isset( $attrs['value'] ) ? $attrs['value'] : '',
+			'rules'       => self::rules_from_fluent( $sett, $native ),
 		);
 		if ( in_array( $native, array( 'select', 'radio', 'checkbox' ), true ) && ! empty( $sett['advanced_options'] ) ) {
 			$out['options'] = array_map( static function ( $o ) {
@@ -205,6 +206,70 @@ class Hatch_Forms_Bridge {
 			}, $sett['advanced_options'] );
 		}
 		return $out;
+	}
+
+	/**
+	 * Parse Fluent Forms `validation_rules` into the flat rules[] array the
+	 * Astro client validator consumes. Only the rules we can run client-side
+	 * are emitted; server-side revalidation still runs inside Fluent's own
+	 * SubmissionService on POST /submit.
+	 */
+	private static function rules_from_fluent( array $sett, string $native ): array {
+		$vr = isset( $sett['validation_rules'] ) && is_array( $sett['validation_rules'] ) ? $sett['validation_rules'] : array();
+		$rules = array();
+
+		if ( ! empty( $vr['required']['value'] ) ) {
+			$rules[] = self::rule( 'required', null, isset( $vr['required']['message'] ) ? $vr['required']['message'] : '' );
+		}
+		if ( ! empty( $vr['email']['value'] ) || 'email' === $native ) {
+			$rules[] = self::rule( 'email', null, isset( $vr['email']['message'] ) ? $vr['email']['message'] : '' );
+		}
+		if ( ! empty( $vr['url']['value'] ) || 'url' === $native ) {
+			$rules[] = self::rule( 'url', null, isset( $vr['url']['message'] ) ? $vr['url']['message'] : '' );
+		}
+		if ( ! empty( $vr['numeric']['value'] ) || 'number' === $native ) {
+			$rules[] = self::rule( 'numeric', null, isset( $vr['numeric']['message'] ) ? $vr['numeric']['message'] : '' );
+		}
+		// Fluent uses `min` / `max` for numeric and `min_length` / `max_length`
+		// for strings. Collapse into the shared rule shape; the client picks
+		// numeric-vs-length based on the value type.
+		foreach ( array( 'min', 'min_length' ) as $k ) {
+			if ( isset( $vr[ $k ]['value'] ) && '' !== $vr[ $k ]['value'] ) {
+				$rules[] = self::rule( 'min', (float) $vr[ $k ]['value'], isset( $vr[ $k ]['message'] ) ? $vr[ $k ]['message'] : '' );
+			}
+		}
+		foreach ( array( 'max', 'max_length' ) as $k ) {
+			if ( isset( $vr[ $k ]['value'] ) && '' !== $vr[ $k ]['value'] ) {
+				$rules[] = self::rule( 'max', (float) $vr[ $k ]['value'], isset( $vr[ $k ]['message'] ) ? $vr[ $k ]['message'] : '' );
+			}
+		}
+		if ( ! empty( $vr['regex']['value'] ) ) {
+			$rules[] = self::rule( 'regex', (string) $vr['regex']['value'], isset( $vr['regex']['message'] ) ? $vr['regex']['message'] : '' );
+		}
+
+		// De-dupe by type+value (email may show up twice: element=email + rule=email).
+		$seen = array();
+		$out  = array();
+		foreach ( $rules as $r ) {
+			$key = $r['type'] . '|' . ( isset( $r['value'] ) ? $r['value'] : '' );
+			if ( isset( $seen[ $key ] ) ) {
+				continue;
+			}
+			$seen[ $key ] = true;
+			$out[]        = $r;
+		}
+		return $out;
+	}
+
+	private static function rule( string $type, $value = null, string $message = '' ): array {
+		$r = array( 'type' => $type );
+		if ( null !== $value ) {
+			$r['value'] = $value;
+		}
+		if ( '' !== $message ) {
+			$r['message'] = $message;
+		}
+		return $r;
 	}
 
 	private static function schema_wpforms( int $id ) {
@@ -221,13 +286,34 @@ class Hatch_Forms_Bridge {
 			foreach ( $data['fields'] as $f ) {
 				$type = isset( $f['type'] ) ? $f['type'] : 'text';
 				$map  = array( 'name' => 'text', 'email' => 'email', 'textarea' => 'textarea', 'select' => 'select', 'radio' => 'radio', 'checkbox' => 'checkbox', 'number' => 'number', 'url' => 'url', 'phone' => 'tel', 'date-time' => 'date' );
+				$native = isset( $map[ $type ] ) ? $map[ $type ] : 'text';
+				$rules  = array();
+				if ( ! empty( $f['required'] ) ) {
+					$rules[] = self::rule( 'required' );
+				}
+				if ( 'email' === $native ) {
+					$rules[] = self::rule( 'email' );
+				}
+				if ( 'url' === $native ) {
+					$rules[] = self::rule( 'url' );
+				}
+				if ( 'number' === $native ) {
+					$rules[] = self::rule( 'numeric' );
+				}
+				if ( isset( $f['min_length'] ) && '' !== $f['min_length'] ) {
+					$rules[] = self::rule( 'min', (float) $f['min_length'] );
+				}
+				if ( isset( $f['max_length'] ) && '' !== $f['max_length'] ) {
+					$rules[] = self::rule( 'max', (float) $f['max_length'] );
+				}
 				$fields[] = array(
 					'name'        => 'wpforms[fields][' . ( isset( $f['id'] ) ? $f['id'] : 0 ) . ']',
-					'type'        => isset( $map[ $type ] ) ? $map[ $type ] : 'text',
+					'type'        => $native,
 					'label'       => isset( $f['label'] ) ? $f['label'] : '',
 					'placeholder' => isset( $f['placeholder'] ) ? $f['placeholder'] : '',
 					'required'    => ! empty( $f['required'] ),
 					'default'     => isset( $f['default_value'] ) ? $f['default_value'] : '',
+					'rules'       => $rules,
 				);
 			}
 		}

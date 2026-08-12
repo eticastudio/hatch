@@ -1,4 +1,3 @@
----
 /**
  * <HatchForm />
  *
@@ -20,6 +19,11 @@
  *  - Submission POSTs `{fields:{name:value,...}}` back to
  *    `/hatch/v1/forms/{provider}/{id}/submit`; the plugin runs its own
  *    validation / spam / notification pipelines server-side.
+ *  - v0.9: client validator runs BEFORE submit using the per-field
+ *    `rules[]` array the bridge emits (parsed from Fluent Forms
+ *    validation_rules or WPForms field settings). Prevents 500s from WP
+ *    when the user leaves required fields empty, and paints inline
+ *    `[data-hatch-field-error]` messages that mirror checkout.astro.
  */
 
 ---
@@ -29,10 +33,88 @@
     if (window.__hatchFormHydrated) return;
     window.__hatchFormHydrated = true;
 
-    // v0.8 — schema + submit both go through the Astro-origin proxy at
+    // v0.8: schema + submit both go through the Astro-origin proxy at
     // /api/hatch-form/{provider}/{id}[/submit]. Keeps the browser on
     // one origin and hides the private docker WP hostname.
     const schemaUrl = (provider, id) => `/api/hatch-form/${provider}/${id}`;
+
+    // ---- native validator (mirror of src/lib/form-validator.ts) ----------
+    // Inlined because this file is <script is:inline>: Astro's bundler
+    // does not run on inline scripts, so we cannot `import`. Kept in sync
+    // manually; both surfaces have unit tests around the same rule shapes.
+    const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    function vIsEmpty(v) {
+      if (v === null || v === undefined) return true;
+      if (typeof v === 'string') return v.trim() === '';
+      if (Array.isArray(v)) return v.length === 0;
+      if (typeof v === 'boolean') return v === false;
+      return false;
+    }
+    function vAsString(v) {
+      if (v === null || v === undefined) return '';
+      if (Array.isArray(v)) return v.join(',');
+      return String(v);
+    }
+    function vLooksNumeric(v) {
+      if (v === null || v === undefined || v === '') return false;
+      const n = Number(v);
+      return !Number.isNaN(n) && Number.isFinite(n);
+    }
+    function validateField(rules, value) {
+      if (!rules || !rules.length) return { ok: true };
+      const empty = vIsEmpty(value);
+      const hasRequired = rules.some((r) => r.type === 'required');
+      for (const r of rules) {
+        if (r.type === 'required') {
+          if (empty) return { ok: false, error: r.message || 'This field is required.' };
+          continue;
+        }
+        if (empty && !hasRequired) continue;
+        if (empty && hasRequired) continue;
+        switch (r.type) {
+          case 'email':
+            if (!EMAIL_RE.test(vAsString(value))) return { ok: false, error: r.message || 'Enter a valid email address.' };
+            break;
+          case 'url':
+            try { new URL(vAsString(value)); } catch { return { ok: false, error: r.message || 'Enter a valid URL.' }; }
+            break;
+          case 'numeric':
+            if (!vLooksNumeric(value)) return { ok: false, error: r.message || 'Enter a number.' };
+            break;
+          case 'min': {
+            const n = Number(r.value);
+            if (vLooksNumeric(value) && Number(value) < n) return { ok: false, error: r.message || `Must be at least ${n}.` };
+            if (!vLooksNumeric(value) && vAsString(value).length < n) return { ok: false, error: r.message || `Must be at least ${n} characters.` };
+            break;
+          }
+          case 'max': {
+            const n = Number(r.value);
+            if (vLooksNumeric(value) && Number(value) > n) return { ok: false, error: r.message || `Must be no more than ${n}.` };
+            if (!vLooksNumeric(value) && vAsString(value).length > n) return { ok: false, error: r.message || `Must be no more than ${n} characters.` };
+            break;
+          }
+          case 'regex':
+            try {
+              const re = new RegExp(r.value, r.flags || '');
+              if (!re.test(vAsString(value))) return { ok: false, error: r.message || 'Invalid format.' };
+            } catch { /* bad server regex: do not block */ }
+            break;
+        }
+      }
+      return { ok: true };
+    }
+    function validateForm(schema, data) {
+      const errors = {};
+      for (const f of (schema.fields || [])) {
+        let rules = Array.isArray(f.rules) ? f.rules.slice() : [];
+        if (f.required && !rules.some((r) => r.type === 'required')) rules.unshift({ type: 'required' });
+        if (!rules.length) continue;
+        const r = validateField(rules, data[f.name]);
+        if (!r.ok && r.error) errors[f.name] = r.error;
+      }
+      return { ok: Object.keys(errors).length === 0, errors };
+    }
+    // ---- /validator ------------------------------------------------------
 
     function el(tag, attrs, ...children) {
       const node = document.createElement(tag);
@@ -54,7 +136,11 @@
 
     function renderField(f) {
       const id = `hf-${f.name}-${Math.random().toString(36).slice(2, 7)}`;
-      const wrap = el('div', { class: 'hatch-form__field', 'data-type': f.type });
+      const wrap = el('div', {
+        class: 'hatch-form__field',
+        'data-type': f.type,
+        'data-hatch-field': f.name,
+      });
 
       if (f.type === 'html') {
         wrap.classList.add('hatch-form__html');
@@ -85,7 +171,7 @@
         if (f.default) input.value = f.default;
       } else if (f.type === 'select') {
         input = el('select', common);
-        if (!f.required) input.append(el('option', { value: '' }, f.placeholder || '—'));
+        if (!f.required) input.append(el('option', { value: '' }, f.placeholder || 'Select'));
         for (const opt of (f.options || [])) {
           const o = el('option', { value: opt.value }, opt.label);
           if (opt.value === f.default) o.selected = true;
@@ -111,6 +197,13 @@
       }
 
       wrap.append(input);
+      // Per-field error slot painted by paintErrors(). Matches the pattern
+      // used in checkout.astro so themes can style once and cover both.
+      wrap.append(el('div', {
+        class: 'hatch-form__field-error',
+        'data-hatch-field-error': f.name,
+        hidden: '',
+      }));
       return wrap;
     }
 
@@ -132,6 +225,36 @@
       return out;
     }
 
+    function clearErrors(form) {
+      form.querySelectorAll('[data-hatch-field-error]').forEach((n) => {
+        n.textContent = '';
+        n.setAttribute('hidden', '');
+      });
+      form.querySelectorAll('[aria-invalid="true"]').forEach((n) => {
+        n.removeAttribute('aria-invalid');
+      });
+    }
+
+    function paintErrors(form, errors) {
+      let firstInvalid = null;
+      for (const [fieldName, msg] of Object.entries(errors || {})) {
+        const slot = form.querySelector(`[data-hatch-field-error="${CSS.escape(fieldName)}"]`);
+        if (slot) {
+          slot.textContent = msg;
+          slot.removeAttribute('hidden');
+        }
+        // Mark the actual input(s). Checkbox groups use `name[]`, so match both.
+        const inputs = form.querySelectorAll(
+          `[name="${CSS.escape(fieldName)}"], [name="${CSS.escape(fieldName)}[]"]`
+        );
+        inputs.forEach((inp) => inp.setAttribute('aria-invalid', 'true'));
+        if (!firstInvalid && inputs.length) firstInvalid = inputs[0];
+      }
+      if (firstInvalid && typeof firstInvalid.focus === 'function') {
+        try { firstInvalid.focus(); } catch { /* ignore */ }
+      }
+    }
+
     async function hydrate(mount) {
       const id = mount.getAttribute('data-hatch-form-id');
       const provider = mount.getAttribute('data-hatch-form-provider');
@@ -140,7 +263,7 @@
       // Loading placeholder using theme tokens.
       mount.innerHTML = '';
       mount.classList.add('hatch-form-scope');
-      mount.append(el('div', { class: 'hatch-form__loading' }, 'Loading form…'));
+      mount.append(el('div', { class: 'hatch-form__loading' }, 'Loading form'));
 
       let schema;
       try {
@@ -158,6 +281,7 @@
         novalidate: '',
         'data-provider': provider,
         'data-form-id': id,
+        'data-hatch-form': '',
       });
 
       if (schema.title) {
@@ -178,25 +302,49 @@
         ev.preventDefault();
         status.textContent = '';
         status.className = 'hatch-form__status';
+        clearErrors(form);
+
+        // v0.9: client-side validation runs BEFORE the network POST so
+        // WP never sees an unvalidated payload (previously that returned
+        // 500 for missing-required cases on some plugin builds).
+        const values = collectValues(form);
+        const localCheck = validateForm(schema, values);
+        if (!localCheck.ok) {
+          paintErrors(form, localCheck.errors);
+          status.classList.add('hatch-form__status--error');
+          status.textContent = schema.i18n?.validation_msg || 'Please fix the highlighted fields.';
+          return;
+        }
+
         submitBtn.disabled = true;
         const originalText = submitBtn.textContent;
-        submitBtn.textContent = schema.i18n?.sending || 'Sending…';
+        submitBtn.textContent = schema.i18n?.sending || 'Sending';
 
         try {
           const res = await fetch(schema.submit.url, {
             method: schema.submit.method || 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({ fields: collectValues(form) }),
+            body: JSON.stringify({ fields: values }),
             credentials: 'omit',
           });
           const data = await res.json().catch(() => ({}));
           if (res.ok && data.ok) {
             form.reset();
             status.classList.add('hatch-form__status--success');
-            status.textContent = data.message || schema.i18n?.success_msg || 'Thanks — your message has been received.';
+            status.textContent = data.message || schema.i18n?.success_msg || 'Thanks, your message has been received.';
           } else {
             status.classList.add('hatch-form__status--error');
-            const errs = data.errors ? Object.values(data.errors).flat().join(' ') : '';
+            // Server-side field errors: paint per-field where names align,
+            // fall back to the status region for form-level errors.
+            const serverErrors = data && data.errors && typeof data.errors === 'object' ? data.errors : null;
+            if (serverErrors) {
+              const flat = {};
+              for (const [k, v] of Object.entries(serverErrors)) {
+                flat[k] = Array.isArray(v) ? v.join(' ') : String(v);
+              }
+              paintErrors(form, flat);
+            }
+            const errs = serverErrors ? Object.values(serverErrors).flat().join(' ') : '';
             status.textContent = errs || data.msg || schema.i18n?.error_msg || 'Something went wrong.';
           }
         } catch (e) {
