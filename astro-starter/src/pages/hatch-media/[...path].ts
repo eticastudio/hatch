@@ -17,10 +17,16 @@ import type { APIRoute } from 'astro';
  *                We derive the origin from it.
  */
 
+// Backlog #155 — silently defaulting to localhost in production is a
+// misconfiguration bomb (proxy routes all traffic to nowhere and returns
+// 504s). Fail fast at build/boot so ops can catch it.
 const WP_ORIGIN = (() => {
 	const apiUrl = (import.meta.env.WP_API_URL || '').replace(/\/wp-json\/.*$/, '');
 	if (apiUrl) return apiUrl;
-	// Fallback: local dev default — matches the docker-compose port in the wp-plugin repo.
+	if (!import.meta.env.DEV) {
+		throw new Error('[hatch-media] WP_API_URL is required in production');
+	}
+	// Dev fallback: matches the docker-compose port in the wp-plugin repo.
 	return 'http://localhost:8810';
 })();
 

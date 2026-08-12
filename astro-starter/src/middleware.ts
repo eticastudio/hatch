@@ -224,7 +224,9 @@ const CSP = [
   "img-src 'self' data: https:",
   // v0.3.2 allow the Hatch WP origin so the blocks runtime can fetch
   // /hatch/v1/content/list, /hatch/v1/forms/*/embed, etc.
-  `connect-src 'self' https://www.google-analytics.com https://*.analytics.google.com https://api.stripe.com https://www.paypal.com ${ wpApiOrigin } http://localhost:8810 http://localhost:8765`,
+  // Backlog #154 — localhost origins must not leak into a production CSP.
+  // In prod builds `import.meta.env.DEV` is false, so the string is empty.
+  `connect-src 'self' https://www.google-analytics.com https://*.analytics.google.com https://api.stripe.com https://www.paypal.com ${ wpApiOrigin }${ import.meta.env.DEV ? ' http://localhost:8810 http://localhost:8765' : '' }`,
   "frame-src 'self' https://www.googletagmanager.com https://challenges.cloudflare.com https://js.stripe.com https://hooks.stripe.com https://www.paypal.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
