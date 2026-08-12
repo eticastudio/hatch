@@ -1,0 +1,124 @@
+---
+/**
+ * Shop: WooCommerce product grid.
+ *
+ * Fetches products from Hatch's read-only bridge (/hatch/v1/store/products)
+ * and renders each as a native Astro card. Zero WooCommerce CSS or JS ships.
+ * Categories drive an optional filter row via /hatch/v1/store/categories.
+ *
+ * Category filter is a plain URL query: /shop?cat=slug. The route is SSR so
+ * filtering is a fresh render (no client JS).
+ *
+ * @since 0.7.6
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import { WP_API_URL } from 'astro:env/server';
+
+const base = (WP_API_URL || '').replace(/\/wp-json(\/.*)?$/, '').replace(/\/$/, '');
+
+const url = new URL(Astro.request.url);
+const catFilter = (url.searchParams.get('cat') || '').trim();
+
+interface WooProduct {
+  id: number;
+  slug: string;
+  name: string;
+  permalink: string;
+  price: string;
+  regular_price: string;
+  sale_price: string;
+  currency: string;
+  on_sale: boolean;
+  in_stock: boolean;
+  image: string;
+  short: string;
+  categories?: Array<{ name: string; slug: string }>;
+}
+interface WooCategory { id: number; slug: string; name: string; count?: number }
+
+let products: WooProduct[] = [];
+let categories: WooCategory[] = [];
+let fetchErr = '';
+
+try {
+  const [pRes, cRes] = await Promise.all([
+    fetch(`${base}/wp-json/hatch/v1/store/products?per_page=48`, { headers: { Accept: 'application/json' } }),
+    fetch(`${base}/wp-json/hatch/v1/store/categories`, { headers: { Accept: 'application/json' } }),
+  ]);
+  if (pRes.ok) {
+    const data = (await pRes.json()) as { products?: WooProduct[] };
+    products = data.products || [];
+  }
+  if (cRes.ok) {
+    const data = await cRes.json();
+    categories = Array.isArray(data) ? data : (data.categories || []);
+  }
+} catch (e) {
+  fetchErr = e instanceof Error ? e.message : String(e);
+}
+
+if (catFilter) {
+  products = products.filter((p) => (p.categories || []).some((c) => c.slug === catFilter));
+}
+
+const symbol = products[0]?.currency || '';
+---
+<PageLayout
+  title="Shop"
+  description="All products, edge-delivered."
+>
+  <div class="hatch-shop">
+    <header class="hatch-shop__header">
+      <h1>Shop</h1>
+      <p class="hatch-shop__count">{products.length} {products.length === 1 ? 'product' : 'products'}</p>
+    </header>
+
+    {categories.length > 0 && (
+      <nav class="hatch-shop__filters" aria-label="Categories">
+        <a href="/shop" class:list={['hatch-shop__chip', !catFilter && 'is-active']}>All</a>
+        {categories.map((c) => (
+          <a
+            href={`/shop?cat=${c.slug}`}
+            class:list={['hatch-shop__chip', catFilter === c.slug && 'is-active']}
+          >{c.name}</a>
+        ))}
+      </nav>
+    )}
+
+    {fetchErr && (
+      <div class="hatch-shop__error" role="alert">Could not load products: {fetchErr}</div>
+    )}
+
+    {!fetchErr && products.length === 0 && (
+      <div class="hatch-shop__empty">
+        <p>No products yet. Add one in WordPress under <code>Products → Add New</code>.</p>
+      </div>
+    )}
+
+    {products.length > 0 && (
+      <ul class="hatch-product-grid" role="list">
+        {products.map((p) => (
+          <li class="hatch-product-card">
+            <a href={`/product/${p.slug}`} class="hatch-product-card__link">
+              {p.image ? (
+                <img src={p.image} alt={p.name} loading="lazy" width="480" height="360" />
+              ) : (
+                <div class="hatch-product-card__placeholder" aria-hidden="true"></div>
+              )}
+              <div class="hatch-product-card__body">
+                <h2 class="hatch-product-card__title">{p.name}</h2>
+                <p class="hatch-product-card__price">
+                  {p.on_sale && p.regular_price && (
+                    <span class="hatch-product-card__was">{symbol}{p.regular_price}</span>
+                  )}
+                  <span class="hatch-product-card__now">{symbol}{p.price}</span>
+                </p>
+                {!p.in_stock && <p class="hatch-product-card__oos">Out of stock</p>}
+              </div>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+</PageLayout>

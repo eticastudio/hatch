@@ -276,3 +276,167 @@ summary:focus-visible,
 	outline-offset: 2px;
 	border-radius: 4px;
 }
+
+/* WooCommerce Bridge: baseline styling for /shop and /cart.
+   Uses Hatch tokens exclusively so all 3 themes (blog, tech, docs)
+   inherit correctly. Per-theme overrides live in theme-*.css if needed. */
+.hatch-visually-hidden {
+	position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+	overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+.hatch-shop, .hatch-cart {
+	max-width: var(--hatch-container-width, 1160px);
+	margin: 0 auto;
+	padding: clamp(2rem, 4vw, 4rem) clamp(1rem, 3vw, 2rem);
+}
+.hatch-shop__header, .hatch-cart__header {
+	display: flex; align-items: baseline; justify-content: space-between;
+	gap: 1rem; margin-bottom: 2rem;
+}
+.hatch-shop__header h1, .hatch-cart__header h1 {
+	font-size: clamp(1.75rem, 3vw, 2.5rem);
+	font-family: var(--hatch-font-heading);
+	margin: 0;
+}
+.hatch-shop__count, .hatch-cart__count {
+	color: var(--color-hatch-muted); font-size: 0.9rem; margin: 0;
+	font-variant-numeric: tabular-nums;
+}
+.hatch-shop__filters {
+	display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem;
+}
+.hatch-shop__chip {
+	padding: 0.4rem 0.9rem; border-radius: 9999px;
+	border: 1px solid var(--color-hatch-border);
+	background: var(--color-hatch-bg);
+	color: var(--color-hatch-fg); text-decoration: none;
+	font-size: 0.85rem; font-weight: 500;
+}
+.hatch-shop__chip.is-active {
+	background: var(--color-hatch-primary);
+	color: var(--color-hatch-primary-fg, #fff);
+	border-color: transparent;
+}
+.hatch-shop__empty, .hatch-cart__empty,
+.hatch-shop__error, .hatch-cart__error {
+	padding: 3rem 1rem; text-align: center;
+	background: var(--color-hatch-bg-2);
+	border: 1px dashed var(--color-hatch-border);
+	border-radius: 12px; margin: 2rem 0;
+}
+.hatch-shop__error, .hatch-cart__error {
+	background: var(--color-hatch-danger-bg, #fef2f2);
+	color: var(--color-hatch-danger, #991b1b);
+	border-style: solid;
+}
+
+/* Product grid: responsive auto-fit, concentric radii, subtle shadows */
+.hatch-product-grid {
+	list-style: none; padding: 0; margin: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: clamp(1rem, 2vw, 1.5rem);
+}
+.hatch-product-card {
+	background: var(--color-hatch-bg);
+	border: 1px solid var(--color-hatch-border);
+	border-radius: 16px;
+	overflow: hidden;
+	box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 0 0 rgba(0,0,0,0);
+	transition-property: box-shadow, transform;
+	transition-duration: 200ms;
+	transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hatch-product-card:hover {
+	box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+	transform: translateY(-2px);
+}
+.hatch-product-card__link {
+	display: block; color: inherit; text-decoration: none;
+}
+.hatch-product-card img,
+.hatch-product-card__placeholder {
+	display: block; width: 100%; aspect-ratio: 4/3;
+	object-fit: cover;
+	background: var(--color-hatch-bg-2);
+	border-bottom: 1px solid var(--color-hatch-border);
+}
+.hatch-product-card__body {
+	padding: 1rem 1.1rem 1.25rem;
+	display: flex; flex-direction: column; gap: 0.4rem;
+}
+.hatch-product-card__title {
+	font-size: 1rem; font-weight: 600; line-height: 1.35;
+	margin: 0;
+	display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+	overflow: hidden;
+}
+.hatch-product-card__price {
+	margin: 0; font-size: 1rem; font-weight: 600;
+	color: var(--color-hatch-fg);
+	font-variant-numeric: tabular-nums;
+}
+.hatch-product-card__was {
+	color: var(--color-hatch-muted);
+	text-decoration: line-through;
+	font-weight: 400;
+	margin-right: 0.5rem;
+}
+.hatch-product-card__now { color: var(--color-hatch-primary); }
+.hatch-product-card__oos {
+	margin: 0.25rem 0 0; font-size: 0.8rem;
+	color: var(--color-hatch-muted);
+}
+
+/* Cart lines: 4-column grid on desktop, stack on mobile */
+.hatch-cart__lines {
+	list-style: none; padding: 0; margin: 0 0 2rem;
+	border-top: 1px solid var(--color-hatch-border);
+}
+.hatch-cart-line {
+	display: grid;
+	grid-template-columns: 96px 1fr auto auto;
+	gap: 1rem; align-items: center;
+	padding: 1.25rem 0;
+	border-bottom: 1px solid var(--color-hatch-border);
+}
+.hatch-cart-line__thumb img,
+.hatch-cart-line__placeholder {
+	width: 96px; height: 96px; border-radius: 12px;
+	object-fit: cover;
+	background: var(--color-hatch-bg-2);
+	border: 1px solid var(--color-hatch-border);
+}
+.hatch-cart-line__title { font-size: 1rem; margin: 0 0 0.25rem; font-weight: 600; }
+.hatch-cart-line__unit { color: var(--color-hatch-muted); font-size: 0.85rem; margin: 0; font-variant-numeric: tabular-nums; }
+.hatch-cart-line__qty-input {
+	width: 4rem; padding: 0.4rem 0.5rem; text-align: center;
+	border: 1px solid var(--color-hatch-border); border-radius: 8px;
+	background: var(--color-hatch-bg);
+	font-variant-numeric: tabular-nums;
+}
+.hatch-cart-line__total { font-weight: 600; font-variant-numeric: tabular-nums; }
+.hatch-cart__footer {
+	display: flex; flex-direction: column; gap: 1rem;
+	align-items: flex-end; padding-top: 1rem;
+}
+.hatch-cart__total {
+	display: flex; align-items: baseline; gap: 1rem;
+	font-size: 1.1rem;
+}
+.hatch-cart__total strong { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.hatch-cart__checkout { padding: 0.85rem 2rem; }
+
+@media (max-width: 640px) {
+	.hatch-cart-line {
+		grid-template-columns: 64px 1fr;
+		grid-template-areas: "thumb meta" "thumb qty" "total total";
+		gap: 0.5rem 1rem;
+	}
+	.hatch-cart-line__thumb { grid-area: thumb; }
+	.hatch-cart-line__thumb img,
+	.hatch-cart-line__placeholder { width: 64px; height: 64px; }
+	.hatch-cart-line__meta { grid-area: meta; }
+	.hatch-cart-line__qty { grid-area: qty; justify-self: start; }
+	.hatch-cart-line__total { grid-area: total; text-align: right; }
+}
