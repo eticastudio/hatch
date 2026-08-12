@@ -369,22 +369,22 @@ const tk = themeKey(features);
       </div>
     )}
 
-    {/* Prev / Next */}
+    {/* Prev / Next. #176. Semantic nav landmark plus rel prev/next for SEO. */}
     {showPrevNext && (adjacent.prev || adjacent.next) && (
-      <div class="mt-14 pt-10 border-t border-hatch-border grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <nav class="hatch-post-nav mt-14 pt-10 border-t border-hatch-border grid grid-cols-1 sm:grid-cols-2 gap-3" aria-label="Post navigation">
         {adjacent.prev ? (
-          <a href={`/blog/${adjacent.prev.slug}`} class="group p-4 rounded-lg border border-hatch-border hover:border-hatch-fg transition-colors">
-            <span class="block text-[11px] uppercase tracking-wider text-hatch-fg-subtle mb-1">← Previous</span>
+          <a href={`/blog/${adjacent.prev.slug}`} rel="prev" class="hatch-post-nav__prev group p-4 rounded-lg border border-hatch-border hover:border-hatch-fg transition-colors">
+            <span class="block text-[11px] uppercase tracking-wider text-hatch-fg-subtle mb-1">Previous</span>
             <span class="block font-medium leading-snug line-clamp-2 group-hover:text-hatch-primary transition-colors" set:html={adjacent.prev.title} />
           </a>
         ) : <div />}
         {adjacent.next ? (
-          <a href={`/blog/${adjacent.next.slug}`} class="group p-4 rounded-lg border border-hatch-border hover:border-hatch-fg transition-colors sm:text-right">
-            <span class="block text-[11px] uppercase tracking-wider text-hatch-fg-subtle mb-1">Next →</span>
+          <a href={`/blog/${adjacent.next.slug}`} rel="next" class="hatch-post-nav__next group p-4 rounded-lg border border-hatch-border hover:border-hatch-fg transition-colors sm:text-right">
+            <span class="block text-[11px] uppercase tracking-wider text-hatch-fg-subtle mb-1">Next</span>
             <span class="block font-medium leading-snug line-clamp-2 group-hover:text-hatch-primary transition-colors" set:html={adjacent.next.title} />
           </a>
         ) : <div />}
-      </div>
+      </nav>
     )}
 
     {/* Related */}
