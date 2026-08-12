@@ -84,8 +84,11 @@ const fmt = (iso: string) =>
   <section class="hatch-comments mt-16 pt-8 border-t border-hatch-border" id="comments">
     <header class="flex items-baseline justify-between mb-6 gap-4 flex-wrap">
       <h2 class="text-[20px] sm:text-[22px] font-semibold tracking-tight">
-        {count === 0 ? 'Be the first to comment' : count === 1 ? '1 Comment' : `${count} Comments`}
+        {count === 0 ? 'No comments yet' : count === 1 ? '1 Comment' : `${count} Comments`}
       </h2>
+      {count === 0 && (
+        <p class="hatch-comments__empty text-[13.5px] text-hatch-fg-muted">Be the first to comment.</p>
+      )}
       <a href="#reply" class="text-[12.5px] text-hatch-primary hover:underline whitespace-nowrap">Write a comment →</a>
     </header>
 
