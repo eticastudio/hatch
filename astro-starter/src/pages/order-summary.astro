@@ -108,8 +108,12 @@ const key = url.searchParams.get('key') || '';
       if (errorBox) { errorBox.hidden = false; errorBox.textContent = msg; }
     };
 
-    const params = new URLSearchParams({ id: id, key: key || '' });
-    fetch('/wp-json/wc/store/v1/order?' + params.toString(), {
+    // v0.7.8: Store API route is /wc/store/v1/order/{id}?key=X (path param),
+    // NOT the query-string shape /wc/store/v1/order?id=X&key=Y which 404s.
+    // Verified against live route introspection: only /order/(?P<id>[\d]+) exists.
+    const orderUrl = '/wp-json/wc/store/v1/order/' + encodeURIComponent(id) +
+      (key ? '?key=' + encodeURIComponent(key) : '');
+    fetch(orderUrl, {
       credentials: 'include',
       headers: { Accept: 'application/json' },
     })
