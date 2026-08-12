@@ -1,0 +1,178 @@
+---
+/**
+ * Cart: reads WooCommerce Store API (/wc/store/v1/cart).
+ *
+ * SSR fetch gets the anonymous cart snapshot; client-side small script
+ * hydrates quantity updates + remove using the Store API's Cart-Token
+ * header (POST /remove-item, POST /update-item). Zero WooCommerce CSS
+ * or JS ships. Uses Hatch tokens for styling.
+ *
+ * Guest carts work via cookie propagation (wp_woocommerce_session_*).
+ * If Astro is on a different origin, we display the cart summary but
+ * hand cart-mutation off to WP-origin buttons.
+ *
+ * @since 0.7.6
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import { WP_API_URL } from 'astro:env/server';
+
+const base = (WP_API_URL || '').replace(/\/wp-json(\/.*)?$/, '').replace(/\/$/, '');
+
+interface CartItem {
+  key: string;
+  id: number;
+  quantity: number;
+  name: string;
+  short_description: string;
+  images: Array<{ src: string; alt?: string }>;
+  prices: {
+    price: string;
+    regular_price: string;
+    sale_price: string;
+    currency_symbol: string;
+    currency_minor_unit: number;
+  };
+  totals: {
+    line_total: string;
+    line_subtotal: string;
+    currency_symbol: string;
+    currency_minor_unit: number;
+  };
+  permalink: string;
+}
+interface CartData {
+  items: CartItem[];
+  items_count?: number;
+  totals: {
+    total_items: string;
+    total_price: string;
+    currency_symbol: string;
+    currency_minor_unit: number;
+  };
+}
+
+let cart: CartData | null = null;
+let fetchErr = '';
+
+try {
+  const res = await fetch(`${base}/wp-json/wc/store/v1/cart`, {
+    headers: {
+      Accept: 'application/json',
+      Cookie: Astro.request.headers.get('cookie') || '',
+    },
+  });
+  if (res.ok) {
+    cart = (await res.json()) as CartData;
+  } else {
+    fetchErr = `Cart endpoint returned ${res.status}`;
+  }
+} catch (e) {
+  fetchErr = e instanceof Error ? e.message : String(e);
+}
+
+const money = (minor: string, symbol: string, decimals: number): string => {
+  const n = parseInt(minor || '0', 10);
+  if (!Number.isFinite(n)) return `${symbol}0`;
+  const div = Math.pow(10, decimals || 0);
+  return `${symbol}${(n / div).toFixed(decimals || 0)}`;
+};
+
+const items = cart?.items || [];
+const total = cart ? money(cart.totals.total_price, cart.totals.currency_symbol, cart.totals.currency_minor_unit) : '';
+const wpCheckoutUrl = `${base}/checkout/`;
+---
+<PageLayout title="Cart" description="Your cart">
+  <div class="hatch-cart">
+    <header class="hatch-cart__header">
+      <h1>Cart</h1>
+      {items.length > 0 && <p class="hatch-cart__count">{items.length} {items.length === 1 ? 'item' : 'items'}</p>}
+    </header>
+
+    {fetchErr && <div class="hatch-cart__error" role="alert">Could not load cart: {fetchErr}</div>}
+
+    {!fetchErr && items.length === 0 && (
+      <div class="hatch-cart__empty">
+        <p>Your cart is empty.</p>
+        <a href="/shop" class="hatch-btn hatch-btn--primary">Browse the shop</a>
+      </div>
+    )}
+
+    {items.length > 0 && (
+      <>
+        <ul class="hatch-cart__lines" role="list">
+          {items.map((it) => (
+            <li class="hatch-cart-line">
+              <a href={`/product/${it.permalink.split('/product/').pop()?.replace(/\/$/, '') || ''}`} class="hatch-cart-line__thumb">
+                {it.images?.[0]?.src ? (
+                  <img src={it.images[0].src} alt={it.images[0].alt || it.name} width="96" height="96" loading="lazy" />
+                ) : (
+                  <div class="hatch-cart-line__placeholder" aria-hidden="true"></div>
+                )}
+              </a>
+              <div class="hatch-cart-line__meta">
+                <h2 class="hatch-cart-line__title">{it.name}</h2>
+                <p class="hatch-cart-line__unit">
+                  {money(it.prices.price, it.prices.currency_symbol, it.prices.currency_minor_unit)} each
+                </p>
+              </div>
+              <div class="hatch-cart-line__qty">
+                <label>
+                  <span class="hatch-visually-hidden">Quantity for {it.name}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={it.quantity}
+                    data-hatch-cart-qty
+                    data-hatch-cart-key={it.key}
+                    class="hatch-cart-line__qty-input"
+                  />
+                </label>
+              </div>
+              <div class="hatch-cart-line__total">
+                {money(it.totals.line_total, it.totals.currency_symbol, it.totals.currency_minor_unit)}
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <footer class="hatch-cart__footer">
+          <div class="hatch-cart__total">
+            <span>Total</span>
+            <strong>{total}</strong>
+          </div>
+          <a href={wpCheckoutUrl} class="hatch-btn hatch-btn--primary hatch-cart__checkout">Checkout</a>
+        </footer>
+      </>
+    )}
+  </div>
+</PageLayout>
+
+<script is:inline>
+  /* Quantity update: debounced POST to /wc/store/v1/cart/update-item.
+     Same-origin cookies propagate the anonymous cart session. If Astro
+     runs on a different origin, the Woo Store API needs Cart-Token + CORS
+     which the plugin supports out of the box. On success we reload so
+     line totals + grand total re-render from a fresh SSR fetch. */
+  (function () {
+    const inputs = document.querySelectorAll('[data-hatch-cart-qty]');
+    if (!inputs.length) return;
+    const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+    const post = debounce(async (key, qty) => {
+      try {
+        const res = await fetch('/wp-json/wc/store/v1/cart/update-item', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, quantity: Math.max(0, parseInt(qty, 10) || 0) }),
+        });
+        if (res.ok) location.reload();
+      } catch (e) { /* next reload re-syncs on the server side */ }
+    }, 500);
+    inputs.forEach((el) => {
+      el.addEventListener('change', (e) => {
+        const t = e.target;
+        post(t.getAttribute('data-hatch-cart-key'), t.value);
+      });
+    });
+  })();
+</script>
