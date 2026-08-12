@@ -314,13 +314,37 @@ class Hatch_Security {
 	}
 
 	/**
-	 * Block ?author=N enumeration on the frontend.
+	 * Block ?author=N enumeration on the classic WP frontend.
 	 *
 	 * Returns a hard 404 (matching the admin label) so scanners see a dead URL
 	 * rather than a redirect they could follow back to find the user index.
+	 *
+	 * v0.7.7 hotfix: skip REST API requests. WP does not run the classic
+	 * `?author=N` -> `/author/<slug>/` redirect on REST endpoints, so the
+	 * enumeration vector this hook exists for does not apply there. Leaving
+	 * the block on REST silently 404'd every headless author archive
+	 * (`/wp/v2/posts?author=<id>` and `/hatch/v1/content/list?author=<slug>`),
+	 * even when the caller sent a valid Application Password. The `/wp/v2/users`
+	 * endpoint remains stripped by `remove_users_endpoint`, so username-based
+	 * enumeration is still blocked; ID-based post filtering is now permitted
+	 * for headless clients that already know the id.
 	 */
 	public function block_user_enumeration(): void {
 		if ( is_admin() ) {
+			return;
+		}
+		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+			return;
+		}
+		$req_uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+		if ( '' !== $req_uri ) {
+			$path = (string) wp_parse_url( $req_uri, PHP_URL_PATH );
+			if ( false !== strpos( $path, '/wp-json/' ) ) {
+				return;
+			}
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['rest_route'] ) ) {
 			return;
 		}
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
