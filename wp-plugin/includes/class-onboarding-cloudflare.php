@@ -31,7 +31,12 @@ class Hatch_Onboarding_Cloudflare {
 	/**
 	 * Deploy the Worker + attach route.
 	 *
-	 * @param array{token:string, astro_origin:string, money_domain:string, zone_id?:string, account_id?:string} $args
+	 * v0.5.5 — subpath is now a first-class parameter. Wizard passes whatever
+	 * the user picked ("/blog", "/docs", "/learn", "/kb"). The route pattern,
+	 * Worker path check, and canonical rewrite all key off the same value so
+	 * an enterprise install can mount at any subfolder without editing code.
+	 *
+	 * @param array{token:string, astro_origin:string, money_domain:string, subpath?:string, zone_id?:string, account_id?:string} $args
 	 * @return array{success:bool, message:string, details?:array<string,mixed>}
 	 */
 	public static function deploy( array $args ): array {
@@ -40,6 +45,7 @@ class Hatch_Onboarding_Cloudflare {
 		$money_domain = trim( (string) ( $args['money_domain'] ?? '' ) );
 		$zone_id      = trim( (string) ( $args['zone_id']      ?? '' ) );
 		$account_id   = trim( (string) ( $args['account_id']   ?? '' ) );
+		$subpath      = self::normalize_subpath( (string) ( $args['subpath'] ?? '/blog' ) );
 
 		if ( '' === $token )        return array( 'success' => false, 'message' => __( 'Cloudflare API token required.', 'hatch' ) );
 		if ( '' === $astro_origin ) return array( 'success' => false, 'message' => __( 'Astro origin URL required.',      'hatch' ) );
@@ -56,18 +62,20 @@ class Hatch_Onboarding_Cloudflare {
 		}
 
 		// Step 1 — upload the Worker script.
-		$script_result = self::upload_worker_script( $token, $account_id, $astro_origin, $money_domain );
+		$script_result = self::upload_worker_script( $token, $account_id, $astro_origin, $money_domain, $subpath );
 		if ( ! $script_result['success'] ) {
 			return $script_result;
 		}
 
 		// Step 2 — attach the route pattern to the zone.
-		$route_result = self::attach_route( $token, $zone_id, $money_domain );
+		$route_result = self::attach_route( $token, $zone_id, $money_domain, $subpath );
 		if ( ! $route_result['success'] ) {
 			return $route_result;
 		}
 
-		// Persist state so admin can show "deployed at" + a "redeploy" button.
+		// Persist state so admin can show "deployed at" + a "redeploy" button,
+		// and so the SEO subfolder-rewriter (Hatch_Cf_Seo) knows which prefix
+		// to prepend to canonicals / sitemap / robots.
 		update_option( self::OPTION_STATE, array(
 			'deployed_at'  => time(),
 			'account_id'   => $account_id,
@@ -75,23 +83,81 @@ class Hatch_Onboarding_Cloudflare {
 			'route_id'     => $route_result['details']['route_id'] ?? '',
 			'money_domain' => $money_domain,
 			'astro_origin' => $astro_origin,
+			'subpath'      => $subpath,
 			'script_name'  => self::SCRIPT_NAME,
 		), false );
 
 		return array(
 			'success' => true,
 			'message' => sprintf(
-				/* translators: 1: money domain */
-				__( 'Deployed. Visit %1$s/blog/ to verify.', 'hatch' ),
-				esc_url( 'https://' . $money_domain )
+				/* translators: 1: money domain, 2: subpath */
+				__( 'Deployed. Visit %1$s%2$s/ to verify.', 'hatch' ),
+				esc_url( 'https://' . $money_domain ),
+				esc_html( $subpath )
 			),
 			'details' => array(
 				'account_id'   => $account_id,
 				'zone_id'      => $zone_id,
 				'route_id'     => $route_result['details']['route_id'] ?? '',
 				'money_domain' => $money_domain,
+				'subpath'      => $subpath,
 			),
 		);
+	}
+
+	/**
+	 * Coerce a user-typed path into "/xxx" — no trailing slash, always one leading.
+	 * Empty/root input falls back to "/blog" (the wizard default) so a partially
+	 * filled form never deploys a route that captures the whole domain.
+	 */
+	private static function normalize_subpath( string $raw ): string {
+		$s = trim( $raw );
+		if ( '' === $s || '/' === $s ) return '/blog';
+		$s = '/' . ltrim( $s, '/' );
+		$s = rtrim( $s, '/' );
+		// Only ASCII path chars — strip anything a hostile paste could sneak in.
+		$s = preg_replace( '#[^a-zA-Z0-9/_-]#', '', $s );
+		return '' === $s ? '/blog' : $s;
+	}
+
+	/**
+	 * List the zones this token can see. Wizard uses it to render a dropdown
+	 * of the user's domains so they don't have to type / mis-type the host.
+	 *
+	 * @return array{success:bool, message?:string, zones?:array<int,array{id:string,name:string,account_id:string}>}
+	 */
+	public static function list_zones( string $token ): array {
+		$token = trim( $token );
+		if ( '' === $token ) {
+			return array( 'success' => false, 'message' => __( 'Cloudflare API token required.', 'hatch' ) );
+		}
+		$out  = array();
+		$page = 1;
+		do {
+			$response = wp_remote_get( self::API_ROOT . '/zones?per_page=50&page=' . $page, array(
+				'timeout' => 8,
+				'headers' => array( 'Authorization' => 'Bearer ' . $token ),
+			) );
+			if ( is_wp_error( $response ) ) {
+				return array( 'success' => false, 'message' => sprintf( /* translators: %s: transport error */ __( 'Cloudflare API unreachable: %s', 'hatch' ), $response->get_error_message() ) );
+			}
+			$code = wp_remote_retrieve_response_code( $response );
+			if ( 401 === $code || 403 === $code ) {
+				return array( 'success' => false, 'message' => __( 'API token rejected. Add scopes: Workers Scripts Edit + Zone Workers Routes Edit + Zone DNS Read.', 'hatch' ) );
+			}
+			$body = json_decode( wp_remote_retrieve_body( $response ), true );
+			if ( empty( $body['result'] ) || ! is_array( $body['result'] ) ) break;
+			foreach ( $body['result'] as $zone ) {
+				$out[] = array(
+					'id'         => (string) ( $zone['id']   ?? '' ),
+					'name'       => (string) ( $zone['name'] ?? '' ),
+					'account_id' => (string) ( $zone['account']['id'] ?? '' ),
+				);
+			}
+			$total_pages = (int) ( $body['result_info']['total_pages'] ?? 1 );
+			$page++;
+		} while ( $page <= $total_pages && $page <= 10 ); // hard cap 500 zones
+		return array( 'success' => true, 'zones' => $out );
 	}
 
 	/**
@@ -129,8 +195,8 @@ class Hatch_Onboarding_Cloudflare {
 	 * response back, and swaps origin URLs in the HTML canonicals so
 	 * search engines never see the origin.
 	 */
-	private static function upload_worker_script( string $token, string $account_id, string $astro_origin, string $money_domain ): array {
-		$script = self::build_worker_source( $astro_origin, $money_domain );
+	private static function upload_worker_script( string $token, string $account_id, string $astro_origin, string $money_domain, string $subpath ): array {
+		$script = self::build_worker_source( $astro_origin, $money_domain, $subpath );
 
 		// Multipart upload — Cloudflare requires the metadata part FIRST, then the script body.
 		$boundary  = wp_generate_password( 24, false );
