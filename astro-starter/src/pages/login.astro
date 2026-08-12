@@ -1,0 +1,97 @@
+---
+/**
+ * Hatch login page.
+ *
+ * CLEAN-ROOM ORIGINAL. Zero lines copied from any external repo.
+ * Standards followed: RFC 7519 (JWT), RFC 6265 (HttpOnly Secure SameSite cookies).
+ *
+ * Posts {username,password} to /hatch/v1/auth/login through same-origin
+ * proxy. On success WP sets the HttpOnly hatch_jwt cookie and we redirect
+ * to ?redirect_to=... or /account.
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import { getFeatures } from '@/lib/features';
+
+export const prerender = false;
+
+const features = await getFeatures();
+const url = new URL(Astro.request.url);
+const redirectTo = url.searchParams.get('redirect_to') || '/account';
+const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
+---
+
+<PageLayout title="Sign in" description="Sign in to your account." canonical={`${SITE}/login`}>
+  <main class="mx-auto px-5 sm:px-8 py-16 sm:py-20" style="max-width: 440px">
+    <header class="mb-8">
+      <h1 class="text-3xl font-semibold tracking-tight">Sign in</h1>
+      <p class="mt-2 text-[14px] text-hatch-fg-muted">
+        No account? <a href={`/register?redirect_to=${encodeURIComponent(redirectTo)}`} class="text-hatch-primary hover:underline">Create one</a>.
+      </p>
+    </header>
+
+    <form id="hatch-login-form" class="flex flex-col gap-4" method="POST" action="/api/auth/login" data-redirect={redirectTo}>
+      <label class="flex flex-col gap-1.5">
+        <span class="text-[12.5px] font-medium text-hatch-fg-muted">Username or email</span>
+        <input
+          type="text"
+          name="username"
+          required
+          autocomplete="username"
+          class="px-3 py-2 rounded-md border border-hatch-border bg-hatch-bg focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none text-[14px]"
+        />
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="text-[12.5px] font-medium text-hatch-fg-muted">Password</span>
+        <input
+          type="password"
+          name="password"
+          required
+          minlength="8"
+          autocomplete="current-password"
+          class="px-3 py-2 rounded-md border border-hatch-border bg-hatch-bg focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none text-[14px]"
+        />
+      </label>
+      <div class="flex items-center gap-3">
+        <button
+          type="submit"
+          class="px-5 py-2.5 rounded-md bg-hatch-primary text-white text-[13.5px] font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+        >Sign in</button>
+        <p id="hatch-login-status" class="text-[13px] text-hatch-fg-subtle" aria-live="polite"></p>
+      </div>
+    </form>
+
+    <script is:inline>
+      (function () {
+        const form = document.getElementById('hatch-login-form');
+        if (!form) return;
+        const status = document.getElementById('hatch-login-status');
+        const redirect = form.dataset.redirect || '/account';
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const data = new FormData(form);
+          const btn = form.querySelector('button[type="submit"]');
+          if (btn) btn.disabled = true;
+          if (status) { status.textContent = 'Signing in…'; status.className = 'text-[13px] text-hatch-fg-subtle'; }
+          try {
+            const res = await fetch(form.action, {
+              method: 'POST',
+              body: JSON.stringify({
+                username: String(data.get('username') || ''),
+                password: String(data.get('password') || ''),
+              }),
+              headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+              credentials: 'same-origin',
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(body.message || 'Sign-in failed');
+            if (status) { status.textContent = 'Signed in. Redirecting…'; status.className = 'text-[13px] text-green-600 dark:text-green-400'; }
+            window.location.href = redirect;
+          } catch (err) {
+            if (status) { status.textContent = (err && err.message) || 'Sign-in failed'; status.className = 'text-[13px] text-red-600 dark:text-red-400'; }
+            if (btn) btn.disabled = false;
+          }
+        });
+      })();
+    </script>
+  </main>
+</PageLayout>

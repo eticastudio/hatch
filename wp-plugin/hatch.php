@@ -388,6 +388,7 @@ require_once HATCH_PLUGIN_DIR . 'includes/class-media-rewriter.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-hardening.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-seo-bridge.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-forms-bridge.php';
+require_once HATCH_PLUGIN_DIR . 'includes/class-auth.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-rankready-bridge.php';
 // V0.27 — nav menu passthrough.
 require_once HATCH_PLUGIN_DIR . 'includes/class-menus-bridge.php';

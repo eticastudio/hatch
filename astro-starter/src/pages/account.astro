@@ -1,0 +1,95 @@
+---
+/**
+ * Hatch account page.
+ * CLEAN-ROOM ORIGINAL. Zero lines copied from any external repo.
+ *
+ * SSR: reads hatch_jwt from request cookie, calls WP /hatch/v1/auth/me, renders
+ * the user. Not signed in? Redirect to /login?redirect_to=/account.
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import { getFeatures } from '@/lib/features';
+import { WP_API_URL } from 'astro:env/server';
+
+export const prerender = false;
+
+const features = await getFeatures();
+const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
+const WP_BASE = (WP_API_URL || '').replace(/\/wp\/v2\/?$/, '').replace(/\/$/, '');
+const cookieHeader = Astro.request.headers.get('cookie') || '';
+
+interface HatchUser {
+  id: number;
+  name: string;
+  email: string;
+  roles: string[];
+  avatar: string;
+}
+
+let user: HatchUser | null = null;
+
+if (WP_BASE && cookieHeader.includes('hatch_jwt=')) {
+  try {
+    const res = await fetch(`${WP_BASE}/hatch/v1/auth/me`, {
+      headers: { Accept: 'application/json', Cookie: cookieHeader },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (res.ok) {
+      const body = await res.json();
+      if (body && body.user) user = body.user as HatchUser;
+    }
+  } catch {
+    /* fall through: not signed in */
+  }
+}
+
+if (!user) {
+  return Astro.redirect(`/login?redirect_to=${encodeURIComponent('/account')}`, 302);
+}
+---
+
+<PageLayout title="Account" description="Your account." canonical={`${SITE}/account`}>
+  <main class="mx-auto px-5 sm:px-8 py-16 sm:py-20" style="max-width: 560px">
+    <header class="mb-8 flex items-center gap-4">
+      <img src={user.avatar} alt="" width="64" height="64" class="rounded-full flex-shrink-0" loading="lazy" />
+      <div class="min-w-0">
+        <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight truncate">{user.name}</h1>
+        <p class="mt-1 text-[13.5px] text-hatch-fg-muted truncate">{user.email}</p>
+      </div>
+    </header>
+
+    <section class="border border-hatch-border rounded-md p-5 bg-hatch-bg-2 mb-6">
+      <h2 class="text-[13px] font-medium text-hatch-fg-muted uppercase tracking-wider mb-3">Roles</h2>
+      <ul class="flex flex-wrap gap-2">
+        {user.roles.length === 0 && (
+          <li class="text-[13px] text-hatch-fg-subtle">No roles assigned.</li>
+        )}
+        {user.roles.map((r) => (
+          <li class="text-[12px] px-2 py-1 rounded border border-hatch-border bg-hatch-bg font-mono">{r}</li>
+        ))}
+      </ul>
+    </section>
+
+    <form id="hatch-logout-form" method="POST" action="/api/auth/logout">
+      <button type="submit"
+        class="px-5 py-2.5 rounded-md border border-hatch-border bg-hatch-bg text-[13.5px] font-medium hover:bg-hatch-bg-2 transition-colors">
+        Sign out
+      </button>
+    </form>
+
+    <script is:inline>
+      (function () {
+        const form = document.getElementById('hatch-logout-form');
+        if (!form) return;
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const btn = form.querySelector('button[type="submit"]');
+          if (btn) btn.disabled = true;
+          try {
+            await fetch(form.action, { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json' } });
+          } catch { /* ignore, still redirect */ }
+          window.location.href = '/';
+        });
+      })();
+    </script>
+  </main>
+</PageLayout>
