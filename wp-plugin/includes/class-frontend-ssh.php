@@ -42,6 +42,10 @@ class Hatch_Frontend_SSH {
 	const OPT_WORKDIR    = 'hatch_ssh_workdir';
 	const OPT_PM2_NAME   = 'hatch_ssh_pm2_name';
 	const OPT_BRANCH     = 'hatch_ssh_branch';
+	// Host-key pinning (TOFU: Trust On First Use). Fingerprint is the raw
+	// server host key hashed with sha256 (base64). Captured at save time and
+	// re-verified on every subsequent connect. Mismatch = refuse to connect.
+	const OPT_HOST_FP    = 'hatch_ssh_host_fingerprint';
 
 	/**
 	 * Whitelisted command templates. %s placeholders are filled with
@@ -169,16 +173,102 @@ class Hatch_Frontend_SSH {
 			return new WP_Error( 'hatch_ssh_bad_workdir', __( 'workdir must be an absolute path without shell metacharacters.', 'hatch' ), array( 'status' => 400 ) );
 		}
 
+		// #156 — refuse to persist creds when libsodium is unavailable. The
+		// legacy 'plain:base64' fallback is DELETED (see encrypt()); saving
+		// without real encryption is a silent plaintext leak we won't accept.
+		if ( ! function_exists( 'sodium_crypto_secretbox' ) ) {
+			return new WP_Error(
+				'hatch_ssh_no_sodium',
+				__( 'libsodium (sodium_crypto_secretbox) is required to store SSH credentials securely. Install/enable the PHP sodium extension, or use the Hatch Agent instead.', 'hatch' ),
+				array( 'status' => 501 )
+			);
+		}
+
+		$ciphertext = $this->encrypt( $credential );
+		if ( is_wp_error( $ciphertext ) ) {
+			return $ciphertext;
+		}
+
+		// #157 — TOFU host-key pinning. Capture the server's host key on
+		// first save so later connects can detect an MITM / host swap.
+		$fp = self::fetch_host_fingerprint( $host, $port );
+		if ( is_wp_error( $fp ) ) {
+			return $fp;
+		}
+
 		update_option( self::OPT_HOST, $host );
 		update_option( self::OPT_PORT, $port );
 		update_option( self::OPT_USERNAME, $username );
 		update_option( self::OPT_CRED_TYPE, $cred_type );
-		update_option( self::OPT_CREDENTIAL, $this->encrypt( $credential ) );
+		update_option( self::OPT_CREDENTIAL, $ciphertext );
 		update_option( self::OPT_WORKDIR, $workdir );
 		update_option( self::OPT_PM2_NAME, $pm2_name );
 		update_option( self::OPT_BRANCH, $branch );
+		update_option( self::OPT_HOST_FP, $fp );
 
-		return new WP_REST_Response( array( 'success' => true ), 200 );
+		return new WP_REST_Response( array( 'success' => true, 'host_fingerprint' => $fp ), 200 );
+	}
+
+	/**
+	 * Fetch the SSH server host-key fingerprint (sha256, base64).
+	 *
+	 * Called at save-time (pin) and at connect-time (verify). Prefers
+	 * phpseclib3 because it returns the raw host key without needing to
+	 * complete authentication. Falls back to ssh2_fingerprint (md5 hex) if
+	 * only the PECL ssh2 extension is available — we prefix "md5:" so the
+	 * verify comparison still works.
+	 *
+	 * @param string $host Hostname or IP.
+	 * @param int    $port Port.
+	 * @return string|WP_Error Fingerprint string or error.
+	 */
+	private static function fetch_host_fingerprint( string $host, int $port ) {
+		if ( class_exists( '\\phpseclib3\\Net\\SSH2' ) ) {
+			try {
+				$probe = new \phpseclib3\Net\SSH2( $host, $port, 15 );
+				// getServerPublicHostKey() forces the key exchange to run.
+				$key = $probe->getServerPublicHostKey();
+				if ( ! is_string( $key ) || '' === $key ) {
+					return new WP_Error( 'hatch_ssh_no_hostkey', __( 'Could not read SSH host key from server.', 'hatch' ), array( 'status' => 502 ) );
+				}
+				return 'sha256:' . base64_encode( hash( 'sha256', $key, true ) );
+			} catch ( \Throwable $e ) {
+				return new WP_Error( 'hatch_ssh_probe_failed', sprintf( __( 'SSH host-key probe failed: %s', 'hatch' ), $e->getMessage() ), array( 'status' => 502 ) );
+			}
+		}
+		if ( function_exists( 'ssh2_connect' ) && function_exists( 'ssh2_fingerprint' ) ) {
+			$conn = @ssh2_connect( $host, $port );
+			if ( ! $conn ) {
+				return new WP_Error( 'hatch_ssh_connect_failed', __( 'SSH connect failed during host-key probe.', 'hatch' ), array( 'status' => 502 ) );
+			}
+			$fp = @ssh2_fingerprint( $conn, SSH2_FINGERPRINT_MD5 | SSH2_FINGERPRINT_HEX );
+			if ( ! is_string( $fp ) || '' === $fp ) {
+				return new WP_Error( 'hatch_ssh_no_hostkey', __( 'Could not read SSH host key from server.', 'hatch' ), array( 'status' => 502 ) );
+			}
+			return 'md5:' . strtolower( $fp );
+		}
+		return new WP_Error( 'hatch_ssh_no_backend', __( 'No SSH backend available to fetch host key.', 'hatch' ), array( 'status' => 501 ) );
+	}
+
+	/**
+	 * Verify the live host key matches the pinned fingerprint.
+	 * Returns true when they match. WP_Error on mismatch or no pin.
+	 *
+	 * @return true|WP_Error
+	 */
+	private static function verify_host_fingerprint() {
+		$pinned = (string) get_option( self::OPT_HOST_FP, '' );
+		if ( '' === $pinned ) {
+			// No pin recorded — force the operator to re-save credentials.
+			return false;
+		}
+		$host = (string) get_option( self::OPT_HOST, '' );
+		$port = (int)    get_option( self::OPT_PORT, 22 );
+		$live = self::fetch_host_fingerprint( $host, $port );
+		if ( is_wp_error( $live ) ) {
+			return false;
+		}
+		return hash_equals( $pinned, (string) $live );
 	}
 
 	/* ----------------------------------------------------------------
@@ -280,6 +370,21 @@ class Hatch_Frontend_SSH {
 
 		try {
 			$ssh = new \phpseclib3\Net\SSH2( $host, $port, 30 );
+			// #157 — pin-check BEFORE login so a swapped-host attacker never
+			// receives the credentials. getServerPublicHostKey() runs KEX.
+			$live_key = $ssh->getServerPublicHostKey();
+			if ( ! is_string( $live_key ) || '' === $live_key ) {
+				return new WP_Error( 'hatch_ssh_no_hostkey', __( 'Could not read SSH host key from server.', 'hatch' ) );
+			}
+			$live_fp = 'sha256:' . base64_encode( hash( 'sha256', $live_key, true ) );
+			$pinned  = (string) get_option( self::OPT_HOST_FP, '' );
+			if ( '' === $pinned ) {
+				return new WP_Error( 'hatch_ssh_no_pin', __( 'No pinned SSH host fingerprint. Re-save credentials to record one.', 'hatch' ), array( 'status' => 409 ) );
+			}
+			if ( ! hash_equals( $pinned, $live_fp ) ) {
+				return new WP_Error( 'hatch_ssh_hostkey_mismatch', __( 'SSH host key changed since setup. Aborting to prevent MITM. Re-save credentials only if the change is expected.', 'hatch' ), array( 'status' => 495, 'pinned' => $pinned, 'live' => $live_fp ) );
+			}
+
 			$cred_type = (string) get_option( self::OPT_CRED_TYPE, 'password' );
 			$cred      = $this->decrypt( (string) get_option( self::OPT_CREDENTIAL, '' ) );
 
@@ -319,6 +424,17 @@ class Hatch_Frontend_SSH {
 		$conn = @ssh2_connect( $host, $port );
 		if ( ! $conn ) {
 			return new WP_Error( 'hatch_ssh_connect_failed', __( 'SSH connect failed.', 'hatch' ) );
+		}
+		// #157 — verify pinned host-key fingerprint before authentication.
+		if ( function_exists( 'ssh2_fingerprint' ) ) {
+			$live_fp = 'md5:' . strtolower( (string) @ssh2_fingerprint( $conn, SSH2_FINGERPRINT_MD5 | SSH2_FINGERPRINT_HEX ) );
+			$pinned  = (string) get_option( self::OPT_HOST_FP, '' );
+			if ( '' === $pinned ) {
+				return new WP_Error( 'hatch_ssh_no_pin', __( 'No pinned SSH host fingerprint. Re-save credentials to record one.', 'hatch' ), array( 'status' => 409 ) );
+			}
+			if ( ! hash_equals( $pinned, $live_fp ) ) {
+				return new WP_Error( 'hatch_ssh_hostkey_mismatch', __( 'SSH host key changed since setup. Aborting to prevent MITM.', 'hatch' ), array( 'status' => 495, 'pinned' => $pinned, 'live' => $live_fp ) );
+			}
 		}
 		$cred_type = (string) get_option( self::OPT_CRED_TYPE, 'password' );
 		$cred      = $this->decrypt( (string) get_option( self::OPT_CREDENTIAL, '' ) );
@@ -370,13 +486,26 @@ class Hatch_Frontend_SSH {
 	private function derive_key(): string {
 		return substr( hash( 'sha256', wp_salt( 'auth' ) . wp_salt( 'secure_auth' ), true ), 0, 32 );
 	}
-	private function encrypt( string $plaintext ): string {
-		if ( function_exists( 'sodium_crypto_secretbox' ) ) {
-			$nonce      = random_bytes( SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
-			$ciphertext = sodium_crypto_secretbox( $plaintext, $nonce, $this->derive_key() );
-			return 'sodium:' . base64_encode( $nonce . $ciphertext );
+	/**
+	 * Encrypt an SSH credential. Requires libsodium — no plaintext fallback.
+	 * Callers must check `function_exists('sodium_crypto_secretbox')` before
+	 * calling; this returns WP_Error if invoked without sodium so we never
+	 * accidentally persist a base64-only blob.
+	 *
+	 * @param string $plaintext Raw credential.
+	 * @return string|WP_Error Ciphertext prefixed 'sodium:' on success.
+	 */
+	private function encrypt( string $plaintext ) {
+		if ( ! function_exists( 'sodium_crypto_secretbox' ) ) {
+			return new WP_Error(
+				'hatch_ssh_no_sodium',
+				__( 'libsodium unavailable; refusing to store SSH credential in plaintext.', 'hatch' ),
+				array( 'status' => 501 )
+			);
 		}
-		return 'plain:' . base64_encode( $plaintext );
+		$nonce      = random_bytes( SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
+		$ciphertext = sodium_crypto_secretbox( $plaintext, $nonce, $this->derive_key() );
+		return 'sodium:' . base64_encode( $nonce . $ciphertext );
 	}
 	private function decrypt( string $enc ): string {
 		if ( 0 === strpos( $enc, 'sodium:' ) && function_exists( 'sodium_crypto_secretbox_open' ) ) {
@@ -389,10 +518,8 @@ class Hatch_Frontend_SSH {
 			$plain      = sodium_crypto_secretbox_open( $ciphertext, $nonce, $this->derive_key() );
 			return is_string( $plain ) ? $plain : '';
 		}
-		if ( 0 === strpos( $enc, 'plain:' ) ) {
-			$raw = base64_decode( substr( $enc, 6 ), true );
-			return is_string( $raw ) ? $raw : '';
-		}
+		// Legacy 'plain:' blobs are refused on read — force operator to
+		// rotate credentials via /ssh/save on a sodium-enabled PHP.
 		return '';
 	}
 }
