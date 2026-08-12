@@ -366,6 +366,37 @@ class Hatch_Features {
 			// design.md parsed cache so we hydrate them here at payload time.
 			$design['borders']     = (array) get_option( 'hatch_design_borders',     array( 'color' => '#e5e5e5', 'shadow' => 'soft' ) );
 			$design['breakpoints'] = (array) get_option( 'hatch_design_breakpoints', array( 'mobile' => 640, 'tablet' => 1024, 'desktop' => 1280 ) );
+
+			// Overlay scattered per-group options on top of the design.md
+			// parsed cache. hatch_design_parsed is only regenerated inside
+			// hatch_react_options_save (admin/dashboard.php); any code path
+			// that writes hatch_design_{layout,brand,voice,templates}
+			// directly (wp-cli, migrations, other plugins, direct
+			// update_option calls) leaves the cache stale, so /features
+			// kept returning old layout.density / max_width / rounded /
+			// button_style values until the next React admin save.
+			// Overlaying here makes the endpoint authoritative on the
+			// scattered options regardless of who wrote them, matching the
+			// pattern already used for borders + breakpoints above.
+			foreach ( array( 'layout', 'brand', 'voice', 'templates' ) as $grp ) {
+				$stored = (array) get_option( "hatch_design_{$grp}", array() );
+				if ( ! empty( $stored ) && isset( $design[ $grp ] ) && is_array( $design[ $grp ] ) ) {
+					$design[ $grp ] = array_merge( $design[ $grp ], $stored );
+				}
+			}
+			// Top-level font + mode scalars live outside the grouped
+			// options (React writes them as hatch_design_font_heading /
+			// _body / _mono / _mode) — mirror admin/dashboard.php's
+			// hatch_regenerate_design_artifacts so the payload reflects
+			// them without waiting for a React save to rebuild the cache.
+			$font_heading = get_option( 'hatch_design_font_heading', null );
+			$font_body    = get_option( 'hatch_design_font_body',    null );
+			$font_mono    = get_option( 'hatch_design_font_mono',    null );
+			$design_mode  = get_option( 'hatch_design_mode',         null );
+			if ( null !== $font_heading ) { $design['brand']['font_heading'] = (string) $font_heading; }
+			if ( null !== $font_body )    { $design['brand']['font_body']    = (string) $font_body;    }
+			if ( null !== $font_mono )    { $design['brand']['font_mono']    = (string) $font_mono;    }
+			if ( null !== $design_mode )  { $design['brand']['mode']         = (string) $design_mode;  }
 		}
 
 		// v0.50.15 — Aesthetic option groups. Pure key-value pass-through:
