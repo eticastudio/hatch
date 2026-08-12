@@ -1,0 +1,316 @@
+---
+/**
+ * Checkout: Astro-native, WooCommerce Store API only.
+ *
+ * REST-only per Hatch Bridge rule. Zero WooCommerce CSS or JS ships.
+ * The Store API accepts billing/shipping/payment_method and returns
+ * an order object. Payment providers plug in via payment_data.
+ *
+ * Flow:
+ *   1. SSR fetch cart + Nonce + Cart-Token from /wc/store/v1/cart
+ *   2. SSR fetch checkout defaults from /wc/store/v1/checkout (with headers)
+ *   3. Client-side form POSTs to /wc/store/v1/checkout with the same headers
+ *   4. On success server response.redirect_url is honored; else we route to
+ *      /order-summary?id=X&key=Y
+ *
+ * Payment providers: only Cash on Delivery (COD) in v1. Stripe.js integration
+ * is scaffolded but gated to when STRIPE_PUBLISHABLE_KEY is set.
+ *
+ * References studied (not copied):
+ *   - scottyzen/woonuxt: pages/checkout.vue for the UX flow (GPL-3.0)
+ *   - Woo Store API docs for the checkout POST contract
+ *
+ * @since 0.7.7
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import { WP_API_URL } from 'astro:env/server';
+
+const base = (WP_API_URL || '').replace(/\/wp-json(\/.*)?$/, '').replace(/\/$/, '');
+
+const cookie = Astro.request.headers.get('cookie') || '';
+
+let nonce = '';
+let cartToken = '';
+let cart: any = null;
+let checkout: any = null;
+let fetchErr = '';
+
+try {
+  const cartRes = await fetch(`${base}/wp-json/wc/store/v1/cart`, {
+    headers: { Accept: 'application/json', Cookie: cookie },
+  });
+  if (cartRes.ok) {
+    nonce = cartRes.headers.get('nonce') || cartRes.headers.get('Nonce') || '';
+    cartToken = cartRes.headers.get('cart-token') || cartRes.headers.get('Cart-Token') || '';
+    cart = await cartRes.json();
+  } else {
+    fetchErr = `Cart load failed: HTTP ${cartRes.status}`;
+  }
+  if (nonce) {
+    const cRes = await fetch(`${base}/wp-json/wc/store/v1/checkout`, {
+      headers: {
+        Accept: 'application/json',
+        Cookie: cookie,
+        Nonce: nonce,
+        ...(cartToken ? { 'Cart-Token': cartToken } : {}),
+      },
+    });
+    if (cRes.ok) checkout = await cRes.json();
+  }
+} catch (e) {
+  fetchErr = e instanceof Error ? e.message : String(e);
+}
+
+const items = cart?.items || [];
+const empty = items.length === 0;
+const symbol = cart?.totals?.currency_symbol || '';
+const minor = cart?.totals?.currency_minor_unit || 2;
+const money = (v: string) => {
+  const n = parseInt(v || '0', 10);
+  if (!Number.isFinite(n)) return `${symbol}0`;
+  return `${symbol}${(n / Math.pow(10, minor)).toFixed(minor)}`;
+};
+
+const billing = checkout?.billing_address || {};
+const shipping = checkout?.shipping_address || {};
+const paymentMethods: Array<{ id: string; title: string; description?: string }> =
+  (checkout?.payment_methods && Array.isArray(checkout.payment_methods)
+    ? checkout.payment_methods
+    : [{ id: 'cod', title: 'Cash on delivery', description: 'Pay in cash upon delivery.' }]);
+---
+<PageLayout title="Checkout" description="Complete your order">
+  <div class="hatch-checkout">
+    <header class="hatch-checkout__header">
+      <h1>Checkout</h1>
+      <a href="/cart" class="hatch-checkout__back">Back to cart</a>
+    </header>
+
+    {fetchErr && <div class="hatch-checkout__error" role="alert">{fetchErr}</div>}
+
+    {empty && !fetchErr && (
+      <div class="hatch-checkout__empty">
+        <p>Your cart is empty.</p>
+        <a href="/shop" class="hatch-btn hatch-btn--primary">Browse the shop</a>
+      </div>
+    )}
+
+    {!empty && (
+      <form
+        id="hatch-checkout-form"
+        class="hatch-checkout__grid"
+        data-nonce={nonce}
+        data-cart-token={cartToken}
+        data-wp-origin={base}
+      >
+        <div class="hatch-checkout__forms">
+          <fieldset class="hatch-checkout__section">
+            <legend>Billing</legend>
+            <div class="hatch-checkout__row">
+              <label class="hatch-checkout__field">
+                <span>First name</span>
+                <input name="billing.first_name" value={billing.first_name || ''} required />
+              </label>
+              <label class="hatch-checkout__field">
+                <span>Last name</span>
+                <input name="billing.last_name" value={billing.last_name || ''} required />
+              </label>
+            </div>
+            <label class="hatch-checkout__field">
+              <span>Email</span>
+              <input type="email" name="billing.email" value={billing.email || ''} required />
+            </label>
+            <label class="hatch-checkout__field">
+              <span>Phone</span>
+              <input type="tel" name="billing.phone" value={billing.phone || ''} />
+            </label>
+            <label class="hatch-checkout__field">
+              <span>Address line 1</span>
+              <input name="billing.address_1" value={billing.address_1 || ''} required />
+            </label>
+            <label class="hatch-checkout__field">
+              <span>Address line 2</span>
+              <input name="billing.address_2" value={billing.address_2 || ''} />
+            </label>
+            <div class="hatch-checkout__row">
+              <label class="hatch-checkout__field">
+                <span>City</span>
+                <input name="billing.city" value={billing.city || ''} required />
+              </label>
+              <label class="hatch-checkout__field">
+                <span>Postcode</span>
+                <input name="billing.postcode" value={billing.postcode || ''} required />
+              </label>
+            </div>
+            <div class="hatch-checkout__row">
+              <label class="hatch-checkout__field">
+                <span>State</span>
+                <input name="billing.state" value={billing.state || 'CA'} />
+              </label>
+              <label class="hatch-checkout__field">
+                <span>Country (2-letter)</span>
+                <input name="billing.country" value={billing.country || 'US'} maxlength="2" required />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="hatch-checkout__section">
+            <legend>Shipping</legend>
+            <label class="hatch-checkout__checkbox">
+              <input type="checkbox" name="ship_same" checked />
+              <span>Same as billing</span>
+            </label>
+            <div class="hatch-checkout__ship-fields" hidden>
+              <div class="hatch-checkout__row">
+                <label class="hatch-checkout__field">
+                  <span>First name</span>
+                  <input name="shipping.first_name" value={shipping.first_name || ''} />
+                </label>
+                <label class="hatch-checkout__field">
+                  <span>Last name</span>
+                  <input name="shipping.last_name" value={shipping.last_name || ''} />
+                </label>
+              </div>
+              <label class="hatch-checkout__field">
+                <span>Address line 1</span>
+                <input name="shipping.address_1" value={shipping.address_1 || ''} />
+              </label>
+              <div class="hatch-checkout__row">
+                <label class="hatch-checkout__field">
+                  <span>City</span>
+                  <input name="shipping.city" value={shipping.city || ''} />
+                </label>
+                <label class="hatch-checkout__field">
+                  <span>Postcode</span>
+                  <input name="shipping.postcode" value={shipping.postcode || ''} />
+                </label>
+              </div>
+              <div class="hatch-checkout__row">
+                <label class="hatch-checkout__field">
+                  <span>State</span>
+                  <input name="shipping.state" value={shipping.state || 'CA'} />
+                </label>
+                <label class="hatch-checkout__field">
+                  <span>Country</span>
+                  <input name="shipping.country" value={shipping.country || 'US'} maxlength="2" />
+                </label>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="hatch-checkout__section">
+            <legend>Payment</legend>
+            {paymentMethods.map((pm, i) => (
+              <label class="hatch-checkout__pm">
+                <input type="radio" name="payment_method" value={pm.id} checked={i === 0} />
+                <span class="hatch-checkout__pm-title">{pm.title}</span>
+                {pm.description && <span class="hatch-checkout__pm-desc">{pm.description}</span>}
+              </label>
+            ))}
+          </fieldset>
+
+          <fieldset class="hatch-checkout__section">
+            <legend>Order note (optional)</legend>
+            <label class="hatch-checkout__field">
+              <textarea name="customer_note" rows="3" placeholder="Anything the seller should know"></textarea>
+            </label>
+          </fieldset>
+        </div>
+
+        <aside class="hatch-checkout__summary">
+          <h2>Order summary</h2>
+          <ul class="hatch-checkout__lines" role="list">
+            {items.map((it: any) => (
+              <li>
+                <span class="hatch-checkout__li-name">{it.name} <em>×{it.quantity}</em></span>
+                <span class="hatch-checkout__li-total">{money(it.totals?.line_total)}</span>
+              </li>
+            ))}
+          </ul>
+          <div class="hatch-checkout__totals">
+            <div><span>Subtotal</span><strong>{cart ? money(cart.totals.total_items) : ''}</strong></div>
+            {cart?.totals?.total_shipping && parseInt(cart.totals.total_shipping,10) > 0 && (
+              <div><span>Shipping</span><strong>{money(cart.totals.total_shipping)}</strong></div>
+            )}
+            {cart?.totals?.total_tax && parseInt(cart.totals.total_tax,10) > 0 && (
+              <div><span>Tax</span><strong>{money(cart.totals.total_tax)}</strong></div>
+            )}
+            <div class="hatch-checkout__grand"><span>Total</span><strong>{cart ? money(cart.totals.total_price) : ''}</strong></div>
+          </div>
+          <button type="submit" class="hatch-btn hatch-btn--primary hatch-checkout__submit">Place order</button>
+          <div class="hatch-checkout__status" role="status" aria-live="polite"></div>
+        </aside>
+      </form>
+    )}
+  </div>
+</PageLayout>
+
+<script is:inline>
+  (function () {
+    const form = document.getElementById('hatch-checkout-form');
+    if (!form) return;
+    const nonce = form.dataset.nonce;
+    const cartToken = form.dataset.cartToken;
+    const wpOrigin = form.dataset.wpOrigin;
+
+    // Toggle shipping fields when "same as billing" is unchecked.
+    const sameChk = form.querySelector('input[name="ship_same"]');
+    const shipFields = form.querySelector('.hatch-checkout__ship-fields');
+    const syncShip = () => { shipFields.hidden = sameChk.checked; };
+    if (sameChk && shipFields) { sameChk.addEventListener('change', syncShip); syncShip(); }
+
+    const status = form.querySelector('.hatch-checkout__status');
+    const submit = form.querySelector('.hatch-checkout__submit');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      submit.disabled = true;
+      status.textContent = 'Placing order...';
+
+      const data = new FormData(form);
+      const nested = (prefix) => {
+        const o = {};
+        for (const [k, v] of data.entries()) {
+          if (k.startsWith(prefix + '.')) o[k.slice(prefix.length + 1)] = String(v);
+        }
+        return o;
+      };
+      const billing = nested('billing');
+      const shipping = data.get('ship_same') ? { ...billing } : nested('shipping');
+      // shipping schema has no email; drop it if present
+      delete shipping.email;
+
+      const body = {
+        billing_address: billing,
+        shipping_address: shipping,
+        payment_method: String(data.get('payment_method') || 'cod'),
+        payment_data: [],
+        customer_note: String(data.get('customer_note') || ''),
+      };
+
+      try {
+        const res = await fetch('/wp-json/wc/store/v1/checkout', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Nonce': nonce,
+            ...(cartToken ? { 'Cart-Token': cartToken } : {}),
+          },
+          body: JSON.stringify(body),
+        });
+        const out = await res.json();
+        if (res.ok && out.order_id) {
+          const redirect = out.payment_result?.redirect_url;
+          window.location.href = redirect || `/order-summary?id=${out.order_id}&key=${encodeURIComponent(out.order_key || '')}`;
+        } else {
+          status.textContent = out.message || 'Could not place order. Please review the fields.';
+          submit.disabled = false;
+        }
+      } catch (err) {
+        status.textContent = 'Network error. Please try again.';
+        submit.disabled = false;
+      }
+    });
+  })();
+</script>
