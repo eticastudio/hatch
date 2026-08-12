@@ -21,7 +21,7 @@ import { WP_API_URL } from 'astro:env/server';
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect('/');
 
-const base = (WP_API_URL || '').replace(/\/wp-json\/?$/, '').replace(/\/$/, '');
+const base = (WP_API_URL || '').replace(/\/wp-json(\/.*)?$/, '').replace(/\/$/, '');
 if (!base) {
   Astro.response.status = 500;
   return new Response('WP_API_URL not configured', { status: 500 });
