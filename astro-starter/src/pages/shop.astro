@@ -97,9 +97,9 @@ const symbol = products[0]?.currency || '';
 
     {products.length > 0 && (
       <ul class="hatch-product-grid" role="list">
-        {products.map((p) => (
+        {products.filter((p) => typeof p.slug === 'string' && p.slug.length > 0).map((p) => (
           <li class="hatch-product-card">
-            <a href={`/product/${p.slug}`} class="hatch-product-card__link">
+            <a href={`/product/${encodeURIComponent(p.slug)}`} class="hatch-product-card__link" data-hatch-product-link>
               {p.image ? (
                 <img src={p.image} alt={p.name} loading="lazy" width="480" height="360" />
               ) : (
