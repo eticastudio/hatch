@@ -142,48 +142,58 @@ const paymentMethods: PM[] = rawMethods.filter((pm) => {
             <legend>Billing</legend>
             <div class="hatch-checkout__row">
               <label class="hatch-checkout__field">
-                <span>First name</span>
-                <input name="billing.first_name" value={billing.first_name || ''} required />
+                <span>First name<span class="hatch-checkout__req" aria-hidden="true">*</span></span>
+                <input name="billing.first_name" value={billing.first_name || ''} required aria-describedby="err-billing-first_name" />
+                <span id="err-billing-first_name" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
               </label>
               <label class="hatch-checkout__field">
-                <span>Last name</span>
-                <input name="billing.last_name" value={billing.last_name || ''} required />
+                <span>Last name<span class="hatch-checkout__req" aria-hidden="true">*</span></span>
+                <input name="billing.last_name" value={billing.last_name || ''} required aria-describedby="err-billing-last_name" />
+                <span id="err-billing-last_name" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
               </label>
             </div>
             <label class="hatch-checkout__field">
-              <span>Email</span>
-              <input type="email" name="billing.email" value={billing.email || ''} required />
+              <span>Email<span class="hatch-checkout__req" aria-hidden="true">*</span></span>
+              <input type="email" name="billing.email" value={billing.email || ''} required aria-describedby="err-billing-email" />
+              <span id="err-billing-email" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
             </label>
             <label class="hatch-checkout__field">
               <span>Phone</span>
-              <input type="tel" name="billing.phone" value={billing.phone || ''} />
+              <input type="tel" name="billing.phone" value={billing.phone || ''} aria-describedby="err-billing-phone" />
+              <span id="err-billing-phone" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
             </label>
             <label class="hatch-checkout__field">
-              <span>Address line 1</span>
-              <input name="billing.address_1" value={billing.address_1 || ''} required />
+              <span>Address line 1<span class="hatch-checkout__req" aria-hidden="true">*</span></span>
+              <input name="billing.address_1" value={billing.address_1 || ''} required aria-describedby="err-billing-address_1" />
+              <span id="err-billing-address_1" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
             </label>
             <label class="hatch-checkout__field">
               <span>Address line 2</span>
-              <input name="billing.address_2" value={billing.address_2 || ''} />
+              <input name="billing.address_2" value={billing.address_2 || ''} aria-describedby="err-billing-address_2" />
+              <span id="err-billing-address_2" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
             </label>
             <div class="hatch-checkout__row">
               <label class="hatch-checkout__field">
-                <span>City</span>
-                <input name="billing.city" value={billing.city || ''} required />
+                <span>City<span class="hatch-checkout__req" aria-hidden="true">*</span></span>
+                <input name="billing.city" value={billing.city || ''} required aria-describedby="err-billing-city" />
+                <span id="err-billing-city" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
               </label>
               <label class="hatch-checkout__field">
-                <span>Postcode</span>
-                <input name="billing.postcode" value={billing.postcode || ''} required />
+                <span>Postcode<span class="hatch-checkout__req" aria-hidden="true">*</span></span>
+                <input name="billing.postcode" value={billing.postcode || ''} required aria-describedby="err-billing-postcode" />
+                <span id="err-billing-postcode" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
               </label>
             </div>
             <div class="hatch-checkout__row">
               <label class="hatch-checkout__field">
                 <span>State</span>
-                <input name="billing.state" value={billing.state || 'CA'} />
+                <input name="billing.state" value={billing.state || 'CA'} aria-describedby="err-billing-state" />
+                <span id="err-billing-state" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
               </label>
               <label class="hatch-checkout__field">
-                <span>Country (2-letter)</span>
-                <input name="billing.country" value={billing.country || 'US'} maxlength="2" required />
+                <span>Country (2-letter)<span class="hatch-checkout__req" aria-hidden="true">*</span></span>
+                <input name="billing.country" value={billing.country || 'US'} maxlength="2" required aria-describedby="err-billing-country" />
+                <span id="err-billing-country" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
               </label>
             </div>
           </fieldset>
@@ -198,35 +208,42 @@ const paymentMethods: PM[] = rawMethods.filter((pm) => {
               <div class="hatch-checkout__row">
                 <label class="hatch-checkout__field">
                   <span>First name</span>
-                  <input name="shipping.first_name" value={shipping.first_name || ''} />
+                  <input name="shipping.first_name" value={shipping.first_name || ''} aria-describedby="err-shipping-first_name" />
+                  <span id="err-shipping-first_name" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
                 </label>
                 <label class="hatch-checkout__field">
                   <span>Last name</span>
-                  <input name="shipping.last_name" value={shipping.last_name || ''} />
+                  <input name="shipping.last_name" value={shipping.last_name || ''} aria-describedby="err-shipping-last_name" />
+                  <span id="err-shipping-last_name" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
                 </label>
               </div>
               <label class="hatch-checkout__field">
                 <span>Address line 1</span>
-                <input name="shipping.address_1" value={shipping.address_1 || ''} />
+                <input name="shipping.address_1" value={shipping.address_1 || ''} aria-describedby="err-shipping-address_1" />
+                <span id="err-shipping-address_1" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
               </label>
               <div class="hatch-checkout__row">
                 <label class="hatch-checkout__field">
                   <span>City</span>
-                  <input name="shipping.city" value={shipping.city || ''} />
+                  <input name="shipping.city" value={shipping.city || ''} aria-describedby="err-shipping-city" />
+                  <span id="err-shipping-city" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
                 </label>
                 <label class="hatch-checkout__field">
                   <span>Postcode</span>
-                  <input name="shipping.postcode" value={shipping.postcode || ''} />
+                  <input name="shipping.postcode" value={shipping.postcode || ''} aria-describedby="err-shipping-postcode" />
+                  <span id="err-shipping-postcode" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
                 </label>
               </div>
               <div class="hatch-checkout__row">
                 <label class="hatch-checkout__field">
                   <span>State</span>
-                  <input name="shipping.state" value={shipping.state || 'CA'} />
+                  <input name="shipping.state" value={shipping.state || 'CA'} aria-describedby="err-shipping-state" />
+                  <span id="err-shipping-state" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
                 </label>
                 <label class="hatch-checkout__field">
                   <span>Country</span>
-                  <input name="shipping.country" value={shipping.country || 'US'} maxlength="2" />
+                  <input name="shipping.country" value={shipping.country || 'US'} maxlength="2" aria-describedby="err-shipping-country" />
+                  <span id="err-shipping-country" data-hatch-field-error class="hatch-checkout__field-error" role="alert" aria-live="polite"></span>
                 </label>
               </div>
             </div>
@@ -371,14 +388,89 @@ const paymentMethods: PM[] = rawMethods.filter((pm) => {
       return { ok: res.ok, out: out };
     };
 
+    // Woo REST error code → dotted field path. Any code not listed here
+    // falls back to the top-level status row (unchanged behavior).
+    const ERR_CODE_MAP = {
+      woocommerce_rest_missing_email_address: 'billing.email',
+      woocommerce_rest_invalid_email: 'billing.email',
+      woocommerce_rest_missing_billing_first_name: 'billing.first_name',
+      woocommerce_rest_missing_billing_last_name: 'billing.last_name',
+      woocommerce_rest_missing_billing_address_1: 'billing.address_1',
+      woocommerce_rest_missing_billing_city: 'billing.city',
+      woocommerce_rest_missing_billing_postcode: 'billing.postcode',
+      woocommerce_rest_missing_billing_country: 'billing.country',
+    };
+
+    const errorIdFor = (path) => 'err-' + String(path || '').replace(/\./g, '-');
+    const inputFor = (path) => form.querySelector('[name="' + path + '"]');
+
+    const clearFieldErrors = () => {
+      form.querySelectorAll('[data-hatch-field-error]').forEach((el) => {
+        el.textContent = '';
+      });
+      form.querySelectorAll('[aria-invalid="true"]').forEach((el) => {
+        el.removeAttribute('aria-invalid');
+      });
+    };
+
+    const paintFieldError = (path, message) => {
+      const input = inputFor(path);
+      const target = document.getElementById(errorIdFor(path));
+      if (!target) return false;
+      target.textContent = String(message || 'This field is required.');
+      if (input) input.setAttribute('aria-invalid', 'true');
+      return true;
+    };
+
+    // Walk a Woo error payload. Returns the list of dotted field paths that
+    // got painted, in first-seen order, so the caller can focus the first
+    // invalid input.
+    const applyFieldErrors = (out) => {
+      const painted = [];
+      const seen = Object.create(null);
+      const push = (path, msg) => {
+        if (!path || seen[path]) return;
+        if (paintFieldError(path, msg)) {
+          seen[path] = true;
+          painted.push(path);
+        }
+      };
+      const details = out && out.data && out.data.details;
+      if (details && typeof details === 'object') {
+        Object.keys(details).forEach((key) => {
+          const entry = details[key];
+          const msg = entry && typeof entry === 'object' ? entry.message : entry;
+          push(key, msg);
+        });
+      }
+      const extra = out && Array.isArray(out.additional_errors) ? out.additional_errors : [];
+      extra.forEach((e) => {
+        const path = e && ERR_CODE_MAP[e.code];
+        if (path) push(path, e.message);
+      });
+      if (out && out.code && ERR_CODE_MAP[out.code]) {
+        push(ERR_CODE_MAP[out.code], out.message);
+      }
+      return painted;
+    };
+
     const finish = ({ ok, out }) => {
       if (ok && out && out.order_id) {
+        clearFieldErrors();
         const redirect = out.payment_result && out.payment_result.redirect_url;
         window.location.href = redirect
           || ('/order-summary?id=' + out.order_id + '&key=' + encodeURIComponent(out.order_key || ''));
         return true;
       }
-      status.textContent = (out && out.message) || 'Could not place order. Please review the fields.';
+      clearFieldErrors();
+      const painted = applyFieldErrors(out || {});
+      if (painted.length) {
+        const first = inputFor(painted[0]);
+        if (first && typeof first.focus === 'function') first.focus();
+        status.textContent = '';
+      } else {
+        status.textContent = (out && out.message) || 'Could not place order. Please review the fields.';
+      }
       submit.disabled = false;
       return false;
     };
@@ -477,6 +569,7 @@ const paymentMethods: PM[] = rawMethods.filter((pm) => {
       // PayPal path uses the Buttons flow, not the submit button.
       if (method === 'ppcp-gateway') return;
 
+      clearFieldErrors();
       submit.disabled = true;
       status.textContent = 'Placing order...';
 
