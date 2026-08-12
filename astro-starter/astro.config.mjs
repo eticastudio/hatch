@@ -98,6 +98,11 @@ export default defineConfig({
       WP_API_PASS:          envField.string({ context: 'server', access: 'secret', optional: true }),
       HATCH_WEBHOOK_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
       HATCH_BROKER_URL:     envField.string({ context: 'server', access: 'public', optional: true, default: 'https://hatch.adityaarsharma.com' }),
+      // v0.7.8: public payment SDK keys. Injected server-side into the
+      // checkout page as data-attributes so the inline script can bootstrap
+      // Stripe.js / PayPal JS SDK. Both optional: absence hides the option.
+      PUBLIC_STRIPE_KEY:        envField.string({ context: 'server', access: 'public', optional: true }),
+      PUBLIC_PAYPAL_CLIENT_ID:  envField.string({ context: 'server', access: 'public', optional: true }),
     },
   },
   vite: {
