@@ -29,6 +29,14 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
       </p>
     </header>
 
+    <div
+      id="hatch-login-error"
+      class="hatch-login__error"
+      role="alert"
+      hidden
+      style="margin-bottom:1rem;padding:0.75rem 1rem;border-radius:6px;border:1px solid #f5c2c7;background:#fff5f6;color:#842029;font-size:13.5px;line-height:1.4;"
+    ></div>
+
     <form id="hatch-login-form" class="flex flex-col gap-4" method="POST" action="/api/auth/login" data-redirect={redirectTo}>
       <label class="flex flex-col gap-1.5">
         <span class="text-[12.5px] font-medium text-hatch-fg-muted">Username or email</span>
@@ -65,13 +73,25 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
         const form = document.getElementById('hatch-login-form');
         if (!form) return;
         const status = document.getElementById('hatch-login-status');
+        const errorBanner = document.getElementById('hatch-login-error');
         const redirect = form.dataset.redirect || '/account';
+        const showError = (msg) => {
+          if (!errorBanner) return;
+          errorBanner.textContent = msg;
+          errorBanner.hidden = false;
+        };
+        const clearError = () => {
+          if (!errorBanner) return;
+          errorBanner.textContent = '';
+          errorBanner.hidden = true;
+        };
         form.addEventListener('submit', async (e) => {
           e.preventDefault();
+          clearError();
           const data = new FormData(form);
           const btn = form.querySelector('button[type="submit"]');
           if (btn) btn.disabled = true;
-          if (status) { status.textContent = 'Signing in…'; status.className = 'text-[13px] text-hatch-fg-subtle'; }
+          if (status) { status.textContent = 'Signing in.'; status.className = 'text-[13px] text-hatch-fg-subtle'; }
           try {
             const res = await fetch(form.action, {
               method: 'POST',
@@ -83,11 +103,20 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
               credentials: 'same-origin',
             });
             const body = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(body.message || 'Sign-in failed');
-            if (status) { status.textContent = 'Signed in. Redirecting…'; status.className = 'text-[13px] text-green-600 dark:text-green-400'; }
+            if (!res.ok) {
+              const msg = (body && body.message)
+                ? body.message
+                : (res.status === 401
+                    ? 'Incorrect username or password. Please try again.'
+                    : 'Sign-in failed. Please try again.');
+              throw new Error(msg);
+            }
+            if (status) { status.textContent = 'Signed in. Redirecting.'; status.className = 'text-[13px] text-green-600 dark:text-green-400'; }
             window.location.href = redirect;
           } catch (err) {
-            if (status) { status.textContent = (err && err.message) || 'Sign-in failed'; status.className = 'text-[13px] text-red-600 dark:text-red-400'; }
+            const msg = (err && err.message) || 'Sign-in failed. Please try again.';
+            showError(msg);
+            if (status) { status.textContent = ''; }
             if (btn) btn.disabled = false;
           }
         });
