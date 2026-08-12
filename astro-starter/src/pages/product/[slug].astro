@@ -22,6 +22,11 @@ const { slug } = Astro.params;
 if (!slug) return Astro.redirect('/');
 
 const base = (WP_API_URL || '').replace(/\/wp-json(\/.*)?$/, '').replace(/\/$/, '');
+// Client-side ATC talks to a same-origin Astro proxy (/api/wc-store/*) that
+// forwards to WooCommerce's Store API server-side. That way the browser
+// never has to cross an origin, so CORS on the WP install is irrelevant
+// whether WP runs on a docker hostname, a Cloudflare tunnel, or subfolder.
+const storeApiPrefix = '/api/wc-store';
 if (!base) {
   Astro.response.status = 500;
   return new Response('WP_API_URL not configured', { status: 500 });
@@ -132,11 +137,19 @@ const checkoutHref = `${base}/checkout/`;
             <div class="prose prose-sm text-hatch-fg" set:html={product.short} />
           )}
 
-          <form method="get" action={addToCartHref} class="mt-2 flex flex-wrap gap-3">
+          <form
+            method="get"
+            action={addToCartHref}
+            class="mt-2 flex flex-wrap gap-3"
+            data-hatch-atc-form
+            data-hatch-product-id={String(product.id)}
+            data-hatch-store-prefix={storeApiPrefix}
+          >
             <button
               type="submit"
               disabled={!product.in_stock}
-              class="rounded-md bg-hatch-primary px-6 py-3 text-white font-medium hover:bg-hatch-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              data-hatch-atc-btn
+              class="hatch-atc rounded-md bg-hatch-primary px-6 py-3 text-white font-medium hover:bg-hatch-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               Add to cart
             </button>
@@ -146,6 +159,11 @@ const checkoutHref = `${base}/checkout/`;
             >
               Checkout on WordPress ↗
             </a>
+            <span
+              data-hatch-atc-status
+              class="w-full text-sm text-hatch-muted"
+              aria-live="polite"
+            ></span>
           </form>
 
           <details class="mt-6 text-xs text-hatch-muted">
@@ -163,3 +181,65 @@ const checkoutHref = `${base}/checkout/`;
     )}
   </main>
 </PageLayout>
+
+<script is:inline>
+  /* Async Add-to-Cart against Woo Store API.
+     Flow:
+       1. GET  <wp_base>/wp-json/wc/store/v1/cart   → capture `Nonce` response header
+       2. POST <wp_base>/wp-json/wc/store/v1/cart/add-item with { id, quantity }
+          and the Nonce header. Cookies (credentials:include) carry the session.
+     On success we update any [data-hatch-cart-count] badges in the header and
+     print a small confirmation next to the button. On any network / API error
+     we let the classic <form action="?add-to-cart=ID"> submit as a fallback,
+     so users on locked-down browsers still reach the WP cart.
+   */
+  (function () {
+    const form = document.querySelector('[data-hatch-atc-form]');
+    if (!form) return;
+    const btn = form.querySelector('[data-hatch-atc-btn]');
+    const status = form.querySelector('[data-hatch-atc-status]');
+    const id = parseInt(form.getAttribute('data-hatch-product-id') || '0', 10);
+    const prefix = (form.getAttribute('data-hatch-store-prefix') || '/api/wc-store').replace(/\/$/, '');
+    if (!id) return;
+
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      if (btn) { btn.setAttribute('disabled', 'disabled'); btn.textContent = 'Adding…'; }
+      try {
+        const cartRes = await fetch(prefix + '/cart', {
+          method: 'GET',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        });
+        const nonce = cartRes.headers.get('Nonce') || cartRes.headers.get('nonce') || '';
+        const addRes = await fetch(prefix + '/cart/add-item', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            ...(nonce ? { Nonce: nonce } : {}),
+          },
+          body: JSON.stringify({ id: id, quantity: 1 }),
+        });
+        if (!addRes.ok) throw new Error('add-item HTTP ' + addRes.status);
+        const cart = await addRes.json().catch(() => null);
+        const count = cart && Array.isArray(cart.items)
+          ? cart.items.reduce((n, it) => n + (parseInt(it.quantity, 10) || 0), 0)
+          : null;
+        if (count !== null) {
+          document.querySelectorAll('[data-hatch-cart-count]').forEach((el) => {
+            el.textContent = String(count);
+          });
+        }
+        if (status) status.textContent = 'Added to cart.';
+        if (btn) { btn.textContent = 'Added ✓'; btn.removeAttribute('disabled'); }
+      } catch (err) {
+        if (status) status.textContent = 'Redirecting to WordPress cart…';
+        // Fallback: navigate to the classic ?add-to-cart=ID URL so the user
+        // still completes the purchase even if the Store API is blocked.
+        window.location.href = form.getAttribute('action') || '/';
+      }
+    });
+  })();
+</script>
