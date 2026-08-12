@@ -213,39 +213,43 @@ const wpApiOrigin = (() => {
     return WP_API ? new URL(WP_API).origin : '';
   } catch (e) { return ''; }
 })();
+// v0.50.32 Fortress: added Stripe + PayPal to script-src + frame-src for
+// checkout/subscription surfaces. CLEAN-ROOM. Standards followed: OWASP
+// Secure Headers Project, WordPress Security Guide, RFC 6797 (HSTS).
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://challenges.cloudflare.com https://static.cloudflareinsights.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://challenges.cloudflare.com https://static.cloudflareinsights.com https://js.stripe.com https://www.paypal.com https://www.paypalobjects.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: https:",
-  // v0.3.2 — allow the Hatch WP origin so the blocks runtime can fetch
+  // v0.3.2 allow the Hatch WP origin so the blocks runtime can fetch
   // /hatch/v1/content/list, /hatch/v1/forms/*/embed, etc.
-  `connect-src 'self' https://www.google-analytics.com https://*.analytics.google.com ${ wpApiOrigin } http://localhost:8810 http://localhost:8765`,
-  "frame-src 'self' https://www.googletagmanager.com https://challenges.cloudflare.com",
+  `connect-src 'self' https://www.google-analytics.com https://*.analytics.google.com https://api.stripe.com https://www.paypal.com ${ wpApiOrigin } http://localhost:8810 http://localhost:8765`,
+  "frame-src 'self' https://www.googletagmanager.com https://challenges.cloudflare.com https://js.stripe.com https://hooks.stripe.com https://www.paypal.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
 ].join('; ');
 
-const SECURITY_HEADERS: Record<string, string> = {
-  'Content-Security-Policy':   CSP,
+// v0.50.32 Fortress: baseline headers apply to every response; CSP only to
+// HTML because some CDNs apply CSP to fonts/images and break them.
+const BASE_HEADERS: Record<string, string> = {
   'X-Content-Type-Options':    'nosniff',
   'Referrer-Policy':           'strict-origin-when-cross-origin',
-  'X-Frame-Options':           'DENY',
+  'X-Frame-Options':           'SAMEORIGIN',
   'Permissions-Policy':        'camera=(), microphone=(), geolocation=()',
-  // HSTS only takes effect over HTTPS; harmless otherwise. 6-month max-age.
-  'Strict-Transport-Security': 'max-age=15768000; includeSubDomains',
+  // 1-year HSTS matches the WP-origin fortress emitter for parity.
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
 };
 
 function attachSecurityHeaders(res: Response): Response {
-  // HTML responses get the full CSP; assets get the minimal subset (no CSP
-  // because some hosts apply CSP to images/fonts and break them).
-  const ctype = res.headers.get('content-type') || '';
-  if (!ctype.includes('text/html')) return res;
   const headers = new Headers(res.headers);
-  for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+  for (const [k, v] of Object.entries(BASE_HEADERS)) {
     if (!headers.has(k)) headers.set(k, v);
+  }
+  const ctype = res.headers.get('content-type') || '';
+  if (ctype.includes('text/html') && !headers.has('Content-Security-Policy')) {
+    headers.set('Content-Security-Policy', CSP);
   }
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 }
