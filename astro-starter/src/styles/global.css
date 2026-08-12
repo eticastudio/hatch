@@ -581,3 +581,22 @@ summary:focus-visible,
 .hatch-order__grand dd { font-size: 1.35rem; color: var(--color-hatch-primary); }
 .hatch-order__address { font-style: normal; line-height: 1.6; }
 .hatch-order__actions { margin-top: 2rem; display: flex; justify-content: center; }
+
+/* Cart badge: live item count next to Cart nav link. Hatch tokens only. */
+.hatch-cart-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 18px;
+	height: 18px;
+	padding: 0 6px;
+	margin-left: 6px;
+	border-radius: 9999px;
+	background: var(--color-hatch-primary);
+	color: var(--color-hatch-primary-fg, #fff);
+	font-size: 11px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+	vertical-align: baseline;
+}

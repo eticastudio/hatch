@@ -299,6 +299,52 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
       });
     }
 
+    /* Cart badge: finds every Cart-link in the header, injects a live
+       count pill next to the label, and keeps it in sync with the Woo
+       Store API cart. The [data-hatch-cart-count] hook is also written
+       by the product-page Add-to-Cart script for instant local updates
+       without a round-trip. */
+    (function initCartBadge() {
+      var cartLinks = Array.prototype.filter.call(
+        document.querySelectorAll('a'),
+        function (a) {
+          var href = (a.getAttribute('href') || '').toLowerCase();
+          return /^\/cart\/?($|\?)/.test(href) || /\/cart\/?$/.test(href);
+        }
+      );
+      if (!cartLinks.length) return;
+      cartLinks.forEach(function (a) {
+        if (a.querySelector('[data-hatch-cart-count]')) return;
+        var pill = document.createElement('span');
+        pill.setAttribute('data-hatch-cart-count', '');
+        pill.className = 'hatch-cart-badge';
+        pill.setAttribute('aria-label', 'Items in cart');
+        pill.hidden = true;
+        a.appendChild(document.createTextNode(' '));
+        a.appendChild(pill);
+      });
+      var paint = function (n) {
+        var visible = Number.isFinite(n) && n > 0;
+        document.querySelectorAll('[data-hatch-cart-count]').forEach(function (el) {
+          el.textContent = String(visible ? n : '');
+          el.hidden = !visible;
+        });
+      };
+      /* Same-origin proxy path (see astro-starter/src/pages/api/wc-store).
+         Direct /wp-json/... would hit Astro's origin on dev, not WP's. */
+      var refresh = function () {
+        fetch('/api/wc-store/cart', { credentials: 'include', headers: { Accept: 'application/json' } })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) {
+            if (!d || !Array.isArray(d.items)) return;
+            paint(d.items.reduce(function (n, it) { return n + (it.quantity || 0); }, 0));
+          })
+          .catch(function () {});
+      };
+      refresh();
+      window.addEventListener('hatch:cart:changed', refresh);
+    })();
+
     var hide = document.querySelector('.hatch-header-hide-on-scroll');
     if (hide) {
       var lastY = window.scrollY;
