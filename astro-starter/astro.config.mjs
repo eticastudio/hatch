@@ -76,7 +76,10 @@ export default defineConfig({
   image: {
     service: { entrypoint: 'astro/assets/services/sharp' },
     // Allow remote images from any HTTPS source (WordPress media library).
-    remotePatterns: [{ protocol: 'https' }],
+    remotePatterns: [
+      { protocol: 'https' },
+      { protocol: 'https', hostname: 'corp-regime-provinces-enjoy.trycloudflare.com' },
+    ],
   },
   // v0.50.x — secrets moved out of the JS bundle via astro:env.
   //

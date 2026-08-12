@@ -12,7 +12,10 @@
 # cloudflare adapter produces, so the build pipeline is unchanged.
 
 name = "hatch-frontend"
-main = "./dist/_worker.js/index.js"
+# main removed in v0.16.1 — @astrojs/cloudflare v14 uses @cloudflare/vite-plugin
+# which validates `main` at Vite-config-resolve time (before the build creates
+# the file). The adapter emits the worker entry itself and wires it in via the
+# plugin, so `main` here is redundant and breaks the build.
 compatibility_date = "2025-09-01"
 compatibility_flags = [ "nodejs_compat" ]
 
