@@ -36,9 +36,22 @@ class Hatch_Rest_Api {
 	 */
 	private function __construct() {
 		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
+		// Backlog #162 — bust the RankMath/Redirection redirect cache when
+		// the source data changes. Hooks are cheap no-ops on sites that
+		// don't have these plugins, so registration is unconditional.
+		add_action( 'save_post_redirect',                array( self::class, 'invalidate_redirects_cache' ) );
+		add_action( 'deleted_post',                      array( self::class, 'invalidate_redirects_cache' ) );
+		add_action( 'redirection_redirect_updated',      array( self::class, 'invalidate_redirects_cache' ) );
+		add_action( 'redirection_redirect_deleted',      array( self::class, 'invalidate_redirects_cache' ) );
+		add_action( 'rank_math/redirection/updated',     array( self::class, 'invalidate_redirects_cache' ) );
+		add_action( 'rank_math/redirection/deleted',     array( self::class, 'invalidate_redirects_cache' ) );
+		add_action( 'update_option_rank_math_redirections', array( self::class, 'invalidate_redirects_cache' ) );
 		// v0.3.2 — Permissive CORS for /hatch/v1/* (the Astro browser runtime
 		// hits these directly). Priority 5 so we run before WP's defaults.
-		add_filter( 'rest_pre_serve_request', array( self::class, 'send_cors_for_hatch' ), 5, 4 );
+		// Backlog #159 — duplicate CORS handler removed. All CORS logic now
+		// lives in hatch.php `hatch_cors_headers` (priority 15) with a real
+		// origin allowlist. Emitting a second Access-Control-Allow-Origin
+		// header here caused browsers to reject the response.
 	}
 
 	/**
@@ -349,15 +362,14 @@ class Hatch_Rest_Api {
 	 * rest_pre_serve_request which runs even when WP's own CORS handler
 	 * wouldn't fire (e.g. simple GET without Origin echo).
 	 */
+	/**
+	 * Backlog #159 — retained as a no-op shim for any legacy caller that
+	 * still references Hatch_Rest_Api::send_cors_for_hatch. All CORS
+	 * emission is now centralised in hatch.php `hatch_cors_headers`, which
+	 * uses an explicit origin allowlist instead of reflecting HTTP_ORIGIN.
+	 */
 	public static function send_cors_for_hatch( $served, $result, WP_REST_Request $request, $server ) {
-		if ( 0 === strpos( (string) $request->get_route(), '/hatch/v1/' ) ) {
-			$origin = isset( $_SERVER['HTTP_ORIGIN'] ) ? (string) $_SERVER['HTTP_ORIGIN'] : '*';
-			header( 'Access-Control-Allow-Origin: ' . $origin );
-			header( 'Vary: Origin' );
-			header( 'Access-Control-Allow-Methods: GET, POST, OPTIONS' );
-			header( 'Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce' );
-			header( 'Access-Control-Max-Age: 600' );
-		}
+		unset( $result, $request, $server );
 		return $served;
 	}
 
@@ -598,6 +610,18 @@ class Hatch_Rest_Api {
 	 * @return WP_REST_Response
 	 */
 	public function route_redirects(): WP_REST_Response {
+		// Backlog #162 — cache the entire aggregated redirect payload for
+		// 5 minutes. The RankMath branch was running a `LIMIT 5000` SELECT
+		// on every hit; combined with the Redirection plugin walk that put
+		// noticeable pressure on hot Astro rebuilds. Cache is invalidated
+		// by save_post_redirect (Redirection) and by any RankMath
+		// redirection option-change hook — see the add_action() calls in
+		// the register() flow at the bottom of this class.
+		$cached = get_transient( 'hatch_redirects_cache' );
+		if ( is_array( $cached ) ) {
+			return new WP_REST_Response( $cached, 200 );
+		}
+
 		$out = array();
 
 		// Redirection plugin.
@@ -643,7 +667,17 @@ class Hatch_Rest_Api {
 
 		// Note: Yoast Premium redirects export TBD (file-based).
 
+		set_transient( 'hatch_redirects_cache', $out, 5 * MINUTE_IN_SECONDS );
 		return new WP_REST_Response( $out, 200 );
+	}
+
+	/**
+	 * Backlog #162 — invalidate the redirects cache when the source data
+	 * changes. Public entry point so hardening/wiring code (or third-party
+	 * integrations) can force a refresh after a redirect edit.
+	 */
+	public static function invalidate_redirects_cache(): void {
+		delete_transient( 'hatch_redirects_cache' );
 	}
 
 	/**
