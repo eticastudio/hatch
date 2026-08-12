@@ -364,3 +364,42 @@ body.toplevel_page_hatch #wpfooter { display: none !important; }
 	transform: translate(-50%, -50%);
 	pointer-events: auto;
 }
+
+/* Backlog #153 — .hx-btn variants (primary/ghost) used by Onboarding.jsx.
+   Inherits scale-on-press + focus-ring + 160ms transition from the `*` rule
+   above. Base .hx-btn provides layout; variants provide color skin. */
+.hatch-react .hx-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 8px 14px;
+	border-radius: 6px;
+	font-family: inherit;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1.2;
+	cursor: pointer;
+	text-decoration: none;
+	border: 1px solid transparent;
+	background: transparent;
+	color: var(--hx-fg);
+}
+.hatch-react .hx-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.hatch-react .hx-btn-primary {
+	background: var(--hx-primary);
+	color: #fff;
+	border-color: var(--hx-primary);
+}
+.hatch-react .hx-btn-primary:hover:not(:disabled) { filter: brightness(0.92); }
+
+.hatch-react .hx-btn-ghost {
+	background: transparent;
+	color: var(--hx-fg);
+	border: 1px solid var(--hx-border);
+}
+.hatch-react .hx-btn-ghost:hover:not(:disabled) {
+	background: var(--hx-primary-3);
+	border-color: var(--hx-border-2);
+}
