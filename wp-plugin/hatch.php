@@ -417,6 +417,9 @@ require_once HATCH_PLUGIN_DIR . 'includes/class-auth.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-rankready-bridge.php';
 // V0.27 — nav menu passthrough.
 require_once HATCH_PLUGIN_DIR . 'includes/class-menus-bridge.php';
+// v0.50.32 — always register primary + footer menu locations from the plugin
+// so both slots are pickable in the Content tab regardless of the active theme.
+add_action( 'after_setup_theme', array( 'Hatch_Menus_Bridge', 'register_locations' ), 4 );
 // V0.34 — REST endpoints for remote options + self-update from GitHub.
 require_once HATCH_PLUGIN_DIR . 'includes/class-options-rest.php';
 

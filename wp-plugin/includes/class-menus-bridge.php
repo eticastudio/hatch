@@ -16,6 +16,22 @@ defined( 'ABSPATH' ) || exit;
 class Hatch_Menus_Bridge {
 
 	/**
+	 * Register the two Hatch-known menu locations (primary + footer) from the
+	 * plugin so the admin picker always shows both slots even when the
+	 * companion theme is inactive. Priority 4 so a theme registering the
+	 * same slugs at the default priority can override the label.
+	 *
+	 * @return void
+	 */
+	public static function register_locations(): void {
+		if ( ! function_exists( 'register_nav_menu' ) ) {
+			return;
+		}
+		register_nav_menu( 'primary', __( 'Primary (site header)', 'hatch' ) );
+		register_nav_menu( 'footer',  __( 'Footer navigation', 'hatch' ) );
+	}
+
+	/**
 	 * Return all registered nav menu locations and which menu (if any) is assigned.
 	 *
 	 * @return array<int, array{location: string, name: string, menu: string|null, menu_id: int|null}>
