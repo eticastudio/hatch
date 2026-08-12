@@ -956,6 +956,20 @@ function hatch_react_security_state(): array {
 		'twofa_provider'       => class_exists( 'Hatch_Hardening' ) ? (string) Hatch_Hardening::detect_2fa_provider() : '',
 		'twofa_settings_url'   => class_exists( 'Hatch_Hardening' ) ? (string) Hatch_Hardening::get_2fa_settings_url() : '',
 		'twofa_user_configured'=> class_exists( 'Hatch_Hardening' ) ? (bool) Hatch_Hardening::user_has_2fa_configured() : false,
+		// v0.50.32 — Fortress Mode master + sub-toggles.
+		'fortress_mode'                        => (bool) get_option( 'hatch_fortress_mode', false ),
+		'fortress_hide_login'                  => (bool) get_option( 'hatch_fortress_hide_login', false ),
+		'fortress_block_xmlrpc'                => (bool) get_option( 'hatch_fortress_block_xmlrpc', false ),
+		'fortress_disable_rest_users'          => (bool) get_option( 'hatch_fortress_disable_rest_users', false ),
+		'fortress_disable_file_edit'           => (bool) get_option( 'hatch_fortress_disable_file_edit', false ),
+		'fortress_app_password_only'           => (bool) get_option( 'hatch_fortress_app_password_only', false ),
+		'fortress_headers'                     => (bool) get_option( 'hatch_fortress_headers', false ),
+		'fortress_hide_wp_version'             => (bool) get_option( 'hatch_fortress_hide_wp_version', false ),
+		'fortress_disable_directory_browsing'  => (bool) get_option( 'hatch_fortress_disable_directory_browsing', false ),
+		'fortress_login_key'                   => ( class_exists( 'Hatch_Hardening' ) && ( (bool) get_option( 'hatch_fortress_mode', false ) || (bool) get_option( 'hatch_fortress_hide_login', false ) ) )
+			? (string) Hatch_Hardening::get_login_key() : '',
+		'fortress_login_url'                   => ( class_exists( 'Hatch_Hardening' ) && ( (bool) get_option( 'hatch_fortress_mode', false ) || (bool) get_option( 'hatch_fortress_hide_login', false ) ) )
+			? esc_url_raw( add_query_arg( 'hatch_key', Hatch_Hardening::get_login_key(), wp_login_url() ) ) : '',
 	);
 }
 
@@ -1099,6 +1113,18 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 		// WHERE to apply the gate. Gated server-side by Hatch_Turnstile_WP.
 		'security.turnstile_login'     => 'hatch_security_turnstile_login',
 		'security.turnstile_comments'  => 'hatch_security_turnstile_comments',
+		// v0.50.32 — Fortress Mode master + sub-toggles. Each writes a
+		// hatch_fortress_* boolean option that Hatch_Hardening::is_on()
+		// consumes on the next request.
+		'security.fortress_mode'                        => 'hatch_fortress_mode',
+		'security.fortress_hide_login'                  => 'hatch_fortress_hide_login',
+		'security.fortress_block_xmlrpc'                => 'hatch_fortress_block_xmlrpc',
+		'security.fortress_disable_rest_users'          => 'hatch_fortress_disable_rest_users',
+		'security.fortress_disable_file_edit'           => 'hatch_fortress_disable_file_edit',
+		'security.fortress_app_password_only'           => 'hatch_fortress_app_password_only',
+		'security.fortress_headers'                     => 'hatch_fortress_headers',
+		'security.fortress_hide_wp_version'             => 'hatch_fortress_hide_wp_version',
+		'security.fortress_disable_directory_browsing'  => 'hatch_fortress_disable_directory_browsing',
 		// v0.2.0 — Blocks tab toggles.
 		'blocks.hatch_only'            => 'hatch_blocks_hatch_only',
 		'blocks.master'                => 'hatch_blocks_master',

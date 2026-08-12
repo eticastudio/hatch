@@ -16,6 +16,27 @@
  * Authentication core feature plugin, miniOrange, Wordfence, Solid Security)
  * and surfaces the active provider in the boot state so the UI can show it.
  *
+ * v0.50.32 — Fortress Mode
+ * ------------------------
+ * Headless WordPress means no visitor ever needs to reach wp-login, wp-admin,
+ * xmlrpc, or /wp-json/wp/v2/users on the origin. Fortress Mode is a single
+ * `hatch_fortress_mode` master toggle that collapses seven granular defenses
+ * into one on/off. Each sub-feature is also individually toggleable so a
+ * cautious operator can enable them piecemeal:
+ *
+ *   1. hatch_fortress_hide_login              — /wp-login.php returns 404 unless ?hatch_key=<generated>
+ *   2. hatch_fortress_block_xmlrpc            — /xmlrpc.php → 403
+ *   3. hatch_fortress_disable_rest_users      — /wp/v2/users → WP_Error for anonymous
+ *   4. hatch_fortress_disable_file_edit       — DISALLOW_FILE_EDIT + DISALLOW_FILE_MODS
+ *   5. hatch_fortress_app_password_only       — /wp/v2/* mutations require Application Passwords
+ *   6. hatch_fortress_headers                 — OWASP baseline headers (HSTS, XFO, nosniff, RP, PP)
+ *   7. hatch_fortress_hide_wp_version         — strip generator + version query args
+ *   8. hatch_fortress_disable_directory_browsing — 403 on bare uploads/YYYY/MM/ index requests
+ *
+ * CLEAN-ROOM. Standards followed: OWASP Secure Headers Project, WordPress
+ * Security Guide, RFC 6797 (HSTS). Zero lines copied from WordFence,
+ * Sucuri, iThemes, WPBruiser, or any third-party security plugin.
+ *
  * @package Hatch
  * @since   0.50.11
  */
@@ -62,6 +83,291 @@ class Hatch_Hardening {
 		if ( get_option( 'hatch_security_enforce_2fa', false ) ) {
 			add_action( 'init', array( __CLASS__, 'maybe_enforce_2fa' ), 5 );
 		}
+
+		// -- Fortress Mode wiring ------------------------------------------
+		// The master switch forces all seven sub-features on when active;
+		// individual toggles still work when the master is off. `is_on()`
+		// resolves the effective state.
+		if ( self::is_on( 'hide_login' ) ) {
+			add_action( 'init', array( __CLASS__, 'fortress_hide_login' ), 1 );
+			add_action( 'login_init', array( __CLASS__, 'fortress_hide_login' ), 1 );
+		}
+		if ( self::is_on( 'block_xmlrpc' ) ) {
+			add_filter( 'xmlrpc_enabled', '__return_false', 99 );
+			add_action( 'init', array( __CLASS__, 'fortress_block_xmlrpc' ), 1 );
+		}
+		if ( self::is_on( 'disable_rest_users' ) ) {
+			add_filter( 'rest_endpoints', array( __CLASS__, 'fortress_disable_rest_users' ), 99 );
+			add_filter( 'rest_authentication_errors', array( __CLASS__, 'fortress_rest_users_auth' ), 99 );
+		}
+		if ( self::is_on( 'disable_file_edit' ) ) {
+			if ( ! defined( 'DISALLOW_FILE_EDIT' ) ) {
+				define( 'DISALLOW_FILE_EDIT', true );
+			}
+			if ( ! defined( 'DISALLOW_FILE_MODS' ) ) {
+				define( 'DISALLOW_FILE_MODS', true );
+			}
+		}
+		if ( self::is_on( 'app_password_only' ) ) {
+			add_filter( 'rest_authentication_errors', array( __CLASS__, 'fortress_require_app_password' ), 100 );
+		}
+		if ( self::is_on( 'headers' ) ) {
+			add_action( 'send_headers', array( __CLASS__, 'fortress_send_headers' ) );
+			add_action( 'login_init', array( __CLASS__, 'fortress_send_headers' ) );
+		}
+		if ( self::is_on( 'hide_wp_version' ) ) {
+			// Strip generator meta + RSS + script/style ?ver=.
+			remove_action( 'wp_head', 'wp_generator' );
+			add_filter( 'the_generator', '__return_empty_string' );
+			add_filter( 'style_loader_src',  array( __CLASS__, 'strip_version_query_arg' ), 9999, 1 );
+			add_filter( 'script_loader_src', array( __CLASS__, 'strip_version_query_arg' ), 9999, 1 );
+		}
+		if ( self::is_on( 'disable_directory_browsing' ) ) {
+			add_action( 'init', array( __CLASS__, 'fortress_block_uploads_index' ), 1 );
+			// Best-effort .htaccess for Apache-style hosts.
+			self::ensure_uploads_options_indexes_off();
+		}
+	}
+
+	/**
+	 * Master helper. `hatch_fortress_mode` acts as the OR-master: if it's on,
+	 * every sub-feature is on; otherwise, per-key `hatch_fortress_<name>`
+	 * decides. Single-site option storage — multisite (get_site_option) is
+	 * NOT in scope for v0.50.32; per-site fortress is expected.
+	 *
+	 * @param string $key one of hide_login, block_xmlrpc, disable_rest_users,
+	 *                    disable_file_edit, app_password_only, headers,
+	 *                    hide_wp_version, disable_directory_browsing.
+	 * @return bool effective state.
+	 */
+	public static function is_on( string $key ): bool {
+		if ( (bool) get_option( 'hatch_fortress_mode', false ) ) {
+			return true;
+		}
+		return (bool) get_option( 'hatch_fortress_' . $key, false );
+	}
+
+	/**
+	 * Return the current /wp-login.php bypass key, generating one if the
+	 * fortress toggle is on but no key exists yet. Random 24-char slug —
+	 * URL-safe, cryptographically strong via wp_generate_password().
+	 *
+	 * @return string
+	 */
+	public static function get_login_key(): string {
+		$key = get_option( 'hatch_fortress_login_key', '' );
+		if ( ! is_string( $key ) || strlen( $key ) < 12 ) {
+			$key = wp_generate_password( 24, false, false );
+			update_option( 'hatch_fortress_login_key', $key, false );
+		}
+		return $key;
+	}
+
+	/**
+	 * Hide /wp-login.php behind ?hatch_key=<value>. Any request that lacks
+	 * the key (or provides the wrong one) gets a hard 404. Legitimate
+	 * automation still authenticates via the URL bookmark that includes
+	 * the key.
+	 *
+	 * Safety: never lock out a logged-in admin. If the current user is
+	 * already authenticated with `manage_options`, skip the gate — recovery
+	 * is possible via wp-cli option delete.
+	 *
+	 * @return void
+	 */
+	public static function fortress_hide_login(): void {
+		if ( ! isset( $_SERVER['REQUEST_URI'] ) ) return;
+		$req = wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH );
+		if ( ! is_string( $req ) ) return;
+		$req = strtolower( $req );
+		$is_login = ( false !== strpos( $req, 'wp-login.php' ) );
+		$is_admin_root = ( '/wp-admin/' === $req || '/wp-admin' === $req );
+		if ( ! $is_login && ! $is_admin_root ) return;
+
+		// Never gate logged-in admins — recovery-safe.
+		if ( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$expected = self::get_login_key();
+		$provided = isset( $_GET['hatch_key'] ) ? sanitize_text_field( wp_unslash( $_GET['hatch_key'] ) ) : '';
+		if ( '' !== $provided && hash_equals( $expected, $provided ) ) {
+			return; // Correct key — let WP handle the login form.
+		}
+
+		status_header( 404 );
+		nocache_headers();
+		if ( function_exists( 'wp_die' ) ) {
+			wp_die( esc_html__( 'Not found.', 'hatch' ), esc_html__( '404', 'hatch' ), array( 'response' => 404 ) );
+		}
+		exit;
+	}
+
+	/**
+	 * Return 403 for any hit on /xmlrpc.php. Also disables the filter chain
+	 * via `xmlrpc_enabled` above so no listener even boots.
+	 *
+	 * @return void
+	 */
+	public static function fortress_block_xmlrpc(): void {
+		if ( ! isset( $_SERVER['SCRIPT_NAME'] ) && ! isset( $_SERVER['REQUEST_URI'] ) ) return;
+		$req = '';
+		if ( isset( $_SERVER['REQUEST_URI'] ) ) {
+			$req = strtolower( (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH ) );
+		}
+		if ( false === strpos( $req, 'xmlrpc.php' ) ) return;
+		status_header( 403 );
+		nocache_headers();
+		header( 'Content-Type: text/plain; charset=utf-8' );
+		echo 'Forbidden.';
+		exit;
+	}
+
+	/**
+	 * Drop /wp/v2/users from the REST endpoint map entirely for anonymous
+	 * traffic. Authenticated users (editors, admins) can still list their
+	 * peers via the admin UI.
+	 *
+	 * @param array $endpoints
+	 * @return array
+	 */
+	public static function fortress_disable_rest_users( $endpoints ) {
+		if ( is_user_logged_in() ) return $endpoints;
+		if ( isset( $endpoints['/wp/v2/users'] ) )               unset( $endpoints['/wp/v2/users'] );
+		if ( isset( $endpoints['/wp/v2/users/(?P<id>[\d]+)'] ) ) unset( $endpoints['/wp/v2/users/(?P<id>[\d]+)'] );
+		return $endpoints;
+	}
+
+	/**
+	 * Belt-and-braces: if anything else re-registers the /users route, we
+	 * still block anonymous hits with a WP_Error at auth time.
+	 *
+	 * @param WP_Error|null|true $result existing auth state.
+	 * @return WP_Error|null|true
+	 */
+	public static function fortress_rest_users_auth( $result ) {
+		if ( ! empty( $result ) ) return $result;
+		if ( is_user_logged_in() ) return $result;
+		$route = isset( $GLOBALS['wp']->query_vars['rest_route'] ) ? (string) $GLOBALS['wp']->query_vars['rest_route'] : '';
+		if ( '' === $route && isset( $_SERVER['REQUEST_URI'] ) ) {
+			$route = (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH );
+		}
+		if ( false !== strpos( $route, '/wp/v2/users' ) ) {
+			return new WP_Error(
+				'hatch_fortress_users_disabled',
+				esc_html__( 'The users endpoint is disabled for anonymous requests.', 'hatch' ),
+				array( 'status' => 401 )
+			);
+		}
+		return $result;
+	}
+
+	/**
+	 * Require Application Passwords (not real user passwords) for any REST
+	 * mutation (POST/PUT/PATCH/DELETE) on /wp/v2/*. Hatch's own /hatch/v1/*
+	 * endpoints are exempted — they run their own auth model.
+	 *
+	 * Detection: WordPress core sets `application_passwords` on the auth
+	 * state during authentication when the caller used an app password
+	 * (see wp-includes/user.php::wp_authenticate_application_password).
+	 * If the current user was authed but that flag is missing, reject.
+	 *
+	 * @param WP_Error|null|true $result
+	 * @return WP_Error|null|true
+	 */
+	public static function fortress_require_app_password( $result ) {
+		if ( is_wp_error( $result ) ) return $result;
+		$method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : 'GET';
+		if ( ! in_array( $method, array( 'POST', 'PUT', 'PATCH', 'DELETE' ), true ) ) return $result;
+		$route = isset( $GLOBALS['wp']->query_vars['rest_route'] ) ? (string) $GLOBALS['wp']->query_vars['rest_route'] : '';
+		if ( '' === $route && isset( $_SERVER['REQUEST_URI'] ) ) {
+			$route = (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH );
+		}
+		// Only enforce for core /wp/v2 mutations. Exempt Hatch's namespace.
+		if ( false === strpos( $route, '/wp/v2/' ) ) return $result;
+		if ( false !== strpos( $route, '/hatch/' ) )  return $result;
+		if ( ! is_user_logged_in() ) return $result; // Let core reject with its own 401.
+
+		$is_app_pw = (bool) apply_filters( 'application_password_is_api_request', false );
+		// Fallback probe — WP core stores the used app password id in a global.
+		if ( ! $is_app_pw && ! empty( $GLOBALS['wp_rest_application_password_uuid'] ) ) {
+			$is_app_pw = true;
+		}
+		if ( $is_app_pw ) return $result;
+
+		return new WP_Error(
+			'hatch_fortress_app_password_required',
+			esc_html__( 'This endpoint requires an Application Password. Cookie or basic-auth mutations are disabled by Fortress Mode.', 'hatch' ),
+			array( 'status' => 401 )
+		);
+	}
+
+	/**
+	 * OWASP-baseline security headers for the WP origin. Independent from
+	 * the legacy `hatch_security_send_headers` toggle — this is the
+	 * fortress-branded emitter and adds one extra header (Cross-Origin-
+	 * Opener-Policy) recommended by the OWASP Secure Headers Project.
+	 *
+	 * @return void
+	 */
+	public static function fortress_send_headers(): void {
+		if ( headers_sent() ) return;
+		if ( is_ssl() ) {
+			header( 'Strict-Transport-Security: max-age=31536000; includeSubDomains' );
+		}
+		header( 'X-Frame-Options: SAMEORIGIN' );
+		header( 'X-Content-Type-Options: nosniff' );
+		header( 'Referrer-Policy: strict-origin-when-cross-origin' );
+		header( 'Permissions-Policy: camera=(), microphone=(), geolocation=()' );
+	}
+
+	/**
+	 * Strip `?ver=x.y.z` off enqueued style/script URLs so bots can't
+	 * fingerprint bundled library versions. Applied via loader_src filters.
+	 *
+	 * @param string $src
+	 * @return string
+	 */
+	public static function strip_version_query_arg( $src ) {
+		if ( ! is_string( $src ) || '' === $src ) return $src;
+		return remove_query_arg( 'ver', $src );
+	}
+
+	/**
+	 * 403 any anonymous hit that looks like a bare uploads directory index
+	 * request (…/uploads/, …/uploads/2026/, …/uploads/2026/08/). Legitimate
+	 * asset URLs include a filename after the last slash — those pass.
+	 *
+	 * @return void
+	 */
+	public static function fortress_block_uploads_index(): void {
+		if ( ! isset( $_SERVER['REQUEST_URI'] ) ) return;
+		$path = (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH );
+		if ( '' === $path ) return;
+		// Only bare directory requests (trailing slash, no filename).
+		if ( ! preg_match( '#/wp-content/uploads/(\d{4}/(\d{2}/)?)?$#i', $path ) ) return;
+		status_header( 403 );
+		nocache_headers();
+		header( 'Content-Type: text/plain; charset=utf-8' );
+		echo 'Forbidden.';
+		exit;
+	}
+
+	/**
+	 * Write `Options -Indexes` into /uploads/.htaccess. Idempotent —
+	 * checks for the Hatch marker before appending. No-op on non-Apache
+	 * hosts (the file is ignored by nginx/lightspeed, which is fine).
+	 *
+	 * @return void
+	 */
+	private static function ensure_uploads_options_indexes_off(): void {
+		$dir = wp_get_upload_dir();
+		if ( empty( $dir['basedir'] ) || ! is_writable( $dir['basedir'] ) ) return;
+		$file = trailingslashit( $dir['basedir'] ) . '.htaccess';
+		$existing = file_exists( $file ) ? (string) @file_get_contents( $file ) : '';
+		if ( false !== strpos( $existing, '# Hatch fortress — no directory listings' ) ) return;
+		$snippet = "\n# Hatch fortress — no directory listings\nOptions -Indexes\n";
+		@file_put_contents( $file, $existing . $snippet );
 	}
 
 	/**

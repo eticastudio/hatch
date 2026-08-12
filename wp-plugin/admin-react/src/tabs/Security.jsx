@@ -1,9 +1,63 @@
 import { HxCard, HxHead, HxRow, HxToggle, HxBtn, HxInp, HxIcon, HxBadge } from '../components.jsx';
+import { useState, useMemo } from 'react';
+
+/**
+ * v0.50.32 Fortress Mode.
+ *
+ * One-click hardening for the WordPress origin. When the master toggle is on,
+ * all seven sub-features enable together and the "Advanced" section reflects
+ * their forced state. When off, the individual toggles are honored as before.
+ *
+ * Visual system:
+ *   concentric radii (card 20px, chip 12px, toggle 8px)
+ *   layered box-shadow (no borders on the fortress card)
+ *   --hx-primary accent when active, --hx-surface when off
+ *   staggered chip enter animation via inline transition + CSS delay
+ *
+ * CLEAN-ROOM. Standards followed: OWASP Secure Headers Project, WordPress
+ * Security Guide, RFC 6797 (HSTS).
+ */
+const FORTRESS_KEYS = [
+	'hide_login',
+	'block_xmlrpc',
+	'disable_rest_users',
+	'disable_file_edit',
+	'app_password_only',
+	'headers',
+	'hide_wp_version',
+	'disable_directory_browsing',
+];
+
+const FORTRESS_CHIPS = [
+	{ key: 'hide_login',                 label: 'Hidden login URL',        title: '/wp-login.php returns 404 unless the operator holds the generated key.' },
+	{ key: 'block_xmlrpc',               label: 'XML-RPC killed',          title: '/xmlrpc.php returns 403. Removes the biggest brute-force amplification vector.' },
+	{ key: 'disable_rest_users',         label: 'User enumeration blocked', title: '/wp/v2/users returns 401 for anonymous. No username leakage.' },
+	{ key: 'disable_file_edit',          label: 'Editor + updates locked', title: 'DISALLOW_FILE_EDIT + DISALLOW_FILE_MODS defined. Attackers cannot write PHP through wp-admin.' },
+	{ key: 'app_password_only',          label: 'App-Password mutations',  title: 'REST POST/PUT/DELETE requires an Application Password. Basic-auth with a real user password is rejected.' },
+	{ key: 'headers',                    label: 'OWASP headers',           title: 'HSTS, X-Frame, nosniff, Referrer-Policy, Permissions-Policy on every WP response.' },
+	{ key: 'hide_wp_version',            label: 'Version stripped',        title: 'Generator meta + ?ver=x.y query args stripped from CSS/JS. Fingerprinting harder.' },
+	{ key: 'disable_directory_browsing', label: 'Directory listings off',  title: 'Bare uploads directory URLs return 403. Options -Indexes added to .htaccess.' },
+];
 
 export default function Security({ state, onDirty, setSetting }) {
 	const sec = state.security || {};
 	const ts  = state.turnstile || {};
 	const hasTsKeys = !!(ts.site_key && ts.secret_key);
+	const [advancedOpen, setAdvancedOpen] = useState(false);
+
+	const fortressOn = !!sec.fortress_mode;
+	const anyAdvancedDivergent = useMemo(
+		() => fortressOn && FORTRESS_KEYS.some((k) => !sec['fortress_' + k]),
+		[fortressOn, sec]
+	);
+
+	const toggleFortress = (v) => {
+		setSetting('security.fortress_mode', v);
+		if (v) {
+			FORTRESS_KEYS.forEach((k) => setSetting('security.fortress_' + k, true));
+		}
+		onDirty();
+	};
 
 	// v0.50.31 — When user tries to flip a Turnstile-gated toggle without
 	// keys, deep-link to Content tab and flash the key inputs so it's
@@ -42,7 +96,173 @@ export default function Security({ state, onDirty, setSetting }) {
 
 	return (
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-			{/* REST API hardening — tight, scannable */}
+			{/* v0.50.32 Fortress Mode: prominent 1-click hardening card */}
+			<div
+				role="region"
+				aria-label="Fortress Mode"
+				style={{
+					position: 'relative',
+					borderRadius: 20,
+					padding: 24,
+					background: fortressOn
+						? 'linear-gradient(135deg, var(--hx-surface), var(--hx-surface-2, var(--hx-surface)))'
+						: 'var(--hx-surface)',
+					boxShadow: fortressOn
+						? '0 1px 0 0 rgba(0,0,0,0.04), 0 8px 24px -12px rgba(0,0,0,0.14), 0 0 0 1px var(--hx-primary)'
+						: '0 1px 0 0 rgba(0,0,0,0.04), 0 4px 12px -8px rgba(0,0,0,0.10), 0 0 0 1px var(--hx-border)',
+					transition: 'box-shadow var(--hx-ease, 200ms ease), background var(--hx-ease, 200ms ease)',
+				}}
+			>
+				<div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20 }}>
+					<div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', minWidth: 0 }}>
+						<div
+							aria-hidden="true"
+							style={{
+								flex: '0 0 auto',
+								width: 44, height: 44, borderRadius: 12,
+								display: 'grid', placeItems: 'center',
+								background: fortressOn ? 'var(--hx-primary)' : 'var(--hx-surface-2, var(--hx-surface))',
+								color: fortressOn ? 'var(--hx-primary-fg, #fff)' : 'var(--hx-muted)',
+								boxShadow: fortressOn ? '0 4px 10px -4px var(--hx-primary)' : 'inset 0 0 0 1px var(--hx-border)',
+								transition: 'background var(--hx-ease, 200ms ease), color var(--hx-ease, 200ms ease)',
+							}}
+						>
+							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+								<path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3z" />
+								<path d="M9 12l2 2 4-4" />
+							</svg>
+						</div>
+						<div style={{ minWidth: 0 }}>
+							<div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+								<h3 style={{ margin: 0, fontSize: 17, fontWeight: 650, color: 'var(--hx-fg)', letterSpacing: '-0.01em' }}>
+									Fortress Mode
+								</h3>
+								<HxBadge color={fortressOn ? 'green' : 'neutral'}>
+									{fortressOn ? 'Active' : 'Off'}
+								</HxBadge>
+								{anyAdvancedDivergent && (
+									<HxBadge color="yellow">Advanced overrides</HxBadge>
+								)}
+							</div>
+							<p style={{ margin: '6px 0 0', fontSize: 13, lineHeight: 1.5, color: 'var(--hx-muted)', maxWidth: 620 }}>
+								One switch. Every wp-login, xmlrpc, and user-enum surface goes dark. Astro stays your only front door.
+							</p>
+						</div>
+					</div>
+					<div style={{ flex: '0 0 auto', paddingTop: 4 }}>
+						<HxToggle on={fortressOn} onChange={toggleFortress} aria-label="Enable Fortress Mode" />
+					</div>
+				</div>
+
+				{/* Chip list of the 7 (actually 8) protections */}
+				<ul
+					aria-label="Fortress protections"
+					style={{
+						listStyle: 'none', margin: '18px 0 0', padding: 0,
+						display: 'flex', flexWrap: 'wrap', gap: 8,
+					}}
+				>
+					{FORTRESS_CHIPS.map((chip, i) => {
+						const on = fortressOn && !!sec['fortress_' + chip.key];
+						return (
+							<li
+								key={chip.key}
+								title={chip.title}
+								style={{
+									display: 'inline-flex', alignItems: 'center', gap: 6,
+									padding: '6px 10px', borderRadius: 12,
+									fontSize: 12, fontWeight: 500, fontVariantNumeric: 'tabular-nums',
+									color: on ? 'var(--hx-primary-fg, #fff)' : 'var(--hx-muted)',
+									background: on ? 'var(--hx-primary)' : 'var(--hx-surface-2, var(--hx-surface))',
+									boxShadow: on ? 'none' : 'inset 0 0 0 1px var(--hx-border)',
+									opacity: fortressOn ? 1 : 0.6,
+									transform: fortressOn ? 'translateY(0)' : 'translateY(2px)',
+									transition: `opacity var(--hx-ease, 200ms ease) ${i * 60}ms, transform var(--hx-ease, 200ms ease) ${i * 60}ms, background var(--hx-ease, 200ms ease) ${i * 100}ms, color var(--hx-ease, 200ms ease) ${i * 100}ms`,
+								}}
+							>
+								<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+									{on
+										? <polyline points="20 6 9 17 4 12" />
+										: <circle cx="12" cy="12" r="9" />}
+								</svg>
+								{chip.label}
+							</li>
+						);
+					})}
+				</ul>
+
+				{fortressOn && sec.fortress_login_url && (
+					<div style={{
+						marginTop: 18, padding: '10px 12px',
+						borderRadius: 12,
+						background: 'var(--hx-surface-2, var(--hx-surface))',
+						boxShadow: 'inset 0 0 0 1px var(--hx-border)',
+						fontSize: 12, color: 'var(--hx-muted)',
+					}}>
+						<div style={{ fontWeight: 600, color: 'var(--hx-fg)', marginBottom: 4 }}>Bookmark your login URL</div>
+						<code style={{
+							display: 'block',
+							fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+							fontSize: 12, wordBreak: 'break-all', color: 'var(--hx-fg)',
+						}}>{sec.fortress_login_url}</code>
+						<div style={{ marginTop: 4 }}>
+							Anyone hitting /wp-login.php without this key gets a 404. Logged-in admins are always allowed through as a lockout safeguard.
+						</div>
+					</div>
+				)}
+
+				{/* Advanced collapsible */}
+				<div style={{ marginTop: 18, borderTop: '1px solid var(--hx-border)', paddingTop: 14 }}>
+					<button
+						type="button"
+						onClick={() => setAdvancedOpen((v) => !v)}
+						aria-expanded={advancedOpen}
+						aria-controls="hatch-fortress-advanced"
+						style={{
+							background: 'transparent', border: 'none', padding: 0,
+							cursor: 'pointer', color: 'var(--hx-muted)',
+							fontSize: 12.5, fontWeight: 600, fontFamily: 'inherit',
+							display: 'inline-flex', alignItems: 'center', gap: 6,
+							outline: 'none',
+						}}
+						onFocus={(e) => e.currentTarget.style.boxShadow = '0 0 0 2px var(--hx-primary)'}
+						onBlur={(e) => e.currentTarget.style.boxShadow = 'none'}
+					>
+						<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transform: advancedOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform var(--hx-ease, 200ms ease)' }}>
+							<polyline points="9 18 15 12 9 6" />
+						</svg>
+						Advanced (per-feature toggles)
+					</button>
+					{advancedOpen && (
+						<div id="hatch-fortress-advanced" style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 8 }}>
+							{FORTRESS_CHIPS.map((chip) => (
+								<label
+									key={chip.key}
+									style={{
+										display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+										gap: 10, padding: '10px 12px', borderRadius: 12,
+										background: 'var(--hx-surface-2, var(--hx-surface))',
+										boxShadow: 'inset 0 0 0 1px var(--hx-border)',
+										fontSize: 12.5, color: 'var(--hx-fg)',
+										cursor: 'pointer',
+									}}
+								>
+									<span style={{ minWidth: 0 }}>
+										<span style={{ display: 'block', fontWeight: 600 }}>{chip.label}</span>
+										<span style={{ display: 'block', color: 'var(--hx-subtle)', fontSize: 11.5, marginTop: 2 }}>{chip.title}</span>
+									</span>
+									<HxToggle
+										on={!!sec['fortress_' + chip.key]}
+										onChange={(v) => { setSetting('security.fortress_' + chip.key, v); onDirty(); }}
+									/>
+								</label>
+							))}
+						</div>
+					)}
+				</div>
+			</div>
+
+			{/* REST API hardening: tight, scannable */}
 			<HxCard>
 				<HxHead
 					iconChildren={<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></>}
