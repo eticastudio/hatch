@@ -625,3 +625,74 @@
 	font-family: var(--hatch-font-heading);
 	letter-spacing: 0.01em;
 }
+
+/* =====================================================================
+ * v0.7.9 · Final editorial polish pass (2026-08-12)
+ * Warm cream, serif display, generous line-height, article max 68ch,
+ * drop-cap on long posts, blockquote left-rule + italic serif.
+ * Taste seed: taste-editorial (never mixed).
+ * ===================================================================== */
+
+[data-hatch-theme="blog"] {
+	--hatch-reading-width: 68ch;
+}
+
+[data-hatch-theme="blog"] .hatch-prose,
+[data-hatch-theme="blog"] article .wp-block-post-content {
+	font-family: var(--hatch-font-body);
+	font-size: 1.0625rem;
+	line-height: 1.75;
+	max-width: 68ch;
+	color: var(--color-hatch-fg);
+}
+
+[data-hatch-theme="blog"] .hatch-prose h1,
+[data-hatch-theme="blog"] .hatch-prose h2,
+[data-hatch-theme="blog"] article .wp-block-post-content h2,
+[data-hatch-theme="blog"] article .wp-block-post-content h3,
+[data-hatch-theme="blog"] .wp-block-post-title {
+	font-family: var(--hatch-font-heading);
+	font-weight: 500;
+	letter-spacing: -0.018em;
+	line-height: 1.15;
+	text-wrap: balance;
+}
+
+/* Drop-cap for the opening paragraph of long-form articles. Only kicks
+   in when the first block is a paragraph and the article body is long
+   enough to warrant it (min-width 40ch keeps short pages clean). */
+[data-hatch-theme="blog"] .single-post article .wp-block-post-content > p:first-of-type::first-letter,
+[data-hatch-theme="blog"] article.hatch-longform > p:first-of-type::first-letter {
+	font-family: var(--hatch-font-heading);
+	float: left;
+	font-size: 3.6em;
+	line-height: 0.9;
+	padding: 0.08em 0.12em 0 0;
+	margin-right: 0.06em;
+	font-weight: 500;
+	color: var(--color-hatch-primary);
+}
+
+/* Blockquote: subtle left-rule + italic serif, warm hairline colour. */
+[data-hatch-theme="blog"] .hatch-prose blockquote,
+[data-hatch-theme="blog"] article .wp-block-quote,
+[data-hatch-theme="blog"] article blockquote {
+	border-left: 3px solid color-mix(in oklab, var(--color-hatch-primary) 60%, var(--color-hatch-border));
+	padding: 0.4em 0 0.4em 1.4em;
+	margin: 1.8em 0;
+	font-family: var(--hatch-font-heading);
+	font-style: italic;
+	font-size: 1.15em;
+	line-height: 1.55;
+	color: var(--color-hatch-fg-muted);
+}
+
+/* Warm charcoal (not pure black) in dark mode — serif retained. */
+[data-hatch-theme="blog"][data-hatch-mode="dark"] {
+	--hatch-bg: #17140f;
+	--hatch-fg: #f0e9d8;
+}
+[data-hatch-theme="blog"][data-hatch-mode="dark"] .hatch-prose blockquote,
+[data-hatch-theme="blog"][data-hatch-mode="dark"] article blockquote {
+	color: color-mix(in oklab, var(--color-hatch-fg) 80%, var(--color-hatch-bg));
+}
