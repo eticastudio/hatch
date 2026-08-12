@@ -108,10 +108,14 @@ const key = url.searchParams.get('key') || '';
       if (errorBox) { errorBox.hidden = false; errorBox.textContent = msg; }
     };
 
-    // v0.7.8: Store API route is /wc/store/v1/order/{id}?key=X (path param),
-    // NOT the query-string shape /wc/store/v1/order?id=X&key=Y which 404s.
-    // Verified against live route introspection: only /order/(?P<id>[\d]+) exists.
-    const orderUrl = '/wp-json/wc/store/v1/order/' + encodeURIComponent(id) +
+    // Store API route: /wc/store/v1/order/{id}?key=X (path param), not the
+    // query-string shape /wc/store/v1/order?id=X&key=Y which 404s. Verified
+    // against live route introspection: only /order/(?P<id>[\d]+) exists.
+    //
+    // Path prefix goes through the same-origin Astro proxy
+    // (src/pages/api/wc-store/[...path].ts). Calling /wp-json/* directly
+    // 404s because the WP install is on a different origin.
+    const orderUrl = '/api/wc-store/order/' + encodeURIComponent(id) +
       (key ? '?key=' + encodeURIComponent(key) : '');
     fetch(orderUrl, {
       credentials: 'include',

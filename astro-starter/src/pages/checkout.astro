@@ -500,13 +500,118 @@ const paymentMethods: PM[] = rawMethods.filter((pm) => {
       return painted;
     };
 
+    // Handle Strong Customer Authentication (SCA / 3DS) for Stripe. When the
+    // classic gateway needs a bank challenge, WC Stripe returns a Store API
+    // payload shaped like:
+    //   payment_result.payment_details = [
+    //     {key:"result",   value:"success"},
+    //     {key:"redirect", value:"#wc-stripe-confirm-pi:{order}:{client_secret}:{nonce}"},
+    //     {key:"payment_method", value:"pm_..."},
+    //   ]
+    // The hash form is native to the WP-rendered checkout. On headless we
+    // parse the client_secret out of it, call stripe.confirmCardPayment so
+    // the shopper completes 3DS, then hit the wc_stripe_verify_intent AJAX
+    // endpoint so the plugin flips the order into `processing` and unblocks
+    // the webhook flow. See
+    // WC_Stripe_UPE_Payment_Gateway::process_payment_with_payment_method()
+    // and WC_Stripe_Blocks_Support::add_stripe_intents().
+    const detailsToObj = (details) => {
+      if (Array.isArray(details)) {
+        return details.reduce((acc, kv) => {
+          if (kv && kv.key) acc[kv.key] = kv.value;
+          return acc;
+        }, {});
+      }
+      return details && typeof details === 'object' ? details : {};
+    };
+
+    const parseConfirmHash = (hash) => {
+      if (!hash || typeof hash !== 'string') return null;
+      const parts = hash.replace(/^#/, '').split(':');
+      if (parts[0] !== 'wc-stripe-confirm-pi' && parts[0] !== 'wc-stripe-confirm-si') return null;
+      return { orderId: parts[1], clientSecret: parts[2], nonce: parts[3], type: parts[0] };
+    };
+
+    const handleStripe3DS = async (out) => {
+      if (!stripe) return false;
+      const details = detailsToObj(out && out.payment_result && out.payment_result.payment_details);
+      // Prefer the explicit shape (verification_endpoint), fall back to the
+      // hash-encoded classic redirect that the UPE gateway emits by default.
+      const explicit = details.payment_intent_secret || details.setup_intent_secret || '';
+      const parsed = parseConfirmHash(details.redirect || '');
+      const clientSecret = explicit || (parsed ? parsed.clientSecret : '');
+      if (!clientSecret) return false;
+
+      const conf = parsed && parsed.type === 'wc-stripe-confirm-si'
+        ? await stripe.confirmCardSetup(clientSecret)
+        : await stripe.confirmCardPayment(clientSecret);
+      if (conf && conf.error) {
+        stripeErr.hidden = false;
+        stripeErr.textContent = conf.error.message || 'Bank rejected the payment.';
+        return true;
+      }
+
+      // Ping wc_stripe_verify_intent through the Astro-side proxy so the
+      // gateway flips the order from `pending` to `processing` immediately.
+      // If the webhook path is set up on WP, this is redundant but harmless;
+      // in a headless dev stack without a public WP URL, it is the ONLY way
+      // the WP order status catches up before the shopper hits the summary
+      // page. Failure is soft: we still redirect and rely on the eventual
+      // webhook. See src/pages/api/wc-stripe-verify.ts.
+      if (parsed && parsed.nonce) {
+        try {
+          const intentId = (conf && conf.paymentIntent && conf.paymentIntent.id) || '';
+          const params = new URLSearchParams({
+            order: String(parsed.orderId || out.order_id),
+            nonce: parsed.nonce,
+          });
+          if (intentId) params.set('intent_id', intentId);
+          params.set(
+            'redirect_to',
+            '/order-summary?id=' + out.order_id + '&key=' + encodeURIComponent(out.order_key || ''),
+          );
+          await fetch('/api/wc-stripe-verify?' + params.toString(), {
+            credentials: 'same-origin',
+          });
+        } catch (_) { /* soft-fail, webhook can catch up */ }
+      }
+
+      const explicit = details.verification_endpoint || '';
+      window.location.href = explicit
+        || ('/order-summary?id=' + out.order_id + '&key=' + encodeURIComponent(out.order_key || ''));
+      return true;
+    };
+
+    // WooCommerce returns a WP-native redirect_url like
+    // /checkout/order-received/{id}/?key=... which 404s on the Astro
+    // frontend. Detect it and rewrite to the headless order-summary page,
+    // preserving the order key so /api/wc-store/order/{id}?key= still
+    // authorises the guest lookup.
+    const rewriteReceived = (url, orderId, orderKey) => {
+      const summary = '/order-summary?id=' + orderId + '&key=' + encodeURIComponent(orderKey || '');
+      if (!url) return summary;
+      try {
+        const u = new URL(url, window.location.origin);
+        if (/\/checkout\/order-received\//.test(u.pathname)) return summary;
+        // Same-origin redirects are honored as-is; cross-origin (a Stripe
+        // hosted challenge, PayPal approval page, etc.) is also honored so
+        // the gateway can complete its handshake.
+        return url;
+      } catch (_) { return summary; }
+    };
+
     const finish = ({ ok, out }) => {
       if (ok && out && out.order_id) {
         clearFieldErrors();
-        const redirect = out.payment_result && out.payment_result.redirect_url;
-        window.location.href = redirect
-          || ('/order-summary?id=' + out.order_id + '&key=' + encodeURIComponent(out.order_key || ''));
-        return true;
+        // 3DS path first: if the payment needs a bank challenge, run it
+        // client-side, then honor the verification endpoint. Non-3DS cards
+        // fall through to the ordinary redirect.
+        return handleStripe3DS(out).then((handled) => {
+          if (handled) return true;
+          const redirect = out.payment_result && out.payment_result.redirect_url;
+          window.location.href = rewriteReceived(redirect, out.order_id, out.order_key);
+          return true;
+        });
       }
       clearFieldErrors();
       const painted = applyFieldErrors(out || {});
@@ -636,16 +741,16 @@ const paymentMethods: PM[] = rawMethods.filter((pm) => {
           }
           // WC Stripe (v9+, UPE class active even when the classic toggle
           // is off) reads the Stripe PaymentMethod id from
-          // $_POST['wc-stripe-payment-method']. The Store API turns each
-          // { key, value } into a $_POST entry for the legacy gateway. See
-          // WC_Stripe_UPE_Payment_Gateway::prepare_payment_information_from_request().
-          //
-          // Do NOT include `payment_method` here. Woo already sets that from
-          // the top-level `payment_method: "stripe"` field. Overwriting it
-          // with a pm_xxx breaks get_selected_payment_method_type_from_request
-          // which requires the value to start with "stripe" and returns
-          // "The selected payment method type is invalid." otherwise.
+          // $_POST['wc-stripe-payment-method']. The Store API's Legacy
+          // dispatch REPLACES $_POST with the payment_data array before
+          // calling process_payment (see woocommerce/src/StoreApi/Legacy.php),
+          // so every field the gateway reads via $_POST must be listed here.
+          // That is why `payment_method` is repeated in payment_data even
+          // though it is also the top-level field: without it, the gateway
+          // sees $_POST['payment_method'] as empty and throws
+          // "The selected payment method type is invalid.".
           const body = buildBody('stripe', [
+            { key: 'payment_method', value: 'stripe' },
             { key: 'wc-stripe-payment-method', value: String(pm.paymentMethod.id) },
             { key: 'wc-stripe-is-deferred-intent', value: '1' },
           ]);

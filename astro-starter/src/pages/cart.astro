@@ -148,21 +148,31 @@ const checkoutUrl = '/checkout';
 </PageLayout>
 
 <script is:inline>
-  /* Quantity update: debounced POST to /wc/store/v1/cart/update-item.
-     Same-origin cookies propagate the anonymous cart session. If Astro
-     runs on a different origin, the Woo Store API needs Cart-Token + CORS
-     which the plugin supports out of the box. On success we reload so
-     line totals + grand total re-render from a fresh SSR fetch. */
+  /* Quantity update: debounced POST via the same-origin Astro proxy
+     (/api/wc-store/cart/update-item). The browser cannot hit /wp-json on
+     the Astro origin (it 404s), so all Store API traffic goes through
+     src/pages/api/wc-store/[...path].ts which forwards Nonce, Cart-Token,
+     and Set-Cookie between the browser and WordPress. On success we reload
+     so line totals + grand total re-render from a fresh SSR fetch. */
   (function () {
     const inputs = document.querySelectorAll('[data-hatch-cart-qty]');
     if (!inputs.length) return;
     const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
     const post = debounce(async (key, qty) => {
       try {
-        const res = await fetch('/wp-json/wc/store/v1/cart/update-item', {
+        // Refresh Nonce first so update-item is not rejected as invalid.
+        const cartRes = await fetch('/api/wc-store/cart', {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        });
+        const upNonce = cartRes.headers.get('Nonce') || cartRes.headers.get('nonce') || '';
+        const res = await fetch('/api/wc-store/cart/update-item', {
           method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(upNonce ? { Nonce: upNonce } : {}),
+          },
           body: JSON.stringify({ key, quantity: Math.max(0, parseInt(qty, 10) || 0) }),
         });
         if (res.ok) location.reload();
