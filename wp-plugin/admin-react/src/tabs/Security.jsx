@@ -264,12 +264,32 @@ export default function Security({ state, onDirty, setSetting }) {
 
 			{/* REST API hardening: tight, scannable */}
 			<HxCard>
-				<HxHead
-					iconChildren={<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></>}
-					iconColor="#2563eb"
-					title="WordPress attack surface"
-					desc="Shut down the endpoints WordPress exposes by default that headless sites never use."
-				/>
+				<div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 20 }} data-hatch-card-head="attack-surface">
+					<div
+						aria-hidden="true"
+						style={{
+							flex: '0 0 auto',
+							width: 44,
+							height: 44,
+							borderRadius: 12,
+							display: 'grid',
+							placeItems: 'center',
+							background: 'color-mix(in oklab, #2563eb 12%, var(--hx-surface-2, var(--hx-surface)))',
+							color: '#2563eb',
+							boxShadow: 'inset 0 0 0 1px var(--hx-border)',
+						}}
+					>
+						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+							<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+						</svg>
+					</div>
+					<div style={{ flex: 1, paddingTop: 1 }}>
+						<div className="hx-title" style={{ color: 'var(--hx-fg)' }}>WordPress attack surface</div>
+						<div className="hx-byline" style={{ color: 'var(--hx-subtle)', marginTop: 3 }}>
+							Shut down the endpoints WordPress exposes by default that headless sites never use.
+						</div>
+					</div>
+				</div>
 				<HxRow
 					label="Lock the REST API"
 					desc="Anonymous /wp-json/* returns 401. Your Astro frontend uses an Application Password — unaffected."
