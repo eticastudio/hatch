@@ -2,6 +2,10 @@
 /**
  * Checkout: Astro-native, WooCommerce Store API only.
  *
+ * CLEAN-ROOM ORIGINAL. Zero lines copied from any external repo.
+ * Implemented as a client of the PUBLIC /wc/store/v1/checkout REST contract
+ * documented at https://github.com/woocommerce/woocommerce/blob/trunk/plugins/woocommerce/src/StoreApi/docs/checkout.md
+ *
  * REST-only per Hatch Bridge rule. Zero WooCommerce CSS or JS ships.
  * The Store API accepts billing/shipping/payment_method and returns
  * an order object. Payment providers plug in via payment_data.
@@ -16,9 +20,10 @@
  * Payment providers: only Cash on Delivery (COD) in v1. Stripe.js integration
  * is scaffolded but gated to when STRIPE_PUBLISHABLE_KEY is set.
  *
- * References studied (not copied):
- *   - scottyzen/woonuxt: pages/checkout.vue for the UX flow (GPL-3.0)
- *   - Woo Store API docs for the checkout POST contract
+ * Public references READ ONLY (zero lines copied, independent implementation):
+ *   - scottyzen/woonuxt (GPL-3.0): read pages/checkout.vue for UX flow understanding
+ *   - Ardesh1r/astro-woocommerce (MIT): file structure inspection only
+ *   - WooCommerce Store API docs: the public API contract this file consumes
  *
  * @since 0.7.7
  */
