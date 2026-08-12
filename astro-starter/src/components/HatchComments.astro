@@ -55,9 +55,17 @@ if (enabled && base) {
       count = comments.length;
     }
   } catch {
-    /* swallow — show empty state */
+    /* swallow: show empty state */
   }
 }
+
+// JWT gate: read hatch_jwt cookie SSR-side to decide whether the visitor
+// can post a comment. HttpOnly cookie so JS never sees it; the SSR request
+// gets it through the incoming Cookie header.
+const cookieHeader = Astro.request.headers.get('cookie') || '';
+const isSignedIn = /(?:^|;\s*)hatch_jwt=[^;]+/.test(cookieHeader);
+const currentUrl = new URL(Astro.request.url);
+const loginHref = `/login?redirect_to=${encodeURIComponent(currentUrl.pathname + currentUrl.search)}`;
 
 // v0.5.7 — submit same-origin. `base` is a server-only WP origin (under
 // docker compose it is `http://wp`, unresolvable from the browser), so
@@ -101,6 +109,18 @@ const fmt = (iso: string) =>
       </ul>
     )}
 
+    {!isSignedIn ? (
+      <div id="reply" class="border border-hatch-border rounded-md p-5 bg-hatch-bg-2">
+        <h3 class="text-[15px] font-semibold mb-1">Leave a comment</h3>
+        <p class="text-[13.5px] text-hatch-fg-muted mb-3">
+          Sign in to comment on {postTitle}.
+        </p>
+        <a href={loginHref}
+          class="inline-block px-4 py-2 rounded-md bg-hatch-primary text-white text-[13px] font-medium hover:opacity-90 transition-opacity">
+          Sign in to comment
+        </a>
+      </div>
+    ) : (
     <form
       id="hatch-comment-form"
       action={submitUrl}
@@ -163,8 +183,9 @@ const fmt = (iso: string) =>
         <p id="hatch-comment-status" class="text-[13px] text-hatch-fg-subtle" aria-live="polite"></p>
       </div>
     </form>
+    )}
 
-    {turnstileOn && (
+    {isSignedIn && turnstileOn && (
       <script
         is:inline
         src="https://challenges.cloudflare.com/turnstile/v0/api.js"

@@ -1,0 +1,96 @@
+---
+/**
+ * Hatch registration page.
+ *
+ * CLEAN-ROOM ORIGINAL. Zero lines copied from any external repo.
+ * Standards followed: RFC 7519 (JWT), RFC 6265 (HttpOnly Secure SameSite cookies).
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import { getFeatures } from '@/lib/features';
+
+export const prerender = false;
+
+const features = await getFeatures();
+const url = new URL(Astro.request.url);
+const redirectTo = url.searchParams.get('redirect_to') || '/account';
+const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
+---
+
+<PageLayout title="Create an account" description="Sign up for an account." canonical={`${SITE}/register`}>
+  <main class="mx-auto px-5 sm:px-8 py-16 sm:py-20" style="max-width: 440px">
+    <header class="mb-8">
+      <h1 class="text-3xl font-semibold tracking-tight">Create an account</h1>
+      <p class="mt-2 text-[14px] text-hatch-fg-muted">
+        Already registered? <a href={`/login?redirect_to=${encodeURIComponent(redirectTo)}`} class="text-hatch-primary hover:underline">Sign in</a>.
+      </p>
+    </header>
+
+    <form id="hatch-register-form" class="flex flex-col gap-4" method="POST" action="/api/auth/register" data-redirect={redirectTo}>
+      <label class="flex flex-col gap-1.5">
+        <span class="text-[12.5px] font-medium text-hatch-fg-muted">Username</span>
+        <input type="text" name="username" required minlength="3" autocomplete="username"
+          class="px-3 py-2 rounded-md border border-hatch-border bg-hatch-bg focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none text-[14px]" />
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="text-[12.5px] font-medium text-hatch-fg-muted">Email</span>
+        <input type="email" name="email" required autocomplete="email"
+          class="px-3 py-2 rounded-md border border-hatch-border bg-hatch-bg focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none text-[14px]" />
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="text-[12.5px] font-medium text-hatch-fg-muted">Password (min 8 chars)</span>
+        <input type="password" name="password" required minlength="8" autocomplete="new-password"
+          class="px-3 py-2 rounded-md border border-hatch-border bg-hatch-bg focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none text-[14px]" />
+      </label>
+
+      {/* Honeypot: visually hidden but present in DOM for bots. */}
+      <div aria-hidden="true" style="position:absolute;left:-9999px;top:-9999px;opacity:0;pointer-events:none">
+        <label>Website <input type="text" name="hp_website" tabindex="-1" autocomplete="off" /></label>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button type="submit"
+          class="px-5 py-2.5 rounded-md bg-hatch-primary text-white text-[13.5px] font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
+          Create account
+        </button>
+        <p id="hatch-register-status" class="text-[13px] text-hatch-fg-subtle" aria-live="polite"></p>
+      </div>
+    </form>
+
+    <script is:inline>
+      (function () {
+        const form = document.getElementById('hatch-register-form');
+        if (!form) return;
+        const status = document.getElementById('hatch-register-status');
+        const redirect = form.dataset.redirect || '/account';
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const data = new FormData(form);
+          const btn = form.querySelector('button[type="submit"]');
+          if (btn) btn.disabled = true;
+          if (status) { status.textContent = 'Creating account...'; status.className = 'text-[13px] text-hatch-fg-subtle'; }
+          try {
+            const payload = {
+              username: String(data.get('username') || ''),
+              email: String(data.get('email') || ''),
+              password: String(data.get('password') || ''),
+              hp_website: String(data.get('hp_website') || ''),
+            };
+            const res = await fetch(form.action, {
+              method: 'POST',
+              body: JSON.stringify(payload),
+              headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+              credentials: 'same-origin',
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(body.message || 'Registration failed');
+            if (status) { status.textContent = 'Account created. Redirecting...'; status.className = 'text-[13px] text-green-600 dark:text-green-400'; }
+            window.location.href = redirect;
+          } catch (err) {
+            if (status) { status.textContent = (err && err.message) || 'Registration failed'; status.className = 'text-[13px] text-red-600 dark:text-red-400'; }
+            if (btn) btn.disabled = false;
+          }
+        });
+      })();
+    </script>
+  </main>
+</PageLayout>
