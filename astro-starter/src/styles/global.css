@@ -557,6 +557,20 @@ summary:focus-visible,
 	color: var(--color-hatch-muted); min-height: 1.2em;
 }
 .hatch-checkout__status:not(:empty) { color: var(--color-hatch-danger, #991b1b); }
+.hatch-checkout__req { color: var(--color-hatch-danger, #991b1b); margin-left: 0.15rem; }
+.hatch-checkout__field-error {
+	display: none;
+	margin-top: 0.35rem;
+	font-size: 0.8rem;
+	line-height: 1.35;
+	color: var(--color-hatch-danger, #991b1b);
+}
+.hatch-checkout__field-error:not(:empty) { display: block; }
+.hatch-checkout__field input[aria-invalid="true"],
+.hatch-checkout__field textarea[aria-invalid="true"] {
+	border-color: var(--color-hatch-danger, #991b1b);
+	box-shadow: 0 0 0 1px var(--color-hatch-danger, #991b1b);
+}
 
 /* order-summary */
 .hatch-order__eyebrow { color: var(--color-hatch-muted); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; margin: 0 0 0.5rem; }
