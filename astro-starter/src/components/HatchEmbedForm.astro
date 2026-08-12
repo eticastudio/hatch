@@ -1,6 +1,14 @@
 ---
 /**
- * HatchEmbedForm — renders ANY supported WordPress form plugin (Fluent Forms
+ * @deprecated 2026-08-12: Violates the Hatch Bridge REST-only rule (ships
+ * plugin CSS/JS via `scripts[]` and `styles[]`). Use <HatchForm /> instead:
+ * it consumes /hatch/v1/forms/{provider}/{id} schema and renders Astro
+ * components with Hatch tokens only. See:
+ *   brain: drawer_Etica_architecture_a308840cf90cc7d7cf3a8ecf
+ *   wp:    includes/class-forms-bridge.php (schema + submit endpoints)
+ * Kept temporarily for pages that opt-in explicitly; will be removed in v0.8.
+ *
+ * HatchEmbedForm: renders ANY supported WordPress form plugin (Fluent Forms
  * first; WPForms / Gravity if Fluent isn't installed) by asking the plugin
  * to render its own shortcode, then dropping the result into the page.
  *
