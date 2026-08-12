@@ -267,6 +267,28 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (context.request.method === 'GET' || context.request.method === 'HEAD') {
     // Skip our own API and asset paths — they should never be 301'd.
     if (!url.pathname.startsWith('/api/') && !url.pathname.startsWith('/_astro/') && !url.pathname.startsWith('/img')) {
+      // #175. Hard-coded legal-page aliases. Old WP menus commonly ship
+      // short slugs (/privacy, /terms) that don't match the actual page
+      // permalinks (/privacy-policy/, /terms-of-service/). Rather than
+      // 404, redirect once, cached at the edge for a minute.
+      const legalAlias: Record<string, string> = {
+        '/privacy': '/privacy-policy/',
+        '/privacy/': '/privacy-policy/',
+        '/terms': '/terms-of-service/',
+        '/terms/': '/terms-of-service/',
+      };
+      const aliasTarget = legalAlias[url.pathname];
+      if (aliasTarget) {
+        return new Response(null, {
+          status: 301,
+          headers: {
+            Location: aliasTarget,
+            'X-Hatch-Redirect-Source': 'legal-alias',
+            'Cache-Control': 'public, max-age=60',
+          },
+        });
+      }
+
       const rules = await fetchRedirects();
       for (const rule of rules) {
         const { matched, captured } = matches(url.pathname, rule);
