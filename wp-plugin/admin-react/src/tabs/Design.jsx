@@ -12,9 +12,9 @@ export default function Design({ state, onDirty, setSetting }) {
 		blog:       { previewKey: 'Blog',       col: '#3b82f6' },
 		tech:       { previewKey: 'Tech',       col: '#8b5cf6' },
 		docs:       { previewKey: 'Data',       col: '#0d9488' },
-		astropaper: { previewKey: 'AstroPaper', col: '#ff6b00' },
-		astrowind:  { previewKey: 'AstroWind',  col: '#2563eb' },
-		astronano:  { previewKey: 'Astro Nano', col: '#737373' },
+		astropaper: { previewKey: 'AstroPaper', col: 'var(--hx-primary)' },
+		astrowind:  { previewKey: 'AstroWind',  col: 'var(--hx-info)' },
+		astronano:  { previewKey: 'Astro Nano', col: 'var(--hx-text-subtle)' },
 	};
 	const themes = (state.themes || []).map((t) => ({
 		id:         t.id,
@@ -25,11 +25,11 @@ export default function Design({ state, onDirty, setSetting }) {
 		repo:       t.repo  || '',
 		license:    t.license || '',
 		previewKey: themeMeta[t.id]?.previewKey || 'Blog',
-		col:        themeMeta[t.id]?.col || '#737373',
+		col:        themeMeta[t.id]?.col || 'var(--hx-text-subtle)',
 	}));
 
 	const theme = (state.design?.theme || 'astropaper').toLowerCase();
-	const brand = state.design?.brand || { primary: '#ff6b00', secondary: '#0a0a0a', accent: '#6366f1', background: '#fafafa' };
+	const brand = state.design?.brand || { primary: 'var(--hx-primary)', secondary: 'var(--hx-text)', accent: '#6366f1', background: 'var(--hx-bg)' };
 	// v0.50.14 — Canonical IDs (lowercase, no units) are the contract between
 	// WP and the Astro frontend. Display labels stay pretty in the UI but the
 	// values written via setSetting() are what the regenerator + Astro consume.
@@ -54,7 +54,7 @@ export default function Design({ state, onDirty, setSetting }) {
 		archive_excerpt: true,
 		not_found_search: true,
 	};
-	const borders = state.borders || { color: '#e5e5e5', shadow: 'soft' };
+	const borders = state.borders || { color: 'var(--hx-border)', shadow: 'soft' };
 	const breakpoints = state.breakpoints || { mobile: 640, tablet: 1024, desktop: 1280 };
 	const credit = state.show_credit !== false; // default on
 
@@ -118,7 +118,7 @@ export default function Design({ state, onDirty, setSetting }) {
 					title="Theme"
 					desc="The starter design your Astro frontend ships with. Tune fonts, colors, and layout below."
 				/>
-				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+				<div className="hx-grid-cols-3" style={{ gap: 10 }}>
 					{themes.map((t) => {
 						const sel = theme === t.id;
 						return (
@@ -320,12 +320,12 @@ export default function Design({ state, onDirty, setSetting }) {
 					<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
 						<input
 							type="color"
-							value={borders.color || '#e5e5e5'}
+							value={borders.color || 'var(--hx-border)'}
 							onChange={(e) => { setSetting('borders.color', e.target.value); onDirty(); }}
 							style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid var(--hx-border-2)', cursor: 'pointer', padding: 2, background: 'var(--hx-surface)' }}
 						/>
 						<div style={{ width: 140 }}>
-							<HxInp value={borders.color || '#e5e5e5'} mono onChange={onText('borders.color')} />
+							<HxInp value={borders.color || 'var(--hx-border)'} mono onChange={onText('borders.color')} />
 						</div>
 					</div>
 				</HxRow>

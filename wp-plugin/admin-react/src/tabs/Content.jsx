@@ -366,7 +366,7 @@ export default function Content({ state, onDirty, setSetting }) {
 							{(ts.site_key && ts.secret_key) ? 'Configured' : 'Keys missing'}
 						</HxBadge>
 					</div>
-					<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+					<div className="hx-grid-cols-2">
 						<div>
 							<div className="hx-help" style={{ fontWeight: 600, color: 'var(--hx-subtle)', marginBottom: 6 }}>Site key</div>
 							<HxInp placeholder="0x4AAAA..." mono value={ts.site_key || ''} onChange={onText('turnstile.site_key')} autoComplete="off" />
