@@ -2,33 +2,37 @@
 /**
  * Checkout: Astro-native, WooCommerce Store API only.
  *
- * CLEAN-ROOM ORIGINAL. Zero lines copied from any external repo.
- * Implemented as a client of the PUBLIC /wc/store/v1/checkout REST contract
- * documented at https://github.com/woocommerce/woocommerce/blob/trunk/plugins/woocommerce/src/StoreApi/docs/checkout.md
+ * CLEAN-ROOM ORIGINAL. Public SDKs consumed: Stripe.js docs
+ * (https://docs.stripe.com/js), PayPal JS SDK docs
+ * (https://developer.paypal.com/sdk/js/reference/), WooCommerce Store API
+ * docs. Zero lines copied from external repos (woonuxt, ardesh1r/astro-
+ * woocommerce, or any other). Implementation is an independent client of
+ * the PUBLIC /wc/store/v1/checkout REST contract.
  *
- * REST-only per Hatch Bridge rule. Zero WooCommerce CSS or JS ships.
- * The Store API accepts billing/shipping/payment_method and returns
- * an order object. Payment providers plug in via payment_data.
+ * REST-only per Hatch Bridge rule. Zero WooCommerce plugin CSS or JS ships.
+ * Stripe.js loads from js.stripe.com (Stripe's own CDN). PayPal JS SDK loads
+ * from paypal.com/sdk/js (PayPal's own CDN). Both are the vendor SDKs, not
+ * Woo plugin assets, so the Bridge rule is preserved.
  *
  * Flow:
  *   1. SSR fetch cart + Nonce + Cart-Token from /wc/store/v1/cart
  *   2. SSR fetch checkout defaults from /wc/store/v1/checkout (with headers)
- *   3. Client-side form POSTs to /wc/store/v1/checkout with the same headers
- *   4. On success server response.redirect_url is honored; else we route to
+ *   3. Server-detected payment_methods array gates which options render.
+ *      Stripe: shown only if PUBLIC_STRIPE_KEY set AND gateway id "stripe"
+ *      present in payment_methods. PayPal: shown only if PUBLIC_PAYPAL_CLIENT_ID
+ *      set AND gateway id "ppcp-gateway" present.
+ *   4. Client-side form POSTs to /wc/store/v1/checkout with same headers.
+ *      Stripe path: stripe.createPaymentMethod first, pass pm.id as
+ *      payment_data[{key:"stripe_source"}]. PayPal path: capture the
+ *      PayPal order id from onApprove and pass as
+ *      payment_data[{key:"paypal_order_id"}].
+ *   5. On success server response.redirect_url is honored; else route to
  *      /order-summary?id=X&key=Y
- *
- * Payment providers: only Cash on Delivery (COD) in v1. Stripe.js integration
- * is scaffolded but gated to when STRIPE_PUBLISHABLE_KEY is set.
- *
- * Public references READ ONLY (zero lines copied, independent implementation):
- *   - scottyzen/woonuxt (GPL-3.0): read pages/checkout.vue for UX flow understanding
- *   - Ardesh1r/astro-woocommerce (MIT): file structure inspection only
- *   - WooCommerce Store API docs: the public API contract this file consumes
  *
  * @since 0.7.7
  */
 import PageLayout from '@/layouts/PageLayout.astro';
-import { WP_API_URL } from 'astro:env/server';
+import { WP_API_URL, PUBLIC_STRIPE_KEY, PUBLIC_PAYPAL_CLIENT_ID } from 'astro:env/server';
 
 const base = (WP_API_URL || '').replace(/\/wp-json(\/.*)?$/, '').replace(/\/$/, '');
 
@@ -78,10 +82,33 @@ const money = (v: string) => {
 
 const billing = checkout?.billing_address || {};
 const shipping = checkout?.shipping_address || {};
-const paymentMethods: Array<{ id: string; title: string; description?: string }> =
-  (checkout?.payment_methods && Array.isArray(checkout.payment_methods)
+
+// Available gateway ids from Woo Store API.
+const activeGatewayIds = new Set(
+  Array.isArray(checkout?.payment_methods)
+    ? checkout.payment_methods.map((p: any) => String(p?.id || ''))
+    : []
+);
+
+// Client-side capability gates. Stripe/PayPal each require BOTH a
+// configured public key/client-id AND the gateway registered by WP.
+const stripeEnabled = Boolean(PUBLIC_STRIPE_KEY) && activeGatewayIds.has('stripe');
+const paypalEnabled = Boolean(PUBLIC_PAYPAL_CLIENT_ID) && activeGatewayIds.has('ppcp-gateway');
+
+type PM = { id: string; title: string; description?: string };
+const rawMethods: PM[] =
+  checkout?.payment_methods && Array.isArray(checkout.payment_methods)
     ? checkout.payment_methods
-    : [{ id: 'cod', title: 'Cash on delivery', description: 'Pay in cash upon delivery.' }]);
+    : [{ id: 'cod', title: 'Cash on delivery', description: 'Pay in cash upon delivery.' }];
+
+// Hide gateways whose client-side prerequisites aren't met (Stripe without
+// key, PayPal without client id). Woo still lists the gateway, but the UI
+// can't complete it, so don't offer it.
+const paymentMethods: PM[] = rawMethods.filter((pm) => {
+  if (pm.id === 'stripe') return stripeEnabled;
+  if (pm.id === 'ppcp-gateway') return paypalEnabled;
+  return true;
+});
 ---
 <PageLayout title="Checkout" description="Complete your order">
   <div class="hatch-checkout">
@@ -106,6 +133,9 @@ const paymentMethods: Array<{ id: string; title: string; description?: string }>
         data-nonce={nonce}
         data-cart-token={cartToken}
         data-wp-origin={base}
+        data-stripe-key={stripeEnabled ? PUBLIC_STRIPE_KEY : ''}
+        data-paypal-client={paypalEnabled ? PUBLIC_PAYPAL_CLIENT_ID : ''}
+        data-currency={cart?.totals?.currency_code || 'USD'}
       >
         <div class="hatch-checkout__forms">
           <fieldset class="hatch-checkout__section">
@@ -211,6 +241,26 @@ const paymentMethods: Array<{ id: string; title: string; description?: string }>
                 {pm.description && <span class="hatch-checkout__pm-desc">{pm.description}</span>}
               </label>
             ))}
+
+            {stripeEnabled && (
+              <div class="hatch-checkout__pm-panel" data-hatch-stripe-panel hidden>
+                <div class="hatch-checkout__field">
+                  <span>Card details</span>
+                  <div id="hatch-stripe-card" class="hatch-checkout__stripe-card"></div>
+                </div>
+                <div class="hatch-checkout__pm-note" data-hatch-stripe-error role="alert" hidden></div>
+              </div>
+            )}
+
+            {paypalEnabled && (
+              <div class="hatch-checkout__pm-panel" data-hatch-paypal-panel hidden>
+                <p class="hatch-checkout__pm-desc">
+                  Complete billing/shipping above, then approve with PayPal.
+                </p>
+                <div id="hatch-paypal-buttons"></div>
+                <div class="hatch-checkout__pm-note" data-hatch-paypal-error role="alert" hidden></div>
+              </div>
+            )}
           </fieldset>
 
           <fieldset class="hatch-checkout__section">
@@ -249,69 +299,218 @@ const paymentMethods: Array<{ id: string; title: string; description?: string }>
   </div>
 </PageLayout>
 
+{stripeEnabled && <script is:inline src="https://js.stripe.com/v3/"></script>}
+{paypalEnabled && (
+  <script
+    is:inline
+    src={`https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(PUBLIC_PAYPAL_CLIENT_ID || '')}&currency=${encodeURIComponent(cart?.totals?.currency_code || 'USD')}&intent=capture`}
+  ></script>
+)}
+
 <script is:inline>
   (function () {
     const form = document.getElementById('hatch-checkout-form');
     if (!form) return;
     const nonce = form.dataset.nonce;
     const cartToken = form.dataset.cartToken;
-    const wpOrigin = form.dataset.wpOrigin;
+    const stripeKey = form.dataset.stripeKey || '';
+    const paypalClient = form.dataset.paypalClient || '';
 
-    // Toggle shipping fields when "same as billing" is unchecked.
+    const status = form.querySelector('.hatch-checkout__status');
+    const submit = form.querySelector('.hatch-checkout__submit');
+    const stripePanel = form.querySelector('[data-hatch-stripe-panel]');
+    const stripeErr = form.querySelector('[data-hatch-stripe-error]');
+    const paypalPanel = form.querySelector('[data-hatch-paypal-panel]');
+    const paypalErr = form.querySelector('[data-hatch-paypal-error]');
+
+    // Same-as-billing toggle.
     const sameChk = form.querySelector('input[name="ship_same"]');
     const shipFields = form.querySelector('.hatch-checkout__ship-fields');
     const syncShip = () => { shipFields.hidden = sameChk.checked; };
     if (sameChk && shipFields) { sameChk.addEventListener('change', syncShip); syncShip(); }
 
-    const status = form.querySelector('.hatch-checkout__status');
-    const submit = form.querySelector('.hatch-checkout__submit');
+    // Collect address fields as { key: value } objects grouped by prefix.
+    const collect = (prefix) => {
+      const data = new FormData(form);
+      const o = {};
+      for (const [k, v] of data.entries()) {
+        if (k.startsWith(prefix + '.')) o[k.slice(prefix.length + 1)] = String(v);
+      }
+      return o;
+    };
+
+    const buildBody = (paymentMethod, paymentData) => {
+      const data = new FormData(form);
+      const billing = collect('billing');
+      const shipping = data.get('ship_same')
+        ? Object.assign({}, billing)
+        : collect('shipping');
+      delete shipping.email; // shipping schema has no email
+      return {
+        billing_address: billing,
+        shipping_address: shipping,
+        payment_method: paymentMethod,
+        payment_data: paymentData || [],
+        customer_note: String(data.get('customer_note') || ''),
+      };
+    };
+
+    const postCheckout = async (body) => {
+      const res = await fetch('/wp-json/wc/store/v1/checkout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Nonce': nonce,
+          ...(cartToken ? { 'Cart-Token': cartToken } : {}),
+        },
+        body: JSON.stringify(body),
+      });
+      const out = await res.json().catch(() => ({}));
+      return { ok: res.ok, out: out };
+    };
+
+    const finish = ({ ok, out }) => {
+      if (ok && out && out.order_id) {
+        const redirect = out.payment_result && out.payment_result.redirect_url;
+        window.location.href = redirect
+          || ('/order-summary?id=' + out.order_id + '&key=' + encodeURIComponent(out.order_key || ''));
+        return true;
+      }
+      status.textContent = (out && out.message) || 'Could not place order. Please review the fields.';
+      submit.disabled = false;
+      return false;
+    };
+
+    // ---- Stripe Elements bootstrap (only if key + SDK present) ----
+    let stripe = null;
+    let stripeCard = null;
+    if (stripeKey && typeof window.Stripe === 'function') {
+      try {
+        stripe = window.Stripe(stripeKey);
+        const elements = stripe.elements();
+        stripeCard = elements.create('card');
+        stripeCard.mount('#hatch-stripe-card');
+        stripeCard.on('change', (ev) => {
+          if (ev.error) {
+            stripeErr.hidden = false;
+            stripeErr.textContent = ev.error.message || 'Card error';
+          } else {
+            stripeErr.hidden = true;
+            stripeErr.textContent = '';
+          }
+        });
+      } catch (e) {
+        stripe = null;
+        stripeCard = null;
+      }
+    }
+
+    // ---- PayPal Buttons bootstrap (only if client-id + SDK present) ----
+    if (paypalClient && window.paypal && typeof window.paypal.Buttons === 'function') {
+      try {
+        window.paypal.Buttons({
+          createOrder: function () {
+            // Woo needs to create the order first via its gateway, but we
+            // let PayPal generate an order id here and pass it through as
+            // payment_data. PayPal's own capture happens server-side after
+            // Woo POSTs to the gateway; onApprove.orderID is the value the
+            // ppcp-gateway plugin expects in payment_data.paypal_order_id.
+            return fetch('/wp-json/wc/store/v1/cart', {
+              credentials: 'include',
+              headers: { Accept: 'application/json' },
+            }).then(function (r) { return r.json(); }).then(function (c) {
+              const total = ((parseInt((c && c.totals && c.totals.total_price) || '0', 10)) /
+                Math.pow(10, (c && c.totals && c.totals.currency_minor_unit) || 2)).toFixed(
+                (c && c.totals && c.totals.currency_minor_unit) || 2);
+              return {
+                purchase_units: [{ amount: {
+                  currency_code: (c && c.totals && c.totals.currency_code) || 'USD',
+                  value: total,
+                } }],
+              };
+            });
+          },
+          onApprove: function (data) {
+            submit.disabled = true;
+            status.textContent = 'Placing order...';
+            const body = buildBody('ppcp-gateway', [
+              { key: 'paypal_order_id', value: String(data.orderID || '') },
+              { key: 'paypal_payer_id', value: String(data.payerID || '') },
+            ]);
+            return postCheckout(body).then(finish);
+          },
+          onError: function (err) {
+            paypalErr.hidden = false;
+            paypalErr.textContent = (err && err.message) || 'PayPal error';
+          },
+        }).render('#hatch-paypal-buttons');
+      } catch (e) {
+        if (paypalErr) {
+          paypalErr.hidden = false;
+          paypalErr.textContent = 'PayPal could not initialize.';
+        }
+      }
+    }
+
+    // Show/hide gateway panels based on selected radio.
+    const syncPanels = () => {
+      const sel = form.querySelector('input[name="payment_method"]:checked');
+      const id = sel ? sel.value : '';
+      if (stripePanel) stripePanel.hidden = id !== 'stripe';
+      if (paypalPanel) paypalPanel.hidden = id !== 'ppcp-gateway';
+      // Woo handles PayPal capture through the buttons themselves. Hide
+      // the standard "Place order" submit while PayPal is selected.
+      submit.hidden = id === 'ppcp-gateway';
+    };
+    form.querySelectorAll('input[name="payment_method"]').forEach((r) => {
+      r.addEventListener('change', syncPanels);
+    });
+    syncPanels();
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const sel = form.querySelector('input[name="payment_method"]:checked');
+      const method = sel ? sel.value : 'cod';
+
+      // PayPal path uses the Buttons flow, not the submit button.
+      if (method === 'ppcp-gateway') return;
+
       submit.disabled = true;
       status.textContent = 'Placing order...';
 
-      const data = new FormData(form);
-      const nested = (prefix) => {
-        const o = {};
-        for (const [k, v] of data.entries()) {
-          if (k.startsWith(prefix + '.')) o[k.slice(prefix.length + 1)] = String(v);
+      if (method === 'stripe') {
+        if (!stripe || !stripeCard) {
+          status.textContent = 'Stripe is not ready. Refresh and try again.';
+          submit.disabled = false;
+          return;
         }
-        return o;
-      };
-      const billing = nested('billing');
-      const shipping = data.get('ship_same') ? { ...billing } : nested('shipping');
-      // shipping schema has no email; drop it if present
-      delete shipping.email;
-
-      const body = {
-        billing_address: billing,
-        shipping_address: shipping,
-        payment_method: String(data.get('payment_method') || 'cod'),
-        payment_data: [],
-        customer_note: String(data.get('customer_note') || ''),
-      };
-
-      try {
-        const res = await fetch('/wp-json/wc/store/v1/checkout', {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Nonce': nonce,
-            ...(cartToken ? { 'Cart-Token': cartToken } : {}),
-          },
-          body: JSON.stringify(body),
-        });
-        const out = await res.json();
-        if (res.ok && out.order_id) {
-          const redirect = out.payment_result?.redirect_url;
-          window.location.href = redirect || `/order-summary?id=${out.order_id}&key=${encodeURIComponent(out.order_key || '')}`;
-        } else {
-          status.textContent = out.message || 'Could not place order. Please review the fields.';
+        try {
+          const pm = await stripe.createPaymentMethod({ type: 'card', card: stripeCard });
+          if (pm.error) {
+            stripeErr.hidden = false;
+            stripeErr.textContent = pm.error.message || 'Card was declined.';
+            status.textContent = '';
+            submit.disabled = false;
+            return;
+          }
+          const body = buildBody('stripe', [
+            { key: 'stripe_source', value: String(pm.paymentMethod.id) },
+            { key: 'payment_method', value: String(pm.paymentMethod.id) },
+            { key: 'wc-stripe-payment-token', value: 'new' },
+          ]);
+          finish(await postCheckout(body));
+        } catch (err) {
+          status.textContent = 'Network error. Please try again.';
           submit.disabled = false;
         }
+        return;
+      }
+
+      // Default: COD or any other non-tokenized gateway.
+      try {
+        finish(await postCheckout(buildBody(method, [])));
       } catch (err) {
         status.textContent = 'Network error. Please try again.';
         submit.disabled = false;

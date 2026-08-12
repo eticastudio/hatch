@@ -2,107 +2,169 @@
 /**
  * Order summary / thank-you page.
  *
- * CLEAN-ROOM ORIGINAL. Zero lines copied from any external repo.
- * Client of the PUBLIC /wc/store/v1/order?id=X&key=Y REST endpoint
- * (keyed by order_key so anonymous buyers can view their own order
- * without login).
+ * CLEAN-ROOM ORIGINAL. Public SDKs consumed: none. Zero lines copied from
+ * external repos. Independent implementation against the PUBLIC
+ * /wc/store/v1/order?id=X&key=Y REST contract (keyed by order_key so anonymous
+ * buyers can view their own order without login).
  *
- * Renders items, totals, addresses, status. Zero WooCommerce CSS or JS ships.
+ * v0.7.8: SSR shell + client-side hydration.
+ *   The Store API validates the buyer via the session cookie set on the
+ *   browser at checkout time. Astro's server-side fetch runs from the CF
+ *   Worker / Node process, which has no such cookie, so a server-side call
+ *   returned an empty / 401 payload. Hydrating in the browser sends the
+ *   cookie natively and the endpoint works.
  *
  * @since 0.7.7
  */
 import PageLayout from '@/layouts/PageLayout.astro';
-import { WP_API_URL } from 'astro:env/server';
 
-const base = (WP_API_URL || '').replace(/\/wp-json(\/.*)?$/, '').replace(/\/$/, '');
 const url = new URL(Astro.request.url);
 const id = url.searchParams.get('id') || '';
 const key = url.searchParams.get('key') || '';
-
-let order: any = null;
-let fetchErr = '';
-if (id) {
-  try {
-    const params = new URLSearchParams({ id, key });
-    const res = await fetch(`${base}/wp-json/wc/store/v1/order?${params.toString()}`, {
-      headers: { Accept: 'application/json', Cookie: Astro.request.headers.get('cookie') || '' },
-    });
-    if (res.ok) order = await res.json();
-    else fetchErr = `Could not load order: HTTP ${res.status}`;
-  } catch (e) {
-    fetchErr = e instanceof Error ? e.message : String(e);
-  }
-}
-
-const money = (v: string, sym: string, dec: number) => {
-  const n = parseInt(v || '0', 10);
-  if (!Number.isFinite(n)) return `${sym}0`;
-  return `${sym}${(n / Math.pow(10, dec || 0)).toFixed(dec || 0)}`;
-};
-const sym = order?.totals?.currency_symbol || '';
-const dec = order?.totals?.currency_minor_unit ?? 2;
-const items = order?.items || [];
 ---
-<PageLayout title={order ? `Order #${order.order_number}` : 'Order'} description="Order summary">
-  <div class="hatch-order">
-    {(!id || fetchErr) && (
+<PageLayout title={id ? `Order #${id}` : 'Order'} description="Order summary">
+  <div class="hatch-order" data-order-id={id} data-order-key={key}>
+    {!id && (
       <div class="hatch-order__error" role="alert">
         <h1>Order not found</h1>
-        <p>{fetchErr || 'Missing order id in URL.'}</p>
+        <p>Missing order id in URL.</p>
         <a href="/shop" class="hatch-btn hatch-btn--primary">Back to shop</a>
       </div>
     )}
 
-    {order && (
+    {id && (
       <>
         <header class="hatch-order__header">
           <p class="hatch-order__eyebrow">Thanks for your order</p>
-          <h1>Order #{order.order_number}</h1>
-          <p class="hatch-order__status">Status: <strong>{order.status}</strong></p>
+          <h1>Order #<span data-hatch-order-number>{id}</span></h1>
+          <p class="hatch-order__status" data-hatch-order-status-line hidden>
+            Status: <strong data-hatch-order-status></strong>
+          </p>
         </header>
 
-        <section class="hatch-order__section">
-          <h2>Items</h2>
-          <ul class="hatch-order__lines" role="list">
-            {items.map((it: any) => (
-              <li>
-                <span class="hatch-order__li-name">{it.name} <em>×{it.quantity}</em></span>
-                <span class="hatch-order__li-total">{money(it.totals?.line_total, sym, dec)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <div class="hatch-order__loading" data-hatch-order-loading>
+          Loading order details...
+        </div>
 
-        <section class="hatch-order__section">
-          <h2>Totals</h2>
-          <dl class="hatch-order__totals">
-            <div><dt>Subtotal</dt><dd>{money(order.totals?.total_items, sym, dec)}</dd></div>
-            {parseInt(order.totals?.total_shipping || '0', 10) > 0 && (
-              <div><dt>Shipping</dt><dd>{money(order.totals.total_shipping, sym, dec)}</dd></div>
-            )}
-            {parseInt(order.totals?.total_tax || '0', 10) > 0 && (
-              <div><dt>Tax</dt><dd>{money(order.totals.total_tax, sym, dec)}</dd></div>
-            )}
-            <div class="hatch-order__grand"><dt>Total</dt><dd>{money(order.totals?.total_price, sym, dec)}</dd></div>
-          </dl>
-        </section>
+        <div class="hatch-order__error" data-hatch-order-error role="alert" hidden></div>
 
-        {order.billing_address && (
+        <div data-hatch-order-body hidden>
           <section class="hatch-order__section">
-            <h2>Billing address</h2>
-            <address class="hatch-order__address">
-              {order.billing_address.first_name} {order.billing_address.last_name}<br />
-              {order.billing_address.address_1}{order.billing_address.address_2 ? <>, {order.billing_address.address_2}</> : null}<br />
-              {order.billing_address.city}, {order.billing_address.state} {order.billing_address.postcode}<br />
-              {order.billing_address.country}
-            </address>
+            <h2>Items</h2>
+            <ul class="hatch-order__lines" role="list" data-hatch-order-items></ul>
           </section>
-        )}
 
-        <div class="hatch-order__actions">
-          <a href="/shop" class="hatch-btn hatch-btn--primary">Continue shopping</a>
+          <section class="hatch-order__section">
+            <h2>Totals</h2>
+            <dl class="hatch-order__totals" data-hatch-order-totals></dl>
+          </section>
+
+          <section class="hatch-order__section" data-hatch-order-billing-section hidden>
+            <h2>Billing address</h2>
+            <address class="hatch-order__address" data-hatch-order-billing></address>
+          </section>
+
+          <div class="hatch-order__actions">
+            <a href="/shop" class="hatch-btn hatch-btn--primary">Continue shopping</a>
+          </div>
         </div>
       </>
     )}
   </div>
 </PageLayout>
+
+<script is:inline>
+  (function () {
+    const root = document.querySelector('.hatch-order');
+    if (!root) return;
+    const id = root.dataset.orderId;
+    const key = root.dataset.orderKey;
+    if (!id) return;
+
+    const loading = root.querySelector('[data-hatch-order-loading]');
+    const errorBox = root.querySelector('[data-hatch-order-error]');
+    const body = root.querySelector('[data-hatch-order-body]');
+    const statusLine = root.querySelector('[data-hatch-order-status-line]');
+    const statusEl = root.querySelector('[data-hatch-order-status]');
+    const numEl = root.querySelector('[data-hatch-order-number]');
+    const itemsEl = root.querySelector('[data-hatch-order-items]');
+    const totalsEl = root.querySelector('[data-hatch-order-totals]');
+    const billSection = root.querySelector('[data-hatch-order-billing-section]');
+    const billEl = root.querySelector('[data-hatch-order-billing]');
+
+    const escapeHtml = (s) => String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+    const money = (v, sym, dec) => {
+      const n = parseInt(v || '0', 10);
+      const d = dec || 0;
+      if (!Number.isFinite(n)) return sym + '0';
+      return sym + (n / Math.pow(10, d)).toFixed(d);
+    };
+
+    const showError = (msg) => {
+      if (loading) loading.hidden = true;
+      if (errorBox) { errorBox.hidden = false; errorBox.textContent = msg; }
+    };
+
+    const params = new URLSearchParams({ id: id, key: key || '' });
+    fetch('/wp-json/wc/store/v1/order?' + params.toString(), {
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then((order) => {
+        if (!order || !order.id) throw new Error('Empty order response');
+        loading.hidden = true;
+        body.hidden = false;
+
+        if (order.order_number) numEl.textContent = order.order_number;
+        if (order.status) {
+          statusEl.textContent = order.status;
+          statusLine.hidden = false;
+        }
+
+        const sym = (order.totals && order.totals.currency_symbol) || '';
+        const dec = order.totals && order.totals.currency_minor_unit != null
+          ? order.totals.currency_minor_unit : 2;
+
+        const items = order.items || [];
+        itemsEl.innerHTML = items.map((it) => (
+          '<li>' +
+            '<span class="hatch-order__li-name">' + escapeHtml(it.name) +
+              ' <em>&times;' + escapeHtml(it.quantity) + '</em></span>' +
+            '<span class="hatch-order__li-total">' +
+              escapeHtml(money(it.totals && it.totals.line_total, sym, dec)) +
+            '</span>' +
+          '</li>'
+        )).join('');
+
+        const rows = [];
+        rows.push('<div><dt>Subtotal</dt><dd>' + escapeHtml(money(order.totals && order.totals.total_items, sym, dec)) + '</dd></div>');
+        const ship = parseInt((order.totals && order.totals.total_shipping) || '0', 10);
+        if (ship > 0) rows.push('<div><dt>Shipping</dt><dd>' + escapeHtml(money(order.totals.total_shipping, sym, dec)) + '</dd></div>');
+        const tax = parseInt((order.totals && order.totals.total_tax) || '0', 10);
+        if (tax > 0) rows.push('<div><dt>Tax</dt><dd>' + escapeHtml(money(order.totals.total_tax, sym, dec)) + '</dd></div>');
+        rows.push('<div class="hatch-order__grand"><dt>Total</dt><dd>' + escapeHtml(money(order.totals && order.totals.total_price, sym, dec)) + '</dd></div>');
+        totalsEl.innerHTML = rows.join('');
+
+        const b = order.billing_address;
+        if (b && (b.first_name || b.address_1)) {
+          const addr2 = b.address_2 ? ', ' + escapeHtml(b.address_2) : '';
+          billEl.innerHTML =
+            escapeHtml(b.first_name) + ' ' + escapeHtml(b.last_name) + '<br>' +
+            escapeHtml(b.address_1) + addr2 + '<br>' +
+            escapeHtml(b.city) + ', ' + escapeHtml(b.state) + ' ' + escapeHtml(b.postcode) + '<br>' +
+            escapeHtml(b.country);
+          billSection.hidden = false;
+        }
+      })
+      .catch((err) => {
+        showError('Could not load order details: ' + (err && err.message ? err.message : 'network error'));
+      });
+  })();
+</script>
