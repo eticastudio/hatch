@@ -21,6 +21,28 @@ import SetupApp from './setup/SetupApp.jsx';
 import './styles.css';
 
 import PluginBridge from './tabs/PluginBridge.jsx';
+
+/* Dark mode: resolve preference and apply BEFORE first paint so there is no
+   flash of light. Reads localStorage first, then prefers-color-scheme, then
+   falls back to light. The value lives on <html data-hx-theme="..."> AND on
+   <body> so WordPress admin chrome (which we cannot scope to .hatch-react)
+   can react through the [data-hx-theme="dark"] rules in styles.css. */
+const THEME_KEY = 'hx-theme';
+function resolveTheme() {
+	try {
+		const saved = window.localStorage.getItem(THEME_KEY);
+		if (saved === 'light' || saved === 'dark') return saved;
+	} catch (e) { /* privacy mode: fall through */ }
+	if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+	return 'light';
+}
+function applyTheme(next) {
+	document.documentElement.setAttribute('data-hx-theme', next);
+	document.body.setAttribute('data-hx-theme', next);
+}
+/* Apply immediately on script load so first paint is correct. */
+applyTheme(resolveTheme());
+
 const TABS = [
 	{ id: 'connection',  label: 'Connection',  Component: Connection },
 	{ id: 'design',      label: 'Design',      Component: Design },
@@ -55,6 +77,36 @@ function App() {
 	const [pending, setPending] = useState({});
 	const [phase, setPhase] = useState('idle'); // idle | saving | saved | error
 	const [lastSaved, setLastSaved] = useState(null);
+
+	/* Theme state: seeded from the same resolver used at boot so React and
+	   the DOM never disagree. Toggle flips DOM attribute + persists + updates
+	   React state so any tab reading `theme` from context/prop stays in sync. */
+	const [theme, setTheme] = useState(() => (
+		document.documentElement.getAttribute('data-hx-theme') || resolveTheme()
+	));
+	const toggleTheme = useCallback(() => {
+		const next = theme === 'dark' ? 'light' : 'dark';
+		applyTheme(next);
+		try { window.localStorage.setItem(THEME_KEY, next); } catch (e) { /* privacy mode */ }
+		setTheme(next);
+	}, [theme]);
+	/* Follow system changes only when the user has not made an explicit choice. */
+	useEffect(() => {
+		if (!window.matchMedia) return;
+		const mq = window.matchMedia('(prefers-color-scheme: dark)');
+		const onChange = (e) => {
+			let saved = null;
+			try { saved = window.localStorage.getItem(THEME_KEY); } catch (err) { /* privacy mode */ }
+			if (saved === 'light' || saved === 'dark') return;
+			const next = e.matches ? 'dark' : 'light';
+			applyTheme(next);
+			setTheme(next);
+		};
+		mq.addEventListener ? mq.addEventListener('change', onChange) : mq.addListener(onChange);
+		return () => {
+			mq.removeEventListener ? mq.removeEventListener('change', onChange) : mq.removeListener(onChange);
+		};
+	}, []);
 	const setupUrl = boot.setupUrl || 'admin.php?page=hatch-setup';
 	const openWizard = () => { window.location.href = setupUrl; };
 
@@ -143,7 +195,25 @@ function App() {
 					>
 						v{boot.version || ''}
 					</span>
-					{/* v0.7.2 — GitHub / Docs pills removed. Plugin ships self-contained. */}
+					{/* Dark mode toggle. Icon swaps based on current theme. */}
+					<button
+						type="button"
+						className="hx-theme-toggle"
+						onClick={toggleTheme}
+						aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+						title={theme === 'dark' ? 'Light theme' : 'Dark theme'}
+					>
+						{theme === 'dark' ? (
+							<HxIcon size={14} sw={2}>
+								<circle cx="12" cy="12" r="4" />
+								<path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+							</HxIcon>
+						) : (
+							<HxIcon size={14} sw={2}>
+								<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+							</HxIcon>
+						)}
+					</button>
 				</div>
 			</div>
 

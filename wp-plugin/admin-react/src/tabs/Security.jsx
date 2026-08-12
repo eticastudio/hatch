@@ -234,7 +234,7 @@ export default function Security({ state, onDirty, setSetting }) {
 						Advanced (per-feature toggles)
 					</button>
 					{advancedOpen && (
-						<div id="hatch-fortress-advanced" style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 8 }}>
+						<div id="hatch-fortress-advanced" className="hx-grid-stack hx-gap-2" style={{ marginTop: 12 }}>
 							{FORTRESS_CHIPS.map((chip) => (
 								<label
 									key={chip.key}
@@ -275,7 +275,7 @@ export default function Security({ state, onDirty, setSetting }) {
 							display: 'grid',
 							placeItems: 'center',
 							background: 'color-mix(in oklab, #2563eb 12%, var(--hx-surface-2, var(--hx-surface)))',
-							color: '#2563eb',
+							color: 'var(--hx-info)',
 							boxShadow: 'inset 0 0 0 1px var(--hx-border)',
 						}}
 					>
@@ -328,7 +328,7 @@ export default function Security({ state, onDirty, setSetting }) {
 					title="Hide wp-login.php"
 					desc="Move the login form to a secret slug. Bots scanning /wp-login.php hit 404 — they can't attempt passwords against a form they can't find."
 				/>
-				<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+				<div className="hx-grid-cols-2" style={{ gap: 14 }}>
 					<div>
 						<div className="hx-help" style={{ fontWeight: 600, color: 'var(--hx-muted)', marginBottom: 6 }}>Login slug</div>
 						<input
@@ -422,7 +422,7 @@ export default function Security({ state, onDirty, setSetting }) {
 					title="Brute-force lockout"
 					desc="Blocks an IP after N failed logins in the window. Defaults (5 in 60 min) catch bots without bothering humans."
 				/>
-				<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+				<div className="hx-grid-cols-2" style={{ gap: 14 }}>
 					<div>
 						<div className="hx-help" style={{ fontWeight: 600, color: 'var(--hx-muted)', marginBottom: 6 }}>Failed attempts before lockout</div>
 						<input
@@ -561,7 +561,7 @@ export default function Security({ state, onDirty, setSetting }) {
 						style={{
 							background: '#18181b', borderRadius: 10, padding: '12px 14px',
 							fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace',
-							fontSize: 12, color: '#fafafa', marginBottom: 14,
+							fontSize: 12, color: 'var(--hx-bg)', marginBottom: 14,
 							wordBreak: 'break-all',
 						}}
 					>

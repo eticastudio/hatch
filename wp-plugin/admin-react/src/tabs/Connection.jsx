@@ -31,9 +31,9 @@ const ICON = {
 };
 
 const HEART = {
-	good: { color: '#16a34a', badge: 'green',   label: 'Healthy' },
-	warn: { color: '#d97706', badge: 'yellow',  label: 'Slow'    },
-	bad:  { color: '#b91c1c', badge: 'red',     label: 'Down'    },
+	good: { color: 'var(--hx-success)', badge: 'green',   label: 'Healthy' },
+	warn: { color: 'var(--hx-warning)', badge: 'yellow',  label: 'Slow'    },
+	bad:  { color: 'var(--hx-danger)', badge: 'red',     label: 'Down'    },
 	muted:{ color: 'var(--hx-subtle)', badge: 'neutral', label: 'Pending' },
 };
 
@@ -79,7 +79,7 @@ export default function Connection({ state, onSetup }) {
 			<HxCard>
 				<HxHead
 					iconChildren={isLive ? ICON.link : ICON.offline}
-					iconColor={isLive ? '#16a34a' : 'var(--hx-muted)'}
+					iconColor={isLive ? 'var(--hx-success)' : 'var(--hx-muted)'}
 					title={isLive ? 'Frontline is live' : 'Not connected yet'}
 					desc={
 						isLive
@@ -138,7 +138,7 @@ export default function Connection({ state, onSetup }) {
 					<div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
 						<HxHead
 							iconChildren={<><path d="M3 9h18M9 21V9M3 3h18v18H3z" /></>}
-							iconColor={companion.active ? '#16a34a' : (companion.installed ? '#d97706' : 'var(--hx-muted)')}
+							iconColor={companion.active ? 'var(--hx-success)' : (companion.installed ? 'var(--hx-warning)' : 'var(--hx-muted)')}
 							title="Companion theme"
 							desc={
 								companion.active
@@ -179,7 +179,7 @@ export default function Connection({ state, onSetup }) {
 						<div style={{ flex: 1 }}>
 							<HxHead
 								iconChildren={ICON.alert}
-								iconColor={allGood ? '#16a34a' : '#d97706'}
+								iconColor={allGood ? 'var(--hx-success)' : 'var(--hx-warning)'}
 								title="Preflight diagnostic"
 								desc={
 									allGood
@@ -292,7 +292,7 @@ function PhaseGlyph({ phase, idleIcon }) {
 
 function CheckRow({ check: c, last }) {
 	const state = c.ok ? 'ok' : c.warn ? 'warn' : 'fail';
-	const fg    = state === 'ok' ? '#16a34a' : state === 'warn' ? '#d97706' : '#b91c1c';
+	const fg    = state === 'ok' ? 'var(--hx-success)' : state === 'warn' ? 'var(--hx-warning)' : 'var(--hx-danger)';
 	const icon  = state === 'ok' ? ICON.check : state === 'warn' ? ICON.alert : ICON.x;
 	return (
 		<div

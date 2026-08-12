@@ -40,7 +40,7 @@ function useWooProbe(enabled) {
  */
 
 function StatusDot({ state }) {
-	const fill = state === 'active' ? 'var(--hx-success)' : state === 'installed' ? '#2563eb' : 'transparent';
+	const fill = state === 'active' ? 'var(--hx-success)' : state === 'installed' ? 'var(--hx-info)' : 'transparent';
 	const stroke = state === 'off' ? 'var(--hx-border)' : fill;
 	return (
 		<svg width="9" height="9" viewBox="0 0 10 10" style={{ flexShrink: 0 }}>
@@ -499,7 +499,7 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 								Live probe
 							</div>
 							{probe.loading && <div>Fetching from <code>/hatch/v1/store/products?per_page=1</code>…</div>}
-							{probe.err && <div style={{ color: '#b91c1c' }}>Probe failed: {probe.err}</div>}
+							{probe.err && <div style={{ color: 'var(--hx-danger)' }}>Probe failed: {probe.err}</div>}
 							{probe.total !== null && !probe.loading && (
 								<>
 									<div>
@@ -514,7 +514,7 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 													href={`${frontendUrl.replace(/\/$/, '')}/product/${probe.sample.slug}`}
 													target="_blank"
 													rel="noopener noreferrer"
-													style={{ color: '#2563eb', fontWeight: 500 }}
+													style={{ color: 'var(--hx-info)', fontWeight: 500 }}
 												>
 													View on frontend ↗
 												</a>
