@@ -64,7 +64,14 @@ const CATS = [
 		label: 'SEO',
 		icon: '🔍',
 		outcome: 'Meta tags, schema, sitemap, and canonical URLs flow to Astro from your SEO plugin.',
-		exposes: ['Meta tags', 'Schema.org', 'Sitemap', 'Canonical URLs', 'llms.txt (RankReady)'],
+		exposes: [
+			'/hatch/v1/seo-head?url={url}',
+			'/hatch/v1/seo-meta',
+			'/hatch/v1/schema?post_id={id}',
+			'/hatch/v1/menus/{location}',
+			'/llms.txt (RankReady)',
+			'/.well-known/mcp.json (RankReady)',
+		],
 		fieldFromFeatures: (ig) => ig?.seo?.detected?.slug || (ig?.rankready?.active ? 'rankready' : null),
 		plugins: [
 			{ slug: 'rankmath',      label: 'Rank Math',      priority: 1, ships: 'Meta, schema, sitemap, breadcrumbs, redirects (Pro).' },
@@ -78,8 +85,13 @@ const CATS = [
 		id: 'forms',
 		label: 'Forms',
 		icon: '📝',
-		outcome: 'Astro submits form entries to WordPress via the plugin\'s REST endpoint.',
-		exposes: ['Form list', 'Field schema', 'Submission POST', 'Conditional logic'],
+		outcome: 'Astro renders native <HatchForm> from schema; POSTs back through WordPress. Zero plugin CSS or JS ships.',
+		exposes: [
+			'/hatch/v1/forms',
+			'/hatch/v1/forms/{provider}/{id}',
+			'/hatch/v1/forms/{provider}/{id}/submit',
+			'shortcode auto-rewrite ([fluentform] etc)',
+		],
 		fieldFromFeatures: (ig) => ig?.forms?.detected?.slug,
 		plugins: [
 			{ slug: 'wpforms_pro',   label: 'WPForms Pro',    priority: 1, ships: 'Full REST, conditional logic, payments.' },
@@ -94,7 +106,12 @@ const CATS = [
 		label: 'Redirects',
 		icon: '↪',
 		outcome: 'Astro enforces 301/302 rules at the edge, pulled from the plugin.',
-		exposes: ['/hatch/v1/redirects', '301 rules', '302 rules', 'Regex matching'],
+		exposes: [
+			'/hatch/v1/redirects',
+			'301 / 302 rule list',
+			'regex source patterns',
+			'enforced by Astro middleware.ts',
+		],
 		fieldFromFeatures: (ig) => ig?.redirects,
 		plugins: [
 			{ slug: 'redirection',    label: 'Redirection',                 priority: 1, ships: 'Free — unlimited 301/302 rules with logs.' },
@@ -132,8 +149,13 @@ const CATS = [
 		id: 'smtp',
 		label: 'Email delivery (SMTP)',
 		icon: '✉',
-		outcome: 'Astro forms, comments, Woo orders, and password resets get delivered via real SMTP.',
-		exposes: ['wp_mail() transport', 'Delivery log', 'Failure retry', 'Test-send'],
+		outcome: 'Server-side only. Astro form submissions trigger wp_mail() through your SMTP transport. No REST needed on the frontend.',
+		exposes: [
+			'wp_mail() transport (server-side)',
+			'delivery log (admin only)',
+			'failure retry (admin only)',
+			'no frontend REST by design',
+		],
 		fieldFromFeatures: (ig) => ig?.smtp?.detected?.slug || ig?.smtp,
 		plugins: [
 			{ slug: 'fluent_smtp',  label: 'FluentSMTP',   priority: 1, ships: 'Free. Ties into Gmail, SES, Postmark, SendGrid, Brevo, generic SMTP. Log + retry.' },
@@ -146,8 +168,13 @@ const CATS = [
 		id: 'custom_fields',
 		label: 'Custom Fields',
 		icon: '🔧',
-		outcome: 'Custom field groups show up in /wp/v2/ when "Show in REST" is checked on the group.',
-		exposes: ['Field groups', 'Repeaters', 'Flexible content', '/wp/v2/{post}.acf'],
+		outcome: 'Custom field values ride on WP core REST when the group has Show-in-REST enabled. Astro reads them at page render.',
+		exposes: [
+			'/wp/v2/{post_type}?acf_format=standard',
+			'/wp/v2/{post_type}/{id} (fields on .acf)',
+			'/hatch/v1/acf-status (admin diagnostic)',
+			'repeaters + flexible content supported',
+		],
 		fieldFromFeatures: (ig) => ig?.custom_fields,
 		plugins: [
 			{ slug: 'acf_pro',   label: 'ACF Pro',              priority: 1, ships: 'All field types + repeaters + flexible content.' },
@@ -161,8 +188,13 @@ const CATS = [
 		id: 'cpt_manager',
 		label: 'Custom Post Types',
 		icon: '📄',
-		outcome: 'Registered CPTs auto-picked up by Astro via /wp/v2/{slug} — no extra config.',
-		exposes: ['CPT registration', 'Taxonomies', '/wp/v2/{cpt}'],
+		outcome: 'Registered CPTs auto-picked up by Astro via WP core REST plus Hatch content router. Zero extra config.',
+		exposes: [
+			'/wp/v2/{cpt}',
+			'/hatch/v1/content?slug={slug} (universal resolver)',
+			'/hatch/v1/content/list?post_type={cpt}',
+			'/hatch/v1/cpt-health (admin diagnostic)',
+		],
 		fieldFromFeatures: (ig) => ig?.cpt_manager,
 		plugins: [
 			{ slug: 'cpt_ui',     label: 'Custom Post Type UI', priority: 1, ships: 'Simple CPT + taxonomy registration.' },
