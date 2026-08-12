@@ -502,3 +502,80 @@
 	font-size: 11.5px;
 	color: var(--hatch-fg-subtle);
 }
+
+/* ═════════════════════════════════════════════════════════════════
+   TECH THEME SIGNATURES: terminal density.
+   Mono numerals everywhere (SKU/qty/price), thin borders, sharp
+   corners, monospace labels. Zero plugin CSS ships.
+   ═════════════════════════════════════════════════════════════════ */
+[data-hatch-theme="tech"] .hatch-product-card {
+	background: var(--color-hatch-bg);
+	border: 1px solid var(--color-hatch-border);
+	border-radius: 6px;
+	box-shadow: none;
+}
+[data-hatch-theme="tech"] .hatch-product-card:hover {
+	border-color: var(--color-hatch-primary);
+	transform: none;
+	box-shadow: 0 0 0 2px var(--color-hatch-primary);
+}
+[data-hatch-theme="tech"] .hatch-product-card__title {
+	font-family: var(--hatch-font-body);
+	font-weight: 700;
+	font-size: 0.95rem;
+	letter-spacing: -0.005em;
+}
+[data-hatch-theme="tech"] .hatch-product-card__price,
+[data-hatch-theme="tech"] .hatch-product-card__was,
+[data-hatch-theme="tech"] .hatch-product-card__now,
+[data-hatch-theme="tech"] .hatch-cart-line__total,
+[data-hatch-theme="tech"] .hatch-cart-line__unit,
+[data-hatch-theme="tech"] .hatch-cart__total strong,
+[data-hatch-theme="tech"] .hatch-cart-line__qty-input {
+	font-family: var(--hatch-font-mono);
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.01em;
+}
+[data-hatch-theme="tech"] .hatch-form__input,
+[data-hatch-theme="tech"] .hatch-form__textarea {
+	background: var(--color-hatch-bg);
+	border: 1px solid var(--color-hatch-border);
+	border-radius: 4px;
+	padding: 0.6rem 0.8rem;
+	font-family: var(--hatch-font-mono);
+	font-size: 0.9rem;
+}
+[data-hatch-theme="tech"] .hatch-form__input:focus,
+[data-hatch-theme="tech"] .hatch-form__textarea:focus {
+	border-color: var(--color-hatch-primary);
+	box-shadow: 0 0 0 1px var(--color-hatch-primary);
+	outline: none;
+}
+[data-hatch-theme="tech"] .hatch-form__label {
+	font-family: var(--hatch-font-mono);
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--color-hatch-muted);
+}
+[data-hatch-theme="tech"] .hatch-newsletter {
+	padding: 2rem;
+	border: 1px dashed var(--color-hatch-border);
+	background: var(--color-hatch-bg);
+	margin: 3rem 0;
+}
+[data-hatch-theme="tech"] .hatch-newsletter__title {
+	font-family: var(--hatch-font-mono);
+	font-size: 1.1rem;
+	color: var(--color-hatch-primary);
+}
+[data-hatch-theme="tech"] .hatch-newsletter__title::before { content: "$ "; opacity: 0.5; }
+[data-hatch-theme="tech"] .hatch-shop__chip {
+	font-family: var(--hatch-font-mono);
+	font-size: 0.8rem;
+	text-transform: lowercase;
+	border-radius: 4px;
+}
+[data-hatch-theme="tech"] .hatch-cart-line {
+	border-bottom: 1px dashed var(--color-hatch-border);
+}
