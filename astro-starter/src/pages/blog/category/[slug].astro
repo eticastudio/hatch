@@ -1,8 +1,18 @@
 ---
+/**
+ * /blog/category/[slug]. Category archive.
+ *
+ * Resolves the term via a dedicated /wp/v2/categories?slug=X call (public
+ * even under Hatch Fortress). Uncategorized (id=1) is guaranteed on every
+ * WP install; the resolver falls back to that if WP filters zero-count
+ * terms out of the lookup response so /blog/category/uncategorized never
+ * 404s on a fresh site.
+ */
 import PageLayout from '@/layouts/PageLayout.astro';
 import PostCard from '@/components/PostCard.astro';
-import { getCategories, getPosts } from '@/lib/hatch';
+import { getPosts } from '@/lib/hatch';
 import { getFeatures } from '@/lib/features';
+import { resolveCategoryBySlug } from '@/lib/posts';
 
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect('/blog');
@@ -10,11 +20,13 @@ if (!slug) return Astro.redirect('/blog');
 const url = new URL(Astro.request.url);
 const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
 
-const categories = await getCategories();
-const cat = categories.find((c) => c.slug === slug);
-if (!cat) { Astro.response.status = 404; return Astro.rewrite('/404'); }
+const cat = await resolveCategoryBySlug(slug);
+if (!cat) {
+  Astro.response.status = 404;
+  return Astro.rewrite('/404');
+}
 
-const { posts, total, hasMore } = await getPosts({ page, perPage: 12, category: cat.id });
+const { posts, total, hasMore } = await getPosts({ page, perPage: 24, category: cat.id });
 
 const features = await getFeatures();
 const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
@@ -22,7 +34,7 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
 
 <PageLayout
   title={`${cat.name} · Blog`}
-  description={`All posts in ${cat.name}.`}
+  description={cat.description || `All posts in ${cat.name}.`}
   canonical={`${SITE}/blog/category/${cat.slug}`}
 >
   <main class="mx-auto px-5 sm:px-8 py-12 sm:py-16" style="max-width: var(--hatch-max-width, 1160px)">
@@ -40,13 +52,19 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
     <header class="mb-10 pb-8 border-b border-hatch-border">
       <p class="text-[11px] uppercase tracking-wider font-medium text-hatch-primary mb-3">Category</p>
       <h1 class="text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.05]">{cat.name}</h1>
-      <p class="mt-3 text-[14.5px] text-hatch-fg-muted">
+      {cat.description && (
+        <p class="mt-3 text-[15px] text-hatch-fg-muted leading-relaxed max-w-2xl">{cat.description}</p>
+      )}
+      <p class="mt-3 text-[13px] text-hatch-fg-subtle">
         {total} {total === 1 ? 'post' : 'posts'} in this category
       </p>
     </header>
 
     {posts.length === 0 ? (
-      <p class="text-center text-hatch-fg-muted py-24">No posts in this category yet.</p>
+      <div class="text-center py-24">
+        <p class="text-hatch-fg-muted mb-4">No posts in this category yet.</p>
+        <a href="/blog" class="text-[14px] font-medium text-hatch-primary hover:underline">Back to blog</a>
+      </div>
     ) : (
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-7 gap-y-12">
         {posts.map((post) => <PostCard post={post} />)}
@@ -56,7 +74,7 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
     {hasMore && (
       <div class="flex justify-center mt-14">
         <a href={`/blog/category/${cat.slug}?page=${page + 1}`} class="px-6 py-2.5 rounded-md text-[13.5px] font-medium border border-hatch-border hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors">
-          Load more →
+          Load more
         </a>
       </div>
     )}
