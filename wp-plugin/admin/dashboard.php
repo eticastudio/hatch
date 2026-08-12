@@ -40,6 +40,10 @@ add_action( 'admin_notices',         'hatch_plain_permalinks_warning' );
 add_action( 'admin_notices',         'hatch_permalinks_auto_set_notice' );
 add_action( 'network_admin_notices', 'hatch_network_activate_blocked_notice' );
 add_action( 'admin_notices',         'hatch_multisite_subsite_tip' );
+// #173. Surface the fortress login bookmark whenever fortress mode (or the
+// per-key "hide login" toggle) is ON. Without this banner an admin who
+// clears cookies is locked out with a 404 and no way in.
+add_action( 'admin_notices',         'hatch_fortress_login_bookmark_notice' );
 // v0.50.1. daily cron prunes Hatch Application Passwords older than retention window.
 add_action( 'hatch_prune_app_pwds_cron', 'hatch_prune_app_pwds' );
 add_action( 'init', function() {
@@ -1900,6 +1904,37 @@ function hatch_multisite_subsite_tip(): void {
 	echo '<div class="notice notice-info is-dismissible"><p><strong>Hatch (multisite):</strong> ';
 	esc_html_e( 'You\'re configuring Hatch on subsite ID ' . get_current_blog_id() . '. Settings, the deploy token, and the frontend URL are all subsite-scoped. the other subsites in this network are unaffected.', 'hatch' );
 	echo '</p></div>';
+}
+
+/**
+ * #173. Persistent admin notice that surfaces the fortress login bookmark.
+ * When fortress mode (or the "hide login" sub-toggle) is ON, /wp-login.php
+ * and /wp-admin/* return 404 for anyone without the ?hatch_key=<key>.
+ * A logged-in admin who clears cookies loses the way back in unless the
+ * bookmark is saved somewhere. This notice keeps it in front of the admin
+ * on every screen while fortress is active. Bookmark it, then dismiss.
+ *
+ * Notice renders on ALL admin screens (not gated to Hatch pages) so it is
+ * visible before someone opens the Hatch dashboard for the first time.
+ */
+function hatch_fortress_login_bookmark_notice(): void {
+	if ( ! current_user_can( 'manage_options' ) ) return;
+	if ( ! class_exists( 'Hatch_Hardening' ) ) return;
+
+	$mode = (bool) get_option( 'hatch_fortress_mode', false );
+	$hide = (bool) get_option( 'hatch_fortress_hide_login', false );
+	if ( ! $mode && ! $hide ) return;
+
+	$key = Hatch_Hardening::get_login_key();
+	if ( '' === $key ) return;
+
+	$url = add_query_arg( 'hatch_key', $key, wp_login_url() );
+
+	echo '<div class="notice notice-warning"><p><strong>Hatch fortress mode is ON.</strong> ';
+	esc_html_e( 'Your /wp-login.php and /wp-admin/ URLs return 404 without the login key. Save this bookmark now, otherwise clearing cookies will lock you out:', 'hatch' );
+	echo '</p><p><code style="user-select:all;display:inline-block;padding:6px 10px;background:#f6f7f7;border:1px solid #c3c4c7;border-radius:3px;">';
+	echo esc_html( $url );
+	echo '</code></p></div>';
 }
 
 /**
