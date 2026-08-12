@@ -340,11 +340,13 @@ function hatch_cors_headers(): void {
 			foreach ( $allowed as $a ) {
 				if ( $origin === $a ) { $is_allowed = true; break; }
 			}
-			// Open allowlist for worker.dev and vercel.app subdomains so a fresh
-			// deploy works before the frontend URL option is auto-set.
-			if ( ! $is_allowed && preg_match( '#^https?://[^/]+\.(workers\.dev|vercel\.app)$#i', $origin ) ) {
-				$is_allowed = true;
-			}
+			// Backlog #159 — tenant wildcard for workers.dev / vercel.app
+			// removed. Any Cloudflare Workers or Vercel preview URL would
+			// have matched, which meant an attacker could deploy a hostile
+			// worker on those platforms and receive CORS approval from any
+			// Hatch site that had never set hatch_frontend_url. Post-deploy
+			// the wizard writes hatch_frontend_url explicitly; the explicit
+			// allowlist above is now the only accepted path.
 		}
 
 		if ( $is_allowed ) {
@@ -374,6 +376,29 @@ function hatch_on_activation(): void {
 	if ( $frontend && '' === $current ) {
 		update_option( 'hatch_image_proxy_url', untrailingslashit( $frontend ) );
 	}
+	// Backlog #156 — flag libsodium absence so SSH-fallback path won't
+	// silently degrade to plaintext credential storage. The notice below
+	// surfaces the requirement to any admin visiting the dashboard.
+	if ( ! function_exists( 'sodium_crypto_secretbox' ) ) {
+		set_transient( 'hatch_activation_no_sodium', 1, DAY_IN_SECONDS );
+	} else {
+		delete_transient( 'hatch_activation_no_sodium' );
+	}
+}
+
+// Backlog #156 — persistent admin notice when libsodium is missing. The SSH
+// fallback path refuses to store credentials without it; the wizard also
+// needs to know before it collects a password.
+add_action( 'admin_notices', 'hatch_notice_missing_sodium' );
+function hatch_notice_missing_sodium(): void {
+	if ( ! current_user_can( 'manage_options' ) ) return;
+	if ( function_exists( 'sodium_crypto_secretbox' ) ) return;
+	if ( ! get_transient( 'hatch_activation_no_sodium' ) ) return;
+	echo '<div class="notice notice-error"><p><strong>' .
+		esc_html__( 'Hatch: PHP libsodium extension is missing.', 'hatch' ) .
+		'</strong> ' .
+		esc_html__( 'The SSH connector will refuse to store credentials without it (no plaintext fallback). Enable the PHP sodium extension, or prefer the Hatch Agent installer.', 'hatch' ) .
+		'</p></div>';
 }
 
 // Module loader — reads feature flags from DB and conditionally includes classes.

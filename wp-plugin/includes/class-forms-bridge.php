@@ -331,12 +331,12 @@ class Hatch_Forms_Bridge {
 			return new WP_Error( 'hatch_form_not_found', 'Form not found', array( 'status' => 404 ) );
 		}
 
-		// Preferred: replay Fluent's full submission pipeline via its own AJAX
-		// handler. Populate $_POST/$_REQUEST with the shape Fluent expects,
-		// then invoke handleSubmission() which runs validators + honeypot +
-		// spam + notifications + confirmations. If FormHandler is not present
-		// (older Fluent), fall back to direct insert with the plugin's
-		// `submission_inserted` action (validation lost, but data captured).
+		// Replay Fluent's full submission pipeline via its own SubmissionService.
+		// Populate $_POST/$_REQUEST with the shape Fluent expects, then call
+		// submit() so validators + honeypot + spam + notifications +
+		// confirmations all run. Backlog #158 — if the service is missing
+		// or throws, we return 503 rather than fall back to a raw insert:
+		// bypassing validation to save data was the security regression.
 		if ( class_exists( '\FluentForm\App\Services\Submission\SubmissionService' ) ) {
 			try {
 				$_POST['data']    = http_build_query( $fields );
@@ -350,40 +350,27 @@ class Hatch_Forms_Bridge {
 					'entry'   => isset( $result['insert_id'] ) ? (int) $result['insert_id'] : 0,
 				), 200 );
 			} catch ( \Throwable $e ) {
-				// Fall through to direct-insert path.
+				// Backlog #158 — SubmissionService threw; we intentionally
+				// DO NOT fall back to a raw wpdb insert. That path bypassed
+				// Fluent's validators, honeypot, spam guard, notification
+				// pipeline, and file-upload safety. Losing "data survives"
+				// is preferable to persisting an unvalidated payload.
+				return new WP_Error(
+					'hatch_fluent_service_failed',
+					'Fluent SubmissionService failed: ' . $e->getMessage(),
+					array( 'status' => 503 )
+				);
 			}
 		}
 
-		// Fallback: direct insert; validation semantics lost but data survives.
-		global $wpdb;
-		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-		if ( ! $ip && ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-			$ip = trim( explode( ',', sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) )[0] );
-		}
-		$row = array(
-			'form_id'        => $id,
-			'serial_number'  => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(serial_number),0)+1 FROM ' . $wpdb->prefix . 'fluentform_submissions WHERE form_id = %d', $id ) ),
-			'response'       => wp_json_encode( $fields ),
-			'source_url'     => isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : '',
-			'user_id'        => get_current_user_id() ?: null,
-			'ip'             => $ip,
-			'browser'        => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
-			'device'         => 'unknown',
-			'status'         => 'unread',
-			'created_at'     => current_time( 'mysql' ),
-			'updated_at'     => current_time( 'mysql' ),
+		// Backlog #158 — SubmissionService class missing entirely (older
+		// Fluent build or plugin partially loaded). Refuse the write; the
+		// operator must upgrade Fluent so validation runs. No direct insert.
+		return new WP_Error(
+			'hatch_fluent_service_missing',
+			'Fluent Forms SubmissionService is unavailable on this site; refusing to bypass validation. Update Fluent Forms.',
+			array( 'status' => 503 )
 		);
-		$inserted = $wpdb->insert( $wpdb->prefix . 'fluentform_submissions', $row );
-		if ( false === $inserted ) {
-			return new WP_Error( 'hatch_fluent_insert', 'Failed to save submission', array( 'status' => 500, 'db' => $wpdb->last_error ) );
-		}
-		$insert_id = (int) $wpdb->insert_id;
-		do_action( 'fluentform/submission_inserted', $insert_id, $fields, (array) $form );
-		return new WP_REST_Response( array(
-			'ok'      => true,
-			'message' => 'Thanks for submitting.',
-			'entry'   => $insert_id,
-		), 200 );
 	}
 
 	private static function submit_gravity( int $id, array $fields ) {
