@@ -83,12 +83,19 @@ const money = (v: string) => {
 const billing = checkout?.billing_address || {};
 const shipping = checkout?.shipping_address || {};
 
-// Available gateway ids from Woo Store API.
-const activeGatewayIds = new Set(
-  Array.isArray(checkout?.payment_methods)
-    ? checkout.payment_methods.map((p: any) => String(p?.id || ''))
-    : []
-);
+// Woo Store API exposes `payment_methods` on the CART resource
+// (/wp-json/wc/store/v1/cart) as an array of gateway id strings
+// (e.g. ["cod","stripe"]). The /checkout resource omits it. Read from
+// cart first, fall back to checkout in case a future WC release moves it.
+const rawGatewayList: any[] = Array.isArray(cart?.payment_methods)
+  ? cart.payment_methods
+  : Array.isArray(checkout?.payment_methods)
+    ? checkout.payment_methods
+    : [];
+const rawGatewayIds: string[] = rawGatewayList
+  .map((p: any) => (typeof p === 'string' ? p : String(p?.id || '')))
+  .filter((id: string) => id.length > 0);
+const activeGatewayIds = new Set(rawGatewayIds);
 
 // Client-side capability gates. Stripe/PayPal each require BOTH a
 // configured public key/client-id AND the gateway registered by WP.
@@ -96,10 +103,25 @@ const stripeEnabled = Boolean(PUBLIC_STRIPE_KEY) && activeGatewayIds.has('stripe
 const paypalEnabled = Boolean(PUBLIC_PAYPAL_CLIENT_ID) && activeGatewayIds.has('ppcp-gateway');
 
 type PM = { id: string; title: string; description?: string };
-const rawMethods: PM[] =
-  checkout?.payment_methods && Array.isArray(checkout.payment_methods)
-    ? checkout.payment_methods
-    : [{ id: 'cod', title: 'Cash on delivery', description: 'Pay in cash upon delivery.' }];
+
+// Titles + descriptions the Store API does not include. Falls back to a
+// prettified id when a gateway is unknown to Hatch.
+const gatewayMeta: Record<string, { title: string; description?: string }> = {
+  cod: { title: 'Cash on delivery', description: 'Pay in cash upon delivery.' },
+  stripe: { title: 'Credit / Debit card', description: 'Secure payment via Stripe.' },
+  'ppcp-gateway': { title: 'PayPal', description: 'Approve securely with your PayPal account.' },
+  bacs: { title: 'Direct bank transfer' },
+  cheque: { title: 'Check payments' },
+};
+const prettifyId = (id: string) =>
+  id.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+const sourceIds = rawGatewayIds.length > 0 ? rawGatewayIds : ['cod'];
+const rawMethods: PM[] = sourceIds.map((id) => ({
+  id,
+  title: gatewayMeta[id]?.title || prettifyId(id),
+  description: gatewayMeta[id]?.description,
+}));
 
 // Hide gateways whose client-side prerequisites aren't met (Stripe without
 // key, PayPal without client id). Woo still lists the gateway, but the UI
@@ -372,15 +394,39 @@ const paymentMethods: PM[] = rawMethods.filter((pm) => {
       };
     };
 
+    // Session credentials that the Store API accepts. SSR captured a Nonce
+    // and Cart-Token via server-side cookies, but the browser's own session
+    // (used for the ATC that added the current line items) can hold a fresher
+    // pair. refreshSession() re-reads them from the cart endpoint via the
+    // same-origin proxy, so the POST that follows uses the pair that actually
+    // matches the cart the browser sees.
+    let liveNonce = nonce;
+    let liveCartToken = cartToken;
+    const refreshSession = async () => {
+      try {
+        const r = await fetch('/api/wc-store/cart', {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        });
+        const n = r.headers.get('Nonce') || r.headers.get('nonce');
+        const t = r.headers.get('Cart-Token') || r.headers.get('cart-token');
+        if (n) liveNonce = n;
+        if (t) liveCartToken = t;
+      } catch (_) { /* keep SSR values */ }
+    };
+
     const postCheckout = async (body) => {
-      const res = await fetch('/wp-json/wc/store/v1/checkout', {
+      // Browser POST goes through Astro's same-origin proxy to avoid CORS.
+      // See src/pages/api/wc-store/[...path].ts.
+      await refreshSession();
+      const res = await fetch('/api/wc-store/checkout', {
         method: 'POST',
-        credentials: 'include',
+        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Nonce': nonce,
-          ...(cartToken ? { 'Cart-Token': cartToken } : {}),
+          ...(liveNonce ? { Nonce: liveNonce } : {}),
+          ...(liveCartToken ? { 'Cart-Token': liveCartToken } : {}),
         },
         body: JSON.stringify(body),
       });
@@ -509,7 +555,7 @@ const paymentMethods: PM[] = rawMethods.filter((pm) => {
             // payment_data. PayPal's own capture happens server-side after
             // Woo POSTs to the gateway; onApprove.orderID is the value the
             // ppcp-gateway plugin expects in payment_data.paypal_order_id.
-            return fetch('/wp-json/wc/store/v1/cart', {
+            return fetch('/api/wc-store/cart', {
               credentials: 'include',
               headers: { Accept: 'application/json' },
             }).then(function (r) { return r.json(); }).then(function (c) {
@@ -588,10 +634,20 @@ const paymentMethods: PM[] = rawMethods.filter((pm) => {
             submit.disabled = false;
             return;
           }
+          // WC Stripe (v9+, UPE class active even when the classic toggle
+          // is off) reads the Stripe PaymentMethod id from
+          // $_POST['wc-stripe-payment-method']. The Store API turns each
+          // { key, value } into a $_POST entry for the legacy gateway. See
+          // WC_Stripe_UPE_Payment_Gateway::prepare_payment_information_from_request().
+          //
+          // Do NOT include `payment_method` here. Woo already sets that from
+          // the top-level `payment_method: "stripe"` field. Overwriting it
+          // with a pm_xxx breaks get_selected_payment_method_type_from_request
+          // which requires the value to start with "stripe" and returns
+          // "The selected payment method type is invalid." otherwise.
           const body = buildBody('stripe', [
-            { key: 'stripe_source', value: String(pm.paymentMethod.id) },
-            { key: 'payment_method', value: String(pm.paymentMethod.id) },
-            { key: 'wc-stripe-payment-token', value: 'new' },
+            { key: 'wc-stripe-payment-method', value: String(pm.paymentMethod.id) },
+            { key: 'wc-stripe-is-deferred-intent', value: '1' },
           ]);
           finish(await postCheckout(body));
         } catch (err) {
