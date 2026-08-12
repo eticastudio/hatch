@@ -42,7 +42,20 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   try { body = JSON.parse(text); } catch { return json({ message: 'Unexpected response.' }, 502); }
 
   const headers = new Headers({ 'Content-Type': 'application/json' });
-  const setCookie = upstream.headers.get('set-cookie');
-  if (setCookie) headers.append('set-cookie', setCookie);
+  // Register auto-logs in via the same success_response path in class-auth.php,
+  // which now emits hatch_jwt + wordpress_logged_in_* + wp-settings-* Set-Cookie
+  // headers. Forward each entry separately and strip Domain= so they attach to
+  // the Astro origin instead of the internal WP hostname.
+  const setCookies: string[] = typeof (upstream.headers as any).getSetCookie === 'function'
+    ? (upstream.headers as any).getSetCookie()
+    : [];
+  if (setCookies.length === 0) {
+    upstream.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') setCookies.push(value);
+    });
+  }
+  for (const raw of setCookies) {
+    headers.append('set-cookie', raw.replace(/;\s*Domain=[^;]+/i, ''));
+  }
   return new Response(JSON.stringify(body), { status: upstream.status, headers });
 };

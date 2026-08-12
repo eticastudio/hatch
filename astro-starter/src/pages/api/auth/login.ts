@@ -52,7 +52,33 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   try { body = JSON.parse(text); } catch { return json({ message: 'Unexpected response.' }, 502); }
 
   const headers = new Headers({ 'Content-Type': 'application/json' });
-  const setCookie = upstream.headers.get('set-cookie');
-  if (setCookie) headers.append('set-cookie', setCookie);
+
+  // WP writes multiple Set-Cookie entries on login: hatch_jwt +
+  // wordpress_logged_in_* + wp-settings-* + wp-settings-time-*. Each must
+  // ride back to the browser as its own header. undici merges them under
+  // .get(), so use .getSetCookie() when present (Node 20+/undici) and fall
+  // back to iterating .headers otherwise.
+  //
+  // Domain= is stripped so cookies bind to the Astro origin, not the WP
+  // internal hostname. In a reverse-proxy deploy the two share an origin
+  // and this rewrite is a no-op; in split-origin dev (Astro localhost:4321
+  // + WP localhost:8810) the browser would otherwise reject them.
+  //
+  // For split-origin dev to actually attach these cookies on subsequent
+  // requests, front WP behind the Astro origin via a reverse proxy so the
+  // browser sees one host. Otherwise the wordpress_logged_in_* cookie is
+  // set on the Astro origin and never sent back to WP.
+  const setCookies: string[] = typeof (upstream.headers as any).getSetCookie === 'function'
+    ? (upstream.headers as any).getSetCookie()
+    : [];
+  if (setCookies.length === 0) {
+    upstream.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') setCookies.push(value);
+    });
+  }
+  for (const raw of setCookies) {
+    const stripped = raw.replace(/;\s*Domain=[^;]+/i, '');
+    headers.append('set-cookie', stripped);
+  }
   return new Response(JSON.stringify(body), { status: upstream.status, headers });
 };
