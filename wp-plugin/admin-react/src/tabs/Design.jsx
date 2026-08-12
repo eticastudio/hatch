@@ -1,5 +1,5 @@
 import { useState } from '@wordpress/element';
-import { HxIcon, HxToggle, HxCard, HxHead, HxRow, HxGL, HxInp, Chip, HxMediaInput } from '../components.jsx';
+import { HxIcon, HxToggle, HxCard, HxHead, HxRow, HxGL, HxInp, Chip, HxBadge, HxMediaInput } from '../components.jsx';
 import { TP } from '../theme-previews.jsx';
 import { FontSelect } from '../fonts.jsx';
 
@@ -16,30 +16,17 @@ export default function Design({ state, onDirty, setSetting }) {
 		astrowind:  { previewKey: 'AstroWind',  col: 'var(--hx-info)' },
 		astronano:  { previewKey: 'Astro Nano', col: 'var(--hx-text-subtle)' },
 	};
-	const themes = [
-		...(state.themes || []).map((t) => ({
-			id:         t.id,
-			name:       t.label || t.id,
-			desc:       t.desc  || '',
-			demo:       t.demo  || '',
-			author:     t.author|| '',
-			repo:       t.repo  || '',
-			license:    t.license || '',
-			previewKey: themeMeta[t.id]?.previewKey || 'Blog',
-			col:        themeMeta[t.id]?.col || 'var(--hx-text-subtle)',
-		})),
-		{
-			id:         'custom',
-			name:       'Custom Theme',
-			desc:       'Fork a starter or drop in your own Astro theme. Point Hatch at its git repo, we handle the deploy.',
-			demo:       '',
-			author:     '',
-			repo:       '',
-			license:    'Coming soon',
-			previewKey: 'Blog',
-			col:        'var(--hx-text-subtle)',
-		},
-	];
+	const themes = (state.themes || []).map((t) => ({
+		id:         t.id,
+		name:       t.label || t.id,
+		desc:       t.desc  || '',
+		demo:       t.demo  || '',
+		author:     t.author|| '',
+		repo:       t.repo  || '',
+		license:    t.license || '',
+		previewKey: themeMeta[t.id]?.previewKey || 'Blog',
+		col:        themeMeta[t.id]?.col || 'var(--hx-text-subtle)',
+	}));
 
 	const theme = (state.design?.theme || 'astropaper').toLowerCase();
 	const brand = state.design?.brand || { primary: 'var(--hx-primary)', secondary: 'var(--hx-text)', accent: '#6366f1', background: 'var(--hx-bg)' };
@@ -205,7 +192,52 @@ export default function Design({ state, onDirty, setSetting }) {
 				</div>
 			</HxCard>
 
-			{/* v0.50.16 — Theme → GLOBAL → Structure ordering per user request.
+			{/* v0.50.26. "Bring your own theme" split out from the theme grid
+			    into a separate informational card so the 3 shipped themes stay
+			    the only selectable options. This card is not clickable. */}
+			<HxCard>
+				<div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+					<div style={{
+						flex: '0 0 44px',
+						width: 44,
+						height: 44,
+						borderRadius: 10,
+						background: 'var(--hx-surface-2)',
+						display: 'inline-flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						color: 'var(--hx-text-muted)',
+					}}>
+						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+							<path d="M8 3h5l6 6v12H8z" />
+							<path d="M13 3v6h6" />
+							<path d="M12 13v6" />
+							<path d="M9 16h6" />
+						</svg>
+					</div>
+					<div style={{ flex: '1 1 320px', minWidth: 0 }}>
+						<div className="hx-title" style={{ marginBottom: 4 }}>Bring your own theme</div>
+						<div className="hx-desc" style={{ color: 'var(--hx-text-muted)', marginBottom: 10 }}>
+							Fork a starter or point Hatch at your Astro repo. We handle the deploy.
+						</div>
+						<div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+							<HxBadge color="orange">Coming soon</HxBadge>
+							{/* Placeholder URL. Replace once the boilerplate repo is public. */}
+							<a
+								href="https://github.com/adityaarsharma/hatch-astro-boilerplate"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="hx-help"
+								style={{ color: 'var(--hx-text-muted)', textDecoration: 'none' }}
+							>
+								Boilerplate repo ↗
+							</a>
+						</div>
+					</div>
+				</div>
+			</HxCard>
+
+			{/* v0.50.16. Theme, GLOBAL, Structure ordering per user request.
 			    Brand colors + color mode + typography + layout merged into one
 			    "Global Typography, Colors & Systems" card, with a design.md
 			    upload row at the very top so users who already have a token

@@ -63,7 +63,11 @@ export default function Connection({ state, onSetup }) {
 
 	const url       = conn.frontendUrl || '';
 	const isLive    = !!url;
-	const hostLabel = conn.hostLabel || 'Self-hosted';
+	// v0.50.26. Hatch now ships one hosting story: Cloudflare Workers mounted
+	// at a /blog subfolder. Legacy option values ("Cloudflare Pages", "cloudflare-pages")
+	// are normalised to the new label so old installs update without a migration.
+	const rawHost = conn.hostLabel || 'Self-hosted';
+	const hostLabel = /cloud\s*flare/i.test(rawHost) ? 'Cloudflare Workers (subfolder)' : rawHost;
 	const heartRaw  = conn.heartbeat || {};
 	const heart     = HEART[heartRaw.healthClass] || HEART.muted;
 	const heartDesc = heartRaw.healthLabel || 'No heartbeat yet. First probe runs within 5 minutes.';
@@ -105,12 +109,14 @@ export default function Connection({ state, onSetup }) {
 							</span>
 						</HxRow>
 
-						<HxRow label="Host" desc="Where your Astro build runs. Change via the setup wizard." last>
+						<HxRow label="Host" desc="Where your Astro build runs.">
 							<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
 								<HxBadge color="neutral">{hostLabel}</HxBadge>
-								<HxBtn variant="ghost" onClick={onSetup}>Change</HxBtn>
+								<HxBtn variant="ghost" onClick={onSetup} title="Vercel / Netlify options coming later">Change</HxBtn>
 							</span>
 						</HxRow>
+						<HxRow label="" desc="Hatch runs your Astro build on Cloudflare Workers, mounted at your /blog subfolder. No DNS changes required." last />
+
 
 						<div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
 							<HxBtn href={url} target="_blank" rel="noopener noreferrer">
