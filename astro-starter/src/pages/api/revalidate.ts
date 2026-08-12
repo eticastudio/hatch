@@ -1,6 +1,22 @@
 import type { APIRoute } from 'astro';
+import { Buffer } from 'node:buffer';
+import { timingSafeEqual } from 'node:crypto';
 import { HATCH_WEBHOOK_SECRET } from 'astro:env/server';
 import { clearFeaturesCache } from '@/lib/features';
+
+/**
+ * Backlog #160 — constant-time secret compare. `===` on strings leaks length
+ * and byte-position via early-exit; a network attacker can walk the secret.
+ * timingSafeEqual requires equal-length buffers, so guard first.
+ */
+function secretsMatch(a: unknown, b: unknown): boolean {
+	if (typeof a !== 'string' || typeof b !== 'string') return false;
+	if (a.length === 0 || b.length === 0) return false;
+	const ab = Buffer.from(a, 'utf8');
+	const bb = Buffer.from(b, 'utf8');
+	if (ab.length !== bb.length) return false;
+	return timingSafeEqual(ab, bb);
+}
 
 /**
  * Revalidation endpoint hit by the Hatch WP plugin webhook on post events
@@ -23,7 +39,7 @@ const handle = async ({ request, url }: Parameters<APIRoute>[0]): Promise<Respon
   const secret = url.searchParams.get('secret') || request.headers.get('x-hatch-secret') || '';
   const expected = HATCH_WEBHOOK_SECRET;
 
-  if (!expected || secret !== expected) {
+  if (!expected || !secretsMatch(secret, expected)) {
     return new Response(JSON.stringify({ ok: false, error: 'Invalid secret' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },

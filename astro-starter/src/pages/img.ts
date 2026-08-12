@@ -13,6 +13,38 @@ import type { APIRoute } from 'astro';
  */
 const BACKEND = (import.meta.env.HATCH_IMG_BACKEND || 'https://hatch.adityaarsharma.com').replace(/\/$/, '');
 
+// Backlog #161 — SSRF allowlist. Without this the proxy will fetch any
+// attacker-controlled URL (169.254.169.254, internal admin dashboards, etc.)
+// on behalf of the frontend origin. Restrict to hosts we intentionally
+// serve images from: the configured WP backend, the site's own origin, and
+// an optional operator-supplied comma-separated list.
+function buildAllowedHosts(): Set<string> {
+  const hosts = new Set<string>();
+  const add = (raw?: string | null) => {
+    if (!raw) return;
+    try { hosts.add(new URL(raw).host.toLowerCase()); } catch { /* skip malformed */ }
+  };
+  add(import.meta.env.WP_API_URL);
+  add(import.meta.env.PUBLIC_SITE_URL);
+  const extras = (import.meta.env.PUBLIC_IMG_ALLOWED_HOSTS || '').split(',');
+  for (const h of extras) {
+    const t = h.trim();
+    if (!t) continue;
+    // Accept either a bare host or a full URL.
+    if (t.includes('://')) add(t); else hosts.add(t.toLowerCase());
+  }
+  return hosts;
+}
+const ALLOWED_HOSTS = buildAllowedHosts();
+
+function isAllowedSrc(raw: string): boolean {
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  const proto = u.protocol;
+  if (proto !== 'https:' && !(import.meta.env.DEV && proto === 'http:')) return false;
+  return ALLOWED_HOSTS.has(u.host.toLowerCase());
+}
+
 export const GET: APIRoute = async ({ request, url }) => {
   const src    = url.searchParams.get('url');
   const w      = url.searchParams.get('w');
@@ -22,6 +54,14 @@ export const GET: APIRoute = async ({ request, url }) => {
 
   if (!src) {
     return new Response(JSON.stringify({ error: 'url required' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Backlog #161 — reject non-allowlisted origins before touching backend.
+  if (!isAllowedSrc(src)) {
+    return new Response(JSON.stringify({ error: 'url host not allowed' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
