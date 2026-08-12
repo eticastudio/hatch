@@ -9,7 +9,7 @@
  */
 import PageLayout from '@/layouts/PageLayout.astro';
 import PostCard from '@/components/PostCard.astro';
-import HatchEmbedForm from '@/components/HatchEmbedForm.astro';
+import HatchForm from '@/components/HatchForm.astro';
 import DocsSidebar from '@/components/DocsSidebar.astro';
 import { getPosts, getCategories } from '@/lib/hatch';
 import { getFeatures, hasFeature } from '@/lib/features';
@@ -170,12 +170,16 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
     )}
 
     {hasFeature(features, 'forms') && features.integrations?.forms?.default_form_id ? (
-      <HatchEmbedForm
-        features={features}
-        formId={features.integrations.forms.default_form_id}
-        title="Get new posts in your inbox"
-        description="Occasional, never spammy. Unsubscribe with one click."
-      />
+      <section class="hatch-newsletter">
+        <h2 class="hatch-newsletter__title">Get new posts in your inbox</h2>
+        <p class="hatch-newsletter__desc">Occasional, never spammy. Unsubscribe with one click.</p>
+        <div
+          class="hatch-form-mount"
+          data-hatch-form-provider={features.integrations.forms.detected?.slug === 'wpforms' ? 'wpforms' : features.integrations.forms.detected?.slug === 'gravity_forms' ? 'gravity' : features.integrations.forms.detected?.slug === 'cf7' ? 'cf7' : 'fluent'}
+          data-hatch-form-id={features.integrations.forms.default_form_id}
+        ></div>
+        <HatchForm />
+      </section>
     ) : null}
 
     </div>

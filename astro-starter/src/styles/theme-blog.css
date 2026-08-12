@@ -552,3 +552,52 @@
 	color: var(--hatch-fg-subtle);
 	font-feature-settings: 'tnum';
 }
+
+/* ═════════════════════════════════════════════════════════════════
+   BLOG THEME SIGNATURES: editorial gravitas.
+   Serif titles on products/forms, warm paper backgrounds, generous
+   spacing. Everything renders through the Hatch Bridge; zero plugin
+   CSS ships. Applied only when [data-hatch-theme="blog"].
+   ═════════════════════════════════════════════════════════════════ */
+[data-hatch-theme="blog"] .hatch-product-card__title,
+[data-hatch-theme="blog"] .hatch-cart-line__title,
+[data-hatch-theme="blog"] .hatch-newsletter__title {
+	font-family: var(--hatch-font-heading);
+	letter-spacing: -0.01em;
+}
+[data-hatch-theme="blog"] .hatch-product-card {
+	background: var(--color-hatch-bg);
+	border-radius: 20px;
+	box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 8px 24px -12px rgba(0,0,0,0.08);
+}
+[data-hatch-theme="blog"] .hatch-product-card__price,
+[data-hatch-theme="blog"] .hatch-cart-line__total {
+	font-family: var(--hatch-font-heading);
+	font-size: 1.05rem;
+	letter-spacing: 0.01em;
+}
+[data-hatch-theme="blog"] .hatch-form__input,
+[data-hatch-theme="blog"] .hatch-form__textarea {
+	background: var(--color-hatch-bg);
+	border: 1px solid var(--color-hatch-border);
+	border-radius: 10px;
+	padding: 0.75rem 1rem;
+	font-family: var(--hatch-font-body);
+}
+[data-hatch-theme="blog"] .hatch-form__label {
+	font-family: var(--hatch-font-heading);
+	font-size: 0.95rem;
+	letter-spacing: -0.005em;
+}
+[data-hatch-theme="blog"] .hatch-newsletter {
+	padding: 3rem clamp(1.5rem, 3vw, 2.5rem);
+	border-radius: 20px;
+	background: var(--color-hatch-bg-2);
+	border: 1px solid var(--color-hatch-border);
+	margin: 3rem 0;
+	text-align: center;
+}
+[data-hatch-theme="blog"] .hatch-shop__chip {
+	font-family: var(--hatch-font-heading);
+	letter-spacing: 0.01em;
+}
