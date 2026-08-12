@@ -79,7 +79,7 @@ const money = (minor: string, symbol: string, decimals: number): string => {
 
 const items = cart?.items || [];
 const total = cart ? money(cart.totals.total_price, cart.totals.currency_symbol, cart.totals.currency_minor_unit) : '';
-const wpCheckoutUrl = `${base}/checkout/`;
+const checkoutUrl = '/checkout';
 ---
 <PageLayout title="Cart" description="Your cart">
   <div class="hatch-cart">
@@ -140,7 +140,7 @@ const wpCheckoutUrl = `${base}/checkout/`;
             <span>Total</span>
             <strong>{total}</strong>
           </div>
-          <a href={wpCheckoutUrl} class="hatch-btn hatch-btn--primary hatch-cart__checkout">Checkout</a>
+          <a href={checkoutUrl} class="hatch-btn hatch-btn--primary hatch-cart__checkout">Checkout</a>
         </footer>
       </>
     )}

@@ -1,0 +1,105 @@
+---
+/**
+ * Order summary / thank-you page.
+ *
+ * Reads /wc/store/v1/order?id=X&key=Y (public endpoint keyed by order_key so
+ * anonymous buyers can view their own order without login). Renders items,
+ * totals, addresses, status. Zero WooCommerce CSS or JS ships.
+ *
+ * @since 0.7.7
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import { WP_API_URL } from 'astro:env/server';
+
+const base = (WP_API_URL || '').replace(/\/wp-json(\/.*)?$/, '').replace(/\/$/, '');
+const url = new URL(Astro.request.url);
+const id = url.searchParams.get('id') || '';
+const key = url.searchParams.get('key') || '';
+
+let order: any = null;
+let fetchErr = '';
+if (id) {
+  try {
+    const params = new URLSearchParams({ id, key });
+    const res = await fetch(`${base}/wp-json/wc/store/v1/order?${params.toString()}`, {
+      headers: { Accept: 'application/json', Cookie: Astro.request.headers.get('cookie') || '' },
+    });
+    if (res.ok) order = await res.json();
+    else fetchErr = `Could not load order: HTTP ${res.status}`;
+  } catch (e) {
+    fetchErr = e instanceof Error ? e.message : String(e);
+  }
+}
+
+const money = (v: string, sym: string, dec: number) => {
+  const n = parseInt(v || '0', 10);
+  if (!Number.isFinite(n)) return `${sym}0`;
+  return `${sym}${(n / Math.pow(10, dec || 0)).toFixed(dec || 0)}`;
+};
+const sym = order?.totals?.currency_symbol || '';
+const dec = order?.totals?.currency_minor_unit ?? 2;
+const items = order?.items || [];
+---
+<PageLayout title={order ? `Order #${order.order_number}` : 'Order'} description="Order summary">
+  <div class="hatch-order">
+    {(!id || fetchErr) && (
+      <div class="hatch-order__error" role="alert">
+        <h1>Order not found</h1>
+        <p>{fetchErr || 'Missing order id in URL.'}</p>
+        <a href="/shop" class="hatch-btn hatch-btn--primary">Back to shop</a>
+      </div>
+    )}
+
+    {order && (
+      <>
+        <header class="hatch-order__header">
+          <p class="hatch-order__eyebrow">Thanks for your order</p>
+          <h1>Order #{order.order_number}</h1>
+          <p class="hatch-order__status">Status: <strong>{order.status}</strong></p>
+        </header>
+
+        <section class="hatch-order__section">
+          <h2>Items</h2>
+          <ul class="hatch-order__lines" role="list">
+            {items.map((it: any) => (
+              <li>
+                <span class="hatch-order__li-name">{it.name} <em>×{it.quantity}</em></span>
+                <span class="hatch-order__li-total">{money(it.totals?.line_total, sym, dec)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section class="hatch-order__section">
+          <h2>Totals</h2>
+          <dl class="hatch-order__totals">
+            <div><dt>Subtotal</dt><dd>{money(order.totals?.total_items, sym, dec)}</dd></div>
+            {parseInt(order.totals?.total_shipping || '0', 10) > 0 && (
+              <div><dt>Shipping</dt><dd>{money(order.totals.total_shipping, sym, dec)}</dd></div>
+            )}
+            {parseInt(order.totals?.total_tax || '0', 10) > 0 && (
+              <div><dt>Tax</dt><dd>{money(order.totals.total_tax, sym, dec)}</dd></div>
+            )}
+            <div class="hatch-order__grand"><dt>Total</dt><dd>{money(order.totals?.total_price, sym, dec)}</dd></div>
+          </dl>
+        </section>
+
+        {order.billing_address && (
+          <section class="hatch-order__section">
+            <h2>Billing address</h2>
+            <address class="hatch-order__address">
+              {order.billing_address.first_name} {order.billing_address.last_name}<br />
+              {order.billing_address.address_1}{order.billing_address.address_2 ? <>, {order.billing_address.address_2}</> : null}<br />
+              {order.billing_address.city}, {order.billing_address.state} {order.billing_address.postcode}<br />
+              {order.billing_address.country}
+            </address>
+          </section>
+        )}
+
+        <div class="hatch-order__actions">
+          <a href="/shop" class="hatch-btn hatch-btn--primary">Continue shopping</a>
+        </div>
+      </>
+    )}
+  </div>
+</PageLayout>
