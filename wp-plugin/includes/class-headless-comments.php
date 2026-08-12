@@ -4,9 +4,11 @@
  * post comments back to WP without bouncing the user through wp-comments-post.
  *
  *  - GET  /hatch/v1/comments?post={id}   → flat tree of approved comments
- *  - POST /hatch/v1/comments              → submit a new comment
+ *  - POST /hatch/v1/comments              → submit a new comment (guest-friendly)
  *
- * Turnstile is enforced server-side via Hatch_Integrations::verify_turnstile().
+ * Guest-friendly by design: no JWT, no cookie, no session gate. Anyone can
+ * post with just name + email + content (matches WordPress default anonymous
+ * flow). Turnstile is enforced server-side when the site turns it on.
  *
  * @package Hatch
  */
@@ -15,11 +17,16 @@ defined( 'ABSPATH' ) || exit;
 
 class Hatch_Headless_Comments {
 
+	/**
+	 * Max submissions per IP inside RATE_WINDOW seconds.
+	 */
+	const RATE_LIMIT  = 3;
+	const RATE_WINDOW = 300;
+
 	public static function register_routes(): void {
 		// v0.50.13 — gated by the Content tab "Enable headless comments"
-		// toggle (stored as content.comments_enabled inside the hatch_content_flags
-		// nested option). If it's off, the route doesn't register and the
-		// frontend component gracefully falls back to "comments disabled".
+		// toggle. If off, route does not register and the frontend component
+		// falls back to "comments disabled".
 		$flags = (array) get_option( 'hatch_content_flags', array() );
 		if ( isset( $flags['comments_enabled'] ) && ! $flags['comments_enabled'] ) {
 			return;
@@ -71,77 +78,170 @@ class Hatch_Headless_Comments {
 	public static function route_submit( WP_REST_Request $req ) {
 		$cfg = Hatch_Integrations::get_all()['comments'];
 		if ( ! $cfg['enabled'] ) {
-			return new WP_Error( 'hatch_comments_disabled', __( 'Comments are disabled.', 'hatch' ), array( 'status' => 403 ) );
+			return self::field_error( 'hatch_comments_disabled', __( 'Comments are disabled.', 'hatch' ), 403 );
+		}
+
+		// Honeypot: bots fill everything. Real humans never touch a hidden field.
+		$honey = trim( (string) $req->get_param( 'hatch_hp' ) );
+		if ( $honey !== '' ) {
+			// Silently accept-and-drop to avoid teaching spammers what tripped.
+			return new WP_REST_Response( array(
+				'ok'         => true,
+				'comment_id' => 0,
+				'status'     => 'pending',
+				'id'         => 0,
+				'approved'   => false,
+				'message'    => __( 'Thanks — your comment is awaiting moderation.', 'hatch' ),
+			), 201 );
+		}
+
+		// Per-IP rate limit: 3 submissions per 5 minutes.
+		$ip     = self::ip();
+		$rate_k = 'hatch_cmt_rl_' . md5( $ip );
+		$count  = (int) get_transient( $rate_k );
+		if ( $count >= self::RATE_LIMIT ) {
+			return self::field_error(
+				'hatch_rate_limited',
+				__( 'You are commenting too quickly. Please wait a few minutes and try again.', 'hatch' ),
+				429
+			);
 		}
 
 		$post_id = (int) $req->get_param( 'post' );
-		$author  = sanitize_text_field( (string) $req->get_param( 'author' ) );
-		$email   = sanitize_email( (string) $req->get_param( 'email' ) );
-		$url     = esc_url_raw( (string) $req->get_param( 'url' ) ); // v0.50 — fixes "Undefined array key" warning in core.
+		if ( $post_id <= 0 ) {
+			$post_id = (int) $req->get_param( 'post_id' );
+		}
+		$author  = sanitize_text_field( (string) ( $req->get_param( 'author' ) ?? $req->get_param( 'author_name' ) ) );
+		$email   = sanitize_email( (string) ( $req->get_param( 'email' ) ?? $req->get_param( 'author_email' ) ) );
+		$url     = esc_url_raw( (string) $req->get_param( 'url' ) );
 		$content = wp_kses_post( (string) $req->get_param( 'content' ) );
 		$parent  = (int) $req->get_param( 'parent' );
 		$token   = (string) $req->get_param( 'cf-turnstile-response' );
 
+		$field_errors = array();
 		if ( $post_id <= 0 || ! get_post( $post_id ) ) {
-			return new WP_Error( 'hatch_invalid_post', __( 'Invalid post.', 'hatch' ), array( 'status' => 400 ) );
+			return self::field_error( 'hatch_invalid_post', __( 'Invalid post.', 'hatch' ), 400, 'post' );
+		}
+		if ( 'publish' !== get_post_status( $post_id ) ) {
+			return self::field_error( 'hatch_invalid_post', __( 'Post is not published.', 'hatch' ), 400, 'post' );
 		}
 		if ( ! comments_open( $post_id ) ) {
-			return new WP_Error( 'hatch_comments_closed', __( 'Comments are closed on this post.', 'hatch' ), array( 'status' => 403 ) );
-		}
-		if ( strlen( $content ) < 2 ) {
-			return new WP_Error( 'hatch_empty', __( 'Please write a comment.', 'hatch' ), array( 'status' => 400 ) );
-		}
-		if ( ! is_email( $email ) ) {
-			return new WP_Error( 'hatch_bad_email', __( 'A valid email is required.', 'hatch' ), array( 'status' => 400 ) );
+			return self::field_error( 'hatch_comments_closed', __( 'Comments are closed on this post.', 'hatch' ), 403 );
 		}
 		if ( $author === '' ) {
-			return new WP_Error( 'hatch_no_author', __( 'Name is required.', 'hatch' ), array( 'status' => 400 ) );
+			$field_errors['author'] = __( 'Name is required.', 'hatch' );
+		}
+		if ( ! is_email( $email ) ) {
+			$field_errors['email'] = __( 'A valid email is required.', 'hatch' );
+		}
+		if ( strlen( trim( wp_strip_all_tags( $content ) ) ) < 3 ) {
+			$field_errors['content'] = __( 'Please write a longer comment.', 'hatch' );
+		}
+		if ( ! empty( $field_errors ) ) {
+			return new WP_REST_Response( array(
+				'ok'           => false,
+				'code'         => 'hatch_invalid_fields',
+				'message'      => __( 'Please fix the highlighted fields.', 'hatch' ),
+				'field_errors' => $field_errors,
+			), 400 );
 		}
 
-		// Turnstile.
 		if ( ! empty( $cfg['turnstile'] ) ) {
-			$ok = Hatch_Integrations::verify_turnstile( $token, self::ip() );
+			$ok = Hatch_Integrations::verify_turnstile( $token, $ip );
 			if ( ! $ok ) {
-				return new WP_Error( 'hatch_turnstile', __( 'Anti-spam challenge failed. Try again.', 'hatch' ), array( 'status' => 400 ) );
+				return self::field_error( 'hatch_turnstile', __( 'Anti-spam challenge failed. Try again.', 'hatch' ), 400 );
 			}
 		}
 
-		$user_id = 0;
-		if ( ! empty( $cfg['require_login'] ) ) {
-			if ( ! is_user_logged_in() ) {
-				return new WP_Error( 'hatch_login_required', __( 'Sign-in required to comment.', 'hatch' ), array( 'status' => 401 ) );
-			}
-			$user_id = get_current_user_id();
+		// wp_new_comment runs the full comment pipeline: wp_allow_comment
+		// (duplicate detection, flood control, moderation-keys check),
+		// wp_check_comment_disallowed_keys, plus notify hooks. Uses core's
+		// comment_moderation option so admin toggles behave the same as a
+		// WP-native theme.
+		$moderate = ! empty( $cfg['moderate'] ) || (bool) get_option( 'comment_moderation' );
+
+		// Temporarily force moderation flag onto the pipeline via filter if
+		// the admin toggle asked for it but WP core option is off.
+		$filter_added = false;
+		if ( $moderate && ! (int) get_option( 'comment_moderation' ) ) {
+			$force_pending = function ( $approved ) { return 0; };
+			add_filter( 'pre_comment_approved', $force_pending, 20 );
+			$filter_added = true;
 		}
 
-		$approved = empty( $cfg['moderate'] ) ? 1 : 0;
-
-		$comment_id = wp_insert_comment( wp_filter_comment( array(
+		$commentdata = array(
 			'comment_post_ID'      => $post_id,
 			'comment_author'       => $author,
 			'comment_author_email' => $email,
-			'comment_author_url'   => $url, // v0.50 — always pass; core's wp_filter_comment errors on undefined key.
+			'comment_author_url'   => $url,
 			'comment_content'      => $content,
 			'comment_parent'       => $parent,
-			'comment_approved'     => $approved,
 			'comment_type'         => 'comment',
-			'comment_author_IP'    => self::ip(),
-			'comment_agent'        => substr( (string) ( $_SERVER['HTTP_USER_AGENT'] ?? '' ), 0, 254 ),
-			'user_id'              => $user_id,
-		) ) );
+			'user_id'              => 0,
+		);
 
-		if ( ! $comment_id ) {
-			return new WP_Error( 'hatch_insert_failed', __( 'Could not save comment.', 'hatch' ), array( 'status' => 500 ) );
+		$comment = wp_new_comment( $commentdata, true );
+
+		if ( $filter_added && isset( $force_pending ) ) {
+			remove_filter( 'pre_comment_approved', $force_pending, 20 );
 		}
 
+		if ( is_wp_error( $comment ) ) {
+			$msg  = $comment->get_error_message();
+			$code = $comment->get_error_code();
+			// Core's flood control fires when the same IP or email posts
+			// again inside a short window. Surface that as 429 so the client
+			// UI can render "slow down" rather than a generic 400.
+			$is_flood = ( 'comment_flood' === $code ) || ( stripos( (string) $msg, 'flood' ) !== false );
+			if ( $is_flood ) {
+				set_transient( $rate_k, self::RATE_LIMIT, self::RATE_WINDOW );
+				return self::field_error(
+					'hatch_rate_limited',
+					__( 'You are commenting too quickly. Please wait a few minutes and try again.', 'hatch' ),
+					429
+				);
+			}
+			return self::field_error( 'hatch_insert_failed', $msg ?: __( 'Could not save comment.', 'hatch' ), 400 );
+		}
+
+		$comment_id = (int) $comment;
+		if ( $comment_id <= 0 ) {
+			return self::field_error( 'hatch_insert_failed', __( 'Could not save comment.', 'hatch' ), 500 );
+		}
+
+		$status_str = wp_get_comment_status( $comment_id );
+		$approved   = ( 'approved' === $status_str );
+		$status_out = $approved ? 'approved' : 'pending';
+
+		// Bump rate limit after a successful save. Validation failures do
+		// not count against the limit (fixing a typo should not lock you out).
+		set_transient( $rate_k, $count + 1, self::RATE_WINDOW );
+
 		return new WP_REST_Response( array(
-			'ok'        => true,
-			'id'        => (int) $comment_id,
-			'approved'  => (bool) $approved,
-			'message'   => $approved
-				? __( 'Comment posted!', 'hatch' )
-				: __( 'Thanks — your comment is awaiting moderation.', 'hatch' ),
+			'ok'         => true,
+			'comment_id' => $comment_id,
+			'status'     => $status_out,
+			// Legacy keys the current frontend script reads. Kept alongside
+			// the new keys so we do not break the deployed page while the
+			// component upgrades.
+			'id'         => $comment_id,
+			'approved'   => $approved,
+			'message'    => $approved
+				? __( 'Comment posted.', 'hatch' )
+				: __( 'Held for moderation.', 'hatch' ),
 		), 201 );
+	}
+
+	private static function field_error( string $code, string $message, int $status, string $field = '' ): WP_REST_Response {
+		$body = array(
+			'ok'      => false,
+			'code'    => $code,
+			'message' => $message,
+		);
+		if ( $field !== '' ) {
+			$body['field_errors'] = array( $field => $message );
+		}
+		return new WP_REST_Response( $body, $status );
 	}
 
 	private static function ip(): string {

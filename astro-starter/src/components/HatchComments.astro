@@ -1,17 +1,20 @@
 ---
 /**
- * HatchComments — fetches approved comments for a post from /hatch/v1/comments
- * and renders a thread + reply form. Form submits client-side to the same
- * endpoint with optional Cloudflare Turnstile widget.
+ * HatchComments: SSR-fetches approved comments for a post from
+ * /hatch/v1/comments and renders a thread + guest reply form.
  *
- * Pass-through:
- *   - features: the result of getFeatures() — used to read site_key + turnstile flag
+ * Guest-friendly by design: no login required, no JWT gate. Anyone can post
+ * with just name + email + comment (matches WordPress default anonymous
+ * flow). Honeypot + server-side rate limit + optional Turnstile handle abuse.
+ *
+ * Props:
+ *   - features: the result of getFeatures() (used for turnstile config)
  *   - postId:   WP post ID to fetch comments for
  *   - postTitle: used for inline confirmation message
  *
  * Server-rendered for the initial list (SSR keeps SEO + works without JS).
- * The form itself uses progressive enhancement: works as a POST submit
- * fallback, but JS upgrades to an inline fetch with success/error UI.
+ * The form uses progressive enhancement: works as a native POST fallback,
+ * JS upgrades to an inline fetch with success / error / per-field UI.
  */
 import type { HatchFeatures } from '../lib/features';
 import { WP_API_URL } from 'astro:env/server';
@@ -31,7 +34,6 @@ const integ = features.integrations;
 const enabled = !!integ?.comments?.enabled;
 const turnstileOn = !!(integ?.comments?.turnstile && integ?.turnstile?.enabled && integ?.turnstile?.site_key);
 const siteKey = integ?.turnstile?.site_key || '';
-const requireLogin = !!integ?.comments?.require_login;
 
 interface Comment {
   id: number;
@@ -59,19 +61,12 @@ if (enabled && base) {
   }
 }
 
-// JWT gate: read hatch_jwt cookie SSR-side to decide whether the visitor
-// can post a comment. HttpOnly cookie so JS never sees it; the SSR request
-// gets it through the incoming Cookie header.
-const cookieHeader = Astro.request.headers.get('cookie') || '';
-const isSignedIn = /(?:^|;\s*)hatch_jwt=[^;]+/.test(cookieHeader);
-const currentUrl = new URL(Astro.request.url);
-const loginHref = `/login?redirect_to=${encodeURIComponent(currentUrl.pathname + currentUrl.search)}`;
+// Same-origin proxy. WP_API_URL points at an internal hostname (docker
+// service name) that only resolves server-side; the browser must not see
+// it, and Cloudflare Workers cannot reach it either. The proxy forwards
+// the FormData to WP with the real client IP in X-Forwarded-For.
+const submitUrl = '/api/hatch-comments/post';
 
-// v0.5.7 — submit same-origin. `base` is a server-only WP origin (under
-// docker compose it is `http://wp`, unresolvable from the browser), so
-// pointing the form at it broke every local submission and leaked the WP
-// host into the page. /api/comments proxies to WP server-side instead.
-const submitUrl = '/api/comments';
 const fmt = (iso: string) =>
   new Date(iso).toLocaleDateString(features.site.language || 'en-US', {
     month: 'short',
@@ -89,11 +84,11 @@ const fmt = (iso: string) =>
       {count === 0 && (
         <p class="hatch-comments__empty text-[13.5px] text-hatch-fg-muted">Be the first to comment.</p>
       )}
-      <a href="#reply" class="text-[12.5px] text-hatch-primary hover:underline whitespace-nowrap">Write a comment →</a>
+      <a href="#reply" class="text-[12.5px] text-hatch-primary hover:underline whitespace-nowrap">Write a comment</a>
     </header>
 
     {comments.length > 0 && (
-      <ul class="flex flex-col gap-5 mb-10">
+      <ul class="flex flex-col gap-5 mb-10" data-hatch-comment-list>
         {comments.map((c) => (
           <li class="flex gap-3 items-start">
             <img src={c.avatar} alt="" width="36" height="36" class="rounded-full flex-shrink-0 mt-0.5" loading="lazy" />
@@ -103,7 +98,7 @@ const fmt = (iso: string) =>
                 {c.is_author && (
                   <span class="text-[9.5px] uppercase tracking-wider font-medium text-hatch-primary border border-hatch-primary/40 rounded px-1.5 py-0.5">Author</span>
                 )}
-                <span class="text-[11.5px] text-hatch-fg-subtle">· {fmt(c.date_gmt)}</span>
+                <span class="text-[11.5px] text-hatch-fg-subtle">{fmt(c.date_gmt)}</span>
               </div>
               <div class="mt-1 text-[14px] leading-[1.65] text-hatch-fg-muted hatch-comment-body" set:html={c.content}></div>
             </div>
@@ -111,19 +106,10 @@ const fmt = (iso: string) =>
         ))}
       </ul>
     )}
+    {comments.length === 0 && (
+      <ul class="flex flex-col gap-5 mb-10 hidden" data-hatch-comment-list></ul>
+    )}
 
-    {!isSignedIn ? (
-      <div id="reply" class="border border-hatch-border rounded-md p-5 bg-hatch-bg-2">
-        <h3 class="text-[15px] font-semibold mb-1">Leave a comment</h3>
-        <p class="text-[13.5px] text-hatch-fg-muted mb-3">
-          Sign in to comment on {postTitle}.
-        </p>
-        <a href={loginHref}
-          class="inline-block px-4 py-2 rounded-md bg-hatch-primary text-white text-[13px] font-medium hover:opacity-90 transition-opacity">
-          Sign in to comment
-        </a>
-      </div>
-    ) : (
     <form
       id="hatch-comment-form"
       action={submitUrl}
@@ -131,14 +117,19 @@ const fmt = (iso: string) =>
       class="flex flex-col gap-3.5"
       data-postid={String(postId)}
       data-endpoint={submitUrl}
+      novalidate
     >
       <h3 id="reply" class="text-[15px] font-semibold mb-1">Leave a comment</h3>
-      {requireLogin && (
-        <p class="text-[13px] text-hatch-fg-subtle bg-hatch-bg-2 border border-hatch-border rounded-md px-3 py-2">
-          Sign-in required to comment on {postTitle}.
-        </p>
-      )}
       <input type="hidden" name="post" value={String(postId)} />
+      <input type="hidden" name="post_id" value={String(postId)} />
+      {/* Honeypot: hidden from real users, bots fill it. Server drops any
+          submission where hatch_hp is non-empty. */}
+      <div class="hatch-hp" aria-hidden="true">
+        <label>
+          Leave this field empty
+          <input type="text" name="hatch_hp" tabindex="-1" autocomplete="off" value="" />
+        </label>
+      </div>
       <div class="grid sm:grid-cols-2 gap-3">
         <label class="flex flex-col gap-1.5">
           <span class="text-[12.5px] font-medium text-hatch-fg-muted">Name</span>
@@ -146,19 +137,24 @@ const fmt = (iso: string) =>
             type="text"
             name="author"
             required
+            minlength="1"
+            data-hatch-field="author"
             class="px-3 py-2 rounded-md border border-hatch-border bg-hatch-bg focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none text-[14px]"
             autocomplete="name"
           />
+          <p class="text-[12px] text-red-600 dark:text-red-400 hidden" data-hatch-field-error="author"></p>
         </label>
         <label class="flex flex-col gap-1.5">
-          <span class="text-[12.5px] font-medium text-hatch-fg-muted">Email <span class="text-hatch-fg-subtle">· never shown</span></span>
+          <span class="text-[12.5px] font-medium text-hatch-fg-muted">Email <span class="text-hatch-fg-subtle">(never shown)</span></span>
           <input
             type="email"
             name="email"
             required
+            data-hatch-field="email"
             class="px-3 py-2 rounded-md border border-hatch-border bg-hatch-bg focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none text-[14px]"
             autocomplete="email"
           />
+          <p class="text-[12px] text-red-600 dark:text-red-400 hidden" data-hatch-field-error="email"></p>
         </label>
       </div>
       <label class="flex flex-col gap-1.5">
@@ -167,9 +163,11 @@ const fmt = (iso: string) =>
           name="content"
           rows="5"
           required
-          minlength="2"
+          minlength="3"
+          data-hatch-field="content"
           class="px-3 py-2 rounded-md border border-hatch-border bg-hatch-bg focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none text-[14px] resize-y font-sans"
         ></textarea>
+        <p class="text-[12px] text-red-600 dark:text-red-400 hidden" data-hatch-field-error="content"></p>
       </label>
 
       {turnstileOn && (
@@ -183,12 +181,11 @@ const fmt = (iso: string) =>
         >
           Post comment
         </button>
-        <p id="hatch-comment-status" class="text-[13px] text-hatch-fg-subtle" aria-live="polite"></p>
+        <p id="hatch-comment-status" class="text-[13px] text-hatch-fg-subtle" aria-live="polite" data-hatch-form-status></p>
       </div>
     </form>
-    )}
 
-    {isSignedIn && turnstileOn && (
+    {turnstileOn && (
       <script
         is:inline
         src="https://challenges.cloudflare.com/turnstile/v0/api.js"
@@ -197,20 +194,64 @@ const fmt = (iso: string) =>
       ></script>
     )}
 
-    <script is:inline>
+    <script is:inline data-hatch-comments-script>
       (function () {
         const form = document.getElementById('hatch-comment-form');
         if (!form) return;
-        const status = document.getElementById('hatch-comment-status');
-        form.addEventListener('submit', async (e) => {
+        const status = form.querySelector('[data-hatch-form-status]');
+        const list   = document.querySelector('[data-hatch-comment-list]');
+        function clearErrors() {
+          form.querySelectorAll('[data-hatch-field-error]').forEach(function (n) {
+            n.textContent = '';
+            n.classList.add('hidden');
+          });
+        }
+        function paintFieldErrors(map) {
+          Object.keys(map || {}).forEach(function (name) {
+            const el = form.querySelector('[data-hatch-field-error="' + name + '"]');
+            if (el) {
+              el.textContent = map[name];
+              el.classList.remove('hidden');
+            }
+          });
+        }
+        function esc(s) {
+          return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+          });
+        }
+        function appendComment(author, content) {
+          if (!list) return;
+          list.classList.remove('hidden');
+          const li = document.createElement('li');
+          li.className = 'flex gap-3 items-start';
+          li.innerHTML =
+            '<div class="w-9 h-9 rounded-full bg-hatch-bg-2 border border-hatch-border flex-shrink-0 mt-0.5"></div>' +
+            '<div class="flex-1 min-w-0">' +
+              '<div class="flex items-baseline gap-2 flex-wrap">' +
+                '<span class="font-semibold text-[13.5px] text-hatch-fg">' + esc(author) + '</span>' +
+                '<span class="text-[11.5px] text-hatch-fg-subtle">just now</span>' +
+              '</div>' +
+              '<div class="mt-1 text-[14px] leading-[1.65] text-hatch-fg-muted hatch-comment-body"><p>' + esc(content) + '</p></div>' +
+            '</div>';
+          list.appendChild(li);
+        }
+        form.addEventListener('submit', async function (e) {
           e.preventDefault();
+          clearErrors();
           const data = new FormData(form);
+          const author  = String(data.get('author') || '').trim();
+          const content = String(data.get('content') || '').trim();
+          if (content.length < 3) {
+            paintFieldErrors({ content: 'Please write a longer comment.' });
+            return;
+          }
           const tsResp = document.querySelector('[name="cf-turnstile-response"]');
           if (tsResp && tsResp.value) data.append('cf-turnstile-response', tsResp.value);
           const submitBtn = form.querySelector('button[type="submit"]');
           if (submitBtn) submitBtn.disabled = true;
           if (status) {
-            status.textContent = 'Posting…';
+            status.textContent = 'Posting...';
             status.className = 'text-[13px] text-hatch-fg-subtle';
           }
           try {
@@ -219,18 +260,28 @@ const fmt = (iso: string) =>
               body: data,
               headers: { Accept: 'application/json' },
             });
-            const body = await res.json();
-            if (!res.ok) throw new Error(body.message || 'Failed');
+            let body = null;
+            try { body = await res.json(); } catch (_) { body = null; }
+            if (!res.ok || !body || body.ok === false) {
+              if (body && body.field_errors) paintFieldErrors(body.field_errors);
+              const msg = (body && body.message) || 'Could not post comment.';
+              if (status) {
+                status.textContent = msg;
+                status.className = 'text-[13px] text-red-600 dark:text-red-400';
+              }
+              return;
+            }
+            const wasApproved = body.status === 'approved' || body.approved === true;
             if (status) {
-              status.textContent = body.message || 'Comment posted!';
+              status.textContent = wasApproved ? 'Comment posted.' : 'Held for moderation.';
               status.className = 'text-[13px] text-green-600 dark:text-green-400';
             }
+            if (wasApproved) appendComment(author, content);
             form.reset();
             if (window.turnstile && tsResp) window.turnstile.reset();
-            if (body.approved) setTimeout(() => location.reload(), 1500);
           } catch (err) {
             if (status) {
-              status.textContent = (err && err.message) || 'Could not post comment.';
+              status.textContent = (err && err.message) || 'Could not reach the server.';
               status.className = 'text-[13px] text-red-600 dark:text-red-400';
             }
           } finally {
@@ -243,9 +294,9 @@ const fmt = (iso: string) =>
 )}
 
 <style>
-  /* Constrain the entire comments block to a comfortable reading width
-     and let the design.md tokens drive radius + spacing. Works inside the
-     blog post column without ballooning to the full content width. */
+  /* Constrain the comments block to a comfortable reading width and let the
+     design.md tokens drive radius + spacing. Works inside the blog post
+     column without ballooning to the full content width. */
   .hatch-comments {
     max-width: 640px;
     margin-left: 0;
@@ -266,6 +317,14 @@ const fmt = (iso: string) =>
     border-radius: var(--hatch-radius, 6px);
     font-family: var(--hatch-font-body, inherit);
   }
+  /* Honeypot: visually + spatially hidden but still submitted by bots. */
+  .hatch-comments .hatch-hp {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
 
   /* Tech theme: tighter, mono author names, sharper accents. */
   [data-hatch-theme="tech"] .hatch-comments .hatch-comment-body { font-size: 13.5px; }
@@ -275,7 +334,7 @@ const fmt = (iso: string) =>
     border-color: var(--hatch-border);
   }
 
-  /* Docs theme: comments sit in a calm card so they don't compete with body copy. */
+  /* Docs theme: comments sit in a calm card so they do not compete with body copy. */
   [data-hatch-theme="docs"] .hatch-comments {
     padding: 18px 20px;
     border: 1px solid var(--hatch-border);
