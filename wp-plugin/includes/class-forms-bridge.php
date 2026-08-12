@@ -374,11 +374,20 @@ class Hatch_Forms_Bridge {
 	}
 
 	private static function response( string $provider, int $id, string $title, array $fields ): WP_REST_Response {
+		// v0.51 (#208): shape aligned with HatchForm.astro + the Astro proxy.
+		// Client checks `schema.ok` and posts to `schema.submit.url` (proxy
+		// rewrites the URL to same-origin /api/hatch-form/{provider}/{id}/submit).
 		return new WP_REST_Response( array(
+			'ok'              => true,
 			'provider'        => $provider,
 			'id'              => $id,
 			'title'           => $title,
 			'fields'          => $fields,
+			'submit'          => array(
+				'url'    => rest_url( 'hatch/v1/forms/' . $provider . '/' . $id . '/submit' ),
+				'method' => 'POST',
+			),
+			// Kept for backwards-compat with any existing consumers.
 			'submit_endpoint' => rest_url( 'hatch/v1/forms/' . $provider . '/' . $id . '/submit' ),
 		), 200 );
 	}
@@ -417,13 +426,51 @@ class Hatch_Forms_Bridge {
 			return new WP_Error( 'hatch_form_not_found', 'Form not found', array( 'status' => 404 ) );
 		}
 
-		// Replay Fluent's full submission pipeline via its own SubmissionService.
-		// Populate $_POST/$_REQUEST with the shape Fluent expects, then call
-		// submit() so validators + honeypot + spam + notifications +
-		// confirmations all run. Backlog #158 — if the service is missing
-		// or throws, we return 503 rather than fall back to a raw insert:
-		// bypassing validation to save data was the security regression.
-		if ( class_exists( '\FluentForm\App\Services\Submission\SubmissionService' ) ) {
+		// Replay Fluent's full submission pipeline via its own service so
+		// validators + honeypot + spam + notifications + confirmations run.
+		// Backlog #158 rule: on failure we return 503 rather than fall back
+		// to a raw insert. Bypassing validation to save data was the
+		// security regression.
+		//
+		// v0.51 (#208): Fluent Forms renamed its submission entrypoint to
+		// SubmissionHandlerService::handleSubmission(). The old
+		// SubmissionService::submit() only exists in very old Fluent
+		// builds. Try the new service first, fall back to the old only if
+		// the new class is missing. Both replay the same pipeline.
+		if ( class_exists( '\FluentForm\App\Services\Form\SubmissionHandlerService' ) ) {
+			try {
+				$_POST['data']    = http_build_query( $fields );
+				$_POST['form_id'] = $id;
+				$_REQUEST         = array_merge( (array) $_REQUEST, $_POST );
+				$service          = new \FluentForm\App\Services\Form\SubmissionHandlerService();
+				$result           = $service->handleSubmission( $fields, $id );
+				$msg = 'Thanks for submitting.';
+				$entry = 0;
+				if ( is_array( $result ) ) {
+					if ( isset( $result['message'] ) ) $msg = (string) $result['message'];
+					if ( isset( $result['insert_id'] ) ) $entry = (int) $result['insert_id'];
+				}
+				return new WP_REST_Response( array(
+					'ok'      => true,
+					'message' => $msg,
+					'entry'   => $entry,
+				), 200 );
+			} catch ( \FluentForm\Framework\Validator\ValidationException $ve ) {
+				return new WP_REST_Response( array(
+					'ok'     => false,
+					'errors' => method_exists( $ve, 'errors' ) ? $ve->errors() : array(),
+				), 422 );
+			} catch ( \Throwable $e ) {
+				return new WP_Error(
+					'hatch_fluent_handler_failed',
+					'Fluent SubmissionHandlerService failed: ' . $e->getMessage(),
+					array( 'status' => 503 )
+				);
+			}
+		}
+
+		if ( class_exists( '\FluentForm\App\Services\Submission\SubmissionService' )
+			&& method_exists( '\FluentForm\App\Services\Submission\SubmissionService', 'submit' ) ) {
 			try {
 				$_POST['data']    = http_build_query( $fields );
 				$_POST['form_id'] = $id;
@@ -436,11 +483,6 @@ class Hatch_Forms_Bridge {
 					'entry'   => isset( $result['insert_id'] ) ? (int) $result['insert_id'] : 0,
 				), 200 );
 			} catch ( \Throwable $e ) {
-				// Backlog #158 — SubmissionService threw; we intentionally
-				// DO NOT fall back to a raw wpdb insert. That path bypassed
-				// Fluent's validators, honeypot, spam guard, notification
-				// pipeline, and file-upload safety. Losing "data survives"
-				// is preferable to persisting an unvalidated payload.
 				return new WP_Error(
 					'hatch_fluent_service_failed',
 					'Fluent SubmissionService failed: ' . $e->getMessage(),
@@ -449,12 +491,9 @@ class Hatch_Forms_Bridge {
 			}
 		}
 
-		// Backlog #158 — SubmissionService class missing entirely (older
-		// Fluent build or plugin partially loaded). Refuse the write; the
-		// operator must upgrade Fluent so validation runs. No direct insert.
 		return new WP_Error(
 			'hatch_fluent_service_missing',
-			'Fluent Forms SubmissionService is unavailable on this site; refusing to bypass validation. Update Fluent Forms.',
+			'Fluent Forms submission service is unavailable on this site; refusing to bypass validation. Update Fluent Forms.',
 			array( 'status' => 503 )
 		);
 	}

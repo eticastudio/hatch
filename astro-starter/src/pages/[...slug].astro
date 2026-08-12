@@ -12,6 +12,7 @@
  */
 import PageLayout from '@/layouts/PageLayout.astro';
 import HatchImage from '@/components/HatchImage.astro';
+import HatchForm from '@/components/HatchForm.astro';
 import { getPageBySlug, getContentBySlug } from '@/lib/hatch';
 import { getFeatures, rewriteContentImages } from '@/lib/features';
 
@@ -92,4 +93,8 @@ const articleMaxWStyle = 'max-width: var(--hatch-max-width, 1160px);';
         fills the article width (~1160px). Posts keep the cap for reading. */}
     <div class="hatch-prose" style="max-width: 100%;" set:html={rewriteContentImages(page.content, features)}></div>
   </article>
+  {/* v0.51: hydrates any [fluentform]/[wpforms]/[gravityform]/[contact-form-7]
+      shortcode that the Forms Bridge rewrote into <div class="hatch-form-mount">.
+      No-op when the page has no form mounts. Fixes #208 (.ff-btn on /contact). */}
+  <HatchForm />
 </PageLayout>
