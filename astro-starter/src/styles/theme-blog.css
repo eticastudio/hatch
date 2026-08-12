@@ -128,14 +128,23 @@
 /* Nav row sits below the rule. Lowercase, sentence-case, lighter tracking
    than v0.4.0's small-caps. Substack/editorial feel without the
    newspaper-revival cosplay. */
+/* Backlog #150 — theme selector's higher specificity was overriding
+   Tailwind's `hidden` utility on the desktop navrow, so the row rendered
+   at 375w and forced 142px of horizontal scroll on every page. Scope the
+   `display: flex` to md+ so mobile falls back to the hamburger. */
 [data-hatch-theme="blog"] .hatch-blog-navrow {
-	display: flex;
+	display: none;
 	align-items: center;
 	gap: 1.5em;
 	gap: 28px;
 	padding-block: 18px 28px;
 	font-size: 14px;
 	letter-spacing: 0;
+}
+@media (min-width: 768px) {
+	[data-hatch-theme="blog"] .hatch-blog-navrow {
+		display: flex;
+	}
 }
 
 [data-hatch-theme="blog"] .hatch-blog-navrow a {
