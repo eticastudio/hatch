@@ -501,7 +501,22 @@ class Hatch_Rest_Api {
 				'type'               => (string) $post->post_type,
 				'rest_base'          => (string) ( $obj->rest_base ?: $obj->name ),
 				'title'              => get_the_title( $post ),
-				'content'            => apply_filters( 'the_content', $post->post_content ),
+				'content'            => (function( $raw ) {
+					// v0.51 — Bridge rule (LEARNINGS 2026-08-12): "Bridge = REST
+					// only, no plugin CSS/JS". Fluent Forms / WPForms / Gravity
+					// / CF7 register do_shortcode handlers that emit their FULL
+					// plugin scaffold (.ff-btn, .wpforms-*, etc.) AND enqueue
+					// their CSS/JS bundles when their shortcode runs inside
+					// apply_filters('the_content'). That leaks plugin markup
+					// (#208: `.ff-btn.ff-btn-submit` visible on /contact) and
+					// violates the zero-plugin-JS/CSS contract. Rewrite the
+					// form shortcodes to <div class="hatch-form-mount"> BEFORE
+					// the_content runs so the plugin's shortcode callback is
+					// never invoked. HatchForm.astro then hydrates the mounts
+					// with native .hatch-form-* markup + form-validator.ts.
+					$raw = apply_filters( 'hatch/content/html', $raw, null );
+					return apply_filters( 'the_content', $raw );
+				})( $post->post_content ),
 				'excerpt'            => has_excerpt( $post ) ? wp_strip_all_tags( get_the_excerpt( $post ) ) : '',
 				'featured_media_url' => $thumb_url,
 				'featured_media_alt' => $thumb_alt,

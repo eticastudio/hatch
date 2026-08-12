@@ -282,7 +282,11 @@
         novalidate: '',
         'data-provider': provider,
         'data-form-id': id,
-        'data-hatch-form': '',
+        // v0.51 (#208): do NOT emit `data-hatch-form` here. hatch-blocks.js
+        // has a legacy selector [data-hatch-form] that re-hydrates any matching
+        // element via the removed /wp-json/hatch/v1/forms/{id}/embed endpoint,
+        // clobbering this native form with a "Failed to fetch" error.
+        'data-hatch-form-hydrated': '1',
       });
 
       if (schema.title) {
