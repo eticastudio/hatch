@@ -79,7 +79,7 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
               method: 'POST',
               body: JSON.stringify(payload),
               headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-              credentials: 'same-origin',
+              credentials: 'include',
             });
             const body = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(body.message || 'Registration failed');

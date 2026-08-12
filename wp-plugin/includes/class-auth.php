@@ -39,6 +39,21 @@ class Hatch_Auth {
 			self::$instance = new self();
 			add_action( 'rest_api_init', array( __CLASS__, 'register_routes' ) );
 			add_filter( 'rest_pre_dispatch', array( __CLASS__, 'attach_jwt_user' ), 5, 3 );
+
+			// Authenticate REST requests from the hatch_jwt cookie or Bearer
+			// token so Woo Store API (and any other REST endpoint) sees the
+			// signed-in user. The native wordpress_logged_in_* cookie alone
+			// cannot authenticate a REST call without a matching wp_rest
+			// nonce; JWT sidesteps that. Priority 20 keeps us after WP's
+			// own cookie check so we never override a valid session.
+			add_filter( 'determine_current_user', array( __CLASS__, 'authenticate_jwt' ), 20 );
+
+			// Suppress the REST cookie-nonce check for requests that already
+			// authenticated via JWT. Without this, WP returns
+			// rest_cookie_invalid_nonce whenever the browser sends both the
+			// wordpress_logged_in cookie (from wp_set_auth_cookie above) and
+			// no X-WP-Nonce header.
+			add_filter( 'rest_authentication_errors', array( __CLASS__, 'clear_cookie_nonce_error' ), 999 );
 		}
 		return self::$instance;
 	}
@@ -246,6 +261,85 @@ class Hatch_Auth {
 	}
 
 	/* --------------------------------------------------------------------- *
+	 * REST request authentication from hatch_jwt cookie / Bearer token.
+	 * Runs on `determine_current_user` so wp_get_current_user() reflects
+	 * the JWT holder across every REST endpoint (Woo Store API, wp/v2, etc.)
+	 * --------------------------------------------------------------------- */
+
+	public static function authenticate_jwt( $user_id ) {
+		if ( ! empty( $user_id ) ) {
+			return $user_id;
+		}
+		// Cookie first.
+		$token = '';
+		if ( isset( $_COOKIE[ self::COOKIE_NAME ] ) ) {
+			$token = (string) $_COOKIE[ self::COOKIE_NAME ];
+		}
+		if ( '' === $token ) {
+			$auth = isset( $_SERVER['HTTP_AUTHORIZATION'] ) ? (string) $_SERVER['HTTP_AUTHORIZATION']
+				: ( isset( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) ? (string) $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] : '' );
+			if ( $auth && stripos( $auth, 'Bearer ' ) === 0 ) {
+				$token = trim( substr( $auth, 7 ) );
+			}
+		}
+		if ( '' === $token ) {
+			return $user_id;
+		}
+		$payload = self::verify_token( $token );
+		if ( ! $payload || empty( $payload['sub'] ) ) {
+			return $user_id;
+		}
+		$uid = (int) $payload['sub'];
+		return get_user_by( 'id', $uid ) ? $uid : $user_id;
+	}
+
+	/**
+	 * If our JWT filter already populated the current user, drop any
+	 * cookie-nonce error WP would otherwise raise. Leaves other error
+	 * codes intact so a malformed Authorization header still fails.
+	 *
+	 * @param WP_Error|null|true $error
+	 * @return WP_Error|null|true
+	 */
+	public static function clear_cookie_nonce_error( $error ) {
+		// WP core `rest_cookie_check_errors` calls wp_set_current_user(0)
+		// whenever a request lacks a wp_rest nonce, even if the wordpress
+		// logged-in cookie was valid. Re-authenticate from the hatch_jwt
+		// (or Bearer) token so REST endpoints see the real user again.
+		// Also drops the rest_cookie_invalid_nonce error the same path
+		// raises when a nonce was sent but did not verify.
+		if ( ! defined( 'REST_REQUEST' ) || ! REST_REQUEST ) {
+			return $error;
+		}
+		$uid = 0;
+		if ( isset( $_COOKIE[ self::COOKIE_NAME ] ) ) {
+			$p = self::verify_token( (string) $_COOKIE[ self::COOKIE_NAME ] );
+			if ( $p && ! empty( $p['sub'] ) ) {
+				$uid = (int) $p['sub'];
+			}
+		}
+		if ( 0 === $uid ) {
+			$auth = isset( $_SERVER['HTTP_AUTHORIZATION'] ) ? (string) $_SERVER['HTTP_AUTHORIZATION']
+				: ( isset( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) ? (string) $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] : '' );
+			if ( $auth && stripos( $auth, 'Bearer ' ) === 0 ) {
+				$p = self::verify_token( trim( substr( $auth, 7 ) ) );
+				if ( $p && ! empty( $p['sub'] ) ) {
+					$uid = (int) $p['sub'];
+				}
+			}
+		}
+		if ( $uid > 0 && get_user_by( 'id', $uid ) ) {
+			if ( get_current_user_id() !== $uid ) {
+				wp_set_current_user( $uid );
+			}
+			if ( is_wp_error( $error ) && 'rest_cookie_invalid_nonce' === $error->get_error_code() ) {
+				return null;
+			}
+		}
+		return $error;
+	}
+
+	/* --------------------------------------------------------------------- *
 	 * Response helpers
 	 * --------------------------------------------------------------------- */
 
@@ -260,10 +354,26 @@ class Hatch_Auth {
 			'roles' => array_values( (array) $user->roles ),
 		) );
 		self::set_cookie( $token, $exp );
+
+		// Also mint a real WordPress session cookie (wordpress_logged_in_*).
+		// The Store API keys carts + orders to the WP user id, which requires
+		// the native auth cookie. JWT alone is not enough for Woo binding.
+		// Standards followed: pluggable.php wp_set_auth_cookie() contract
+		// and RFC 6265 (HttpOnly SameSite cookies).
+		$wp_login_set = false;
+		if ( function_exists( 'wp_set_auth_cookie' ) && ! headers_sent() ) {
+			wp_set_current_user( (int) $user->ID );
+			wp_set_auth_cookie( (int) $user->ID, true, is_ssl() );
+			do_action( 'wp_login', $user->user_login, $user );
+			$wp_login_set = true;
+		}
+
 		return new WP_REST_Response( array(
 			'token'      => $token,
 			'user'       => self::user_shape( $user ),
 			'expires_at' => $exp,
+			'wp_login'   => $wp_login_set,
+			'ok'         => true,
 		), 200 );
 	}
 

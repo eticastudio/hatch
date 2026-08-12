@@ -100,7 +100,7 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
                 password: String(data.get('password') || ''),
               }),
               headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-              credentials: 'same-origin',
+              credentials: 'include',
             });
             const body = await res.json().catch(() => ({}));
             if (!res.ok) {

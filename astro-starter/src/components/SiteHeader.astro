@@ -66,6 +66,25 @@ const currentPath = Astro.url.pathname;
 const isActive = (href: string) =>
   href === '/' ? currentPath === '/' : currentPath.startsWith(href);
 
+// Auth UI visibility scope. Login/Account links belong on Woo surfaces
+// only. Blog, home, and content routes stay guest-first so a first-time
+// reader is never gated. Register + Login pages themselves count as Woo
+// surfaces so the entry link stays visible during the sign-in flow.
+const WOO_PATH_EXACT = new Set([
+  '/cart', '/cart/',
+  '/checkout', '/checkout/',
+  '/account', '/account/',
+  '/shop', '/shop/',
+  '/login', '/login/',
+  '/register', '/register/',
+  '/order-summary', '/order-summary/',
+]);
+const WOO_PATH_PREFIX = ['/shop/', '/product/', '/cart/', '/checkout/', '/account/', '/order-summary/'];
+const showAuth = WOO_PATH_EXACT.has(currentPath)
+  || WOO_PATH_PREFIX.some((p) => currentPath.startsWith(p));
+const accountHref = `/account`;
+const authLabel = 'Account';
+
 const theme = (features.theme || 'blog').toLowerCase();
 
 // Docs theme version chip — pulls plugin version from features if exposed,
@@ -94,11 +113,14 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
         {showLogo && <img src={logoUrl} alt={siteName} class="h-8 w-auto max-w-[220px] inline-block align-middle" loading="eager" />}
         {showText && <span>{siteName}</span>}
       </a>
-      {navItems.length > 0 && (
+      {(navItems.length > 0 || showAuth) && (
         <nav class="hatch-blog-navrow hidden md:flex" aria-label="Primary">
           {navItems.map((item) => (
             <a href={item.href} target={item.target || undefined} class:list={[isActive(item.href) ? 'is-active' : '']}>{item.label}</a>
           ))}
+          {showAuth && (
+            <a href={accountHref} data-hatch-auth-link class:list={[isActive(accountHref) ? 'is-active' : '']}>{authLabel}</a>
+          )}
         </nav>
       )}
       <form role="search" method="get" action="/search" class="hatch-header-search hidden md:flex" aria-label="Site search">
@@ -127,6 +149,9 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
         {navItems.map((item) => (
           <a href={item.href} target={item.target || undefined} class:list={[isActive(item.href) ? 'is-active' : '']}>{item.label}</a>
         ))}
+        {showAuth && (
+          <a href={accountHref} data-hatch-auth-link class:list={[isActive(accountHref) ? 'is-active' : '']}>{authLabel}</a>
+        )}
       </nav>
       <form role="search" method="get" action="/search" class="hatch-header-search hidden md:flex" aria-label="Site search">
         <input type="search" name="q" placeholder="Search" autocomplete="off" aria-label="Search" />
@@ -153,6 +178,9 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
         {navItems.map((item) => (
           <a href={item.href} target={item.target || undefined} class:list={[isActive(item.href) ? 'is-active' : '']}>{item.label}</a>
         ))}
+        {showAuth && (
+          <a href={accountHref} data-hatch-auth-link class:list={[isActive(accountHref) ? 'is-active' : '']}>{authLabel}</a>
+        )}
       </nav>
       <form role="search" method="get" action="/search" class="hatch-header-search hidden md:flex" aria-label="Site search">
         <input type="search" name="q" placeholder="Search" autocomplete="off" aria-label="Search" />
@@ -198,6 +226,13 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
         {item.label}
       </a>
     ))}
+    {showAuth && (
+      <a href={accountHref} data-hatch-auth-link
+         class:list={['px-3 py-3 rounded-md text-[14px] font-medium transition-colors',
+                      isActive(accountHref) ? 'text-hatch-fg bg-hatch-bg-3' : 'text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2']}>
+        {authLabel}
+      </a>
+    )}
   </nav>
 </div>
 
