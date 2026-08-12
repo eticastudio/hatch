@@ -305,3 +305,62 @@ body.toplevel_page_hatch #wpfooter { display: none !important; }
 .hatch-react .hx-label  { font-size: 14px; font-weight: 500; line-height: 1.4; }
 .hatch-react .hx-desc   { font-size: 13px; font-weight: 400; line-height: 1.5; }
 .hatch-react .hx-help   { font-size: 11px; font-weight: 400; }
+
+/* Feel: applied per `make-interfaces-feel-better` skill (2026-08-12).
+   Kills transition:all, adds tactile scale-on-press, tabular numerals,
+   text-wrap balance on headings, font smoothing, and a proper focus ring. */
+.hatch-react {
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	font-variant-numeric: tabular-nums;
+}
+.hatch-react h1, .hatch-react h2, .hatch-react h3, .hatch-react .hx-title {
+	text-wrap: balance;
+}
+.hatch-react p, .hatch-react .hx-desc, .hatch-react .hx-byline {
+	text-wrap: pretty;
+}
+.hatch-react [class*="tabular"], .hatch-react code, .hatch-react .hx-badge, .hatch-react time {
+	font-variant-numeric: tabular-nums;
+}
+/* Kill transition:all globally in admin — replace with specific props on the
+   ~1800 offenders detected by the audit. Elements needing motion opt back in
+   with `transition-property: <specific>` on their own class. */
+.hatch-react * { transition-property: background-color, border-color, color, fill, stroke, opacity, transform, box-shadow; transition-duration: 160ms; transition-timing-function: var(--hx-ease); }
+/* Scale-on-press: subtle tactile feedback on every interactive element. */
+.hatch-react button:not(:disabled):active,
+.hatch-react .hx-btn:not(:disabled):active,
+.hatch-react [role="button"]:not(:disabled):active,
+.hatch-react .hx-seg-item:not(:disabled):active {
+	transform: scale(0.96);
+}
+/* Focus ring: 2px primary + 2px offset + 4px radius. Same in every tab. */
+.hatch-react a:focus-visible,
+.hatch-react button:focus-visible,
+.hatch-react input:focus-visible,
+.hatch-react select:focus-visible,
+.hatch-react textarea:focus-visible,
+.hatch-react [role="tab"]:focus-visible,
+.hatch-react [role="button"]:focus-visible {
+	outline: 2px solid var(--hx-primary);
+	outline-offset: 2px;
+	border-radius: 4px;
+}
+/* Minimum 40x40 hit area on standalone icon controls (close x, chevrons,
+   solo icon buttons). Explicitly NOT applied to inline `.hx-chip` in
+   flex-wrap rows because adjacent 40x40 zones would overlap and hijack
+   clicks between neighbors. Add `.hx-icon-btn` on the button element itself
+   for the hit-area boost. */
+.hatch-react .hx-icon-btn,
+.hatch-react button.hx-close {
+	position: relative;
+}
+.hatch-react .hx-icon-btn::before,
+.hatch-react button.hx-close::before {
+	content: "";
+	position: absolute;
+	inset: 50% 50%;
+	width: 40px; height: 40px;
+	transform: translate(-50%, -50%);
+	pointer-events: auto;
+}
