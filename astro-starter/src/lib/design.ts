@@ -89,6 +89,11 @@ export function designToCssVars(design: any | null | undefined): string {
     '--hatch-bg-design': b.bg,
     '--hatch-density': density,
     '--hatch-button-radius': buttonStyle,
+    // v0.50.32 — max-width was previously left to theme CSS, so the admin
+    // "Max content width" control had no frontend effect. Inline it so user
+    // intent wins (inline style beats theme selector). Themes that need a
+    // per-theme override can `var(--hatch-max-width, <default>)`.
+    '--hatch-max-width': `${maxWidth}px`,
     '--hatch-border-color': borderColor,
     '--hatch-shadow': shadow,
     '--hatch-bp-mobile':  `${bpMobile}px`,

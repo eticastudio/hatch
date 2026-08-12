@@ -46,6 +46,83 @@ class Hatch_Revalidate {
 		add_action( 'save_post', array( $this, 'on_post_change' ), 10, 3 );
 		add_action( 'delete_post', array( $this, 'on_post_delete' ) );
 		add_action( 'transition_post_status', array( $this, 'on_status_change' ), 10, 3 );
+		// Admin option saves (design, layout, borders, aesthetic, perf, etc.)
+		// must invalidate the Astro in-process features cache; without this,
+		// backend clicks take up to 60s to reflect on the frontend and the
+		// stale-while-revalidate window keeps CDN-cached HTML alive up to 1hr.
+		// Debounced per-request via a static flag so a batch REST write that
+		// touches ten options only fires one webhook.
+		add_action( 'updated_option', array( $this, 'on_option_change' ), 10, 3 );
+		add_action( 'added_option', array( $this, 'on_option_added' ), 10, 2 );
+		add_action( 'shutdown', array( $this, 'maybe_flush_option_change' ), 20 );
+	}
+
+	/**
+	 * Per-request flag: did any hatch_* option change this cycle?
+	 *
+	 * @var bool
+	 */
+	private $option_dirty = false;
+
+	/**
+	 * Called on every option update. Marks the request dirty if the option
+	 * name is one we own; the flush happens once on shutdown.
+	 *
+	 * @param string $option Option name.
+	 * @param mixed  $old    Old value.
+	 * @param mixed  $new    New value.
+	 * @return void
+	 */
+	public function on_option_change( $option, $old, $new ): void {
+		if ( ! is_string( $option ) || 0 !== strpos( $option, 'hatch_' ) ) {
+			return;
+		}
+		// Skip our own bookkeeping keys to prevent recursive updated_option
+		// cascades (this handler writes hatch_design_last_saved and Hatch_
+		// Revalidate::fire writes hatch_last_revalidate_at).
+		if ( 'hatch_design_last_saved' === $option || 'hatch_last_revalidate_at' === $option ) {
+			return;
+		}
+		if ( $old === $new ) {
+			return;
+		}
+		$this->option_dirty = true;
+		// Bump a monotonic version so consumers that key on it can bust.
+		update_option( 'hatch_design_last_saved', time(), false );
+	}
+
+	/**
+	 * Called when a new hatch_* option is first added.
+	 *
+	 * @param string $option Option name.
+	 * @param mixed  $value  Value.
+	 * @return void
+	 */
+	public function on_option_added( $option, $value ): void {
+		if ( ! is_string( $option ) || 0 !== strpos( $option, 'hatch_' ) ) {
+			return;
+		}
+		if ( 'hatch_design_last_saved' === $option || 'hatch_last_revalidate_at' === $option ) {
+			return;
+		}
+		$this->option_dirty = true;
+		update_option( 'hatch_design_last_saved', time(), false );
+	}
+
+	/**
+	 * Fire one revalidate webhook per request if any hatch_* option changed.
+	 *
+	 * @return void
+	 */
+	public function maybe_flush_option_change(): void {
+		if ( ! $this->option_dirty ) {
+			return;
+		}
+		$this->option_dirty = false;
+		$this->fire( array(
+			'event' => 'options_updated',
+			'tag'   => 'all',
+		) );
 	}
 
 	/**
