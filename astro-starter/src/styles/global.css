@@ -459,13 +459,23 @@ summary:focus-visible,
 	opacity: 0.55;
 	cursor: not-allowed;
 }
-/* Text stays white on the primary fill regardless of theme mode.
-   Works for the 95%+ of brand primaries that are saturated enough for
-   white to hit WCAG AA. If a user picks a pale primary the button gets
-   low contrast, but that's on their color choice, not our default. */
-.hatch-btn--primary,
-.hatch-form__submit.hatch-btn--primary {
-	color: #ffffff;
+/* Text stays white on the primary fill regardless of theme mode. Uses
+   .hatch-btn.hatch-btn--primary specificity to beat per-theme rules like
+   [data-hatch-theme="tech"] .hatch-btn { color: ... } that would otherwise
+   win the cascade. Works for the 95%+ of brand primaries that are
+   saturated enough for white to hit WCAG AA. */
+.hatch-btn.hatch-btn--primary,
+a.hatch-btn.hatch-btn--primary,
+button.hatch-btn.hatch-btn--primary,
+.hatch-form__submit.hatch-btn--primary,
+[data-hatch-theme] .hatch-btn.hatch-btn--primary,
+[data-hatch-theme] a.hatch-btn.hatch-btn--primary,
+[data-hatch-theme] button.hatch-btn.hatch-btn--primary {
+	color: #ffffff !important;
+}
+[data-hatch-theme] .hatch-btn.hatch-btn--primary:hover,
+[data-hatch-theme] a.hatch-btn.hatch-btn--primary:hover {
+	color: #ffffff !important;
 }
 
 @media (max-width: 640px) {
