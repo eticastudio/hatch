@@ -2,7 +2,7 @@
   "name": "hatch-wp",
   "version": "0.5.0",
   "description": "Hatch — headless WordPress engine. WP plugin that turns your WordPress into a fast, unhackable Astro frontend. Uses standard core Gutenberg blocks only.",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "author": "Aditya Sharma <hi@adityaarsharma.com>",
   "homepage": "https://github.com/adityaarsharma/hatch",
   "repository": {

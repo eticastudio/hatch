@@ -9,8 +9,8 @@
  * Requires PHP:      7.4
  * Author:            Aditya Sharma
  * Author URI:        https://adityaarsharma.com
- * License:           GPLv2 or later
- * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * License:           AGPL-3.0-or-later
+ * License URI:       https://www.gnu.org/licenses/agpl-3.0.html
  * Text Domain:       hatch
  * Domain Path:       /languages
  * Update URI:        https://github.com/adityaarsharma/hatch
