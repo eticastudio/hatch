@@ -165,10 +165,18 @@ class Hatch_Deploy_Broker {
 		update_option( 'hatch_mount_mode', $mount_mode, false );
 		update_option( 'hatch_mount_subpath', $sub_path, false );
 
+		// Public WP URL override. When the site's home_url() is a private
+		// address (localhost, tunnel-only dev), an admin can set
+		// hatch_wp_public_url to a URL that Cloudflare's edge / Vercel's
+		// build servers can actually reach. Falls back to home_url() for
+		// standard production installs on a public domain.
+		$wp_public = trim( (string) get_option( 'hatch_wp_public_url', '' ) );
+		$wp_url    = '' !== $wp_public ? untrailingslashit( $wp_public ) : untrailingslashit( home_url() );
+
 		// Call broker /prepare server-to-server.
 		$prepare_url = self::base_url() . '/deploy/' . $provider . '/prepare';
 		$body        = array(
-			'wp_url'         => untrailingslashit( home_url() ),
+			'wp_url'         => $wp_url,
 			'wp_user'        => $fresh['username'],
 			'wp_pass'        => $fresh['password'],
 			'webhook_secret' => $webhook_secret,
