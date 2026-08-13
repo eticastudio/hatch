@@ -195,11 +195,37 @@ const tk = themeKey(features);
     ></div>
   )}
 
-  {tk === 'tech'       && <TechSingle       post={post} features={features} toc={toc} related={related} adjacent={adjacent} dateLabel={dateLabel} updatedLabel={updatedLabel} canonical={canonical} bodyHtml={bodyHtml || post.content} flags={themeFlags} />}
-  {tk === 'docs'       && <DocsSingle       post={post} features={features} toc={toc} related={related} adjacent={adjacent} dateLabel={dateLabel} updatedLabel={updatedLabel} canonical={canonical} bodyHtml={bodyHtml || post.content} flags={themeFlags} />}
-  {tk === 'astropaper' && <AstroPaperSingle post={post} features={features} toc={toc} related={related} adjacent={adjacent} dateLabel={dateLabel} updatedLabel={updatedLabel} canonical={canonical} bodyHtml={bodyHtml || post.content} flags={themeFlags} />}
-  {tk === 'astrowind'  && <AstroWindSingle  post={post} features={features} toc={toc} related={related} adjacent={adjacent} dateLabel={dateLabel} updatedLabel={updatedLabel} canonical={canonical} bodyHtml={bodyHtml || post.content} flags={themeFlags} />}
-  {tk === 'astronano'  && <AstroNanoSingle  post={post} features={features} toc={toc} related={related} adjacent={adjacent} dateLabel={dateLabel} updatedLabel={updatedLabel} canonical={canonical} bodyHtml={bodyHtml || post.content} flags={themeFlags} />}
+  {/* v0.51.0. Per-theme Single components declare `<slot name="comments" />`
+      but the previous self-closing calls left it empty, so any post rendered
+      under tech/docs/astropaper/astrowind/astronano rendered NO comment UI
+      even when Hatch admin + WP Discussion both had comments on. Fill the
+      slot with the same HatchComments component the blog theme uses inline
+      below. Gate on showComments so the parent flag still wins. */}
+  {tk === 'tech'       && (
+    <TechSingle       post={post} features={features} toc={toc} related={related} adjacent={adjacent} dateLabel={dateLabel} updatedLabel={updatedLabel} canonical={canonical} bodyHtml={bodyHtml || post.content} flags={themeFlags}>
+      {showComments && <HatchComments slot="comments" features={features} postId={post.id} postTitle={post.title} />}
+    </TechSingle>
+  )}
+  {tk === 'docs'       && (
+    <DocsSingle       post={post} features={features} toc={toc} related={related} adjacent={adjacent} dateLabel={dateLabel} updatedLabel={updatedLabel} canonical={canonical} bodyHtml={bodyHtml || post.content} flags={themeFlags}>
+      {showComments && <HatchComments slot="comments" features={features} postId={post.id} postTitle={post.title} />}
+    </DocsSingle>
+  )}
+  {tk === 'astropaper' && (
+    <AstroPaperSingle post={post} features={features} toc={toc} related={related} adjacent={adjacent} dateLabel={dateLabel} updatedLabel={updatedLabel} canonical={canonical} bodyHtml={bodyHtml || post.content} flags={themeFlags}>
+      {showComments && <HatchComments slot="comments" features={features} postId={post.id} postTitle={post.title} />}
+    </AstroPaperSingle>
+  )}
+  {tk === 'astrowind'  && (
+    <AstroWindSingle  post={post} features={features} toc={toc} related={related} adjacent={adjacent} dateLabel={dateLabel} updatedLabel={updatedLabel} canonical={canonical} bodyHtml={bodyHtml || post.content} flags={themeFlags}>
+      {showComments && <HatchComments slot="comments" features={features} postId={post.id} postTitle={post.title} />}
+    </AstroWindSingle>
+  )}
+  {tk === 'astronano'  && (
+    <AstroNanoSingle  post={post} features={features} toc={toc} related={related} adjacent={adjacent} dateLabel={dateLabel} updatedLabel={updatedLabel} canonical={canonical} bodyHtml={bodyHtml || post.content} flags={themeFlags}>
+      {showComments && <HatchComments slot="comments" features={features} postId={post.id} postTitle={post.title} />}
+    </AstroNanoSingle>
+  )}
 
   {/* Blog theme — keep the existing inline render below (default fallback). */}
   {tk === 'blog' && (
