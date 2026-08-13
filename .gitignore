@@ -57,3 +57,13 @@ hatch.zip
 HANDOFF-*.md
 astro-starter/.env.bak
 test/200/
+
+# v0.7.6.1 cleanup — never track scratch/test artifacts again
+tests/consistency/test-results/
+test/test-results/
+.claude/scratch/
+*.bak
+*.bak-*
+*.orig
+*.tmp
+*.log
