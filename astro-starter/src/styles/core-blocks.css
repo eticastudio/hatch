@@ -918,3 +918,116 @@
 	box-shadow: 0 0 0 3px color-mix(in oklab, var(--hatch-primary) 22%, transparent);
 	transform: translateY(-1px);
 }
+
+/* v0.51 — WPForms structural shim.
+   The Forms Bridge normally replaces WPForms shortcodes with a mount
+   div that HatchForm.astro hydrates. When raw wpforms markup slips
+   through (older content, block editor embeds), we still need the
+   plain fields to look like the site rather than an unstyled dump.
+   Clean-room CSS built from the public class contract only; ships
+   no plugin styles. Paired with the wpforms submit interceptor
+   inside HatchForm.astro. */
+.wpforms-container {
+	max-width: 100%;
+	margin: 1.5rem 0;
+}
+.wpforms-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+	margin-bottom: 1rem;
+}
+.wpforms-field-label,
+.wpforms-form label {
+	font-weight: 500;
+	font-size: 0.925rem;
+	color: var(--hatch-fg);
+}
+.wpforms-required-label {
+	color: var(--hatch-danger, #b91c1c);
+	margin-left: 0.15em;
+}
+.wpforms-form input[type="text"],
+.wpforms-form input[type="email"],
+.wpforms-form input[type="tel"],
+.wpforms-form input[type="url"],
+.wpforms-form input[type="number"],
+.wpforms-form input[type="password"],
+.wpforms-form input[type="search"],
+.wpforms-form textarea,
+.wpforms-form select {
+	width: 100%;
+	padding: 0.65rem 0.85rem;
+	border: 1px solid var(--hatch-border);
+	border-radius: var(--hatch-radius, 8px);
+	background: var(--hatch-bg);
+	color: var(--hatch-fg);
+	font: inherit;
+	line-height: 1.4;
+	transition:
+		border-color 160ms ease,
+		box-shadow 160ms ease;
+}
+.wpforms-form textarea { min-height: 6.5rem; resize: vertical; }
+.wpforms-form input:focus,
+.wpforms-form textarea:focus,
+.wpforms-form select:focus {
+	outline: none;
+	border-color: var(--hatch-fg);
+	box-shadow: 0 0 0 3px color-mix(in oklab, var(--hatch-fg) 15%, transparent);
+}
+.wpforms-form input[aria-invalid="true"],
+.wpforms-form textarea[aria-invalid="true"],
+.wpforms-form select[aria-invalid="true"] {
+	border-color: var(--hatch-danger, #b91c1c);
+	box-shadow: 0 0 0 3px color-mix(in oklab, var(--hatch-danger, #b91c1c) 18%, transparent);
+}
+.wpforms-field-error,
+.wpforms-error-container {
+	color: var(--hatch-danger, #b91c1c);
+	font-size: 0.85rem;
+	margin-top: 0.25rem;
+}
+.wpforms-submit-container {
+	margin-top: 1.25rem;
+}
+.wpforms-form .wpforms-submit,
+.wpforms-form button[type="submit"] {
+	appearance: none;
+	border: 0;
+	padding: 0.7rem 1.4rem;
+	font: inherit;
+	font-weight: 600;
+	background: var(--hatch-primary);
+	color: var(--hatch-primary-fg, #fff);
+	border-radius: var(--hatch-radius, 6px);
+	cursor: pointer;
+	transition: background 150ms ease, transform 150ms ease;
+}
+.wpforms-form .wpforms-submit:hover:not(:disabled),
+.wpforms-form button[type="submit"]:hover:not(:disabled) {
+	background: color-mix(in oklab, var(--hatch-primary) 90%, black);
+	transform: translateY(-1px);
+}
+.wpforms-form .wpforms-submit:disabled,
+.wpforms-form button[type="submit"]:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+.wpforms-confirmation-container,
+.wpforms-success,
+.hatch-wpforms-success {
+	padding: 1rem 1.25rem;
+	border-radius: 8px;
+	background: color-mix(in oklab, #16a34a 12%, var(--hatch-bg));
+	color: var(--hatch-fg);
+	border: 1px solid #16a34a;
+	margin: 1rem 0;
+}
+.hatch-wpforms-status {
+	margin-top: 0.75rem;
+	font-size: 0.9rem;
+}
+.hatch-wpforms-status--error {
+	color: var(--hatch-danger, #b91c1c);
+}

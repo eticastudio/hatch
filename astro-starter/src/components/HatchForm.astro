@@ -365,9 +365,113 @@
       mount.append(form);
     }
 
+    // v0.51: raw WPForms fallback interceptor.
+    // When post_content ships full wpforms markup (block editor embeds,
+    // older content saved before the shortcode-to-marker replacement
+    // was in place), the marker div does not exist and hydrate() never
+    // runs. Without this the browser would submit the form to the WP
+    // JSON content endpoint that produced the page, which navigates
+    // away and looks like a broken redirect.
+    //
+    // We intercept the submit, repackage the wpforms[fields][N] payload
+    // into the {fields: {N: value}} shape the /api/hatch-form proxy
+    // already speaks, and render success/error in place using tokens.
+    function collectWpforms(form) {
+      const fields = {};
+      const fd = new FormData(form);
+      const bracket = /^wpforms\[fields\]\[([^\]]+)\](?:\[\])?$/;
+      for (const [rawKey, val] of fd.entries()) {
+        const m = rawKey.match(bracket);
+        if (!m) continue;
+        const key = m[1];
+        if (rawKey.endsWith('[]')) {
+          if (!Array.isArray(fields[key])) fields[key] = [];
+          fields[key].push(val);
+        } else if (key in fields) {
+          fields[key] = Array.isArray(fields[key]) ? [...fields[key], val] : [fields[key], val];
+        } else {
+          fields[key] = val;
+        }
+      }
+      return fields;
+    }
+
+    function bindWpformsFallback(form) {
+      if (form.__hatchWpformsBound) return;
+      form.__hatchWpformsBound = true;
+
+      const formId = form.getAttribute('data-formid') || (form.id || '').replace(/^wpforms-form-/, '');
+      if (!formId) return;
+
+      // Rewrite the action to our same-origin proxy so any accidental
+      // native submit (JS error, keyboard enter before bind) still lands
+      // on a working endpoint instead of the content JSON endpoint.
+      form.setAttribute('action', `/api/hatch-form/wpforms/${formId}/submit`);
+      form.setAttribute('method', 'post');
+
+      const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+      const originalText = submitBtn ? (submitBtn.textContent || submitBtn.value || 'Submit') : 'Submit';
+      const sendingText = submitBtn ? (submitBtn.getAttribute('data-alt-text') || 'Sending...') : 'Sending...';
+
+      let status = form.querySelector('.hatch-wpforms-status');
+      if (!status) {
+        status = el('div', { class: 'hatch-wpforms-status', 'aria-live': 'polite' });
+        form.append(status);
+      }
+
+      form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        status.textContent = '';
+        status.className = 'hatch-wpforms-status';
+
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          if ('textContent' in submitBtn && submitBtn.tagName === 'BUTTON') submitBtn.textContent = sendingText;
+        }
+
+        const fields = collectWpforms(form);
+        try {
+          const res = await fetch(`/api/hatch-form/wpforms/${formId}/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ fields }),
+            credentials: 'omit',
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && (data.ok || data.success)) {
+            const container = form.closest('.wpforms-container') || form.parentNode;
+            const msg = (data.message
+              || data.confirmation?.message
+              || data.data?.confirmation?.message
+              || 'Thanks, your message has been received.');
+            const wrap = el('div', { class: 'wpforms-confirmation-container hatch-wpforms-success', html: String(msg) });
+            container.replaceChild(wrap, form);
+            if (data.redirect_url || data.confirmation?.redirect_url) {
+              const to = data.redirect_url || data.confirmation.redirect_url;
+              setTimeout(() => { try { window.location.assign(String(to)); } catch {} }, 400);
+            }
+            return;
+          }
+          status.classList.add('hatch-wpforms-status--error');
+          const errText = (data && (data.msg || data.message || data.error)) || `Submission failed (HTTP ${res.status}).`;
+          status.textContent = String(errText);
+        } catch (e) {
+          status.classList.add('hatch-wpforms-status--error');
+          status.textContent = 'Something went wrong sending the form.';
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            if (submitBtn.tagName === 'BUTTON') submitBtn.textContent = originalText;
+          }
+        }
+      }, { capture: true });
+    }
+
     function boot() {
       const mounts = document.querySelectorAll('[data-hatch-form-id][data-hatch-form-provider]');
       mounts.forEach((m) => { hydrate(m); });
+      // Fallback for raw wpforms markup that came through un-shortcoded.
+      document.querySelectorAll('form.wpforms-form').forEach(bindWpformsFallback);
     }
 
     if (document.readyState === 'loading') {
