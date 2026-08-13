@@ -1,10 +1,10 @@
 <div align="center">
 
-# Hatch: Headless WordPress in an Afternoon
+# Hatch: Headless WordPress, Made Easy
 
-**The self-hosted headless WordPress plugin that ships one Astro frontend, one deploy broker, and 1-click headless WordPress deploy to Cloudflare Workers, Vercel, or your own VPS.**
+**One WordPress plugin. One Astro starter. One deploy broker. Ships a headless WordPress site in an afternoon.**
 
-Activate the plugin. Run the 3-step wizard. Paste an API token or a single curl line. Watch a 90-second build finish and hand you a live URL. Your editor stays exactly where it is, your WordPress REST API gets hardened, and your WordPress Astro frontend renders static-fast on the host you pick.
+Activate the plugin. Run the 3-step wizard. Paste an API token or a curl line for a VPS. A 90-second build finishes and hands you a live URL. The Gutenberg editor stays exactly where it is. The WordPress REST API gets hardened. Your Astro frontend renders on Cloudflare Workers, Vercel, or a VPS you already own.
 
 [![Latest Release](https://img.shields.io/github/v/release/adityaarsharma/hatch?color=8b5cf6&style=flat-square)](https://github.com/adityaarsharma/hatch/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-10b981?style=flat-square)](LICENSE)
@@ -146,13 +146,13 @@ Three themes ship in the box (see below), lazy per-theme CSS (only the active th
 
 ## The three included themes
 
-Pick from three themes with genuinely distinct visual languages. Every theme owns its own header, footer, and typography.
+Three themes, three distinct visual languages. Each theme owns its own header, footer, typography, and per-block styling.
 
-| Theme | Vibe | Best for |
+| Theme | What it looks like | Best for |
 |---|---|---|
-| **Astropaper** | Editorial magazine. Serif small-caps wordmark, three-up masthead with edition date, byline strip with kicker nav. Editorial colophon footer. | Blogs, publications, longform writers |
-| **Tech** | Terminal / dev. Flat dark mast, `~/sitename$` mono prompt, JetBrains Mono nav with `─` separators, `● online` status pill. `$ exit 0` footer. | Developer sites, open source docs, changelogs |
-| **Docs** | Documentation. Compact bar with brand + version badge, URL-derived breadcrumbs, `Search docs… ⌘K` affordance, 4-column footer grid. | Product documentation, knowledge bases, API references |
+| **Blog** | Editorial magazine. Fraunces serif display, warm cream paper, single saffron accent, drop-cap on the opening paragraph, italic serif blockquotes with a left rule. | Personal blogs, publications, longform writers |
+| **Tech** | Terminal / dev. Flat dark mast, JetBrains Mono, code blocks with a left highlight bar, uppercase eyebrow tags, sharp 6px radii. | Developer sites, open source docs, changelogs |
+| **Docs** | Documentation. Geist sans, cool gray palette, sidebar with a 3px active rail, TOC hover indent, note / warning / tip callouts. | Product documentation, knowledge bases, API references |
 
 You write posts in **core Gutenberg**. Zero custom blocks to learn. Zero proprietary format. Hatch reads what you write via REST and the active theme renders it. This is the promise of Gutenberg blocks on Astro without a bridge library.
 
