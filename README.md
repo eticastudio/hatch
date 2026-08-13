@@ -1,269 +1,242 @@
 <div align="center">
 
-# 🐣 Hatch — Headless WordPress, made easy
+# Hatch: Headless WordPress in an Afternoon
 
-**One plugin + one Astro starter + a self-hosted deploy broker. Ship a fast, vendor-neutral headless WordPress site in an afternoon — without giving up the editor your team already knows.**
+**The self-hosted headless WordPress plugin that ships one Astro frontend, one deploy broker, and 1-click headless WordPress deploy to Cloudflare Workers, Vercel, or your own VPS.**
 
-Activate Hatch. Run the 3-step wizard. Paste a token (or a single curl line for VPS), watch a ~90-second build, get a live URL. No GitHub fork on your account. No GraphQL. No vendor lock-in. WordPress stays exactly where it is — the editor unchanged, the REST API hardened, the frontend rendered as static-fast Astro on the host of your choice.
+Activate the plugin. Run the 3-step wizard. Paste an API token or a single curl line. Watch a 90-second build finish and hand you a live URL. Your editor stays exactly where it is, your WordPress REST API gets hardened, and your WordPress Astro frontend renders static-fast on the host you pick.
 
-[![One Plugin · Everything](https://img.shields.io/badge/One_Plugin-Everything-2563eb?style=flat-square)](#whats-inside)
+[![Latest Release](https://img.shields.io/github/v/release/adityaarsharma/hatch?color=8b5cf6&style=flat-square)](https://github.com/adityaarsharma/hatch/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-10b981?style=flat-square)](LICENSE)
 [![Astro 6](https://img.shields.io/badge/Astro-6-ff5e1f?style=flat-square)](https://astro.build)
 [![WordPress 6.4+](https://img.shields.io/badge/WordPress-6.4+-21759b?style=flat-square)](https://wordpress.org)
-[![Latest Release](https://img.shields.io/github/v/release/adityaarsharma/hatch?color=8b5cf6&style=flat-square)](https://github.com/adityaarsharma/hatch/releases/latest)
 
-### 📦 [**Download Hatch v0.3.1 (latest) →**](https://github.com/adityaarsharma/hatch/releases/latest/download/hatch.zip)
+### [Download Hatch v0.7.6.1 (latest)](https://github.com/adityaarsharma/hatch/releases/latest/download/hatch.zip)
 
 _Drop into `wp-content/plugins/`. Activate. The setup wizard auto-launches._
 
-[Why this is different](#why-this-is-different) · [What's inside](#whats-inside) · [The 5 themes](#the-5-themes) · [How it works](#how-it-works) · [Install](#install) · [vs alternatives](#hatch-vs-everyone-else) · [FAQ](#faq)
+[Why headless WordPress usually sucks](#why-headless-wordpress-usually-sucks-and-why-hatch-fixes-it) · [60-second install](#60-second-install) · [Deploy targets](#deploy-targets) · [What ships in the box](#what-ships-in-the-box) · [Themes](#the-three-included-themes) · [How it works](#how-it-works) · [vs alternatives](#hatch-vs-alternatives) · [FAQ](#faq)
 
 </div>
 
 ---
 
-## Why this is different
+## Why headless WordPress usually sucks (and why Hatch fixes it)
 
-Every headless WordPress option in 2026 ships **one thing**. You assemble the rest yourself.
+Every existing decoupled WordPress option in 2026 hands you one piece and asks you to assemble the other eight yourself. Whether you evaluate GraphQL-based decoupled WordPress stacks or REST-first ones, the story rhymes.
 
-- **Faust.js** ships a Next.js framework. You still need a security plugin, a GraphQL plugin, an SEO bridge, a forms bridge, a deploy pipeline.
-- **gatsby-source-wordpress** ships a Gatsby data source. Same story — bring your own everything else.
-- **HeadstartWP** (10up) ships a React framework. Still bring everything else.
-- **DIY with REST** takes 3 weeks the first time, and the moment ACF, RankMath, or a custom post type misbehaves, you're alone with the WP REST docs.
+| The usual headless WordPress workflow | The Hatch workflow |
+|---|---|
+| Install a plugin. Then a GraphQL plugin. Then a security plugin. Then an SEO bridge. Then a forms bridge. Then a deploy pipeline. Three weeks later, ship. | Install one headless WordPress plugin. Run the 3-step wizard. Ship the same afternoon. |
+| Bring your own frontend, hosting, CI, and CDN. Debug the glue when ACF or RankMath breaks. | Bundled Astro starter with three themes, a self-hosted deploy broker, and a Plugin Bridge that auto-detects 12 capability providers. |
+| GraphQL is the price of entry: extra plugin, extra schema, extra runtime cost. | WordPress headless without GraphQL. Hatch runs on the standard WordPress REST API plus a tiny `hatch/v1/*` namespace for what REST does not expose (menus, SEO meta, features). WordPress REST API contracts stay stable across WP releases, so bridges do not break on core updates. |
+| SaaS lock-in with $99+/mo tiers or a per-seat editor. | MIT license, zero SaaS. Self-hosted headless WordPress deploy on any VPS you already own. |
 
-**Hatch ships the whole stack as a single WordPress plugin.**
-
-```
-One plugin includes:
-  ├─ React admin SPA — six tabs, premium Linear-grade UI, 105 KiB bundle
-  ├─ 3-step setup wizard with a 12-point preflight diagnostic
-  ├─ App Password generator with copy-to-clipboard .env block
-  ├─ Plugin Bridge — auto-detects 12 capability providers (Forms / SEO /
-  │  Redirects / eCommerce / Custom Fields / Email / Memberships / more)
-  ├─ WP Core Sync — one card mirrors every WP-owned setting your headless
-  │  frontend consumes (identity, permalinks, menus, post types, taxonomies,
-  │  authors, privacy, languages)
-  ├─ Security: REST lock, XML-RPC hard-403, username enum 404, robots.txt
-  │  Disallow, custom login slug, brute-force lockout, security headers,
-  │  Turnstile gating on wp-login + comments, 2FA enforce, App Password rotate
-  ├─ Performance: clean media URLs, instant navigation (Speculation Rules),
-  │  Partytown analytics off main thread, real-user telemetry
-  ├─ A bundled Astro starter with FIVE themes — each with its own unique
-  │  header + footer language
-  └─ A self-hosted deploy broker — one curl line to bring up a VPS,
-     one click to deploy to Cloudflare or Vercel
-```
-
-**No competitor bundles this.** This is the difference between "framework + 8 dependencies + a weekend" and "click install, done in an afternoon."
+Hatch is the only headless WordPress plugin that bundles the security hardening, the frontend, the Plugin Bridge, and the deploy tooling in one download. Running WordPress headless without GraphQL keeps the runtime footprint minimal and the debug surface tiny.
 
 ---
 
-## What's inside
+## 60-second install
 
-The plugin opens with **six centered tabs**, scoped to a CSS namespace so nothing leaks into wp-admin or other plugins.
+```bash
+# 1. Download the plugin
+curl -LO https://github.com/adityaarsharma/hatch/releases/latest/download/hatch.zip
 
-### 🔌 Connection — the home tab
+# 2. Drop it in wp-content/plugins/, then activate from WP Admin
+#    (or: wp plugin install hatch.zip --activate)
 
-- **Frontend URL** with edit-in-place
-- **12-point preflight diagnostic** (WordPress / PHP versions, permalinks, HTTPS, REST reachable + authenticated, App Passwords available, blocking plugins detected, cache plugins flagged, ACF / CPT REST exposure, webhook configured)
-- **Frontend credentials block** with copy-to-clipboard `.env` (WP URL, user, App Password, webhook secret)
-- **One-click broker deploy** — Cloudflare / Vercel / self-hosted VPS via a `curl` line
+# 3. Follow the wizard link that appears at the top of your dashboard
+```
 
-### 🎨 Design — your tokens, your visual system
-
-- **Theme picker** — five built-in themes (see below), each with a unique header + footer
-- **Brand colors** — primary, accent, fg, bg, and color mode (auto / light / dark)
-- **Typography** — heading + body font pickers wired to Google Fonts (preconnect already set)
-- **Layout** — max-width, density, border-radius scale, border + shadow tokens, breakpoints
-- **design.md upload** — paste a single Markdown file, your fonts + colors + density flow to the frontend as CSS vars (no rebuild, no AI)
-- **Reading-experience toggles** — progress bar, TOC sidebar, breadcrumb, reading time, last updated, author bio, heading anchors, share row, related posts, post navigation
-
-### 📝 Content — bridge to the WordPress ecosystem
-
-- **WP Core Sync card** — site identity, permalinks (with pretty-URL nudge), homepage, menu locations with inline picker, discussion (comments toggles), post types, taxonomies, users + roles, privacy, languages — all in one status view
-- **Plugin Bridge** — twelve capability slots auto-detect the WordPress plugin providing each:
-  - **Forms** → Fluent Forms · Gravity Forms · WPForms · Contact Form 7
-  - **SEO + Sitemap** → RankMath · Yoast · AIOSEO
-  - **Redirects** → RankMath · Yoast Premium · Redirection
-  - **eCommerce** → WooCommerce · Easy Digital Downloads · WP EasyCart
-  - **Custom Fields** → ACF · Meta Box · Pods · JetEngine
-  - **Email Newsletter** → FluentCRM · Mailchimp for WP · MailPoet
-  - **Memberships** → MemberPress · Paid Memberships Pro · Restrict Content Pro
-  - **Code Snippets** → WPCode · Code Snippets · Advanced Scripts
-  - **Data Tables** → TablePress · wpDataTables · Posts Table Pro
-- **Google Tag Manager container ID** — Hatch ships GTM only by design (add GA4, Plausible, Pixel inside your GTM container)
-- **Cloudflare Turnstile keys** — one key pair, used wherever spam protection is enabled
-
-### ⚡ Performance — best defaults locked
-
-Every toggle here has one job. Best defaults are locked in code; the toggles only flip the rare overrides:
-
-- **Clean media URLs** — auto WebP / AVIF, typically ~40% smaller images
-- **Instant navigation** — Speculation Rules prerender on hover (~sub-100ms click)
-- **Analytics off main thread** — Partytown runs GTM in a Web Worker (Lighthouse perf +15–30 points)
-- **Real-user telemetry** — TTFB + LCP beacon, no PII, ~200 bytes per pageview
-
-### 🛡️ Security — secure by default, every toggle does what it says
-
-The audit pass for v0.1.1 confirmed every toggle is **end-to-end wired** — no hollow UI:
-
-- **Lock the REST API** — anonymous `/wp-json/*` returns 401
-- **Kill XML-RPC** — `/xmlrpc.php` hard-returns 403 (not 200 with a method message)
-- **Hide usernames** — `?author=N` returns 404, `/wp/v2/users` is removed from the REST surface entirely
-- **Hide WP from Google** — meta robots noindex **and** `robots.txt` emits `Disallow: /`
-- **Hide wp-login.php** — move login to a secret slug, with hard-404 or homepage redirect for the old URL
-- **Restrict wp-admin access** — role guard, redirects non-allowed roles to the frontend at login
-- **Brute-force lockout** — IP blocked after N failed logins in a rolling window
-- **Server-side fortress** — `DISALLOW_FILE_EDIT`, `/uploads/.htaccess` PHP block, full security headers
-- **Bot & spam protection** — invisible Cloudflare Turnstile on wp-login and the classic comment form
-- **Application Passwords** — generate and rotate from the same card
-- **Require 2FA for admins** — when a 2FA plugin is installed and your account is enrolled
-
-### 📊 Status — read-only diagnostic
-
-One line per flag, credential, and cron Hatch is currently using. Monospace values, copyable. The one place to answer "where does this come from?" without leaving the dashboard.
+The wizard runs a 12-point preflight (permalinks, HTTPS, REST reachable, App Passwords available, cache conflicts flagged), generates an Application Password, and writes the `.env` block you copy into the Astro frontend.
 
 ---
 
-## The 5 themes
+## Deploy targets
 
-Pick from five themes, each with a genuinely distinct visual language — not the same shell with different colors.
+Hatch is the only 1-click headless WordPress deploy tool that supports all three hosting shapes from the same wizard. Each target owns a first-class adapter for the WordPress Astro frontend, so the same build ships to any of them without config drift.
 
-| Theme | Vibe | Header | Footer |
-|---|---|---|---|
-| **Astropaper** | Editorial / magazine | Three-up masthead with edition date, serif small-caps wordmark, byline strip with kicker nav + italic tagline | Editorial colophon with masthead, italic tagline, `Vol. XX · No. YY · ©` edition line |
-| **Tech** | Terminal / dev | Flat dark mast with primary accent stripe, `~/sitename$` mono prompt, JetBrains-Mono nav with `─` separators, `● online` status pill | 3-column terminal sign-off — `$ ls ./` link listing, `$ cat status` meta, `~/site $ exit 0` prompt |
-| **Docs** | Documentation site | Compact bar with brand + version badge, URL-derived breadcrumbs, `Search docs… ⌘K` affordance, underline-on-active nav | 4-column structured grid: brand + tagline + version / Documentation / Resources / More |
-| **Astrowind** | Marketing / SaaS | Gradient brand badge, centered ghost-pill nav, gradient `Get started →` CTA auto-targeted to your last menu item | Gradient newsletter CTA band, 4-column nav grid, polished bottom strip |
-| **Astronano** | Minimal / personal | Tiny lowercase text-only wordmark, plain-text nav, no border, no chrome, tiny inline sun/moon toggle | Single restrained row of `© year sitename · 2-3 links · credit` |
+<table>
+<tr>
+<td width="33%" valign="top">
 
-You write posts in **core Gutenberg** — paragraphs, headings, lists, images, embeds. No custom blocks to learn. Hatch reads what you write via REST and renders it on the active theme.
+### WordPress Cloudflare Workers
+
+Paste a Cloudflare API token. Click Deploy. Hatch pushes the Astro build to Cloudflare Workers (Pages runtime) and returns a live URL in ~90 seconds. No GitHub fork on your account, no surprise repos, no dashboard hopping. WordPress Cloudflare Workers hosting gives you global edge caching and a generous free tier out of the box.
+
+</td>
+<td width="33%" valign="top">
+
+### WordPress Vercel deploy
+
+Paste a Vercel token. Same Deploy button. WordPress Vercel deploy ships the SSR bundle to Vercel Functions with automatic preview URLs. Zero manual `vercel.json`. Zero framework-preset guessing. Every WordPress Vercel deploy run is idempotent, so shipping again just updates the same project.
+
+</td>
+<td width="33%" valign="top">
+
+### Your VPS (self-hosted)
+
+```bash
+curl -sSL https://hatch.adityaarsharma.com/install | bash
+```
+
+One line brings up Node, clones the Astro starter, writes the `.env`, runs the first build, and prints the URL. Runs on Hetzner, DigitalOcean, RunCloud, Coolify, Dokploy, a Raspberry Pi, or your laptop. Tokens live in memory only.
+
+</td>
+</tr>
+</table>
+
+---
+
+## What ships in the box
+
+One WordPress plugin ZIP. Everything below is included, wired, and audited end-to-end.
+
+### React admin dashboard
+
+Six tabs, scoped CSS namespace so nothing leaks into `wp-admin`, and a 105 KiB bundle. Every toggle does what its label says: the v0.7.6.1 audit closed the last hollow control.
+
+### Plugin Bridge (12 capability slots)
+
+Hatch auto-detects the existing WordPress plugin filling each capability and exposes it to the Astro frontend via REST.
+
+- **Forms:** Fluent Forms, Gravity Forms, WPForms, Contact Form 7
+- **SEO + Sitemap:** RankMath, Yoast, AIOSEO (meta, schema, sitemap, og:image, Twitter card all passed through)
+- **Redirects:** RankMath, Yoast Premium, Redirection
+- **eCommerce (WooCommerce headless):** WooCommerce Store API, Easy Digital Downloads, WP EasyCart
+- **Custom Fields:** ACF, Meta Box, Pods, JetEngine
+- **Email + Newsletter:** FluentCRM, Mailchimp for WP, MailPoet
+- **Memberships:** MemberPress, Paid Memberships Pro, Restrict Content Pro
+- **Code Snippets, Data Tables, Analytics (GTM), Turnstile keys, WP Core Sync** as first-class rows
+
+Every Bridge is REST-only. Zero WordPress plugin CSS or JS ever ships to the Astro side. Your form still renders, your SEO plugin still owns the meta, your redirects still fire, and the payload arrives as JSON while a pixel-perfect frontend stays under your control.
+
+### Headless-ready security fortress
+
+The v0.7.6.1 external pass confirmed every toggle is end-to-end wired.
+
+- REST API lock (anonymous `/wp-json/*` returns 401)
+- XML-RPC hard-403
+- Username enumeration returns 404, `/wp/v2/users` removed from REST
+- `robots.txt` emits `Disallow: /` and meta robots noindex on the WP domain
+- Custom login slug with hard-404 or homepage redirect for the old URL
+- Brute-force lockout (IP blocked after N failed logins in a rolling window)
+- `DISALLOW_FILE_EDIT`, `/uploads/.htaccess` PHP block, full security header stack
+- Invisible Cloudflare Turnstile on wp-login and the classic comment form
+- App Password rotate + 2FA enforcement when a 2FA plugin is present
+- SSRF-safe media proxy with a same-origin allowlist (v0.7.6.1 patch)
+
+### Performance defaults locked in code
+
+- Clean media URLs with auto WebP and AVIF (typically ~40% smaller images)
+- Speculation Rules prerender on hover (~sub-100ms perceived click)
+- Partytown moves analytics off the main thread (Lighthouse perf +15 to +30)
+- Real-user TTFB and LCP beacons, no PII, ~200 bytes per pageview
+- Zero WordPress CSS on the frontend (0 KB), because the frontend is Astro
+
+### The WP-side companion theme
+
+One-click install from the wizard. It handles the redirect from the WordPress domain to the headless frontend and does one job only. Install is optional. Skip it and WordPress serves its own theme as normal while every Hatch REST endpoint and security toggle keeps working.
+
+### A bundled Astro starter
+
+Three themes ship in the box (see below), lazy per-theme CSS (only the active theme loads), View Transitions, Speculation Rules, and Partytown wired. The starter renders Gutenberg blocks on Astro: the block JSON that Gutenberg produces is rendered by native Astro components using Hatch design tokens.
+
+---
+
+## The three included themes
+
+Pick from three themes with genuinely distinct visual languages. Every theme owns its own header, footer, and typography.
+
+| Theme | Vibe | Best for |
+|---|---|---|
+| **Astropaper** | Editorial magazine. Serif small-caps wordmark, three-up masthead with edition date, byline strip with kicker nav. Editorial colophon footer. | Blogs, publications, longform writers |
+| **Tech** | Terminal / dev. Flat dark mast, `~/sitename$` mono prompt, JetBrains Mono nav with `─` separators, `● online` status pill. `$ exit 0` footer. | Developer sites, open source docs, changelogs |
+| **Docs** | Documentation. Compact bar with brand + version badge, URL-derived breadcrumbs, `Search docs… ⌘K` affordance, 4-column footer grid. | Product documentation, knowledge bases, API references |
+
+You write posts in **core Gutenberg**. Zero custom blocks to learn. Zero proprietary format. Hatch reads what you write via REST and the active theme renders it. This is the promise of Gutenberg blocks on Astro without a bridge library.
 
 ---
 
 ## How it works
 
 ```
-WordPress (editor + REST)
+WordPress (editor + REST) ── your team's existing workflow
      │
      ├─ Plugin Bridge auto-detects your existing plugins
-     ├─ /hatch/v1/features  →  what to render
-     ├─ /hatch/v1/menus     →  primary + footer nav
-     ├─ /hatch/v1/seo-meta  →  RankMath / Yoast passthrough
-     └─ /wp/v2/posts        →  posts + pages + CPTs (auth: App Password)
+     ├─ /hatch/v1/features   → what to render
+     ├─ /hatch/v1/menus      → primary + footer nav
+     ├─ /hatch/v1/seo-meta   → RankMath / Yoast / AIOSEO passthrough
+     └─ /wp/v2/*             → posts, pages, CPTs (auth: App Password)
             │
             ▼
-       Astro SSR  (Node adapter by default; CF / Vercel opt-in)
+       Astro SSR   (Node adapter by default, Cloudflare / Vercel opt-in)
             │
-            ├─ 5 unique themes, lazy per-theme CSS (only the active theme loads)
+            ├─ Three themes, lazy per-theme CSS
             ├─ View Transitions + Speculation Rules
             └─ Partytown analytics worker (when GTM is set)
             │
             ▼
-       Your visitors  (the WP admin redirects to the headless frontend
-                       via the auto-installed Hatch Companion Theme)
+       Your visitors
 ```
 
-**Self-hosted is the default.** `HATCH_TARGET=node` runs anywhere — Hetzner, DigitalOcean, RunCloud, Coolify, Dokploy, your own laptop. Cloudflare and Vercel adapters are one-click opt-in via the wizard. No required external service.
+**Self-hosted headless WordPress is the default.** `HATCH_TARGET=node` runs on anything with Node 20+. Cloudflare Workers and Vercel adapters are opt-in from the wizard. Nothing phones home to a Hatch SaaS, because there is no Hatch SaaS.
 
 ---
 
-## Install
+## Hatch vs alternatives
 
-### WordPress side
-
-1. Download [`hatch.zip`](https://github.com/adityaarsharma/hatch/releases/latest/download/hatch.zip).
-2. Upload via Plugins → Add New → Upload Plugin, or drop into `wp-content/plugins/`.
-3. Activate. The setup wizard auto-launches.
-4. The wizard offers to install the bundled **Hatch Companion Theme** — one click, no separate download. It activates as the WP-side theme that redirects visitors to your headless frontend.
-
-### Astro frontend on a VPS (one command)
-
-```bash
-curl -sSL https://hatch.adityaarsharma.com/install | bash
-```
-
-The broker returns a setup script that installs Node, clones the Astro starter, writes your `.env`, runs the first build, and prints the live URL. Tokens pass through in memory only — never written to disk.
-
-### Cloudflare or Vercel (one click)
-
-Open the wizard's Deploy step → paste a Cloudflare or Vercel API token → click Build & Deploy. Watch a ~90-second build. Get a live URL. No GitHub fork, no surprise commits, no vendor lock-in.
-
----
-
-## Hatch vs everyone else
-
-| | Hatch | Faust.js | Gatsby + source-wp | HeadstartWP | DIY REST |
+| Feature | Hatch | Faust.js | WPGraphQL + Next | Frontity | Strattic |
 |---|---|---|---|---|---|
-| One plugin install | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Headless-ready security hardening built in | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Plugin Bridge for SEO / Forms / eCommerce / ACF / Memberships | ✅ (12 slots, auto-detect) | partial | partial | partial | ❌ |
-| WP Core Sync card | ✅ | ❌ | ❌ | ❌ | ❌ |
-| One-click deploy (Cloudflare / Vercel / VPS) | ✅ | manual | manual | manual | manual |
-| Self-hosted by default | ✅ | varies | manual | manual | manual |
-| Theme catalog with unique headers + footers | ✅ (5 built in) | bring your own | bring your own | bring your own | bring your own |
-| GraphQL required | ❌ | ✅ (WPGraphQL) | ✅ | depends | optional |
-| Vendor lock-in | none | Faust ecosystem | Gatsby Cloud (legacy) | 10up support | none |
-| Time to live URL | ~afternoon | ~week | ~week | ~week | ~3 weeks |
+| 1-click headless WordPress deploy | Yes (Cloudflare / Vercel / VPS) | Manual | Manual | Manual | Yes (Strattic only) |
+| WordPress editor unchanged | Yes | Yes | Yes | Yes | Partial (static export) |
+| Self-hosted with no SaaS required | Yes | Yes | Yes | Archived project | No (SaaS from $299/mo) |
+| Monthly cost floor | $0 (MIT) | $0 (framework) | $0 (framework) | Discontinued | $299+/mo |
+| WordPress-native (REST, GraphQL optional) | Yes | GraphQL required | GraphQL required | REST | Static HTML |
+| Security hardening bundled | Yes (12 toggles, wired) | No | No | No | Partial |
+| Plugin Bridge (SEO, Forms, WooCommerce headless, ACF, Memberships) | Yes (12 slots, auto-detect) | Partial | Partial | Partial | No |
+| Themes included | 3 unique | 0 | 0 | 3 (legacy) | 0 |
+| Time from install to live URL | ~afternoon | ~week | ~week | discontinued | ~day |
 
 ---
 
 ## FAQ
 
-**Do I need custom blocks?**
-No. Hatch uses core Gutenberg. Write posts the way you already do — paragraphs, headings, lists, images, embeds. Hatch reads everything via REST and renders it on the Astro frontend.
+**Does Hatch work with my existing WordPress site?**
+Yes. Install the headless WordPress plugin on any WP 6.4+ install. Nothing on the WP side changes until you optionally install the Companion Theme. Every existing plugin, post, and user keeps working exactly as before, and the WordPress REST API keeps serving both your admin and the new WordPress Astro frontend.
 
-**Do I need a GraphQL plugin?**
-No. Hatch uses the standard WP REST API plus a small `hatch/v1/*` namespace for the bits WP doesn't expose by default (menus, SEO meta, features).
+**Does Elementor / Divi / Beaver Builder still work?**
+Page builders cannot render on a headless frontend. Their HTML depends on PHP runtime that does not exist on the Astro side. For existing Elementor or Divi sites, keep them as traditional WordPress. For new decoupled WordPress projects, use core Gutenberg with a Hatch theme and stay WordPress headless without GraphQL for the whole editorial workflow.
 
-**Will my SEO plugin keep working?**
-Yes. RankMath, Yoast, AIOSEO are auto-detected via Plugin Bridge. Their meta + schema + sitemap output is passed through to the Astro frontend untouched. Same for redirects (RankMath, Yoast Premium, Redirection).
+**Can I mount `/blog` on my existing WordPress domain and put the Astro frontend on the root?**
+Yes. Reverse-proxy `/blog` on your CDN or web server to your WP origin. Hatch does not force a domain split. Documentation for Cloudflare Rules, nginx, and Caddy configs ships in the wiki.
 
-**What about ACF or custom fields?**
-ACF, Meta Box, Pods, JetEngine, CPT UI — all auto-detected. Hatch surfaces their fields and CPT REST exposure as status rows in the WP Core Sync card.
+**What does it cost?**
+The plugin, the Astro starter, and the deploy broker are MIT. Hosting cost is whatever you already pay for WordPress plus Cloudflare Workers free tier, Vercel Hobby, or your VPS. A WordPress Cloudflare Workers deploy at Hobby scale runs $0 in most months. Zero Hatch SaaS. Zero per-seat billing.
 
-**Can my form plugin (Fluent Forms / WPForms / Gravity / CF7) render on the headless frontend?**
-Yes. Plugin Bridge handles form rendering + submissions via the plugin's own endpoints. Hatch relays the embed shortcode.
+**Does WooCommerce headless work?**
+Yes. The eCommerce Bridge speaks the WooCommerce Store API (`/wc/store/v1/*`) for products, cart, and checkout. Zero WooCommerce CSS or JS ships to Astro. Payments run through Woo's native Stripe or PayPal gateway on the WP origin.
 
-**Can I keep traditional WordPress alongside Hatch?**
-Yes. The Hatch Companion Theme is the **only** thing that changes on the WP side — and only if you install it. Without it, WP serves its own theme as normal. Hatch's REST hardening and security toggles work either way.
+**Do SEO plugins keep working?**
+Yes. RankMath, Yoast, and AIOSEO are auto-detected. Their meta description, og:image, Twitter card, schema, and sitemap.xml pass through to the Astro frontend untouched. Redirect plugins pass through the same way.
 
-**Will my page builder (Elementor / Divi / Beaver) work?**
-Page builders cannot work headlessly — their HTML output depends on PHP runtime that doesn't exist on a static Astro frontend. For Elementor / Divi sites: keep them as traditional WordPress. For new headless sites: use core Gutenberg and one of the five Hatch themes.
+**Do form plugins keep working?**
+Yes. Fluent Forms, Gravity Forms, WPForms, and Contact Form 7 render on the headless frontend and submit through the plugin's own REST endpoint. Submissions persist in the WordPress database exactly as they did before.
 
-**What about CORS?**
-For 95% of headless sites, **CORS doesn't apply** — your build process fetches WordPress server-to-server. CORS only matters if you make client-side `fetch()` calls from the browser to WordPress. The plugin emits the right headers when you opt in.
-
-**What does uninstalling do?**
-Default: deleting the plugin preserves all settings for a clean re-install. There's a single Security tab toggle ("Remove all data on uninstall") that wipes every `hatch_*` option on delete. The Hatch Companion Theme stays as a separate uninstall.
-
-**Is it production-ready?**
-v0.1.1 is the first stable release. Every admin toggle was audited end-to-end — zero hollow toggles, zero broken labels. The Astro starter ships with zero static-scan issues and zero runtime QA issues across 30 cells (5 themes × 5 page types). WP.org listing + external security audit are on the v0.4 roadmap.
+**How do I contribute?**
+Open issues, PRs, and theme submissions welcome. Fork, branch, run the audit script (`bash scripts/audit.sh`), and open a PR against `main`. First-time contributor path documented in `CONTRIBUTING.md`.
 
 ---
 
-## Roadmap
+## Community + license
 
-| Version | What ships | Status |
-|---|---|---|
-| **v0.1.1** | First stable: React admin (6 tabs), 3-step wizard, Plugin Bridge (12 slots), WP Core Sync, Performance + Security tabs (all toggles wired end-to-end), 5 unique themes, self-hosted broker, bundled Companion Theme | ✅ Current |
-| v0.2 | Plugin Bridge install button (one-click install of any not-detected provider from inside the dashboard) | 🔵 Planned |
-| v0.3 | Custom-theme upload (manifest format, slot contract, security review) | 🔵 Planned |
-| v0.4 | WP.org listing + external security audit | 🔵 Planned |
+MIT license. Built by [Aditya Sharma](https://adityaarsharma.com), the marketer who codes.
 
-Release notes: [CHANGELOG.md](CHANGELOG.md)
+- Star this repo if the headless WordPress starter saved you a weekend.
+- Open a GitHub issue for bugs or feature requests.
+- PRs welcome (first-timer friendly).
+- Discord invite: shipping with v0.8.
 
----
+**Hatch. The headless engine for WordPress.**
 
-## License
-
-MIT. Built by [Aditya Sharma](https://adityaarsharma.com).
-
-<div align="center">
-<br/>
-
-**Hatch — The Headless Engine for WordPress.**
-
-[Download v0.3.1 (latest)](https://github.com/adityaarsharma/hatch/releases/latest/download/hatch.zip) · [Star on GitHub](https://github.com/adityaarsharma/hatch)
-
-</div>
+[Download v0.7.6.1](https://github.com/adityaarsharma/hatch/releases/latest/download/hatch.zip) · [Star on GitHub](https://github.com/adityaarsharma/hatch) · [Release notes](CHANGELOG.md)
