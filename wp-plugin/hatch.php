@@ -469,6 +469,8 @@ require_once HATCH_PLUGIN_DIR . 'includes/class-turnstile-wp.php';
 // V0.6 — features + blocks-control.
 require_once HATCH_PLUGIN_DIR . 'includes/class-features.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-blocks-control.php';
+// V0.7.5 — supported-blocks whitelist gate (opt-in toggle).
+require_once HATCH_PLUGIN_DIR . 'includes/class-blocks.php';
 
 // V0.7 — real connection verification (heartbeat + webhook ack).
 require_once HATCH_PLUGIN_DIR . 'includes/class-connection-status.php';
