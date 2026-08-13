@@ -151,56 +151,81 @@ class Hatch_Hardening {
 	}
 
 	/**
-	 * Return the current /wp-login.php bypass key, generating one if the
-	 * fortress toggle is on but no key exists yet. Random 24-char slug —
-	 * URL-safe, cryptographically strong via wp_generate_password().
+	 * Custom login slug. Sanitised to lowercase a-z/0-9/dashes so it maps
+	 * cleanly onto a URL path. Falls back to `hatch-login` when unset or
+	 * scrubbed empty. Operator sets this in Admin → Security.
 	 *
 	 * @return string
 	 */
-	public static function get_login_key(): string {
-		$key = get_option( 'hatch_fortress_login_key', '' );
-		if ( ! is_string( $key ) || strlen( $key ) < 12 ) {
-			$key = wp_generate_password( 24, false, false );
-			update_option( 'hatch_fortress_login_key', $key, false );
-		}
-		return $key;
+	public static function get_login_slug(): string {
+		$slug = (string) get_option( 'hatch_fortress_login_slug', 'hatch-login' );
+		$slug = strtolower( $slug );
+		$slug = preg_replace( '/[^a-z0-9-]/', '', $slug );
+		$slug = trim( (string) $slug, '-' );
+		return $slug !== '' ? $slug : 'hatch-login';
 	}
 
 	/**
-	 * Hide /wp-login.php behind ?hatch_key=<value>. Any request that lacks
-	 * the key (or provides the wrong one) gets a hard 404. Legitimate
-	 * automation still authenticates via the URL bookmark that includes
-	 * the key.
+	 * Slug-based hide-login. Two gates:
 	 *
-	 * Safety: never lock out a logged-in admin. If the current user is
-	 * already authenticated with `manage_options`, skip the gate — recovery
-	 * is possible via wp-cli option delete.
+	 *   1. A request that matches the operator-chosen slug (e.g. `/hatch-login`)
+	 *      is upgraded to the real wp-login.php by including the core file.
+	 *      The browser URL bar keeps the vanity slug so the operator's
+	 *      bookmark keeps working.
+	 *   2. A direct hit on `/wp-login.php` or `/wp-admin(/…)` returns a hard
+	 *      404, with two carve-outs so operators never lock themselves out:
+	 *        - already-signed-in admins with `manage_options` are always
+	 *          allowed through (recovery-safe);
+	 *        - POST submissions whose Referer points back at the slug page
+	 *          on the same host are allowed, so the login form's own POST
+	 *          arrives without tripping the 404.
+	 *
+	 * Deliberately no query-string secret. Slug alone is the address.
 	 *
 	 * @return void
 	 */
 	public static function fortress_hide_login(): void {
 		if ( ! isset( $_SERVER['REQUEST_URI'] ) ) return;
-		$req = wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH );
-		if ( ! is_string( $req ) ) return;
-		$req = strtolower( $req );
-		$is_login = ( false !== strpos( $req, 'wp-login.php' ) );
-		// Backlog #146 — deep admin paths (/wp-admin/edit.php etc.) used to
-		// bypass the gate because the check was strict-equal on /wp-admin/.
-		// Gate on the whole /wp-admin(/…) prefix. WordPress core still
-		// redirects unauthed admin requests to wp-login.php, which this
-		// same handler catches — belt-and-braces, no bypass on either leg.
-		$is_admin = (bool) preg_match( '#^/wp-admin(/|$)#', $req );
-		if ( ! $is_login && ! $is_admin ) return;
+		$req_path = wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH );
+		if ( ! is_string( $req_path ) ) return;
+		$req_path = strtolower( rtrim( $req_path, '/' ) );
 
-		// Never gate logged-in admins — recovery-safe.
+		$slug      = self::get_login_slug();
+		$slug_path = '/' . $slug;
+
+		$is_slug  = ( $req_path === $slug_path );
+		$is_login = ( false !== strpos( $req_path, 'wp-login.php' ) );
+		// Backlog #146 — /wp-admin/foo.php must also gate. WP core normally
+		// redirects unauthed admin hits to wp-login.php, which this same
+		// handler intercepts — belt-and-braces.
+		$is_admin = (bool) preg_match( '#^/wp-admin(/|$)#', $req_path );
+		if ( ! $is_slug && ! $is_login && ! $is_admin ) return;
+
+		// Always let signed-in admins through — recovery-safe.
 		if ( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
-		$expected = self::get_login_key();
-		$provided = isset( $_GET['hatch_key'] ) ? sanitize_text_field( wp_unslash( $_GET['hatch_key'] ) ) : '';
-		if ( '' !== $provided && hash_equals( $expected, $provided ) ) {
-			return; // Correct key — let WP handle the login form.
+		// Slug hit → serve wp-login.php inline so the URL bar stays clean.
+		if ( $is_slug ) {
+			if ( ! defined( 'HATCH_LOGIN_ALLOWED' ) ) {
+				define( 'HATCH_LOGIN_ALLOWED', true );
+			}
+			require_once ABSPATH . 'wp-login.php';
+			exit;
+		}
+
+		// POSTs from the served login form come back to /wp-login.php with a
+		// Referer that matches our slug URL. Allow those so the form can
+		// authenticate; block everything else.
+		if ( $is_login && ! empty( $_SERVER['REQUEST_METHOD'] ) && 'POST' === strtoupper( (string) wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) {
+			$ref       = isset( $_SERVER['HTTP_REFERER'] ) ? (string) wp_unslash( $_SERVER['HTTP_REFERER'] ) : '';
+			$ref_host  = wp_parse_url( $ref, PHP_URL_HOST );
+			$ref_path  = strtolower( (string) wp_parse_url( $ref, PHP_URL_PATH ) );
+			$home_host = wp_parse_url( home_url(), PHP_URL_HOST );
+			if ( $ref_host && $home_host && $ref_host === $home_host && ( false !== strpos( $ref_path, $slug_path ) || false !== strpos( $ref_path, 'wp-login.php' ) ) ) {
+				return;
+			}
 		}
 
 		status_header( 404 );

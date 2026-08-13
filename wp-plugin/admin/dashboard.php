@@ -970,10 +970,10 @@ function hatch_react_security_state(): array {
 		'fortress_headers'                     => (bool) get_option( 'hatch_fortress_headers', false ),
 		'fortress_hide_wp_version'             => (bool) get_option( 'hatch_fortress_hide_wp_version', false ),
 		'fortress_disable_directory_browsing'  => (bool) get_option( 'hatch_fortress_disable_directory_browsing', false ),
-		'fortress_login_key'                   => ( class_exists( 'Hatch_Hardening' ) && ( (bool) get_option( 'hatch_fortress_mode', false ) || (bool) get_option( 'hatch_fortress_hide_login', false ) ) )
-			? (string) Hatch_Hardening::get_login_key() : '',
+		'fortress_login_slug'                  => class_exists( 'Hatch_Hardening' )
+			? (string) Hatch_Hardening::get_login_slug() : (string) get_option( 'hatch_fortress_login_slug', 'hatch-login' ),
 		'fortress_login_url'                   => ( class_exists( 'Hatch_Hardening' ) && ( (bool) get_option( 'hatch_fortress_mode', false ) || (bool) get_option( 'hatch_fortress_hide_login', false ) ) )
-			? esc_url_raw( add_query_arg( 'hatch_key', Hatch_Hardening::get_login_key(), wp_login_url() ) ) : '',
+			? esc_url_raw( home_url( '/' . Hatch_Hardening::get_login_slug() ) ) : '',
 	);
 }
 
@@ -1138,6 +1138,11 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 		'blocks.ai_provider'             => 'hatch_ai_provider',
 		'blocks.ai_api_key'              => 'hatch_ai_api_key',
 		'security.login_slug'            => 'hatch_login_slug',
+		// v0.50.34 — Fortress hide-login: operator-chosen slug replaces the
+		// old hatch_key query-string secret. Hatch_Hardening::get_login_slug()
+		// re-sanitises on read; save-time we only shove the raw value in and
+		// let the reader canonicalise (keeps this table simple).
+		'security.fortress_login_slug'   => 'hatch_fortress_login_slug',
 		'security.login_redirect'        => 'hatch_login_redirect_slug',
 		'security.login_redirect_custom' => 'hatch_login_redirect_custom',
 		'security.allowed_roles'         => 'hatch_login_allowed_roles',
@@ -1925,13 +1930,13 @@ function hatch_fortress_login_bookmark_notice(): void {
 	$hide = (bool) get_option( 'hatch_fortress_hide_login', false );
 	if ( ! $mode && ! $hide ) return;
 
-	$key = Hatch_Hardening::get_login_key();
-	if ( '' === $key ) return;
+	$slug = Hatch_Hardening::get_login_slug();
+	if ( '' === $slug ) return;
 
-	$url = add_query_arg( 'hatch_key', $key, wp_login_url() );
+	$url = home_url( '/' . $slug );
 
 	echo '<div class="notice notice-warning"><p><strong>Hatch fortress mode is ON.</strong> ';
-	esc_html_e( 'Your /wp-login.php and /wp-admin/ URLs return 404 without the login key. Save this bookmark now, otherwise clearing cookies will lock you out:', 'hatch' );
+	esc_html_e( 'Your /wp-login.php and /wp-admin/ URLs return 404. Sign in at your custom slug instead. Bookmark it now, otherwise clearing cookies will lock you out:', 'hatch' );
 	echo '</p><p><code style="user-select:all;display:inline-block;padding:6px 10px;background:#f6f7f7;border:1px solid #c3c4c7;border-radius:3px;">';
 	echo esc_html( $url );
 	echo '</code></p></div>';

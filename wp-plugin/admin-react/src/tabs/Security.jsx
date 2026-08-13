@@ -29,7 +29,7 @@ const FORTRESS_KEYS = [
 ];
 
 const FORTRESS_CHIPS = [
-	{ key: 'hide_login',                 label: 'Hidden login URL',        title: '/wp-login.php returns 404 unless the operator holds the generated key.' },
+	{ key: 'hide_login',                 label: 'Hidden login URL',        title: '/wp-login.php returns 404. Sign in at your custom slug instead.' },
 	{ key: 'block_xmlrpc',               label: 'XML-RPC killed',          title: '/xmlrpc.php returns 403. Removes the biggest brute-force amplification vector.' },
 	{ key: 'disable_rest_users',         label: 'User enumeration blocked', title: '/wp/v2/users returns 401 for anonymous. No username leakage.' },
 	{ key: 'disable_file_edit',          label: 'Editor + updates locked', title: 'DISALLOW_FILE_EDIT + DISALLOW_FILE_MODS defined. Attackers cannot write PHP through wp-admin.' },
@@ -191,22 +191,35 @@ export default function Security({ state, onDirty, setSetting }) {
 					})}
 				</ul>
 
-				{fortressOn && sec.fortress_login_url && (
+				{fortressOn && !!sec.fortress_hide_login && (
 					<div style={{
-						marginTop: 18, padding: '10px 12px',
+						marginTop: 18, padding: '12px 14px',
 						borderRadius: 12,
 						background: 'var(--hx-surface-2, var(--hx-surface))',
 						boxShadow: 'inset 0 0 0 1px var(--hx-border)',
 						fontSize: 12, color: 'var(--hx-muted)',
 					}}>
-						<div style={{ fontWeight: 600, color: 'var(--hx-fg)', marginBottom: 4 }}>Bookmark your login URL</div>
-						<code style={{
-							display: 'block',
-							fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-							fontSize: 12, wordBreak: 'break-all', color: 'var(--hx-fg)',
-						}}>{sec.fortress_login_url}</code>
-						<div style={{ marginTop: 4 }}>
-							Anyone hitting /wp-login.php without this key gets a 404. Logged-in admins are always allowed through as a lockout safeguard.
+						<div style={{ fontWeight: 600, color: 'var(--hx-fg)', marginBottom: 6 }}>Custom login slug</div>
+						<div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+							<span style={{
+								fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+								fontSize: 12, color: 'var(--hx-muted)',
+							}}>/</span>
+							<HxInp
+								mono
+								value={sec.fortress_login_slug || 'hatch-login'}
+								placeholder="hatch-login"
+								onChange={(e) => {
+									const raw = String(e.target.value || '').toLowerCase();
+									const clean = raw.replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+									setSetting('security.fortress_login_slug', clean);
+									onDirty();
+								}}
+								style={{ width: 220 }}
+							/>
+						</div>
+						<div style={{ marginTop: 8 }}>
+							Sign in at this URL only. /wp-login.php returns 404. Logged-in admins always get through as a lockout safeguard. Lowercase letters, numbers, and dashes only.
 						</div>
 					</div>
 				)}
