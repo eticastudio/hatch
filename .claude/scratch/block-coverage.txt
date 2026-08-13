@@ -1,0 +1,188 @@
+block                            |  blog |  tech |  docs |  base | verdict
+----------------------------------------------------------------------------
+paragraph                        |   0
+0 |   0
+0 |   0
+0 |     4 | BASE-ONLY
+heading                          |   0
+0 |   0
+0 |   0
+0 |     5 | BASE-ONLY
+list                             |   0
+0 |   0
+0 |   0
+0 |     2 | BASE-ONLY
+list-item                        |   0
+0 |   0
+0 |   0
+0 |   0
+0 | NO
+quote                            |     1 |   0
+0 |   0
+0 |     5 | PARTIAL(base+some)
+pullquote                        |   0
+0 |   0
+0 |   0
+0 |     2 | BASE-ONLY
+code                             |   0
+0 |     3 |   0
+0 |     4 | PARTIAL(base+some)
+preformatted                     |   0
+0 |     2 |   0
+0 |     1 | PARTIAL(base+some)
+verse                            |   0
+0 |   0
+0 |   0
+0 |     1 | BASE-ONLY
+image                            |   0
+0 |   0
+0 |   0
+0 |     4 | BASE-ONLY
+gallery                          |   0
+0 |   0
+0 |   0
+0 |     1 | BASE-ONLY
+video                            |   0
+0 |   0
+0 |   0
+0 |     2 | BASE-ONLY
+audio                            |   0
+0 |   0
+0 |   0
+0 |     1 | BASE-ONLY
+cover                            |   0
+0 |   0
+0 |   0
+0 |     2 | BASE-ONLY
+embed                            |   0
+0 |   0
+0 |   0
+0 |     2 | BASE-ONLY
+columns                          |   0
+0 |   0
+0 |   0
+0 |     4 | BASE-ONLY
+column                           |   0
+0 |   0
+0 |   0
+0 |     2 | BASE-ONLY
+group                            |   0
+0 |   0
+0 |   0
+0 |     2 | BASE-ONLY
+separator                        |   0
+0 |   0
+0 |   0
+0 |     6 | BASE-ONLY
+spacer                           |   0
+0 |   0
+0 |   0
+0 |     1 | BASE-ONLY
+table                            |   0
+0 |   0
+0 |   0
+0 |     4 | BASE-ONLY
+details                          |   0
+0 |   0
+0 |   0
+0 |     5 | BASE-ONLY
+button                           |   0
+0 |   0
+0 |   0
+0 |     4 | BASE-ONLY
+buttons                          |   0
+0 |   0
+0 |   0
+0 |    11 | BASE-ONLY
+file                             |   0
+0 |   0
+0 |   0
+0 |     4 | BASE-ONLY
+query                            |   0
+0 |   0
+0 |   0
+0 |   0
+0 | NO
+post-template                    |   0
+0 |   0
+0 |   0
+0 |     3 | BASE-ONLY
+post-title                       |     1 |   0
+0 |     1 |     3 | PARTIAL(base+some)
+post-excerpt                     |   0
+0 |   0
+0 |   0
+0 |     1 | BASE-ONLY
+post-date                        |   0
+0 |   0
+0 |   0
+0 |     2 | BASE-ONLY
+post-featured-image              |   0
+0 |   0
+0 |   0
+0 |     3 | BASE-ONLY
+post-terms                       |   0
+0 |     2 |   0
+0 |   0
+0 | NO
+post-author                      |   0
+0 |   0
+0 |   0
+0 |     1 | BASE-ONLY
+post-content                     |     4 |   0
+0 |     1 |     1 | PARTIAL(base+some)
+query-title                      |   0
+0 |   0
+0 |   0
+0 |   0
+0 | NO
+query-pagination                 |   0
+0 |   0
+0 |   0
+0 |   0
+0 | NO
+query-pagination-next            |   0
+0 |   0
+0 |   0
+0 |   0
+0 | NO
+query-pagination-previous        |   0
+0 |   0
+0 |   0
+0 |   0
+0 | NO
+query-pagination-numbers         |   0
+0 |   0
+0 |   0
+0 |   0
+0 | NO
+query-no-results                 |   0
+0 |   0
+0 |   0
+0 |   0
+0 | NO
+latest-posts                     |   0
+0 |   0
+0 |   0
+0 |     5 | BASE-ONLY
+categories                       |   0
+0 |   0
+0 |   0
+0 |     4 | BASE-ONLY
+tag-cloud                        |   0
+0 |   0
+0 |   0
+0 |     3 | BASE-ONLY
+rss                              |   0
+0 |   0
+0 |   0
+0 |     4 | BASE-ONLY
+search                           |   0
+0 |   0
+0 |   0
+0 |     7 | BASE-ONLY
+html                             |   0
+0 |   0
+0 |   0
+0 |   0
+0 | NO
