@@ -494,6 +494,15 @@ class Hatch_Rest_Api {
 				);
 			}
 
+			// v0.51 — Resolve RankMath / Yoast SEO meta into a single normalised
+			// `seo` block so Astro can drop the values straight into <meta> tags
+			// without a second REST round-trip. Falls back to WP excerpt +
+			// featured image when no SEO plugin has data on the post. See
+			// Hatch_Seo_Bridge::resolve_post_seo() for the shape + precedence.
+			$seo = class_exists( 'Hatch_Seo_Bridge' )
+				? Hatch_Seo_Bridge::resolve_post_seo( (int) $post->ID )
+				: array();
+
 			return new WP_REST_Response( array(
 				'found'              => true,
 				'id'                 => (int) $post->ID,
@@ -501,6 +510,7 @@ class Hatch_Rest_Api {
 				'type'               => (string) $post->post_type,
 				'rest_base'          => (string) ( $obj->rest_base ?: $obj->name ),
 				'title'              => get_the_title( $post ),
+				'seo'                => $seo,
 				'content'            => (function( $raw ) {
 					// v0.51 — Bridge rule (LEARNINGS 2026-08-12): "Bridge = REST
 					// only, no plugin CSS/JS". Fluent Forms / WPForms / Gravity

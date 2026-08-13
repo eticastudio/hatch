@@ -1,5 +1,15 @@
 # Hatch WordPress Plugin — Changelog
 
+## 0.7.6.0 — 2026-08-13
+
+Release wrap for today's session:
+
+- HatchForms front-end CSS ships with the form block so the input rail no longer inherits raw theme styles.
+- WPForms bridge now persists submissions to the WordPress DB (was only pushing to REST echo).
+- The Astro-side mu-plugin auto-installs on activation so a fresh WP install does not need a manual step.
+- Cloudflare-deploy wizard now honours `mount_mode` end-to-end (Worker source + route + label were previously drifting).
+- Admin toggle labels moved to the shared truth source so mismatch between wizard copy and DB key is impossible.
+
 ## [0.1.3] — 2026-05-20
 
 Fixed: REST-lock toggle 404'd the headless frontend. `/hatch/v1/content` and `/hatch/v1/post/{id}/blocks` are now in the public allowlist alongside `/features`, `/menus`, `/seo-meta` — they only return already-public data so the toggle stays safe to flip on.

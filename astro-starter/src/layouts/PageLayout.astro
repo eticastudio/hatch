@@ -127,11 +127,7 @@ if (cacheTtl !== 0) {
       </>
     )}
 
-    {/* v0.36: Site icon comes from WP General Settings → Site Icon (filtered through features.site.icon_url).
-        Falls back to an inline 🐣 SVG so every Hatch site has a visible favicon out of the box. */}
-    {iconUrl
-      ? <link rel="icon" href={iconUrl} />
-      : <link rel="icon" type="image/svg+xml" href={'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><text x="50%" y="55%" font-size="56" text-anchor="middle" dominant-baseline="middle">🐣</text></svg>')} />}
+    {/* v0.7.6 (2026-08-13): No favicon is injected by Hatch. The user brings their own via WP General Settings, Site Icon, or by dropping <link rel="icon"> into rawHead. Both the previous fallback SVG and the iconUrl link were removed per rebrand request. */}
     <link rel="sitemap" href="/sitemap-index.xml" />
     {/* v0.3.2 — Hatch blocks stylesheet. Static, cacheable. Contains the
         block-level CSS for the 26 Hatch blocks. ~12 KB on the wire. */}

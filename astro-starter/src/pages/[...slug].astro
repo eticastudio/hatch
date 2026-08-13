@@ -50,6 +50,7 @@ const page = pageOrigin ?? await (async () => {
     featuredImage: cpt.featured_media_url || null,
     featuredImageAlt: cpt.featured_media_alt || '',
     modifiedAt: cpt.modified,
+    seo: cpt.seo,
   } as any;
 })();
 
@@ -69,7 +70,17 @@ if (!page) {
 const articleMaxWStyle = 'max-width: var(--hatch-max-width, 1160px);';
 ---
 
-<PageLayout title={page.title} description={page.excerpt}>
+{/* v0.51 SEO: prefer resolved RankMath/Yoast values from the /hatch/v1/content
+    `seo` block, fall back to WP excerpt + featured image. og_image URL is
+    guarded to protocol so a hostile meta value cannot inject javascript:. */}
+<PageLayout
+  title={page.title}
+  description={(page.seo?.description || page.excerpt || '').trim()}
+  ogImage={(() => {
+    const img = (page.seo?.og_image || page.featuredImage || '').toString();
+    return /^https?:\/\//i.test(img) ? img : undefined;
+  })()}
+>
   {/* Article container matches posts + homepage at --hatch-max-width. The
       inner .hatch-prose fills 100% of the article so wide hero images and
       multi-column page layouts still render edge-to-edge inside the cap. */}
