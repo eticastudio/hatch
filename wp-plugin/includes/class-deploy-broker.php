@@ -158,6 +158,13 @@ class Hatch_Deploy_Broker {
 		$custom_domain = isset( $_POST['domain'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['domain'] ) ) : '';
 		// phpcs:enable
 
+		// v0.5.9 — persist mount_mode so the React admin, features/status
+		// endpoint, and the SEO subfolder-rewriter all read the same value
+		// the user just selected in the wizard. Without this, the dashboard
+		// label ignored Root vs Subfolder and stayed hard-coded.
+		update_option( 'hatch_mount_mode', $mount_mode, false );
+		update_option( 'hatch_mount_subpath', $sub_path, false );
+
 		// Call broker /prepare server-to-server.
 		$prepare_url = self::base_url() . '/deploy/' . $provider . '/prepare';
 		$body        = array(
@@ -245,7 +252,11 @@ class Hatch_Deploy_Broker {
 
 		// Persist hosting model + project metadata.
 		if ( class_exists( 'Hatch_Connection_Status' ) ) {
-			Hatch_Connection_Status::set_hosting_model( 'vercel' === $provider ? 'vercel' : 'cloudflare-pages' );
+			// v0.5.9 — this is Cloudflare Workers, not Pages. The old label
+			// misled every downstream consumer (dashboard label, host
+			// detection, support docs). Normalise on write so new deploys
+			// carry the accurate model.
+			Hatch_Connection_Status::set_hosting_model( 'vercel' === $provider ? 'vercel' : 'cloudflare-workers' );
 		}
 		update_option(
 			'hatch_deploy_project_' . $provider,

@@ -63,11 +63,19 @@ export default function Connection({ state, onSetup }) {
 
 	const url       = conn.frontendUrl || '';
 	const isLive    = !!url;
-	// v0.50.26. Hatch now ships one hosting story: Cloudflare Workers mounted
-	// at a /blog subfolder. Legacy option values ("Cloudflare Pages", "cloudflare-pages")
-	// are normalised to the new label so old installs update without a migration.
-	const rawHost = conn.hostLabel || 'Self-hosted';
-	const hostLabel = /cloud\s*flare/i.test(rawHost) ? 'Cloudflare Workers (subfolder)' : rawHost;
+	// v0.5.9. Label reflects the ACTUAL mount mode chosen in the setup
+	// wizard, not a hard-coded string. mountMode comes from the boot payload
+	// (dashboard.php reads the hatch_mount_mode option written by the broker
+	// on prepare and by Hatch_Onboarding_Cloudflare on deploy). If the
+	// payload is missing (older PHP still cached), we infer: URLs on
+	// *.workers.dev are almost always root-mounted preview deploys, so treat
+	// them as 'root'; everything else falls back to 'subfolder' which was
+	// the previous default.
+	const rawHost   = conn.hostLabel || 'Self-hosted';
+	const mountMode = conn.mountMode || (/workers\.dev/.test(url) ? 'root' : 'subfolder');
+	const hostLabel = /cloud\s*flare/i.test(rawHost)
+		? `Cloudflare Workers (${mountMode})`
+		: rawHost;
 	const heartRaw  = conn.heartbeat || {};
 	const heart     = HEART[heartRaw.healthClass] || HEART.muted;
 	const heartDesc = heartRaw.healthLabel || 'No heartbeat yet. First probe runs within 5 minutes.';
@@ -115,7 +123,15 @@ export default function Connection({ state, onSetup }) {
 								<HxBtn variant="ghost" onClick={onSetup} title="Vercel / Netlify options coming later">Change</HxBtn>
 							</span>
 						</HxRow>
-						<HxRow label="" desc="Hatch runs your Astro build on Cloudflare Workers, mounted at your /blog subfolder. No DNS changes required." last />
+						<HxRow
+							label=""
+							desc={
+								mountMode === 'subfolder'
+									? 'Hatch runs your Astro build on Cloudflare Workers, mounted at your /blog subfolder. No DNS changes required.'
+									: 'Hatch runs your Astro build on Cloudflare Workers at the domain root. No subfolder path.'
+							}
+							last
+						/>
 
 
 						<div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>

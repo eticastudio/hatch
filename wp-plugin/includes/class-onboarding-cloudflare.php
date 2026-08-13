@@ -36,7 +36,14 @@ class Hatch_Onboarding_Cloudflare {
 	 * Worker path check, and canonical rewrite all key off the same value so
 	 * an enterprise install can mount at any subfolder without editing code.
 	 *
-	 * @param array{token:string, astro_origin:string, money_domain:string, subpath?:string, zone_id?:string, account_id?:string} $args
+	 * v0.5.9 — mount_mode is now a first-class parameter too. "root" proxies
+	 * every path from the money-domain to the Astro origin (whole-site
+	 * headless). "subfolder" preserves the previous behavior and only takes
+	 * over $subpath (default /blog). The route pattern, Worker source, and
+	 * persisted state all key off the selected mode so the wizard's Root vs
+	 * Subfolder choice actually reaches the edge.
+	 *
+	 * @param array{token:string, astro_origin:string, money_domain:string, subpath?:string, mount_mode?:string, zone_id?:string, account_id?:string} $args
 	 * @return array{success:bool, message:string, details?:array<string,mixed>}
 	 */
 	public static function deploy( array $args ): array {
@@ -46,6 +53,7 @@ class Hatch_Onboarding_Cloudflare {
 		$zone_id      = trim( (string) ( $args['zone_id']      ?? '' ) );
 		$account_id   = trim( (string) ( $args['account_id']   ?? '' ) );
 		$subpath      = self::normalize_subpath( (string) ( $args['subpath'] ?? '/blog' ) );
+		$mount_mode   = self::normalize_mount_mode( (string) ( $args['mount_mode'] ?? 'subfolder' ) );
 
 		if ( '' === $token )        return array( 'success' => false, 'message' => __( 'Cloudflare API token required.', 'hatch' ) );
 		if ( '' === $astro_origin ) return array( 'success' => false, 'message' => __( 'Astro origin URL required.',      'hatch' ) );
@@ -62,13 +70,13 @@ class Hatch_Onboarding_Cloudflare {
 		}
 
 		// Step 1 — upload the Worker script.
-		$script_result = self::upload_worker_script( $token, $account_id, $astro_origin, $money_domain, $subpath );
+		$script_result = self::upload_worker_script( $token, $account_id, $astro_origin, $money_domain, $subpath, $mount_mode );
 		if ( ! $script_result['success'] ) {
 			return $script_result;
 		}
 
 		// Step 2 — attach the route pattern to the zone.
-		$route_result = self::attach_route( $token, $zone_id, $money_domain, $subpath );
+		$route_result = self::attach_route( $token, $zone_id, $money_domain, $subpath, $mount_mode );
 		if ( ! $route_result['success'] ) {
 			return $route_result;
 		}
@@ -84,16 +92,22 @@ class Hatch_Onboarding_Cloudflare {
 			'money_domain' => $money_domain,
 			'astro_origin' => $astro_origin,
 			'subpath'      => $subpath,
+			'mount_mode'   => $mount_mode,
 			'script_name'  => self::SCRIPT_NAME,
 		), false );
 
+		// Mirror to top-level option so React admin can read it without
+		// unpacking OPTION_STATE. Broker also writes this on prepare.
+		update_option( 'hatch_mount_mode', $mount_mode, false );
+
+		$visit_path = 'root' === $mount_mode ? '/' : $subpath . '/';
 		return array(
 			'success' => true,
 			'message' => sprintf(
-				/* translators: 1: money domain, 2: subpath */
-				__( 'Deployed. Visit %1$s%2$s/ to verify.', 'hatch' ),
+				/* translators: 1: money domain, 2: path to visit */
+				__( 'Deployed. Visit %1$s%2$s to verify.', 'hatch' ),
 				esc_url( 'https://' . $money_domain ),
-				esc_html( $subpath )
+				esc_html( $visit_path )
 			),
 			'details' => array(
 				'account_id'   => $account_id,
@@ -101,8 +115,19 @@ class Hatch_Onboarding_Cloudflare {
 				'route_id'     => $route_result['details']['route_id'] ?? '',
 				'money_domain' => $money_domain,
 				'subpath'      => $subpath,
+				'mount_mode'   => $mount_mode,
 			),
 		);
+	}
+
+	/**
+	 * Whitelist mount_mode to the two supported values. Default 'subfolder'
+	 * keeps back-compat with any caller that has not been updated to pass
+	 * the parameter explicitly.
+	 */
+	private static function normalize_mount_mode( string $raw ): string {
+		$m = strtolower( trim( $raw ) );
+		return in_array( $m, array( 'root', 'subfolder' ), true ) ? $m : 'subfolder';
 	}
 
 	/**
@@ -195,8 +220,8 @@ class Hatch_Onboarding_Cloudflare {
 	 * response back, and swaps origin URLs in the HTML canonicals so
 	 * search engines never see the origin.
 	 */
-	private static function upload_worker_script( string $token, string $account_id, string $astro_origin, string $money_domain, string $subpath ): array {
-		$script = self::build_worker_source( $astro_origin, $money_domain, $subpath );
+	private static function upload_worker_script( string $token, string $account_id, string $astro_origin, string $money_domain, string $subpath, string $mount_mode = 'subfolder' ): array {
+		$script = self::build_worker_source( $astro_origin, $money_domain, $subpath, $mount_mode );
 
 		// Multipart upload — Cloudflare requires the metadata part FIRST, then the script body.
 		$boundary  = wp_generate_password( 24, false );
@@ -240,10 +265,16 @@ class Hatch_Onboarding_Cloudflare {
 	}
 
 	/**
-	 * POST /zones/{zone_id}/workers/routes with pattern {money_domain}/blog/*.
+	 * POST /zones/{zone_id}/workers/routes.
+	 *
+	 * Pattern depends on mount_mode:
+	 *   - 'root'      → {money_domain}/*      (whole-site headless)
+	 *   - 'subfolder' → {money_domain}{subpath}/*  (e.g. /blog/*)
 	 */
-	private static function attach_route( string $token, string $zone_id, string $money_domain ): array {
-		$pattern = $money_domain . '/blog/*';
+	private static function attach_route( string $token, string $zone_id, string $money_domain, string $subpath = '/blog', string $mount_mode = 'subfolder' ): array {
+		$pattern = 'root' === $mount_mode
+			? $money_domain . '/*'
+			: $money_domain . $subpath . '/*';
 		$response = wp_remote_post(
 			self::API_ROOT . '/zones/' . rawurlencode( $zone_id ) . '/workers/routes',
 			array(
@@ -275,39 +306,89 @@ class Hatch_Onboarding_Cloudflare {
 	}
 
 	/**
-	 * Build the Worker source. Reverse-proxies /blog/* to the Astro origin
-	 * and rewrites HTML canonicals so Google never sees the origin URL.
+	 * Build the Worker source. Two variants keyed on $mount_mode:
+	 *
+	 *   - 'subfolder' — reverse-proxies {money_domain}{subpath}/* to the
+	 *     Astro origin, rewriting HTML canonicals so Google indexes the
+	 *     customer path, not the origin.
+	 *   - 'root'      — proxies EVERY path from {money_domain} to the Astro
+	 *     origin. No gate. Same canonical rewrite. redirect:'manual' so
+	 *     Astro-issued 3xx responses are surfaced unchanged (avoids
+	 *     origin URLs leaking through Location headers).
 	 */
-	private static function build_worker_source( string $astro_origin, string $money_domain ): string {
+	private static function build_worker_source( string $astro_origin, string $money_domain, string $subpath = '/blog', string $mount_mode = 'subfolder' ): string {
 		$astro_origin_safe = wp_json_encode( untrailingslashit( $astro_origin ) );
 		$money_domain_safe = wp_json_encode( $money_domain );
-		return <<<JS
-// Hatch /blog reverse-proxy Worker — auto-generated by wp-admin.
-// v0.5.2 — do not edit here; redeploy from wp-admin to update.
+		$subpath_safe      = wp_json_encode( $subpath );
+
+		if ( 'root' === $mount_mode ) {
+			return <<<JS
+// Hatch root-mount reverse-proxy Worker — auto-generated by wp-admin.
+// v0.5.9 — do not edit here; redeploy from wp-admin to update.
+// Proxies ALL paths on MONEY_DOMAIN to ASTRO_ORIGIN. Whole-site headless.
 const ASTRO_ORIGIN = $astro_origin_safe;
 const MONEY_DOMAIN = $money_domain_safe;
 
 export default {
   async fetch(request) {
     const url = new URL(request.url);
-    // v0.5.4 P0 fix — exact-match /blog OR strict /blog/ prefix. Was
-    // .startsWith('/blog') which greedily matched /blogroll, /blog-post,
-    // /blogs — those all 404'd via the Astro origin.
-    if (url.pathname !== '/blog' && !url.pathname.startsWith('/blog/')) {
+    const target = new URL(url.pathname + url.search, ASTRO_ORIGIN);
+    const forwardedHeaders = new Headers(request.headers);
+    forwardedHeaders.set('Host', new URL(ASTRO_ORIGIN).host);
+    forwardedHeaders.set('X-Forwarded-Host', MONEY_DOMAIN);
+    const upstream = await fetch(target.toString(), {
+      method: request.method,
+      headers: forwardedHeaders,
+      body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body,
+      redirect: 'manual',
+    });
+    const contentType = upstream.headers.get('content-type') || '';
+    if (contentType.includes('text/html')) {
+      return new HTMLRewriter()
+        .on('link[rel="canonical"]', {
+          element(el) {
+            const href = el.getAttribute('href') || '';
+            if (href.startsWith(ASTRO_ORIGIN)) {
+              el.setAttribute('href', 'https://' + MONEY_DOMAIN + href.substring(ASTRO_ORIGIN.length));
+            }
+          },
+        })
+        .transform(upstream);
+    }
+    return upstream;
+  },
+};
+JS;
+		}
+
+		// Default: subfolder mount.
+		return <<<JS
+// Hatch subfolder reverse-proxy Worker — auto-generated by wp-admin.
+// v0.5.9 — do not edit here; redeploy from wp-admin to update.
+// Proxies {SUBPATH}/* on MONEY_DOMAIN to ASTRO_ORIGIN. Anything outside
+// SUBPATH falls through to the money-domain origin unchanged.
+const ASTRO_ORIGIN = $astro_origin_safe;
+const MONEY_DOMAIN = $money_domain_safe;
+const SUBPATH      = $subpath_safe;
+
+export default {
+  async fetch(request) {
+    const url = new URL(request.url);
+    // Exact-match SUBPATH OR strict SUBPATH/ prefix. Prevents greedy
+    // matches like /blog matching /blogroll, /blog-post, /blogs.
+    if (url.pathname !== SUBPATH && !url.pathname.startsWith(SUBPATH + '/')) {
       return fetch(request);
     }
     const target = new URL(url.pathname + url.search, ASTRO_ORIGIN);
+    const forwardedHeaders = new Headers(request.headers);
+    forwardedHeaders.set('Host', new URL(ASTRO_ORIGIN).host);
+    forwardedHeaders.set('X-Forwarded-Host', MONEY_DOMAIN);
     const upstream = await fetch(target.toString(), {
       method: request.method,
-      headers: {
-        ...Object.fromEntries(request.headers),
-        'Host': new URL(ASTRO_ORIGIN).host,
-        'X-Forwarded-Host': MONEY_DOMAIN,
-      },
+      headers: forwardedHeaders,
       body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body,
+      redirect: 'manual',
     });
-    // Rewrite absolute canonical URLs from origin → money domain so search
-    // engines index the customer-facing path, not the origin URL.
     const contentType = upstream.headers.get('content-type') || '';
     if (contentType.includes('text/html')) {
       return new HTMLRewriter()
@@ -330,12 +411,19 @@ JS;
 	/**
 	 * State summary for admin UI.
 	 *
-	 * @return array{deployed:bool, deployed_at?:int, money_domain?:string, astro_origin?:string, route_id?:string}
+	 * Always includes mount_mode so React can label the connection card
+	 * without a second round-trip. Old installs (deployed pre v0.5.9) that
+	 * never wrote the key back-fill to 'subfolder' — that is what they had.
+	 *
+	 * @return array{deployed:bool, deployed_at?:int, money_domain?:string, astro_origin?:string, route_id?:string, mount_mode?:string}
 	 */
 	public static function status(): array {
 		$state = get_option( self::OPTION_STATE, null );
 		if ( ! is_array( $state ) || empty( $state['deployed_at'] ) ) {
-			return array( 'deployed' => false );
+			return array( 'deployed' => false, 'mount_mode' => (string) get_option( 'hatch_mount_mode', 'subfolder' ) );
+		}
+		if ( empty( $state['mount_mode'] ) ) {
+			$state['mount_mode'] = (string) get_option( 'hatch_mount_mode', 'subfolder' );
 		}
 		return array_merge( array( 'deployed' => true ), $state );
 	}

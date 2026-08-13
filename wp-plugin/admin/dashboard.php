@@ -195,6 +195,11 @@ function hatch_react_boot_state(): array {
 				'frontendUrl' => $frontend_url,
 				'hostLabel'   => hatch_host_label( $hosting_model ),
 				'hostModel'   => $hosting_model,
+				// v0.5.9 — actual mount mode chosen in the wizard so React
+				// can render "Cloudflare Workers (root)" vs "(subfolder)"
+				// instead of the hard-coded label it used to ship.
+				'mountMode'   => (string) get_option( 'hatch_mount_mode', 'subfolder' ),
+				'mountSubpath' => (string) get_option( 'hatch_mount_subpath', '/blog' ),
 				'heartbeat'   => array(
 					'healthClass' => $heartbeat_health,
 					'healthLabel' => $heartbeat_label,
@@ -1683,7 +1688,11 @@ function hatch_register_settings(): void {
  */
 function hatch_host_label( string $model ): string {
 	switch ( $model ) {
-		case 'cloudflare-pages': return __( 'Cloudflare Pages', 'hatch' );
+		// v0.5.9 — normalise legacy 'cloudflare-pages' installs to Workers,
+		// which is what Hatch actually deploys. Old value kept as an alias
+		// so existing installs update without a migration.
+		case 'cloudflare-workers':
+		case 'cloudflare-pages': return __( 'Cloudflare', 'hatch' );
 		case 'vercel':           return __( 'Vercel', 'hatch' );
 		case 'vps':              return __( 'Your VPS', 'hatch' );
 		default:                 return __( 'Unknown', 'hatch' );
