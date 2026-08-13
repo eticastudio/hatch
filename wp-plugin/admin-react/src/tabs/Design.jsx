@@ -44,6 +44,7 @@ export default function Design({ state, onDirty, setSetting }) {
 	const fontHead = state.design?.font_heading || 'Inter';
 	const fontBody = state.design?.font_body || 'Inter';
 	const mode = state.design?.mode || 'auto';
+	const darkModeEnabled = state.design?.dark_mode_enabled !== false; // default on
 
 	const identity = state.identity || { logo_url: '', favicon_url: '', og_image_url: '', site_title: '', tagline: '' };
 	const templates = state.templates || {
@@ -285,18 +286,27 @@ export default function Design({ state, onDirty, setSetting }) {
 					</HxRow>
 					);
 				})}
-				<ChipRow
-					label="Color mode"
-					desc="Light / Dark / Auto. Auto follows the visitor's OS preference."
-					path="design.mode"
-					current={mode}
-					options={[
-						{ id: 'light', label: 'Light' },
-						{ id: 'dark',  label: 'Dark' },
-						{ id: 'auto',  label: 'Auto' },
-					]}
-					last
-				/>
+				<HxRow
+					label="Enable dark mode option"
+					desc="Offer visitors a choice between light and dark. Turn off to lock the site to light only."
+					last={!darkModeEnabled}
+				>
+					<HxToggle on={darkModeEnabled} onChange={onToggle('design.dark_mode_enabled')} />
+				</HxRow>
+				{darkModeEnabled && (
+					<ChipRow
+						label="Color mode"
+						desc="Light / Dark / Auto. Auto follows the visitor's OS preference."
+						path="design.mode"
+						current={mode}
+						options={[
+							{ id: 'light', label: 'Light' },
+							{ id: 'dark',  label: 'Dark' },
+							{ id: 'auto',  label: 'Auto' },
+						]}
+						last
+					/>
+				)}
 
 				{/* Typography — one HxRow per font slot. */}
 				<HxGL>Typography</HxGL>

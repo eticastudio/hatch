@@ -655,10 +655,10 @@ export default function PluginBridge({ state }) {
 
 			<HxCard style={{ marginTop: 16 }}>
 				<div style={{ fontSize: 14, fontWeight: 600, color: 'var(--hx-fg)', marginBottom: 4 }}>
-					Not yet auto-consumed on Astro
+					Coming soon
 				</div>
 				<div style={{ fontSize: 12, color: 'var(--hx-muted)', marginBottom: 12 }}>
-					Detected in WordPress, but full Astro-side rendering is roadmap.
+					These integrations detect in WordPress today. Frontend rendering ships in future releases.
 				</div>
 				<div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 					{[
