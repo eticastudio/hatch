@@ -1,4 +1,4 @@
-import { HxCard, HxHead, HxRow, HxToggle, HxBtn, HxInp, HxIcon, HxBadge } from '../components.jsx';
+import { HxCard, HxHead, HxRow, HxToggle, HxBtn, HxInp, HxIcon, HxBadge, Chip } from '../components.jsx';
 import { useState, useMemo } from 'react';
 
 /**
@@ -96,109 +96,65 @@ export default function Security({ state, onDirty, setSetting }) {
 
 	return (
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-			{/* v0.50.32 Fortress Mode: prominent 1-click hardening card */}
-			<div
-				role="region"
-				aria-label="Fortress Mode"
-				style={{
-					position: 'relative',
-					borderRadius: 20,
-					padding: 24,
-					background: fortressOn
-						? 'linear-gradient(135deg, var(--hx-surface), var(--hx-surface-2, var(--hx-surface)))'
-						: 'var(--hx-surface)',
-					boxShadow: fortressOn
-						? '0 1px 0 0 rgba(0,0,0,0.04), 0 8px 24px -12px rgba(0,0,0,0.14), 0 0 0 1px var(--hx-primary)'
-						: '0 1px 0 0 rgba(0,0,0,0.04), 0 4px 12px -8px rgba(0,0,0,0.10), 0 0 0 1px var(--hx-border)',
-					transition: 'box-shadow var(--hx-ease, 200ms ease), background var(--hx-ease, 200ms ease)',
-				}}
-			>
-				<div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20 }}>
-					<div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', minWidth: 0 }}>
-						<div
-							aria-hidden="true"
-							style={{
-								flex: '0 0 auto',
-								width: 44, height: 44, borderRadius: 12,
-								display: 'grid', placeItems: 'center',
-								background: fortressOn ? 'var(--hx-primary)' : 'var(--hx-surface-2, var(--hx-surface))',
-								color: fortressOn ? 'var(--hx-primary-fg, #fff)' : 'var(--hx-muted)',
-								boxShadow: fortressOn ? '0 4px 10px -4px var(--hx-primary)' : 'inset 0 0 0 1px var(--hx-border)',
-								transition: 'background var(--hx-ease, 200ms ease), color var(--hx-ease, 200ms ease)',
-							}}
-						>
-							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-								<path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3z" />
-								<path d="M9 12l2 2 4-4" />
-							</svg>
+			{/* v0.50.32 Fortress Mode. Rebuilt on the shared primitives so the
+			    hero card matches every other card on the page: HxCard defaults
+			    (radius 14, padding 22, 1px border), HxHead for the icon-box +
+			    title + status action, Chip primitives for the protection list.
+			    No custom gradient background, no triple-shadow ring, no fourth
+			    pill primitive. */}
+			<HxCard>
+				<HxHead
+					iconChildren={<>
+						<path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3z" />
+						<path d="M9 12l2 2 4-4" />
+					</>}
+					iconColor={fortressOn ? '#16a34a' : 'var(--hx-muted)'}
+					title="Fortress Mode"
+					desc="One switch. Every wp-login, xmlrpc, and user-enum surface goes dark. Astro stays your only front door."
+					mb={16}
+					action={
+						<div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+							<HxBadge color={fortressOn ? 'green' : 'neutral'}>
+								{fortressOn ? 'Active' : 'Off'}
+							</HxBadge>
+							{anyAdvancedDivergent && (
+								<HxBadge color="yellow">Advanced overrides</HxBadge>
+							)}
+							<HxToggle on={fortressOn} onChange={toggleFortress} ariaLabel="Enable Fortress Mode" />
 						</div>
-						<div style={{ minWidth: 0 }}>
-							<div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-								<h3 style={{ margin: 0, fontSize: 17, fontWeight: 650, color: 'var(--hx-fg)', letterSpacing: '-0.01em' }}>
-									Fortress Mode
-								</h3>
-								<HxBadge color={fortressOn ? 'green' : 'neutral'}>
-									{fortressOn ? 'Active' : 'Off'}
-								</HxBadge>
-								{anyAdvancedDivergent && (
-									<HxBadge color="yellow">Advanced overrides</HxBadge>
-								)}
-							</div>
-							<p style={{ margin: '6px 0 0', fontSize: 13, lineHeight: 1.5, color: 'var(--hx-muted)', maxWidth: 620 }}>
-								One switch. Every wp-login, xmlrpc, and user-enum surface goes dark. Astro stays your only front door.
-							</p>
-						</div>
-					</div>
-					<div style={{ flex: '0 0 auto', paddingTop: 4 }}>
-						<HxToggle on={fortressOn} onChange={toggleFortress} aria-label="Enable Fortress Mode" />
-					</div>
-				</div>
+					}
+				/>
 
-				{/* Chip list of the 7 (actually 8) protections */}
-				<ul
+				{/* Chip list of the 8 protections. Uses the shared Chip
+				    primitive so the visual language matches Density, Roundness,
+				    and every other picker in the admin. */}
+				<div
+					role="list"
 					aria-label="Fortress protections"
-					style={{
-						listStyle: 'none', margin: '18px 0 0', padding: 0,
-						display: 'flex', flexWrap: 'wrap', gap: 8,
-					}}
+					style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}
 				>
-					{FORTRESS_CHIPS.map((chip, i) => {
+					{FORTRESS_CHIPS.map((chip) => {
 						const on = fortressOn && !!sec['fortress_' + chip.key];
 						return (
-							<li
-								key={chip.key}
-								title={chip.title}
-								style={{
-									display: 'inline-flex', alignItems: 'center', gap: 6,
-									padding: '6px 10px', borderRadius: 12,
-									fontSize: 12, fontWeight: 500, fontVariantNumeric: 'tabular-nums',
-									color: on ? 'var(--hx-primary-fg, #fff)' : 'var(--hx-muted)',
-									background: on ? 'var(--hx-primary)' : 'var(--hx-surface-2, var(--hx-surface))',
-									boxShadow: on ? 'none' : 'inset 0 0 0 1px var(--hx-border)',
-									opacity: fortressOn ? 1 : 0.6,
-									transform: fortressOn ? 'translateY(0)' : 'translateY(2px)',
-									transition: `opacity var(--hx-ease, 200ms ease) ${i * 60}ms, transform var(--hx-ease, 200ms ease) ${i * 60}ms, background var(--hx-ease, 200ms ease) ${i * 100}ms, color var(--hx-ease, 200ms ease) ${i * 100}ms`,
-								}}
-							>
-								<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-									{on
-										? <polyline points="20 6 9 17 4 12" />
-										: <circle cx="12" cy="12" r="9" />}
-								</svg>
-								{chip.label}
-							</li>
+							<span key={chip.key} role="listitem" title={chip.title}>
+								<Chip label={chip.label} active={on} onClick={() => {}} />
+							</span>
 						);
 					})}
-				</ul>
+				</div>
 
 				{fortressOn && !!sec.fortress_hide_login && (
-					<div style={{
-						marginTop: 18, padding: '12px 14px',
-						borderRadius: 12,
-						background: 'var(--hx-surface-2, var(--hx-surface))',
-						boxShadow: 'inset 0 0 0 1px var(--hx-border)',
-						fontSize: 12, color: 'var(--hx-muted)',
-					}}>
+					<div
+						style={{
+							marginTop: 16,
+							padding: '12px 14px',
+							borderRadius: 10,
+							background: 'var(--hx-surface-2)',
+							border: '1px solid var(--hx-border)',
+							fontSize: 12,
+							color: 'var(--hx-muted)',
+						}}
+					>
 						<div style={{ fontWeight: 600, color: 'var(--hx-fg)', marginBottom: 6 }}>Custom login slug</div>
 						<div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
 							<span style={{
@@ -224,8 +180,9 @@ export default function Security({ state, onDirty, setSetting }) {
 					</div>
 				)}
 
-				{/* Advanced collapsible */}
-				<div style={{ marginTop: 18, borderTop: '1px solid var(--hx-border)', paddingTop: 14 }}>
+				{/* Advanced collapsible: per-feature HxRow list. Matches every
+				    other setting-row in the admin. */}
+				<div style={{ marginTop: 16, borderTop: '1px solid var(--hx-border)', paddingTop: 14 }}>
 					<button
 						type="button"
 						onClick={() => setAdvancedOpen((v) => !v)}
@@ -238,8 +195,6 @@ export default function Security({ state, onDirty, setSetting }) {
 							display: 'inline-flex', alignItems: 'center', gap: 6,
 							outline: 'none',
 						}}
-						onFocus={(e) => e.currentTarget.style.boxShadow = '0 0 0 2px var(--hx-primary)'}
-						onBlur={(e) => e.currentTarget.style.boxShadow = 'none'}
 					>
 						<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transform: advancedOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform var(--hx-ease, 200ms ease)' }}>
 							<polyline points="9 18 15 12 9 6" />
@@ -247,33 +202,24 @@ export default function Security({ state, onDirty, setSetting }) {
 						Advanced (per-feature toggles)
 					</button>
 					{advancedOpen && (
-						<div id="hatch-fortress-advanced" className="hx-grid-stack hx-gap-2" style={{ marginTop: 12 }}>
-							{FORTRESS_CHIPS.map((chip) => (
-								<label
+						<div id="hatch-fortress-advanced" style={{ marginTop: 6 }}>
+							{FORTRESS_CHIPS.map((chip, i) => (
+								<HxRow
 									key={chip.key}
-									style={{
-										display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-										gap: 10, padding: '10px 12px', borderRadius: 12,
-										background: 'var(--hx-surface-2, var(--hx-surface))',
-										boxShadow: 'inset 0 0 0 1px var(--hx-border)',
-										fontSize: 12.5, color: 'var(--hx-fg)',
-										cursor: 'pointer',
-									}}
+									label={chip.label}
+									desc={chip.title}
+									last={i === FORTRESS_CHIPS.length - 1}
 								>
-									<span style={{ minWidth: 0 }}>
-										<span style={{ display: 'block', fontWeight: 600 }}>{chip.label}</span>
-										<span style={{ display: 'block', color: 'var(--hx-subtle)', fontSize: 11.5, marginTop: 2 }}>{chip.title}</span>
-									</span>
 									<HxToggle
 										on={!!sec['fortress_' + chip.key]}
 										onChange={(v) => { setSetting('security.fortress_' + chip.key, v); onDirty(); }}
 									/>
-								</label>
+								</HxRow>
 							))}
 						</div>
 					)}
 				</div>
-			</div>
+			</HxCard>
 
 			{/* REST API hardening: tight, scannable */}
 			<HxCard>
