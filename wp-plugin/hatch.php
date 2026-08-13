@@ -480,6 +480,12 @@ require_once HATCH_PLUGIN_DIR . 'includes/class-block-serializer.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-deploy-hooks.php';
 // V0.21.1 — Deploy broker client (talks to hatch.adityaarsharma.com for 1-click deploy).
 require_once HATCH_PLUGIN_DIR . 'includes/class-deploy-broker.php';
+// v0.5.8. Cloudflare Worker SEO rewriter. Reads hatch_cf_worker_state option
+// (written by Hatch_Onboarding_Cloudflare on successful deploy) and rewrites
+// permalinks + sitemap + robots so search engines see the Worker-served
+// subfolder as canonical. No-op when the option is empty.
+require_once HATCH_PLUGIN_DIR . 'includes/class-cf-seo.php';
+add_action( 'init', array( 'Hatch_Cf_Seo', 'boot' ), 20 );
 // v0.50.31 — Health widget DISABLED. It used to pin "🐣 Hatch — Headless
 // Engine" to the top of WP Dashboard for every admin. Per user feedback:
 // Hatch shouldn't litter the WP dashboard — all its diagnostics already
