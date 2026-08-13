@@ -131,6 +131,13 @@ const checkoutUrl = '/checkout';
               <div class="hatch-cart-line__total">
                 {money(it.totals.line_total, it.totals.currency_symbol, it.totals.currency_minor_unit)}
               </div>
+              <button
+                type="button"
+                class="hatch-cart-line__remove"
+                data-hatch-cart-remove
+                data-hatch-cart-key={it.key}
+                aria-label={`Remove ${it.name} from cart`}
+              >Remove</button>
             </li>
           ))}
         </ul>
@@ -156,32 +163,64 @@ const checkoutUrl = '/checkout';
      so line totals + grand total re-render from a fresh SSR fetch. */
   (function () {
     const inputs = document.querySelectorAll('[data-hatch-cart-qty]');
-    if (!inputs.length) return;
+    const removes = document.querySelectorAll('[data-hatch-cart-remove]');
+    if (!inputs.length && !removes.length) return;
     const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
-    const post = debounce(async (key, qty) => {
+    async function getNonce() {
+      const r = await fetch('/api/wc-store/cart', {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      return r.headers.get('Nonce') || r.headers.get('nonce') || '';
+    }
+    async function remove(key) {
+      const nonce = await getNonce();
+      const res = await fetch('/api/wc-store/cart/remove-item', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(nonce ? { Nonce: nonce } : {}),
+        },
+        body: JSON.stringify({ key }),
+      });
+      if (res.ok) location.reload();
+    }
+    async function update(key, qty) {
+      const nonce = await getNonce();
+      const res = await fetch('/api/wc-store/cart/update-item', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(nonce ? { Nonce: nonce } : {}),
+        },
+        body: JSON.stringify({ key, quantity: qty }),
+      });
+      if (res.ok) location.reload();
+    }
+    const postQty = debounce(async (key, qty) => {
+      // Store API rejects update-item with quantity=0 ("minimum quantity is 1").
+      // Route qty=0 to /remove-item so setting qty to zero clears the line
+      // instead of failing silently.
       try {
-        // Refresh Nonce first so update-item is not rejected as invalid.
-        const cartRes = await fetch('/api/wc-store/cart', {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        });
-        const upNonce = cartRes.headers.get('Nonce') || cartRes.headers.get('nonce') || '';
-        const res = await fetch('/api/wc-store/cart/update-item', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(upNonce ? { Nonce: upNonce } : {}),
-          },
-          body: JSON.stringify({ key, quantity: Math.max(0, parseInt(qty, 10) || 0) }),
-        });
-        if (res.ok) location.reload();
+        const n = Math.max(0, parseInt(qty, 10) || 0);
+        if (n === 0) await remove(key);
+        else await update(key, n);
       } catch (e) { /* next reload re-syncs on the server side */ }
     }, 500);
     inputs.forEach((el) => {
       el.addEventListener('change', (e) => {
         const t = e.target;
-        post(t.getAttribute('data-hatch-cart-key'), t.value);
+        postQty(t.getAttribute('data-hatch-cart-key'), t.value);
+      });
+    });
+    removes.forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        try {
+          btn.setAttribute('disabled', 'disabled');
+          await remove(btn.getAttribute('data-hatch-cart-key'));
+        } catch (e) { btn.removeAttribute('disabled'); }
       });
     });
   })();
