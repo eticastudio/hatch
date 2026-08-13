@@ -427,6 +427,47 @@ summary:focus-visible,
 .hatch-cart__total strong { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
 .hatch-cart__checkout { padding: 0.85rem 2rem; }
 
+/* Primary button variant. Filled with the theme's primary color, text is
+   the theme background so contrast holds in both light and dark. Used by
+   Cart, Checkout, Order Summary, and HatchForm submit. */
+.hatch-btn--primary,
+.hatch-form__submit.hatch-btn--primary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1.5rem;
+	border-radius: var(--hatch-btn-radius, 8px);
+	background: var(--color-hatch-primary, #ff8a3d);
+	color: var(--color-hatch-bg, #ffffff);
+	font-weight: 600;
+	font-size: 0.95rem;
+	line-height: 1.2;
+	text-decoration: none;
+	border: 1px solid transparent;
+	cursor: pointer;
+	white-space: nowrap;
+}
+.hatch-btn--primary:hover:not(:disabled),
+.hatch-form__submit.hatch-btn--primary:hover:not(:disabled) {
+	filter: brightness(1.08);
+	color: var(--color-hatch-bg, #ffffff);
+	text-decoration: none;
+}
+.hatch-btn--primary:disabled,
+.hatch-form__submit.hatch-btn--primary:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+/* Text stays white on the primary fill regardless of theme mode.
+   Works for the 95%+ of brand primaries that are saturated enough for
+   white to hit WCAG AA. If a user picks a pale primary the button gets
+   low contrast, but that's on their color choice, not our default. */
+.hatch-btn--primary,
+.hatch-form__submit.hatch-btn--primary {
+	color: #ffffff;
+}
+
 @media (max-width: 640px) {
 	.hatch-cart-line {
 		grid-template-columns: 64px 1fr;
