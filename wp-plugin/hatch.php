@@ -384,7 +384,32 @@ function hatch_on_activation(): void {
 	} else {
 		delete_transient( 'hatch_activation_no_sodium' );
 	}
+	// Auto-install the URL-rewriter mu-plugin so image/permalink URLs in
+	// REST responses swap the private WP origin for the public frontend
+	// host without any operator step. Self-heals on every admin_init too.
+	hatch_sync_url_rewriter_mu();
 }
+
+/**
+ * Sync the Hatch URL-rewriter mu-plugin from the plugin's optional-mu-plugin
+ * folder to WordPress's WPMU_PLUGIN_DIR. Runs at activation and on every
+ * admin_init so an operator who deletes it gets it back automatically.
+ *
+ * No-op when the file bytes already match. Fail-safe: any filesystem error
+ * short-circuits without breaking the request.
+ */
+function hatch_sync_url_rewriter_mu(): void {
+	if ( ! defined( 'WPMU_PLUGIN_DIR' ) ) return;
+	$src = HATCH_PLUGIN_DIR . 'optional-mu-plugin/hatch-url-rewrite.php';
+	$dst = WPMU_PLUGIN_DIR . '/hatch-url-rewrite.php';
+	if ( ! is_readable( $src ) ) return;
+	if ( ! is_dir( WPMU_PLUGIN_DIR ) ) {
+		if ( ! @wp_mkdir_p( WPMU_PLUGIN_DIR ) ) return;
+	}
+	if ( is_readable( $dst ) && @md5_file( $src ) === @md5_file( $dst ) ) return;
+	@copy( $src, $dst );
+}
+add_action( 'admin_init', 'hatch_sync_url_rewriter_mu' );
 
 // Backlog #156 — persistent admin notice when libsodium is missing. The SSH
 // fallback path refuses to store credentials without it; the wizard also
