@@ -1,5 +1,5 @@
 import { useState, useEffect } from '@wordpress/element';
-import { HxCard, HxBadge } from '../components.jsx';
+import { HxCard, HxHead, HxBadge, HxGL, ibg } from '../components.jsx';
 
 /**
  * Live probe for the Hatch WooCommerce bridge. Hits /hatch/v1/store/products
@@ -292,141 +292,102 @@ const CATS = [
 	},
 ];
 
+/**
+ * Category card. Parallel-designed on the shared primitives: HxCard as the
+ * shell, HxHead for the icon-box + title + status action, HxGL for the
+ * sub-section labels inside the reveal panel. The whole card is the accordion
+ * trigger. Icon container follows the HxHead spec (38 x 38, radius 10, ibg()
+ * tint) instead of the earlier bespoke 32 x 32 primary-mix box.
+ */
 function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 	const [open, setOpen] = useState(false);
 	const activePlugin = isOn ? cat.plugins.find((p) => p.slug === active) : null;
 	const activeLabel = activePlugin?.label || (isOn ? active : null);
-	// Only fire the live probe on the WooCommerce card once it is unfolded
-	// AND the bridge is on — no wasted requests when the plugin is inactive.
 	const probe = useWooProbe(cat.hasLiveProbe && open && isOn);
+	const toggle = () => setOpen((s) => !s);
+
+	const statusColor = cat.comingSoon ? 'yellow' : (isOn ? 'green' : 'neutral');
+	const statusText  = cat.comingSoon ? 'Coming soon' : (isOn ? 'Active' : 'Not detected');
+	const statusTitle = cat.comingSoon
+		? 'Detection works; frontend rendering ships in a later release'
+		: (isOn ? `Bridging via ${activeLabel}` : 'Install a supported plugin to enable this bridge');
+
+	// HxHead action slot: status badge + chevron. The whole card is the
+	// accordion trigger so the chevron is visual, not a separate control.
+	const headAction = (
+		<div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+			<span title={statusTitle}>
+				<HxBadge color={statusColor}>{statusText}</HxBadge>
+			</span>
+			<span style={{ color: 'var(--hx-muted)' }} aria-hidden="true">
+				<Chevron open={open} />
+			</span>
+		</div>
+	);
+
+	// Icon colour drives HxHead's ibg() tint. Green when on, muted when off.
+	// Coming-soon amber only when the category itself is coming soon.
+	const iconColor = cat.comingSoon ? '#d97706' : (isOn ? '#16a34a' : 'var(--hx-muted)');
+	const desc = isOn
+		? `via ${activeLabel}. ${cat.outcome}`
+		: cat.outcome;
 
 	return (
-		<div
-			style={{
-				border: '1px solid var(--hx-border)',
-				borderRadius: 10,
-				background: 'var(--hx-surface, #fff)',
-				overflow: 'hidden',
-				transition: 'border-color .15s ease',
-			}}
-		>
+		<HxCard style={{ padding: 0, overflow: 'hidden' }}>
 			<button
 				type="button"
-				onClick={() => setOpen((s) => !s)}
+				onClick={toggle}
+				aria-expanded={open}
+				aria-controls={`bridge-${cat.id}-panel`}
 				style={{
-					display: 'flex',
-					alignItems: 'center',
-					justifyContent: 'space-between',
 					width: '100%',
-					padding: '14px 16px',
 					background: 'transparent',
 					border: 0,
+					padding: 22,
 					cursor: 'pointer',
 					textAlign: 'left',
+					fontFamily: 'inherit',
 					color: 'var(--hx-fg)',
-					gap: 12,
 				}}
 			>
-				<div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
-					<span style={{ color: 'var(--hx-muted)' }}><Chevron open={open} /></span>
-					<span
-						aria-hidden="true"
-						style={{
-							width: 32,
-							height: 32,
-							borderRadius: 8,
-							flexShrink: 0,
-							display: 'grid',
-							placeItems: 'center',
-							background: isOn
-								? 'color-mix(in oklab, var(--hx-primary) 8%, var(--hx-surface-2, var(--hx-surface)))'
-								: 'var(--hx-surface-2, var(--hx-surface))',
-							color: isOn ? 'var(--hx-primary)' : 'var(--hx-muted)',
-							transition: 'background var(--hx-ease, 200ms ease), color var(--hx-ease, 200ms ease)',
-						}}
-					>
-						{ICONS[cat.id]}
-					</span>
-					<span style={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-						{cat.label}
-					</span>
-				</div>
-				<span
-					style={{
-						display: 'inline-flex',
-						alignItems: 'center',
-						gap: 6,
-						padding: '3px 10px',
-						borderRadius: 999,
-						fontSize: 11,
-						fontWeight: 600,
-						flexShrink: 0,
-						background: cat.comingSoon
-							? 'rgba(245,158,11,0.10)'
-							: (isOn ? 'rgba(16,185,129,0.10)' : 'transparent'),
-						border: `1px solid ${cat.comingSoon
-							? 'rgba(245,158,11,0.35)'
-							: (isOn ? 'rgba(16,185,129,0.35)' : 'var(--hx-border)')}`,
-						color: cat.comingSoon ? '#b45309' : (isOn ? '#047857' : 'var(--hx-muted)'),
-					}}
-					title={cat.comingSoon
-						? 'Detection works; frontend rendering ships in a later release'
-						: (isOn ? `Bridging via ${activeLabel}` : 'Install a supported plugin to enable this bridge')}
-				>
-					<StatusDot state={cat.comingSoon ? 'installed' : (isOn ? 'active' : 'off')} />
-					{cat.comingSoon ? 'Coming soon' : (isOn ? 'Active' : 'Not detected')}
-				</span>
+				<HxHead
+					iconChildren={ICONS[cat.id]}
+					iconColor={iconColor}
+					title={cat.label}
+					desc={desc}
+					mb={0}
+					action={headAction}
+				/>
 			</button>
 
-			{!open && (
-				<div style={{ padding: '0 16px 14px', fontSize: 12, color: 'var(--hx-muted)', lineHeight: 1.5 }}>
-					{isOn ? (
-						<>via <strong style={{ color: 'var(--hx-fg)' }}>{activeLabel}</strong> — {cat.outcome}</>
-					) : (
-						cat.outcome
-					)}
-				</div>
-			)}
-
 			{open && (
-				<div style={{ padding: '4px 16px 16px', borderTop: '1px solid var(--hx-border)', display: 'flex', flexDirection: 'column', gap: 14 }}>
-					<div style={{ fontSize: 12, color: 'var(--hx-muted)', lineHeight: 1.5, paddingTop: 12 }}>
-						{cat.outcome}
-					</div>
-
+				<div
+					id={`bridge-${cat.id}-panel`}
+					style={{
+						borderTop: '1px solid var(--hx-border)',
+						padding: 22,
+						display: 'flex',
+						flexDirection: 'column',
+						gap: 6,
+					}}
+				>
 					<div>
-						<div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--hx-muted)', marginBottom: 8 }}>
-							Exposes as REST
-						</div>
-						<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+						<HxGL>Exposes as REST</HxGL>
+						<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
 							{cat.exposes.map((chip) => (
-								<span
-									key={chip}
-									style={{
-										padding: '3px 8px',
-										borderRadius: 4,
-										border: '1px solid var(--hx-border)',
-										background: isOn ? 'rgba(59,130,246,0.06)' : 'transparent',
-										fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace',
-										fontSize: 11,
-										color: isOn ? '#1e40af' : 'var(--hx-muted)',
-									}}
-								>
-									{chip}
-								</span>
+								<HxBadge key={chip} color="mono">{chip}</HxBadge>
 							))}
 						</div>
 					</div>
 
 					<div>
-						<div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--hx-muted)', marginBottom: 8 }}>
-							Supported plugins
-						</div>
-						<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-							{cat.plugins.map((p) => {
+						<HxGL>Supported plugins</HxGL>
+						<div style={{ display: 'flex', flexDirection: 'column', marginTop: 4 }}>
+							{cat.plugins.map((p, idx) => {
 								const installed = !!plugMap[p.slug];
 								const isActivePlugin = installed && p.slug === active;
 								const state = isActivePlugin ? 'active' : installed ? 'installed' : 'off';
+								const last = idx === cat.plugins.length - 1;
 								return (
 									<div
 										key={p.slug}
@@ -434,71 +395,77 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 										style={{
 											display: 'flex',
 											alignItems: 'center',
-											gap: 8,
-											padding: '6px 8px',
-											borderRadius: 6,
-											border: '1px solid transparent',
-											background: isActivePlugin ? 'rgba(16,185,129,0.06)' : 'transparent',
+											justifyContent: 'space-between',
+											gap: 12,
+											padding: '10px 0',
+											borderBottom: last ? 'none' : '1px solid var(--hx-border)',
 											cursor: 'help',
 										}}
 									>
-										<StatusDot state={state} />
-										<span style={{
-											fontSize: 12,
-											color: isActivePlugin ? 'var(--hx-fg)' : installed ? 'var(--hx-fg)' : 'var(--hx-muted)',
-											fontWeight: isActivePlugin ? 600 : 500,
-											flex: 1,
-											minWidth: 0,
-											whiteSpace: 'nowrap',
-											overflow: 'hidden',
-											textOverflow: 'ellipsis',
-										}}>
-											{p.label}
-										</span>
-										{isActivePlugin && (
-											<HxBadge color="green">Active</HxBadge>
-										)}
-										{!isActivePlugin && installed && (
-											<HxBadge color="blue">Installed</HxBadge>
-										)}
-										{p.priority && (
-											<span style={{ fontSize: 10, color: 'var(--hx-muted)', opacity: 0.7 }}>#{p.priority}</span>
-										)}
+										<div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+											<StatusDot state={state} />
+											<span
+												className="hx-label"
+												style={{
+													color: 'var(--hx-fg)',
+													fontWeight: isActivePlugin ? 600 : 500,
+													whiteSpace: 'nowrap',
+													overflow: 'hidden',
+													textOverflow: 'ellipsis',
+												}}
+											>
+												{p.label}
+											</span>
+										</div>
+										<div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+											{isActivePlugin && <HxBadge color="green">Active</HxBadge>}
+											{!isActivePlugin && installed && <HxBadge color="blue">Installed</HxBadge>}
+											{p.priority && (
+												<span style={{ fontSize: 11, color: 'var(--hx-subtle)' }}>#{p.priority}</span>
+											)}
+										</div>
 									</div>
 								);
 							})}
 						</div>
 					</div>
 
-					{!isOn && (
-						<div style={{
-							padding: '8px 12px',
-							background: 'rgba(148,163,184,0.08)',
-							border: '1px dashed var(--hx-border)',
-							borderRadius: 6,
-							fontSize: 12,
-							color: 'var(--hx-muted)',
-						}}>
+					{!isOn && !cat.comingSoon && (
+						<div
+							style={{
+								marginTop: 6,
+								padding: '10px 12px',
+								borderRadius: 10,
+								background: 'var(--hx-surface-2)',
+								border: '1px dashed var(--hx-border-2)',
+								fontSize: 12,
+								color: 'var(--hx-muted)',
+								lineHeight: 1.5,
+							}}
+						>
 							Install any plugin above to enable this bridge. Hatch auto-detects on activation.
 						</div>
 					)}
 
 					{cat.hasLiveProbe && isOn && (
-						<div style={{
-							padding: '10px 12px',
-							background: 'rgba(59,130,246,0.06)',
-							border: '1px solid rgba(59,130,246,0.20)',
-							borderRadius: 6,
-							fontSize: 12,
-							color: 'var(--hx-fg)',
-							display: 'flex',
-							flexDirection: 'column',
-							gap: 6,
-						}}>
-							<div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--hx-muted)' }}>
-								Live probe
-							</div>
-							{probe.loading && <div>Fetching from <code>/hatch/v1/store/products?per_page=1</code>…</div>}
+						<div
+							style={{
+								marginTop: 6,
+								padding: '12px 14px',
+								borderRadius: 10,
+								background: ibg('#2563eb'),
+								border: '1px solid var(--hx-border)',
+								fontSize: 12,
+								color: 'var(--hx-fg)',
+								display: 'flex',
+								flexDirection: 'column',
+								gap: 6,
+							}}
+						>
+							<HxGL>Live probe</HxGL>
+							{probe.loading && (
+								<div>Fetching from <code style={{ fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace' }}>/hatch/v1/store/products?per_page=1</code>...</div>
+							)}
 							{probe.err && <div style={{ color: 'var(--hx-danger)' }}>Probe failed: {probe.err}</div>}
 							{probe.total !== null && !probe.loading && (
 								<>
@@ -514,16 +481,17 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 													href={`${frontendUrl.replace(/\/$/, '')}/product/${probe.sample.slug}`}
 													target="_blank"
 													rel="noopener noreferrer"
+													onClick={(e) => e.stopPropagation()}
 													style={{ color: 'var(--hx-info)', fontWeight: 500 }}
 												>
-													View on frontend ↗
+													View on frontend
 												</a>
 											)}
 										</div>
 									)}
 									{probe.total === 0 && (
 										<div style={{ color: 'var(--hx-muted)' }}>
-											No published products yet — add one in WooCommerce → Products.
+											No published products yet. Add one in WooCommerce, then Products.
 										</div>
 									)}
 								</>
@@ -532,7 +500,7 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 					)}
 				</div>
 			)}
-		</div>
+		</HxCard>
 	);
 }
 
