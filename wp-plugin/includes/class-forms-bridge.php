@@ -27,8 +27,60 @@ class Hatch_Forms_Bridge {
 			self::$instance = new self();
 			add_action( 'rest_api_init', array( __CLASS__, 'register_routes' ) );
 			add_filter( 'hatch/content/html', array( __CLASS__, 'rewrite_form_shortcodes' ), 10, 2 );
+			// v0.52 — ensure the Hatch-owned submissions table exists so
+			// every provider (including WPForms Lite, which has no entries
+			// API) persists to DB. Cheap: only runs schema-check once per
+			// process, dbDelta is a no-op when up to date.
+			add_action( 'init', array( __CLASS__, 'ensure_submissions_table' ), 5 );
 		}
 		return self::$instance;
+	}
+
+	/* --------------------------------------------------------------------- *
+	 * Hatch-owned submissions store (works for every provider)
+	 * v0.52 — WPForms Lite has no entries API, Pro's entry->add is the
+	 * only path that natively persists. We mirror EVERY submission into
+	 * wp_hatch_form_submissions so operators always have a queryable log.
+	 * --------------------------------------------------------------------- */
+
+	public static function ensure_submissions_table(): void {
+		if ( get_option( 'hatch_forms_submissions_schema' ) === '0.52.0' ) {
+			return;
+		}
+		global $wpdb;
+		$table   = $wpdb->prefix . 'hatch_form_submissions';
+		$charset = $wpdb->get_charset_collate();
+		$sql = "CREATE TABLE {$table} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			provider VARCHAR(32) NOT NULL,
+			form_id BIGINT UNSIGNED NOT NULL,
+			fields LONGTEXT NOT NULL,
+			ip_address VARCHAR(64) NOT NULL DEFAULT '',
+			user_agent VARCHAR(255) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY (id),
+			KEY provider_form (provider, form_id),
+			KEY created (created_at)
+		) {$charset};";
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+		update_option( 'hatch_forms_submissions_schema', '0.52.0', false );
+	}
+
+	private static function persist_submission( string $provider, int $form_id, array $fields ): int {
+		global $wpdb;
+		$table = $wpdb->prefix . 'hatch_form_submissions';
+		$ip    = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$ua    = isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 254 ) : '';
+		$ok = $wpdb->insert( $table, array(
+			'provider'   => $provider,
+			'form_id'    => $form_id,
+			'fields'     => wp_json_encode( $fields ),
+			'ip_address' => $ip,
+			'user_agent' => $ua,
+			'created_at' => current_time( 'mysql' ),
+		), array( '%s', '%d', '%s', '%s', '%s', '%s' ) );
+		return $ok ? (int) $wpdb->insert_id : 0;
 	}
 
 	private function __construct() {}
@@ -408,13 +460,31 @@ class Hatch_Forms_Bridge {
 		}
 		$fields = isset( $payload['fields'] ) && is_array( $payload['fields'] ) ? $payload['fields'] : $payload;
 
+		$result = null;
 		switch ( $provider ) {
-			case 'fluent':  return self::submit_fluent( $id, $fields );
-			case 'gravity': return self::submit_gravity( $id, $fields );
-			case 'wpforms': return self::submit_wpforms_real( $id, $fields );
-			case 'cf7':     return self::submit_cf7_real( $id, $fields, $req );
+			case 'fluent':  $result = self::submit_fluent( $id, $fields ); break;
+			case 'gravity': $result = self::submit_gravity( $id, $fields ); break;
+			case 'wpforms': $result = self::submit_wpforms_real( $id, $fields ); break;
+			case 'cf7':     $result = self::submit_cf7_real( $id, $fields, $req ); break;
+			default:
+				return new WP_Error( 'hatch_forms_unsupported', 'Unknown provider', array( 'status' => 400 ) );
 		}
-		return new WP_Error( 'hatch_forms_unsupported', 'Unknown provider', array( 'status' => 400 ) );
+		// v0.52 — mirror every successful submission to the Hatch-owned
+		// table so operators have a queryable log even when the plugin
+		// itself (e.g. WPForms Lite) does not persist entries.
+		$is_success = ( $result instanceof WP_REST_Response )
+			&& is_array( $result->get_data() )
+			&& ! empty( $result->get_data()['ok'] );
+		if ( $is_success ) {
+			self::ensure_submissions_table();
+			$sid = self::persist_submission( $provider, $id, $fields );
+			if ( $sid ) {
+				$data = $result->get_data();
+				$data['submission_id'] = $sid;
+				$result->set_data( $data );
+			}
+		}
+		return $result;
 	}
 
 	private static function submit_fluent( int $id, array $fields ) {
