@@ -112,6 +112,13 @@ class Hatch_Blocks {
 
 	/**
 	 * Is the master toggle ON?
+	 *
+	 * Multisite note: this deliberately uses get_option() (per-site) and NOT
+	 * get_site_option() (network-wide). Each site in a multisite install
+	 * decides its own block whitelist because block support is a
+	 * per-site editorial concern: a docs sub-site may want the full palette
+	 * while a landing-page sub-site wants the narrow list. Do not "fix" this
+	 * to network-wide storage without an explicit product decision.
 	 */
 	public static function is_enabled(): bool {
 		return (bool) get_option( self::OPTION_KEY, 0 );
