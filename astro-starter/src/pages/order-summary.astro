@@ -115,16 +115,30 @@ const key = url.searchParams.get('key') || '';
     // Path prefix goes through the same-origin Astro proxy
     // (src/pages/api/wc-store/[...path].ts). Calling /wp-json/* directly
     // 404s because the WP install is on a different origin.
-    const orderUrl = '/api/wc-store/order/' + encodeURIComponent(id) +
+    // Try Woo Store API first (needs Cart-Token from the placing session).
+    // Fall back to /hatch/v1/order which validates the key server-side and
+    // works even after the Cart-Token is gone (refresh, share, direct link).
+    const storeUrl = '/api/wc-store/order/' + encodeURIComponent(id) +
       (key ? '?key=' + encodeURIComponent(key) : '');
-    fetch(orderUrl, {
-      credentials: 'include',
-      headers: { Accept: 'application/json' },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      })
+    const hatchUrl = '/api/wc-store/../hatch/v1/order/' + encodeURIComponent(id) +
+      (key ? '?key=' + encodeURIComponent(key) : '');
+    const hatchWpUrl = '/wp-json/hatch/v1/order/' + encodeURIComponent(id) +
+      (key ? '?key=' + encodeURIComponent(key) : '');
+    const tryFetch = async (u) => {
+      const r = await fetch(u, { credentials: 'include', headers: { Accept: 'application/json' } });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    };
+    (async () => {
+      let data;
+      try { data = await tryFetch(storeUrl); }
+      catch (e1) {
+        try { data = await tryFetch(hatchWpUrl); }
+        catch (e2) { throw new Error('HTTP 401'); }
+      }
+      return data;
+    })()
+      .then((data) => data)
       .then((order) => {
         if (!order || !order.id) throw new Error('Empty order response');
         loading.hidden = true;

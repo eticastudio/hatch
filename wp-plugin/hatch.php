@@ -488,6 +488,9 @@ require_once HATCH_PLUGIN_DIR . 'includes/class-deploy-broker.php';
 // subfolder as canonical. No-op when the option is empty.
 require_once HATCH_PLUGIN_DIR . 'includes/class-cf-seo.php';
 add_action( 'init', array( 'Hatch_Cf_Seo', 'boot' ), 20 );
+// v0.7.6 — guest-safe order lookup so /order-summary works without Cart-Token.
+require_once HATCH_PLUGIN_DIR . 'includes/class-order-lookup.php';
+add_action( 'init', array( 'Hatch_Order_Lookup', 'boot' ), 5 );
 // v0.50.31 — Health widget DISABLED. It used to pin "🐣 Hatch — Headless
 // Engine" to the top of WP Dashboard for every admin. Per user feedback:
 // Hatch shouldn't litter the WP dashboard — all its diagnostics already

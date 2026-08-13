@@ -119,6 +119,9 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
             <a href={item.href} target={item.target || undefined} class:list={[isActive(item.href) ? 'is-active' : '']}>{item.label}</a>
           ))}
           {showAuth && (
+            <a href="/cart" class:list={[isActive('/cart') ? 'is-active' : '']}>Cart</a>
+          )}
+          {showAuth && (
             <a href={accountHref} data-hatch-auth-link class:list={[isActive(accountHref) ? 'is-active' : '']}>{authLabel}</a>
           )}
         </nav>
@@ -150,6 +153,9 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
           <a href={item.href} target={item.target || undefined} class:list={[isActive(item.href) ? 'is-active' : '']}>{item.label}</a>
         ))}
         {showAuth && (
+          <a href="/cart" class:list={[isActive('/cart') ? 'is-active' : '']}>Cart</a>
+        )}
+        {showAuth && (
           <a href={accountHref} data-hatch-auth-link class:list={[isActive(accountHref) ? 'is-active' : '']}>{authLabel}</a>
         )}
       </nav>
@@ -178,6 +184,9 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
         {navItems.map((item) => (
           <a href={item.href} target={item.target || undefined} class:list={[isActive(item.href) ? 'is-active' : '']}>{item.label}</a>
         ))}
+        {showAuth && (
+          <a href="/cart" class:list={[isActive('/cart') ? 'is-active' : '']}>Cart</a>
+        )}
         {showAuth && (
           <a href={accountHref} data-hatch-auth-link class:list={[isActive(accountHref) ? 'is-active' : '']}>{authLabel}</a>
         )}
@@ -226,6 +235,13 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
         {item.label}
       </a>
     ))}
+    {showAuth && (
+      <a href="/cart"
+         class:list={['px-3 py-3 rounded-md text-[14px] font-medium transition-colors',
+                      isActive('/cart') ? 'text-hatch-fg bg-hatch-bg-3' : 'text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2']}>
+        Cart
+      </a>
+    )}
     {showAuth && (
       <a href={accountHref} data-hatch-auth-link
          class:list={['px-3 py-3 rounded-md text-[14px] font-medium transition-colors',
