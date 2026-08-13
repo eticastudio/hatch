@@ -939,7 +939,11 @@
 	display: flex;
 	flex-direction: column;
 	gap: 1.25rem;
-	max-width: 640px;
+	/* v0.52 — fill parent by default; a page can opt-in to the
+	   old 640px cap by setting --hatch-wpforms-max-width on any
+	   ancestor. Prose columns (68ch) still constrain naturally. */
+	max-width: var(--hatch-wpforms-max-width, 100%);
+	width: 100%;
 }
 .wpforms-field {
 	display: flex;
