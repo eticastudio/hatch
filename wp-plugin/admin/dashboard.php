@@ -413,10 +413,15 @@ function hatch_react_boot_state(): array {
 			'status'         => hatch_react_status_snapshot(),
 			// v0.2.0 — Blocks tab state.
 			'blocks'         => array(
-				'master'      => (bool) get_option( 'hatch_blocks_master', 1 ),
-				'hatch_only'  => (bool) get_option( 'hatch_blocks_hatch_only', 0 ),
-				'ai_provider' => (string) get_option( 'hatch_ai_provider', 'anthropic' ),
-				'ai_api_key'  => '' !== (string) get_option( 'hatch_ai_api_key', '' ) ? '••••••••' : '',
+				'master'              => (bool) get_option( 'hatch_blocks_master', 1 ),
+				'hatch_only'          => (bool) get_option( 'hatch_blocks_hatch_only', 0 ),
+				'ai_provider'         => (string) get_option( 'hatch_ai_provider', 'anthropic' ),
+				'ai_api_key'          => '' !== (string) get_option( 'hatch_ai_api_key', '' ) ? '••••••••' : '',
+				// v0.7.5 — Plugin Bridge master toggle. Narrows inserter to
+				// the 36 core blocks Hatch styles end-to-end when true.
+				'disable_unsupported' => (bool) get_option( 'hatch_blocks_disable_unsupported', 0 ),
+				'supported_count'     => class_exists( 'Hatch_Blocks' ) ? Hatch_Blocks::count() : 36,
+				'supported_list'      => class_exists( 'Hatch_Blocks' ) ? Hatch_Blocks::whitelist() : array(),
 			),
 			'blocks_catalog' => class_exists( 'Hatch_Blocks_Control' ) ? Hatch_Blocks_Control::catalog() : array(),
 			'blocks_enabled' => class_exists( 'Hatch_Blocks_Control' ) ? Hatch_Blocks_Control::get_states() : array(),
@@ -1132,6 +1137,10 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 		// v0.2.0 — Blocks tab toggles.
 		'blocks.hatch_only'            => 'hatch_blocks_hatch_only',
 		'blocks.master'                => 'hatch_blocks_master',
+		// v0.7.5 — Plugin Bridge tab "supported blocks only" gate. When on,
+		// the inserter is narrowed to the 36 core blocks Hatch styles
+		// end-to-end (see includes/class-blocks.php).
+		'blocks.disable_unsupported'   => 'hatch_blocks_disable_unsupported',
 	);
 	$str_options = array(
 		// v0.3.0 — Smart Block AI key (BYOK).

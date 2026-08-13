@@ -536,6 +536,104 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 	);
 }
 
+/**
+ * Master toggle: narrow the Gutenberg inserter to the 36 core blocks Hatch
+ * styles end-to-end (CSS in every theme via the shared base layer). Ships
+ * default OFF. Existing content is never touched; only the inserter surface
+ * for NEW blocks shrinks. Backed by the `hatch_blocks_disable_unsupported`
+ * option via `blocks.disable_unsupported` in the settings map.
+ *
+ * @since 0.7.5
+ */
+function SupportedBlocksToggle({ initialOn, count, list }) {
+	const [on, setOn] = useState(!!initialOn);
+	const [expanded, setExpanded] = useState(false);
+	const [saving, setSaving] = useState(false);
+	const [err, setErr] = useState(null);
+	const boot = typeof window !== 'undefined' ? window.hatchBoot : null;
+	const restUrl = boot?.restUrl;
+	const nonce = boot?.nonce;
+
+	const save = (next) => {
+		if (!restUrl) return;
+		setSaving(true);
+		setErr(null);
+		fetch(`${restUrl}options`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				...(nonce ? { 'X-WP-Nonce': nonce } : {}),
+			},
+			body: JSON.stringify({ 'blocks.disable_unsupported': !!next }),
+		})
+			.then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+			.then(() => { setOn(!!next); })
+			.catch((e) => setErr(String(e.message || e)))
+			.finally(() => setSaving(false));
+	};
+
+	const total = Array.isArray(list) ? list.length : (count || 36);
+
+	return (
+		<HxCard>
+			<div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+				<div style={{ minWidth: 0, flex: 1 }}>
+					<div style={{ fontSize: 15, fontWeight: 600, color: 'var(--hx-fg)', marginBottom: 4 }}>
+						Supported Gutenberg blocks
+					</div>
+					<div style={{ fontSize: 12, color: 'var(--hx-muted)', lineHeight: 1.5, marginBottom: 8 }}>
+						When on, only the {total} core blocks Hatch styles end-to-end across every theme are pickable in the inserter. Existing content stays intact.
+					</div>
+					{err && (
+						<div style={{ fontSize: 11, color: 'var(--hx-danger)', marginBottom: 8 }}>Save failed: {err}</div>
+					)}
+					<button
+						type="button"
+						onClick={() => setExpanded((v) => !v)}
+						style={{
+							background: 'none',
+							border: 'none',
+							padding: 0,
+							cursor: 'pointer',
+							color: 'var(--hx-muted)',
+							fontSize: 11,
+							textDecoration: 'underline',
+						}}
+					>
+						{expanded ? 'Hide' : 'Show'} the {total} supported block slugs
+					</button>
+					{expanded && Array.isArray(list) && list.length > 0 && (
+						<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+							{list.map((slug) => (
+								<span key={slug} style={{
+									padding: '2px 8px',
+									borderRadius: 4,
+									border: '1px solid var(--hx-border)',
+									fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace',
+									fontSize: 11,
+									color: 'var(--hx-muted)',
+								}}>{slug}</span>
+							))}
+						</div>
+					)}
+				</div>
+				<label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.6 : 1 }}>
+					<span style={{ fontSize: 12, color: 'var(--hx-muted)' }}>
+						{on ? 'On' : 'Off'}
+					</span>
+					<input
+						type="checkbox"
+						checked={on}
+						disabled={saving}
+						onChange={(e) => save(e.target.checked)}
+						aria-label="Disable unsupported blocks in the editor"
+					/>
+				</label>
+			</div>
+		</HxCard>
+	);
+}
+
 export default function PluginBridge({ state }) {
 	// Boot state doesn't carry integrations/plugins — fetch the /features
 	// endpoint once on mount so the cards can render real "Active" / "Not
@@ -564,8 +662,20 @@ export default function PluginBridge({ state }) {
 		return a && a !== 'none' && a !== false;
 	}).length;
 
+	const blocksState = state?.blocks || {};
+	const supportedList = Array.isArray(blocksState.supported_list) ? blocksState.supported_list : [];
+	const supportedCount = typeof blocksState.supported_count === 'number' ? blocksState.supported_count : supportedList.length;
+
 	return (
 		<>
+			<SupportedBlocksToggle
+				initialOn={!!blocksState.disable_unsupported}
+				count={supportedCount}
+				list={supportedList}
+			/>
+
+			<div style={{ marginTop: 16 }} />
+
 			<HxCard>
 				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
 					<div style={{ minWidth: 0, flex: 1 }}>
