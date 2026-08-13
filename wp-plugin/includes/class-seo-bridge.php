@@ -286,6 +286,145 @@ class Hatch_Seo_Bridge {
 	}
 
 	/**
+	 * Resolve the SEO meta for a given post ID into a normalised, Astro-consumable
+	 * array. Reads RankMath post_meta first, falls back to Yoast, then to WP core
+	 * (excerpt / featured image / post title).
+	 *
+	 * Image fields are resolved to full URLs (not attachment IDs) so Astro can
+	 * emit them straight into <meta property="og:image">.
+	 *
+	 * Shape (always returns every key, empty string when nothing available):
+	 * - description
+	 * - focus_keyword
+	 * - og_title
+	 * - og_description
+	 * - og_image        (URL)
+	 * - twitter_title
+	 * - twitter_description
+	 * - twitter_image   (URL)
+	 * - source          ('rankmath' | 'yoast' | 'fallback')
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array<string, string>
+	 */
+	public static function resolve_post_seo( int $post_id ): array {
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return array(
+				'description'         => '',
+				'focus_keyword'       => '',
+				'og_title'            => '',
+				'og_description'      => '',
+				'og_image'            => '',
+				'twitter_title'       => '',
+				'twitter_description' => '',
+				'twitter_image'       => '',
+				'source'              => 'fallback',
+			);
+		}
+
+		// RankMath meta keys. Image can be stored as either the URL directly (`_image`)
+		// or a WP attachment ID (`_image_id`); RankMath writes both when the picker
+		// is used, so prefer the ID path when present so we always end up with a
+		// clean full-size URL.
+		$rm_desc      = trim( (string) get_post_meta( $post_id, 'rank_math_description', true ) );
+		$rm_focus     = trim( (string) get_post_meta( $post_id, 'rank_math_focus_keyword', true ) );
+		$rm_og_title  = trim( (string) get_post_meta( $post_id, 'rank_math_facebook_title', true ) );
+		$rm_og_desc   = trim( (string) get_post_meta( $post_id, 'rank_math_facebook_description', true ) );
+		$rm_og_img_id = (int) get_post_meta( $post_id, 'rank_math_facebook_image_id', true );
+		$rm_og_img    = $rm_og_img_id
+			? (string) wp_get_attachment_image_url( $rm_og_img_id, 'full' )
+			: trim( (string) get_post_meta( $post_id, 'rank_math_facebook_image', true ) );
+		$rm_tw_title  = trim( (string) get_post_meta( $post_id, 'rank_math_twitter_title', true ) );
+		$rm_tw_desc   = trim( (string) get_post_meta( $post_id, 'rank_math_twitter_description', true ) );
+		$rm_tw_img_id = (int) get_post_meta( $post_id, 'rank_math_twitter_image_id', true );
+		$rm_tw_img    = $rm_tw_img_id
+			? (string) wp_get_attachment_image_url( $rm_tw_img_id, 'full' )
+			: trim( (string) get_post_meta( $post_id, 'rank_math_twitter_image', true ) );
+
+		// Yoast meta keys.
+		$y_desc      = trim( (string) get_post_meta( $post_id, '_yoast_wpseo_metadesc', true ) );
+		$y_focus     = trim( (string) get_post_meta( $post_id, '_yoast_wpseo_focuskw', true ) );
+		$y_og_title  = trim( (string) get_post_meta( $post_id, '_yoast_wpseo_opengraph-title', true ) );
+		$y_og_desc   = trim( (string) get_post_meta( $post_id, '_yoast_wpseo_opengraph-description', true ) );
+		$y_og_img_id = (int) get_post_meta( $post_id, '_yoast_wpseo_opengraph-image-id', true );
+		$y_og_img    = $y_og_img_id
+			? (string) wp_get_attachment_image_url( $y_og_img_id, 'full' )
+			: trim( (string) get_post_meta( $post_id, '_yoast_wpseo_opengraph-image', true ) );
+		$y_tw_title  = trim( (string) get_post_meta( $post_id, '_yoast_wpseo_twitter-title', true ) );
+		$y_tw_desc   = trim( (string) get_post_meta( $post_id, '_yoast_wpseo_twitter-description', true ) );
+		$y_tw_img_id = (int) get_post_meta( $post_id, '_yoast_wpseo_twitter-image-id', true );
+		$y_tw_img    = $y_tw_img_id
+			? (string) wp_get_attachment_image_url( $y_tw_img_id, 'full' )
+			: trim( (string) get_post_meta( $post_id, '_yoast_wpseo_twitter-image', true ) );
+
+		// WP core fallbacks — excerpt for description, featured image for og_image.
+		$core_desc     = has_excerpt( $post )
+			? wp_strip_all_tags( get_the_excerpt( $post ) )
+			: wp_strip_all_tags( wp_trim_words( (string) $post->post_content, 30, '' ) );
+		$thumb_id      = (int) get_post_thumbnail_id( $post_id );
+		$core_og_image = $thumb_id ? (string) wp_get_attachment_image_url( $thumb_id, 'full' ) : '';
+		$core_title    = html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5 );
+
+		// Decide precedence. If ANY RankMath field has a value we treat the source
+		// as rankmath (RankMath is the intended plugin). Same for Yoast.
+		$has_rm = ( '' !== $rm_desc ) || ( '' !== $rm_og_title ) || ( '' !== $rm_og_desc ) || ( '' !== $rm_og_img ) || ( '' !== $rm_focus );
+		$has_y  = ( '' !== $y_desc ) || ( '' !== $y_og_title ) || ( '' !== $y_og_desc ) || ( '' !== $y_og_img );
+
+		$source = $has_rm ? 'rankmath' : ( $has_y ? 'yoast' : 'fallback' );
+
+		$description         = $rm_desc     ?: ( $y_desc     ?: $core_desc );
+		$focus_keyword       = $rm_focus    ?: $y_focus;
+		$og_title            = $rm_og_title ?: ( $y_og_title ?: $core_title );
+		$og_description      = $rm_og_desc  ?: ( $y_og_desc  ?: $description );
+		$og_image            = $rm_og_img   ?: ( $y_og_img   ?: $core_og_image );
+		$twitter_title       = $rm_tw_title ?: ( $y_tw_title ?: $og_title );
+		$twitter_description = $rm_tw_desc  ?: ( $y_tw_desc  ?: $og_description );
+		$twitter_image       = $rm_tw_img   ?: ( $y_tw_img   ?: $og_image );
+
+		return array(
+			'description'         => (string) $description,
+			'focus_keyword'       => (string) $focus_keyword,
+			'og_title'            => (string) $og_title,
+			'og_description'      => (string) $og_description,
+			'og_image'            => (string) $og_image,
+			'twitter_title'       => (string) $twitter_title,
+			'twitter_description' => (string) $twitter_description,
+			'twitter_image'       => (string) $twitter_image,
+			'source'              => (string) $source,
+		);
+	}
+
+	/**
+	 * Register the resolved SEO block as a REST field on every public post type
+	 * that already opts in to REST. This makes `seo` available on the standard
+	 * /wp/v2/{type}/{id} responses too — not just /hatch/v1/content. Third-party
+	 * consumers get identical resolution.
+	 */
+	public static function register_rest_fields(): void {
+		$types = get_post_types( array( 'public' => true, 'show_in_rest' => true ), 'names' );
+		foreach ( $types as $type ) {
+			if ( 'attachment' === $type ) {
+				continue;
+			}
+			register_rest_field(
+				$type,
+				'hatch_seo',
+				array(
+					'schema'       => array(
+						'description' => __( 'Normalised SEO meta resolved from RankMath / Yoast / WP core.', 'hatch' ),
+						'type'        => 'object',
+						'context'     => array( 'view', 'edit', 'embed' ),
+					),
+					'get_callback' => static function ( $obj ) {
+						return self::resolve_post_seo( (int) ( $obj['id'] ?? 0 ) );
+					},
+				)
+			);
+		}
+	}
+
+	/**
 	 * Map a frontend URL (e.g. https://site.com/blog/foo) to an internal WP URL
 	 * (e.g. https://cms.site.com/foo) so RankMath/Yoast can resolve it.
 	 *

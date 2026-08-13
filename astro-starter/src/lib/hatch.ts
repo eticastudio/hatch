@@ -45,6 +45,25 @@ export interface Post {
   } | null;
   tags: string[];
   readMinutes: number;
+  /**
+   * Resolved RankMath / Yoast SEO meta, normalised server-side. Present when
+   * the post came from the /hatch/v1/content endpoint (page + post + CPT
+   * catch-all). When absent the templates fall back to excerpt + featured
+   * image the same way they always did.
+   */
+  seo?: HatchSeo;
+}
+
+export interface HatchSeo {
+  description: string;
+  focus_keyword: string;
+  og_title: string;
+  og_description: string;
+  og_image: string;
+  twitter_title: string;
+  twitter_description: string;
+  twitter_image: string;
+  source: 'rankmath' | 'yoast' | 'fallback' | string;
 }
 
 export interface Category {
@@ -236,6 +255,7 @@ function hatchContentToPost(c: HatchContent): Post {
     } : null,
     tags: (c.tags || []).map((t) => t.name),
     readMinutes,
+    seo: c.seo,
   } as Post;
 }
 
@@ -345,6 +365,7 @@ export interface HatchContent {
   modified: string;
   published: string;
   link: string;
+  seo?: HatchSeo;
   found?: boolean;
 }
 export async function getContentBySlug(slug: string): Promise<HatchContent | null> {

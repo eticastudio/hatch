@@ -178,16 +178,27 @@ const themeFlags = {
 const tk = themeKey(features);
 ---
 
+{/* v0.51 SEO fallback: when RankMath's getHead endpoint returns empty
+    (plugin off, network hiccup, cache miss), the PageLayout still needs a
+    real description and og:image. Prefer the resolved RankMath/Yoast values
+    from post.seo, fall back to WP excerpt + featured image. */}
 <PageLayout
   title={post.title}
-  description={post.excerpt}
+  description={(post.seo?.description || post.excerpt || '').trim()}
   canonical={canonical}
   rawHead={rawHead}
-  ogImage={post.featuredImage ?? undefined}
+  ogImage={(() => {
+    const img = (post.seo?.og_image || post.featuredImage || '').toString();
+    return /^https?:\/\//i.test(img) ? img : undefined;
+  })()}
 >
   <HatchSchema schema={schema} />
 
-  {showProgress && (
+  {/* v0.7.6 (2026-08-13): reading-progress strip is a blog-first affordance.
+      Docs theme (technical reference layout with a category sidebar) should
+      not render it, so gate on tk !== 'docs' even when the global feature
+      is on. Every other theme still opts in via showProgress. */}
+  {showProgress && tk !== 'docs' && (
     <div
       id="reading-progress"
       class={`fixed ${progressPosition} left-0 h-1 z-50 origin-left scale-x-0 w-full transition-transform pointer-events-none`}

@@ -666,3 +666,33 @@
 	background: #0d1015;
 	border-color: color-mix(in oklab, var(--color-hatch-fg) 12%, transparent);
 }
+
+/* v0.7.6 (2026-08-13): HatchComments visibility in tech dark mode.
+   The Tailwind utility classes on the comment block resolved to bg-white / text-slate-950
+   in dark mode because the tech theme's dark tokens were not being read by the form inputs.
+   Force fg + bg + border to the theme tokens so text, textarea, and inputs stay readable. */
+[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments,
+[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comment-body,
+[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments h2,
+[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments h3,
+[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments p,
+[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments label span {
+	color: var(--hatch-fg);
+}
+[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments input[type="text"],
+[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments input[type="email"],
+[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments input[type="url"],
+[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments textarea {
+	color: var(--hatch-fg);
+	background: #0d1015;
+	border-color: color-mix(in oklab, var(--hatch-fg) 18%, transparent);
+}
+[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments input::placeholder,
+[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments textarea::placeholder {
+	color: color-mix(in oklab, var(--hatch-fg) 55%, transparent);
+}
+[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments button[type="submit"] {
+	color: var(--hatch-fg);
+	background: color-mix(in oklab, var(--hatch-primary) 85%, black);
+	border-color: var(--hatch-primary);
+}

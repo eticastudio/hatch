@@ -3,7 +3,7 @@
  * Plugin Name:       Hatch — Headless WordPress
  * Plugin URI:        https://github.com/adityaarsharma/hatch
  * Description:       Turn WordPress into a headless CMS with an Astro frontend. One-click deploy to Cloudflare / Vercel / VPS, security hardening, image proxy, REST bridge, and a React admin.
- * Version:           0.7.5
+ * Version:           0.7.6.0
  * Requires at least: 6.4
  * Tested up to:      6.9
  * Requires PHP:      7.4
@@ -20,7 +20,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'HATCH_VERSION', '0.7.5' );
+define( 'HATCH_VERSION', '0.7.6.0' );
 define( 'HATCH_PLUGIN_FILE', __FILE__ );
 define( 'HATCH_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'HATCH_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -562,6 +562,10 @@ final class Hatch {
 		Hatch_Rest_Api::instance();
 		Hatch_Revalidate::instance();
 		Hatch_Seo_Bridge::instance();
+		// Expose resolved RankMath/Yoast meta on the standard /wp/v2/{type}
+		// responses under `hatch_seo`, so any third-party consumer of the WP
+		// REST API gets identical resolution to /hatch/v1/content.
+		add_action( 'rest_api_init', array( 'Hatch_Seo_Bridge', 'register_rest_fields' ) );
 		Hatch_Forms_Bridge::instance();
 		// v0.7.2 fix — Hatch_RankReady_Bridge uses static-only methods
 		// (is_active, status). It has no instance()/singleton by design,
