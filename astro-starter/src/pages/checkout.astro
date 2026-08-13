@@ -576,8 +576,8 @@ const paymentMethods: PM[] = rawMethods.filter((pm) => {
         } catch (_) { /* soft-fail, webhook can catch up */ }
       }
 
-      const explicit = details.verification_endpoint || '';
-      window.location.href = explicit
+      const verifyUrl = details.verification_endpoint || '';
+      window.location.href = verifyUrl
         || ('/order-summary?id=' + out.order_id + '&key=' + encodeURIComponent(out.order_key || ''));
       return true;
     };
