@@ -440,11 +440,10 @@
           const data = await res.json().catch(() => ({}));
           if (res.ok && (data.ok || data.success)) {
             const container = form.closest('.wpforms-container') || form.parentNode;
-            const msg = (data.message
-              || data.confirmation?.message
-              || data.data?.confirmation?.message
-              || 'Thanks, your message has been received.');
-            const wrap = el('div', { class: 'wpforms-confirmation-container hatch-wpforms-success', html: String(msg) });
+            const wrap = el('div', {
+              class: 'wpforms-confirmation-container hatch-wpforms-success',
+              html: '<strong>Sent.</strong> Thanks, we’ll be in touch.',
+            });
             container.replaceChild(wrap, form);
             if (data.redirect_url || data.confirmation?.redirect_url) {
               const to = data.redirect_url || data.confirmation.redirect_url;
