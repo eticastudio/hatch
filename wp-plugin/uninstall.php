@@ -56,3 +56,21 @@ if ( $timestamp ) {
 	wp_unschedule_event( $timestamp, 'hatch_connection_check' );
 }
 wp_clear_scheduled_hook( 'hatch_connection_check' );
+
+// 5) Belt-and-suspenders explicit deletes for feature-toggle keys added in
+//    recent releases. The LIKE-wildcard in step (1) already catches these,
+//    but naming them here keeps the uninstall contract auditable for
+//    security review and works even if a host disables raw $wpdb queries.
+$hatch_feature_option_keys = array(
+	'hatch_blocks_disable_unsupported', // 0.7.5: Gutenberg whitelist gate.
+	'hatch_fortress_login_slug',        // 0.7.x: custom login slug.
+	'hatch_design_dark_mode_enabled',   // 0.7.x: dark mode toggle.
+);
+foreach ( $hatch_feature_option_keys as $hatch_opt ) {
+	delete_option( $hatch_opt );
+	// Multisite: also drop site-level (network) copies if any exist.
+	if ( is_multisite() ) {
+		delete_site_option( $hatch_opt );
+	}
+}
+unset( $hatch_feature_option_keys, $hatch_opt );
