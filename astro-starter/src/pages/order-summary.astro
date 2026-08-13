@@ -120,9 +120,7 @@ const key = url.searchParams.get('key') || '';
     // works even after the Cart-Token is gone (refresh, share, direct link).
     const storeUrl = '/api/wc-store/order/' + encodeURIComponent(id) +
       (key ? '?key=' + encodeURIComponent(key) : '');
-    const hatchUrl = '/api/wc-store/../hatch/v1/order/' + encodeURIComponent(id) +
-      (key ? '?key=' + encodeURIComponent(key) : '');
-    const hatchWpUrl = '/wp-json/hatch/v1/order/' + encodeURIComponent(id) +
+    const hatchUrl = '/api/hatch/order/' + encodeURIComponent(id) +
       (key ? '?key=' + encodeURIComponent(key) : '');
     const tryFetch = async (u) => {
       const r = await fetch(u, { credentials: 'include', headers: { Accept: 'application/json' } });
@@ -130,13 +128,8 @@ const key = url.searchParams.get('key') || '';
       return r.json();
     };
     (async () => {
-      let data;
-      try { data = await tryFetch(storeUrl); }
-      catch (e1) {
-        try { data = await tryFetch(hatchWpUrl); }
-        catch (e2) { throw new Error('HTTP 401'); }
-      }
-      return data;
+      try { return await tryFetch(storeUrl); }
+      catch (_) { return await tryFetch(hatchUrl); }
     })()
       .then((data) => data)
       .then((order) => {
