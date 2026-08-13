@@ -835,21 +835,47 @@ function Step3Deploy({ boot, onBack }) {
 						<div className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.5 }}>Add {subPath} to your existing WordPress. Needs reverse-proxy access on your host.</div>
 					</button>
 				</div>
-				{mountMode === 'subfolder' && (
-					<div style={{ marginTop: 14 }}>
-						<span className="hx-label" style={{ fontWeight: 600, color: 'var(--hx-fg)', display: 'block', marginBottom: 6 }}>
-							Subfolder path
-						</span>
-						<HxInp
-							type="text"
-							value={subPath}
-							onChange={(e) => setSubPath(e.target.value)}
-							placeholder="/blog"
-							mono
-							spellCheck={false}
-						/>
-					</div>
-				)}
+				{mountMode === 'subfolder' && (() => {
+					// v0.5.8. Validate subfolder path with the same regex the
+					// backend (class-onboarding-cloudflare::normalize_subpath)
+					// and reverse-proxy config assume. Pattern is deliberately
+					// strict: leading slash, one-or-more lowercase-alphanum-dash
+					// segments, no trailing slash. Bad values (`/Blog`, `/b log`,
+					// `blog/`, `/blog/`) fail here so the deploy button below
+					// stays disabled until the user fixes it. The broker cannot
+					// undo a bad route on Cloudflare once written.
+					const SUBPATH_RE = /^\/[a-z0-9-]+(\/[a-z0-9-]+)*$/;
+					const subPathValid = SUBPATH_RE.test(subPath || '');
+					return (
+						<div style={{ marginTop: 14 }}>
+							<span className="hx-label" style={{ fontWeight: 600, color: 'var(--hx-fg)', display: 'block', marginBottom: 6 }}>
+								Subfolder path
+							</span>
+							<HxInp
+								type="text"
+								value={subPath}
+								onChange={(e) => setSubPath(e.target.value)}
+								placeholder="/blog"
+								pattern="^/[a-z0-9-]+(/[a-z0-9-]+)*$"
+								mono
+								spellCheck={false}
+							/>
+							<div
+								className="hx-help"
+								style={{
+									color: subPathValid ? 'var(--hx-subtle)' : 'var(--hx-danger, #d33)',
+									marginTop: 6,
+									fontSize: 12,
+									lineHeight: 1.5,
+								}}
+							>
+								{subPathValid
+									? 'Lowercase letters, digits, dashes. Leading slash, no trailing slash. Examples: /blog, /docs, /kb/support.'
+									: 'Invalid path. Use lowercase letters, digits, and dashes only. Must start with / and have no trailing slash. Example: /blog.'}
+							</div>
+						</div>
+					);
+				})()}
 			</HxCard>
 			)}
 
