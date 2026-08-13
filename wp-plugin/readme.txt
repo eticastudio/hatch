@@ -4,7 +4,7 @@ Tags: headless, astro, rest-api, security
 Requires at least: 6.4
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 0.7.6.0
+Stable tag: 0.7.6.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Turn WordPress into a headless CMS with an Astro frontend. One plugin, one wizard, one deploy.

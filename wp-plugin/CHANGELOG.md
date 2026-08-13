@@ -1,3 +1,6 @@
+## 0.7.6.1 — 2026-08-13
+- fix(img): allow same-origin self-fetch through /img proxy (broken CF-deploy image thumbnails)
+
 # Hatch WordPress Plugin — Changelog
 
 ## 0.7.6.0 — 2026-08-13

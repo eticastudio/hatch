@@ -1,6 +1,6 @@
 {
   "name": "create-hatch",
-  "version": "0.7.6.0",
+  "version": "0.7.6.1",
   "description": "Hatch Astro starter — headless WordPress, ready to deploy.",
   "type": "module",
   "scripts": {
