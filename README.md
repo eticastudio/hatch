@@ -7,7 +7,7 @@
 Activate the plugin. Run the 3-step wizard. Paste an API token or a curl line for a VPS. A 90-second build finishes and hands you a live URL. The Gutenberg editor stays exactly where it is. The WordPress REST API gets hardened. Your Astro frontend renders on Cloudflare Workers, Vercel, or a VPS you already own.
 
 [![Latest Release](https://img.shields.io/github/v/release/adityaarsharma/hatch?color=8b5cf6&style=flat-square)](https://github.com/adityaarsharma/hatch/releases/latest)
-[![License: MIT](https://img.shields.io/badge/License-MIT-10b981?style=flat-square)](LICENSE)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL_3.0-b91c1c?style=flat-square)](LICENSE)
 [![Astro 6](https://img.shields.io/badge/Astro-6-ff5e1f?style=flat-square)](https://astro.build)
 [![WordPress 6.4+](https://img.shields.io/badge/WordPress-6.4+-21759b?style=flat-square)](https://wordpress.org)
 
@@ -30,7 +30,7 @@ Every existing decoupled WordPress option in 2026 hands you one piece and asks y
 | Install a plugin. Then a GraphQL plugin. Then a security plugin. Then an SEO bridge. Then a forms bridge. Then a deploy pipeline. Three weeks later, ship. | Install one headless WordPress plugin. Run the 3-step wizard. Ship the same afternoon. |
 | Bring your own frontend, hosting, CI, and CDN. Debug the glue when ACF or RankMath breaks. | Bundled Astro starter with three themes, a self-hosted deploy broker, and a Plugin Bridge that auto-detects 12 capability providers. |
 | GraphQL is the price of entry: extra plugin, extra schema, extra runtime cost. | WordPress headless without GraphQL. Hatch runs on the standard WordPress REST API plus a tiny `hatch/v1/*` namespace for what REST does not expose (menus, SEO meta, features). WordPress REST API contracts stay stable across WP releases, so bridges do not break on core updates. |
-| SaaS lock-in with $99+/mo tiers or a per-seat editor. | MIT license, zero SaaS. Self-hosted headless WordPress deploy on any VPS you already own. |
+| SaaS lock-in with $99+/mo tiers or a per-seat editor. | AGPL-3.0 license, zero SaaS. Self-hosted headless WordPress deploy on any VPS you already own. |
 
 Hatch is the only headless WordPress plugin that bundles the security hardening, the frontend, the Plugin Bridge, and the deploy tooling in one download. Running WordPress headless without GraphQL keeps the runtime footprint minimal and the debug surface tiny.
 
@@ -191,7 +191,7 @@ WordPress (editor + REST) ── your team's existing workflow
 | 1-click headless WordPress deploy | Yes (Cloudflare / Vercel / VPS) | Manual | Manual | Manual | Yes (Strattic only) |
 | WordPress editor unchanged | Yes | Yes | Yes | Yes | Partial (static export) |
 | Self-hosted with no SaaS required | Yes | Yes | Yes | Archived project | No (SaaS from $299/mo) |
-| Monthly cost floor | $0 (MIT) | $0 (framework) | $0 (framework) | Discontinued | $299+/mo |
+| Monthly cost floor | $0 (AGPL-3.0) | $0 (framework) | $0 (framework) | Discontinued | $299+/mo |
 | WordPress-native (REST, GraphQL optional) | Yes | GraphQL required | GraphQL required | REST | Static HTML |
 | Security hardening bundled | Yes (12 toggles, wired) | No | No | No | Partial |
 | Plugin Bridge (SEO, Forms, WooCommerce headless, ACF, Memberships) | Yes (12 slots, auto-detect) | Partial | Partial | Partial | No |
@@ -212,7 +212,7 @@ Page builders cannot render on a headless frontend. Their HTML depends on PHP ru
 Yes. Reverse-proxy `/blog` on your CDN or web server to your WP origin. Hatch does not force a domain split. Documentation for Cloudflare Rules, nginx, and Caddy configs ships in the wiki.
 
 **What does it cost?**
-The plugin, the Astro starter, and the deploy broker are MIT. Hosting cost is whatever you already pay for WordPress plus Cloudflare Workers free tier, Vercel Hobby, or your VPS. A WordPress Cloudflare Workers deploy at Hobby scale runs $0 in most months. Zero Hatch SaaS. Zero per-seat billing.
+The plugin, the Astro starter, and the deploy broker are AGPL-3.0. Hosting cost is whatever you already pay for WordPress plus Cloudflare Workers free tier, Vercel Hobby, or your VPS. A WordPress Cloudflare Workers deploy at Hobby scale runs $0 in most months. Zero Hatch SaaS. Zero per-seat billing.
 
 **Does WooCommerce headless work?**
 Yes. The eCommerce Bridge speaks the WooCommerce Store API (`/wc/store/v1/*`) for products, cart, and checkout. Zero WooCommerce CSS or JS ships to Astro. Payments run through Woo's native Stripe or PayPal gateway on the WP origin.
@@ -230,7 +230,7 @@ Open issues, PRs, and theme submissions welcome. Fork, branch, run the audit scr
 
 ## Community + license
 
-MIT license. Built by [Aditya Sharma](https://adityaarsharma.com), the marketer who codes.
+AGPL-3.0 license. Built by [Aditya Sharma](https://adityaarsharma.com), the marketer who codes.
 
 - Star this repo if the headless WordPress starter saved you a weekend.
 - Open a GitHub issue for bugs or feature requests.
