@@ -37,12 +37,20 @@ function buildAllowedHosts(): Set<string> {
 }
 const ALLOWED_HOSTS = buildAllowedHosts();
 
-function isAllowedSrc(raw: string): boolean {
+function isAllowedSrc(raw: string, selfHost: string): boolean {
   let u: URL;
   try { u = new URL(raw); } catch { return false; }
   const proto = u.protocol;
   if (proto !== 'https:' && !(import.meta.env.DEV && proto === 'http:')) return false;
-  return ALLOWED_HOSTS.has(u.host.toLowerCase());
+  const host = u.host.toLowerCase();
+  // Same-origin fetch is always safe: the URL is already reachable from the
+  // browser without our proxy, so proxying it cannot bypass anything an
+  // attacker could not already do directly. Fixes broken images when the
+  // Astro <Image> component wraps a same-origin /hatch-media/* URL with
+  // /img?url=<self-URL>&w=… and the operator has not added the deployed
+  // Worker host to PUBLIC_IMG_ALLOWED_HOSTS.
+  if (host === selfHost) return true;
+  return ALLOWED_HOSTS.has(host);
 }
 
 export const GET: APIRoute = async ({ request, url }) => {
@@ -60,7 +68,7 @@ export const GET: APIRoute = async ({ request, url }) => {
   }
 
   // Backlog #161 — reject non-allowlisted origins before touching backend.
-  if (!isAllowedSrc(src)) {
+  if (!isAllowedSrc(src, url.host.toLowerCase())) {
     return new Response(JSON.stringify({ error: 'url host not allowed' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
