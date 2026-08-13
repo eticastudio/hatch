@@ -188,7 +188,11 @@ const tk = themeKey(features);
   <HatchSchema schema={schema} />
 
   {showProgress && (
-    <div id="reading-progress" class={`fixed ${progressPosition} left-0 h-[2px] ${progressColor} z-50 origin-left scale-x-0 w-full transition-transform`} style="transform-origin:left;"></div>
+    <div
+      id="reading-progress"
+      class={`fixed ${progressPosition} left-0 h-1 z-50 origin-left scale-x-0 w-full transition-transform pointer-events-none`}
+      style={`transform-origin:left; background: var(--color-hatch-accent, var(--hatch-accent, #265e5a)); box-shadow: 0 1px 4px rgba(0,0,0,0.18); will-change: transform;`}
+    ></div>
   )}
 
   {tk === 'tech'       && <TechSingle       post={post} features={features} toc={toc} related={related} adjacent={adjacent} dateLabel={dateLabel} updatedLabel={updatedLabel} canonical={canonical} bodyHtml={bodyHtml || post.content} flags={themeFlags} />}

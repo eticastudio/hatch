@@ -675,3 +675,121 @@ img, video, picture, canvas {
 	font-variant-numeric: tabular-nums;
 	font-feature-settings: "tnum";
 }
+
+/* ==========================================================================
+   Hatch Form — baseline layout (theme-agnostic)
+   Themes only tint (theme-*.css). Structure lives here so the mount is
+   a single-column stack of full-width fields on every theme. Fixes the
+   staggered dark-boxes render on /contact when only tint rules existed.
+   Scoped tight: only inside .hatch-form-scope (the mount container) to
+   avoid leaking into cart, checkout, or block content.
+   ========================================================================== */
+.hatch-form-scope .hatch-form {
+	display: flex;
+	flex-direction: column;
+	gap: 1.1rem;
+	width: 100%;
+	max-width: 640px;
+	margin: 0 auto;
+	text-align: left;
+}
+.hatch-form-scope .hatch-form__title {
+	font-size: 1.25rem;
+	font-weight: 700;
+	margin: 0 0 0.25rem;
+	line-height: 1.3;
+}
+.hatch-form-scope .hatch-form__field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	width: 100%;
+	position: static;
+}
+.hatch-form-scope .hatch-form__label {
+	display: block;
+	font-weight: 600;
+	line-height: 1.35;
+}
+.hatch-form-scope .hatch-form__req {
+	color: color-mix(in oklab, var(--color-hatch-primary, currentColor) 70%, transparent);
+	margin-left: 0.15rem;
+}
+.hatch-form-scope .hatch-form__input,
+.hatch-form-scope .hatch-form__textarea,
+.hatch-form-scope select.hatch-form__input {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	font: inherit;
+	line-height: 1.4;
+	appearance: none;
+	-webkit-appearance: none;
+}
+.hatch-form-scope .hatch-form__textarea {
+	min-height: 8rem;
+	resize: vertical;
+}
+.hatch-form-scope .hatch-form__choices {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+.hatch-form-scope .hatch-form__choices--radio,
+.hatch-form-scope .hatch-form__choices--checkbox {
+	padding: 0.15rem 0;
+}
+.hatch-form-scope .hatch-form__choice {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-weight: 400;
+	cursor: pointer;
+}
+.hatch-form-scope .hatch-form__choice input {
+	width: 1rem;
+	height: 1rem;
+	margin: 0;
+	flex: 0 0 auto;
+}
+.hatch-form-scope .hatch-form__field-error {
+	font-size: 0.85rem;
+	line-height: 1.4;
+	color: #b91c1c;
+}
+.hatch-form-scope [aria-invalid="true"] {
+	border-color: #b91c1c !important;
+	box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.12);
+}
+.hatch-form-scope .hatch-form__actions {
+	display: flex;
+	gap: 0.75rem;
+	margin-top: 0.25rem;
+}
+.hatch-form-scope .hatch-form__submit {
+	min-width: 10rem;
+}
+.hatch-form-scope .hatch-form__status {
+	font-size: 0.9rem;
+	line-height: 1.5;
+	margin-top: 0.25rem;
+}
+.hatch-form-scope .hatch-form__status[data-state="ok"] {
+	color: #166534;
+}
+.hatch-form-scope .hatch-form__status[data-state="error"] {
+	color: #b91c1c;
+}
+.hatch-form-scope .hatch-form__loading,
+.hatch-form-scope .hatch-form__error {
+	padding: 1rem 1.25rem;
+	border: 1px dashed var(--color-hatch-border, currentColor);
+	border-radius: 8px;
+	color: var(--color-hatch-muted, currentColor);
+	font-size: 0.9rem;
+	text-align: center;
+}
+/* Newsletter-embed variant keeps its two-column grid; scope only affects
+   the plain full-form usage (contact page, standalone mounts). */
+.hatch-newsletter .hatch-form-scope .hatch-form { max-width: none; margin: 0; }
+
