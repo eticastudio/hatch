@@ -692,6 +692,17 @@ img, video, picture, canvas {
 	max-width: 640px;
 	margin: 0 auto;
 	text-align: left;
+	/* Override the legacy .hatch-form card frame shipped in
+	   /hatch-blocks.css (rules at :156 and :804 that force
+	   background:#fff, padding, border, radius, shadow). Astro
+	   uses theme tokens; the mount is transparent so labels and
+	   inputs inherit theme colors instead of clashing on a hard
+	   white card in dark mode. */
+	background: transparent !important;
+	padding: 0 !important;
+	border: 0 !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
 }
 .hatch-form-scope .hatch-form__title {
 	font-size: 1.25rem;
