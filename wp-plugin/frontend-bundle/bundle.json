@@ -1,5 +1,5 @@
 {
-  "version": "0.7.6.1",
+  "version": "0.8.0",
   "main_module": "entry.mjs",
   "compatibility_date": "2025-09-01",
   "compatibility_flags": [

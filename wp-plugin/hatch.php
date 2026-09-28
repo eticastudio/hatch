@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Hatch
  * Description:       Turn WordPress into a headless CMS with an Astro frontend on Cloudflare Workers. Deploys from wp-admin with your own Cloudflare API token, plus security hardening, an image proxy, a REST bridge and a React admin.
- * Version:           0.7.6.1
+ * Version:           0.8.0
  * Requires at least: 6.4
  * Tested up to:      7.0
  * Requires PHP:      7.4
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'HATCH_VERSION', '0.7.6.1' );
+define( 'HATCH_VERSION', '0.8.0' );
 define( 'HATCH_PLUGIN_FILE', __FILE__ );
 define( 'HATCH_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'HATCH_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

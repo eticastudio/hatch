@@ -3,6 +3,31 @@
 
 # Hatch WordPress Plugin — Changelog
 
+## 0.8.0 (2026-09-28)
+
+Cloudflare-only release for WordPress.org. Breaking cleanup, GPL-2.0-or-later, first version verified against a live Cloudflare deploy.
+
+Added
+- Disconnect button on the Connection tab, behind a confirm step. Calls `POST /hatch/v1/deploy/disconnect`: revokes the Hatch Application Passwords, deletes the Hatch Reader user and role, restores the previous theme.
+- Read-only Hatch Reader user and role for the frontend, replacing use of an administrator account.
+- Explicit consent gate before a deploy changes the theme, permalinks or creates the Application Password.
+- Clear error when the Cloudflare account has no workers.dev address (`hatch_cf_no_subdomain`), raised before anything is uploaded.
+- Frontend source ships inside the plugin (`source` folder) with THIRD-PARTY.txt.
+
+Changed
+- Deploy runs inside the site with a Cloudflare token the user supplies, stored AES-256-GCM encrypted, kept only if the user ticks the box.
+- Frontend sign-in tokens are tied to the user's password and revoked on logout or password change. Earlier sessions are invalidated.
+- Comments and store product routes no longer return draft, private, password-protected or withheld items.
+- Form submissions older than 90 days are deleted automatically.
+- License changed from MIT, then AGPL, to GPL-2.0-or-later.
+
+Fixed
+- PHP 8.1+ `strip_tags()` deprecation on the hidden setup page (registered under `options.php`).
+- Broken image thumbnails through the image proxy on Cloudflare deploys.
+
+Removed
+- Hosted deploy service, VPS agent, Netlify and Vercel deploy paths, the plugin's own updater, all outbound telemetry, the AI helper and the Blocks tab, the legacy cleanup class, moved or hidden login URL.
+
 ## 0.7.6.0 — 2026-08-13
 
 Release wrap for today's session:

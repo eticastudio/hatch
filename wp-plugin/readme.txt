@@ -4,7 +4,7 @@ Tags: headless, cloudflare, rest-api, jamstack, astro
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.7.6.1
+Stable tag: 0.8.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -109,7 +109,7 @@ Third-party components and their licences are listed in `THIRD-PARTY.txt` inside
 
 * **Consent first.** A deploy does not start until you tick a box that lists the changes below.
 * **Hatch Reader user.** The deploy creates a WordPress user named "Hatch Reader" with a dedicated read-only role, `hatch_reader`, and one Application Password for it. The frontend signs in as that user to read your content. It cannot edit, publish or manage anything. Disconnect (Hatch, Connection) deletes the user and revokes the password, provided Hatch created the user.
-* **Sign-in for frontend visitors.** The frontend can offer login and registration through the `hatch/v1/auth` routes. They use signed tokens (JWT, valid 24 hours), a per-IP rate limit and a honeypot field on registration. Logging out, or changing a password, ends all earlier sessions for that user. Sessions issued by versions before 0.7.6.1 are no longer valid, so signed-in visitors log in once more after the update.
+* **Sign-in for frontend visitors.** The frontend can offer login and registration through the `hatch/v1/auth` routes. They use signed tokens (JWT, valid 24 hours), a per-IP rate limit and a honeypot field on registration. Logging out, or changing a password, ends all earlier sessions for that user. Sessions issued by versions before 0.8.0 are no longer valid, so signed-in visitors log in once more after the update.
 * **Companion theme.** After a successful deploy, Hatch installs a small blank theme named Hatch Companion into `wp-content/themes/` and switches to it. It keeps WordPress working as the back office and redirects visitors of the raw WordPress address to your frontend. You can switch back at any time under Appearance, Themes.
 * **Permalinks.** If your site uses plain permalinks, a successful deploy changes them to `/%postname%/` so the REST API and frontend URLs work. Sites that already use pretty permalinks are left alone.
 * **Application password.** The Application Password is named "Hatch (Cloudflare deploy)". It is given to your Worker as an encrypted secret and belongs to the Hatch Reader user, so it carries read-only permissions. Earlier passwords with that name are revoked after a new deploy succeeds. You can review and revoke it under Users, Hatch Reader, at any time.
@@ -174,7 +174,12 @@ See "What Hatch changes on your site". Both changes are made by a successful dep
 
 == Changelog ==
 
-= 0.7.6.1 =
+= 0.8.0 =
+* Adds a Disconnect button to the Connection tab. It asks first, then removes the Hatch Reader user and its Application Passwords and puts your earlier theme back. The frontend stays online at Cloudflare until you delete it there.
+* Fixes a PHP 8.1+ deprecation notice on the setup screen (`strip_tags()` received null).
+* If your Cloudflare account has no workers.dev address yet, the deploy stops before uploading anything and says how to create one.
+* Tested end to end against a real Cloudflare account: token check, consent, deploy, live frontend, Disconnect.
+* Licensed GPL-2.0-or-later. The plugin is named Hatch.
 * Deploys to Cloudflare Workers directly from your site with a token you supply. The token is stored encrypted.
 * Removed the hosted deploy service, the VPS agent, the Netlify and Vercel deploy paths and the plugin's own updater. Updates come from WordPress.org.
 * Removed all outbound telemetry and the phone-home connection check.
@@ -195,7 +200,10 @@ See "What Hatch changes on your site". Both changes are made by a successful dep
 * The frontend source now ships inside the plugin, in the `source` folder.
 * Code standards: WordPress Coding Standards (WordPress-Extra) clean and escaped output. Every route that changes data is protected by a capability check, a nonce or a signed token, or is a public form, comment or login route with its own spam and lockout controls.
 
+= 0.7.6.1 =
+* The image proxy allows same-origin fetches, which fixes broken image thumbnails on Cloudflare deploys.
+
 == Upgrade Notice ==
 
-= 0.7.6.1 =
+= 0.8.0 =
 Deploys now run inside your site with your own Cloudflare token. The hosted deploy service, VPS agent, Netlify and Vercel paths are removed. Redeploy from the setup screen after updating. Signed-in frontend visitors will need to log in again.
