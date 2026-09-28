@@ -1,7 +1,6 @@
 import { defineConfig, envField } from 'astro/config';
 import tailwindcss from '@tailwindcss/vite';
 import cloudflare from '@astrojs/cloudflare';
-import vercel from '@astrojs/vercel';
 import node from '@astrojs/node';
 // Sitemap is hand-rolled in src/pages/sitemap-index.xml.ts because it needs
 // to enumerate WP posts/pages/categories at request time (SSR). The
@@ -10,32 +9,33 @@ import node from '@astrojs/node';
 
 const SITE_URL = process.env.PUBLIC_SITE_URL || 'http://localhost:4321';
 
-// Detect deploy target. Priority:
-// v0.50.31 — Default target is NODE (run Astro on the same VPS as WordPress).
-// Hatch is "self-hosted everywhere by default" — no Cloudflare Images, no
-// Vercel lock-in, no external image pipeline. Sharp does WebP/AVIF locally.
-// Cloudflare Workers + Vercel still supported as opt-in via HATCH_TARGET
-// env var for users who want them, but never the default.
-//   1. HATCH_TARGET env var (explicit — set by install-vps.sh for VPS builds)
-//   2. VERCEL=1 (set automatically by Vercel build env)
-//   3. CF_PAGES=1 (set by CF Pages build env)
-//   4. Default → 'node' (self-hosted on the same server as WordPress)
+// Deploy target. Hatch v1 ships to Cloudflare Workers only, so `astro build`
+// and `astro preview` always use the Cloudflare adapter.
+//
+// `node` exists for one reason: `astro dev` inside the local Docker stack
+// (docker-compose.yml) and the self-hosted scripts/install-vps.sh, which sets
+// HATCH_TARGET=node explicitly. It is never the default for a build.
+//   1. HATCH_TARGET env var, if set ('cf' or 'node')
+//   2. astro dev / check / sync  ->  'node' (local development only)
+//   3. everything else (build, preview)  ->  'cf'
+const command = process.argv[2];
 const target =
   process.env.HATCH_TARGET ||
-  (process.env.VERCEL === '1' ? 'vercel' :
-   process.env.CF_PAGES === '1' ? 'cf' :
-   'node');
+  (['dev', 'check', 'sync'].includes(command) ? 'node' : 'cf');
+
+if (target !== 'cf' && target !== 'node') {
+  throw new Error(
+    `HATCH_TARGET="${target}" is not supported. Hatch v1 targets Cloudflare Workers ("cf"); "node" is for local dev only.`
+  );
+}
 
 const adapter =
-  target === 'cf'     ? cloudflare({ imageService: 'passthrough' }) :
-  target === 'vercel' ? vercel() :
-                        node({ mode: 'standalone' });
+  target === 'cf' ? cloudflare({ imageService: 'passthrough' })
+                  : node({ mode: 'standalone' });
 
-// Image service: Sharp on Node (default) — runs locally, no external service,
-// no per-request cost. Generates WebP + AVIF at request time. Cloudflare
-// adapter uses 'passthrough' so the Workers runtime doesn't try to bundle
-// sharp (which fails on the Workers runtime); that path is only hit if a
-// user EXPLICITLY sets HATCH_TARGET=cf.
+// Image service: the Cloudflare adapter uses 'passthrough' so the Workers
+// runtime never tries to bundle sharp (it cannot run on workerd); optimisation
+// goes through the /img proxy instead. Sharp is only used by the node dev target.
 
 export default defineConfig({
   site: SITE_URL,
@@ -45,6 +45,10 @@ export default defineConfig({
   // edge-cached after the first hit per page.
   output: 'server',
   adapter,
+  // Hatch never calls Astro.session. Without this the Cloudflare adapter injects
+  // a SESSION KV binding, and `wrangler deploy` then tries to provision a KV
+  // namespace (needs KV permission on the deploy token) for nothing.
+  session: false,
   integrations: [],
   // Hatch is headless — the live frontend is the deployed site, not the dev
   // overlay. Astro's floating dev toolbar (Astro / Audit / Settings) gets in
@@ -78,7 +82,6 @@ export default defineConfig({
     // Allow remote images from any HTTPS source (WordPress media library).
     remotePatterns: [
       { protocol: 'https' },
-      { protocol: 'https', hostname: 'corp-regime-provinces-enjoy.trycloudflare.com' },
     ],
   },
   // v0.50.x — secrets moved out of the JS bundle via astro:env.
@@ -100,7 +103,6 @@ export default defineConfig({
       WP_API_USER:          envField.string({ context: 'server', access: 'secret', optional: true }),
       WP_API_PASS:          envField.string({ context: 'server', access: 'secret', optional: true }),
       HATCH_WEBHOOK_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
-      HATCH_BROKER_URL:     envField.string({ context: 'server', access: 'public', optional: true, default: 'https://hatch.adityaarsharma.com' }),
       // v0.7.8: public payment SDK keys. Injected server-side into the
       // checkout page as data-attributes so the inline script can bootstrap
       // Stripe.js / PayPal JS SDK. Both optional: absence hides the option.

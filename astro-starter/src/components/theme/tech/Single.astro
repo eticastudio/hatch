@@ -19,13 +19,13 @@ const showSidebar = flags.sidebarSide !== "none" && toc.length > 0;
     <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[12px] mb-8 flex-wrap" style="font-family: var(--hatch-font-mono, ui-monospace, monospace); color: var(--hatch-fg-subtle);">
       <span>~</span><span>/</span>
       <a href="/blog" class="hover:text-hatch-primary transition-colors">blog</a>
-      {post.category && <><span>/</span><a href={`/blog/category/${post.category.slug}`} class="hover:text-hatch-primary transition-colors">{post.category.slug}</a></>}
+      {post.category && <><span>/</span><a href={`/blog/category/${post.categorySlug}`} class="hover:text-hatch-primary transition-colors">{post.categorySlug}</a></>}
       <span>/</span><span class="text-hatch-fg truncate max-w-[260px] sm:max-w-none">{post.slug}</span>
     </nav>
   )}
 
   <header class="max-w-3xl mb-10">
-    <div class="text-[11px] mb-4" style="font-family: var(--hatch-font-mono, ui-monospace, monospace); color: var(--hatch-primary);">// {post.category?.name || 'post'}.md</div>
+    <div class="text-[11px] mb-4" style="font-family: var(--hatch-font-mono, ui-monospace, monospace); color: var(--hatch-primary);">// {post.category || 'post'}.md</div>
     <h1 class="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight leading-[1.1]" style="font-family: var(--hatch-font-heading);">{post.title}</h1>
     <div class="mt-6 p-4 rounded-md border border-hatch-border bg-hatch-bg-2 text-[12.5px]" style="font-family: var(--hatch-font-mono, ui-monospace, monospace);">
       <div class="flex flex-wrap gap-x-4 gap-y-1 text-hatch-fg-muted">

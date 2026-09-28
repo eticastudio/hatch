@@ -2,7 +2,7 @@
 /**
  * ACF / Secure Custom Fields / Meta Box field group REST exposure checker.
  *
- * Hatch does NOT bridge field data — ACF and Meta Box both ship REST integration
+ * Hatch does NOT bridge field data - ACF and Meta Box both ship REST integration
  * natively. What they DON'T do is warn the site owner when field groups are
  * accidentally hidden from REST. This class is that safety net.
  *
@@ -246,10 +246,10 @@ class Hatch_Acf_Bridge {
 	/**
 	 * Bulk-expose every ACF / SCF field group to REST (sets `show_in_rest = true`
 	 * on each). The default ACF UI buries this on every group's settings page
-	 * one-by-one — headless setups need it on by default. v0.30+.
+	 * one-by-one - headless setups need it on by default. v0.30+.
 	 *
 	 * Works for: ACF, ACF Pro, Secure Custom Fields (same API).
-	 * Meta Box and Pods require their own native UIs — surfaced in the admin notice.
+	 * Meta Box and Pods require their own native UIs - surfaced in the admin notice.
 	 *
 	 * @return array{ok:bool, updated:int, total:int, message:string}
 	 */
@@ -259,13 +259,18 @@ class Hatch_Acf_Bridge {
 				'ok'      => false,
 				'updated' => 0,
 				'total'   => 0,
-				'message' => __( 'ACF / SCF not active.', 'hatch' ),
+				'message' => __( 'ACF / SCF not active.', 'hatch-bridge' ),
 			);
 		}
 
 		$groups = acf_get_field_groups();
 		if ( ! is_array( $groups ) ) {
-			return array( 'ok' => false, 'updated' => 0, 'total' => 0, 'message' => __( 'No field groups found.', 'hatch' ) );
+			return array(
+				'ok'      => false,
+				'updated' => 0,
+				'total'   => 0,
+				'message' => __( 'No field groups found.', 'hatch-bridge' ),
+			);
 		}
 
 		$updated = 0;
@@ -285,7 +290,7 @@ class Hatch_Acf_Bridge {
 			'total'   => count( $groups ),
 			'message' => sprintf(
 				/* translators: 1: number of groups updated, 2: total groups */
-				_n( '%1$d of %2$d ACF group exposed to REST.', '%1$d of %2$d ACF groups exposed to REST.', $updated, 'hatch' ),
+				_n( '%1$d of %2$d ACF group exposed to REST.', '%1$d of %2$d ACF groups exposed to REST.', $updated, 'hatch-bridge' ),
 				$updated,
 				count( $groups )
 			),
@@ -305,7 +310,7 @@ class Hatch_Acf_Bridge {
 			return;
 		}
 
-		// Don't show on the Hatch settings page — that page has its own health panel.
+		// Don't show on the Hatch settings page - that page has its own health panel.
 		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 		if ( $screen && false !== strpos( (string) $screen->id, 'hatch' ) ) {
 			return;
@@ -325,26 +330,29 @@ class Hatch_Acf_Bridge {
 		?>
 		<div class="notice notice-warning is-dismissible">
 			<p>
-				<strong><?php esc_html_e( 'Hatch — Headless WordPress', 'hatch' ); ?>:</strong>
+				<strong><?php esc_html_e( 'Hatch - Headless WordPress', 'hatch-bridge' ); ?>:</strong>
 				<?php
 				printf(
 					/* translators: 1: number of hidden field groups, 2: plugin label */
-					esc_html( _n(
-						'%1$d %2$s field group is hidden from the REST API. Your headless frontend cannot read these fields.',
-						'%1$d %2$s field groups are hidden from the REST API. Your headless frontend cannot read these fields.',
-						(int) $status['hidden'],
-						'hatch'
-					) ),
+					esc_html(
+						/* translators: 1: number of hidden field groups, 2: plugin label. */
+						_n(
+							'%1$d %2$s field group is hidden from the REST API. Your headless frontend cannot read these fields.',
+							'%1$d %2$s field groups are hidden from the REST API. Your headless frontend cannot read these fields.',
+							(int) $status['hidden'],
+							'hatch-bridge'
+						)
+					),
 					(int) $status['hidden'],
 					esc_html( $plugin_label )
 				);
 				?>
-				<a href="<?php echo esc_url( admin_url( 'tools.php?page=hatch#health' ) ); ?>">
-					<?php esc_html_e( 'Open Hatch health panel →', 'hatch' ); ?>
+				<a href="<?php echo esc_url( admin_url( 'admin.php?page=hatch#status' ) ); ?>">
+					<?php esc_html_e( 'Open Hatch health panel →', 'hatch-bridge' ); ?>
 				</a>
 				&nbsp;|&nbsp;
 				<a href="<?php echo esc_url( $dismiss_url ); ?>">
-					<?php esc_html_e( 'Dismiss for 7 days', 'hatch' ); ?>
+					<?php esc_html_e( 'Dismiss for 7 days', 'hatch-bridge' ); ?>
 				</a>
 			</p>
 		</div>
@@ -352,7 +360,7 @@ class Hatch_Acf_Bridge {
 	}
 
 	/**
-	 * Handle dismiss click — verify nonce and store transient for 7 days.
+	 * Handle dismiss click - verify nonce and store transient for 7 days.
 	 *
 	 * @return void
 	 */

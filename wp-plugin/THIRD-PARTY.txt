@@ -1,0 +1,68 @@
+Hatch third-party components
+===========================
+
+Hatch is licensed GPL-2.0-or-later. See LICENSE in this folder.
+
+Everything in this plugin was written for Hatch, except the third-party
+components listed below. The versions are the ones pinned in package-lock.json
+in the public source repository, https://github.com/eticastudio/hatch.
+
+
+1. Admin screen (build/admin)
+-----------------------------
+
+The admin screen is built from admin-react/src. It imports only React, wp-element
+and wp-i18n, which WordPress core provides at run time (see
+build/admin/index.jsx.asset.php). No third-party code is bundled into it.
+
+
+2. Frontend uploaded to Cloudflare (frontend-bundle)
+----------------------------------------------------
+
+The frontend is compiled from the astro-starter folder of the repository. It is
+built from these packages, all under the MIT licence:
+
+  astro                  7.2.1    Copyright (c) 2021 Fred K. Schott
+  @astrojs/cloudflare    14.2.1   Copyright (c) 2021 Fred K. Schott
+  @astrojs/rss           4.0.19   Copyright (c) 2021 Fred K. Schott
+  @astrojs/sitemap       3.7.3    Copyright (c) 2021 Fred K. Schott
+  lucide-astro           0.556.0  Copyright (c) 2023 Dzeio
+  tailwind-merge         3.6.0    Copyright (c) 2021 Dany Castillo
+  tailwindcss            4.3.3    Copyright (c) Tailwind Labs, Inc.
+  clsx                   2.1.1    Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com)
+
+The dependencies of these packages are resolved in astro-starter/package-lock.json
+(230 packages). Their licences are MIT, ISC, BSD-2-Clause, BSD-3-Clause,
+Apache-2.0, BlueOak-1.0.0, CC0-1.0, MPL-2.0, Python-2.0 and "MIT OR Apache-2.0".
+The lock file names the licence of each package.
+
+Web fonts are not shipped in the plugin. The deployed frontend requests them from
+Google Fonts in the visitor's browser (see "External services" in readme.txt).
+
+MIT licence text (applies to each MIT package above, with the copyright line
+given for that package):
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+
+3. Build tools (not shipped)
+----------------------------
+
+@wordpress/scripts and the @wordpress/* packages listed in package.json are
+GPL-2.0-or-later and are used only to build the admin screen.

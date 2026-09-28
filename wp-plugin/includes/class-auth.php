@@ -1,6 +1,6 @@
 <?php
 /**
- * Hatch Auth — headless JWT authentication for the Astro frontend.
+ * Hatch Auth - headless JWT authentication for the Astro frontend.
  *
  * CLEAN-ROOM ORIGINAL. Zero lines copied from any external repo.
  * JWT HS256 implemented fresh via WP's built-in hash_hmac.
@@ -11,11 +11,18 @@
  *   POST /auth/register  {username,email,password[,hp_website]}
  *   POST /auth/logout                          -> {ok:true}, clears cookie
  *   GET  /auth/me                              -> user object (or 401)
- *   POST /auth/refresh                         -> fresh token if within 24h of expiry
+ *   POST /auth/refresh                         -> fresh token if within 6h of expiry
  *
  * Also gates POST /wp/v2/comments via rest_pre_dispatch so a valid JWT
  * populates the current user, letting the Astro-side commenter post as
  * themselves.
+ *
+ * CSRF model: a token sent in the Authorization header is not attached by the
+ * browser, so it needs no nonce. A token read from the hatch_jwt cookie is
+ * attached automatically, so a state-changing request authenticated by it must
+ * carry a valid X-WP-Nonce header (action wp_rest), the same rule WordPress
+ * core applies to its own login cookie. /auth/login and /auth/me return a
+ * `nonce` field for that purpose.
  *
  * @package Hatch
  * @since   0.7.6
@@ -27,12 +34,21 @@ class Hatch_Auth {
 
 	const COOKIE_NAME     = 'hatch_jwt';
 	const OPTION_SECRET   = 'hatch_jwt_secret';
-	const TOKEN_TTL       = 604800;   // 7 days.
-	const REFRESH_WINDOW  = 86400;    // Refresh within 24h of expiry.
+	const TOKEN_TTL       = 86400;    // 24 hours.
+	const VERSION_META    = 'hatch_jwt_ver';
+	const REFRESH_WINDOW  = 21600;    // Refresh within 6h of expiry.
 	const RL_MAX_ATTEMPTS = 5;
 	const RL_WINDOW       = 300;      // 5 minutes.
 
 	private static $instance = null;
+
+	/**
+	 * User id authenticated from the hatch_jwt COOKIE on this request, or 0.
+	 * Header (Bearer) authentication never sets it.
+	 *
+	 * @var int
+	 */
+	private static $cookie_auth_uid = 0;
 
 	public static function instance(): Hatch_Auth {
 		if ( null === self::$instance ) {
@@ -42,18 +58,14 @@ class Hatch_Auth {
 
 			// Authenticate REST requests from the hatch_jwt cookie or Bearer
 			// token so Woo Store API (and any other REST endpoint) sees the
-			// signed-in user. The native wordpress_logged_in_* cookie alone
-			// cannot authenticate a REST call without a matching wp_rest
-			// nonce; JWT sidesteps that. Priority 20 keeps us after WP's
-			// own cookie check so we never override a valid session.
+			// signed-in user. Priority 20 keeps us after WP's own cookie
+			// check so we never override a valid session.
 			add_filter( 'determine_current_user', array( __CLASS__, 'authenticate_jwt' ), 20 );
 
-			// Suppress the REST cookie-nonce check for requests that already
-			// authenticated via JWT. Without this, WP returns
-			// rest_cookie_invalid_nonce whenever the browser sends both the
-			// wordpress_logged_in cookie (from wp_set_auth_cookie above) and
-			// no X-WP-Nonce header.
-			add_filter( 'rest_authentication_errors', array( __CLASS__, 'clear_cookie_nonce_error' ), 999 );
+			// Core's cookie-nonce check (rest_cookie_check_errors, priority 100)
+			// stays in force for the WordPress login cookie. This runs just after
+			// it and applies the same rule to the hatch_jwt cookie.
+			add_filter( 'rest_authentication_errors', array( __CLASS__, 'require_nonce_for_cookie_auth' ), 101 );
 		}
 		return self::$instance;
 	}
@@ -67,35 +79,55 @@ class Hatch_Auth {
 	public static function register_routes(): void {
 		$ns = defined( 'HATCH_REST_NAMESPACE' ) ? HATCH_REST_NAMESPACE : 'hatch/v1';
 
-		register_rest_route( $ns, '/auth/login', array(
-			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => array( __CLASS__, 'route_login' ),
-			'permission_callback' => '__return_true',
-		) );
+		register_rest_route(
+			$ns,
+			'/auth/login',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( __CLASS__, 'route_login' ),
+				'permission_callback' => '__return_true',
+			)
+		);
 
-		register_rest_route( $ns, '/auth/register', array(
-			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => array( __CLASS__, 'route_register' ),
-			'permission_callback' => '__return_true',
-		) );
+		register_rest_route(
+			$ns,
+			'/auth/register',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( __CLASS__, 'route_register' ),
+				'permission_callback' => '__return_true',
+			)
+		);
 
-		register_rest_route( $ns, '/auth/logout', array(
-			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => array( __CLASS__, 'route_logout' ),
-			'permission_callback' => '__return_true',
-		) );
+		register_rest_route(
+			$ns,
+			'/auth/logout',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( __CLASS__, 'route_logout' ),
+				'permission_callback' => '__return_true',
+			)
+		);
 
-		register_rest_route( $ns, '/auth/me', array(
-			'methods'             => WP_REST_Server::READABLE,
-			'callback'            => array( __CLASS__, 'route_me' ),
-			'permission_callback' => '__return_true',
-		) );
+		register_rest_route(
+			$ns,
+			'/auth/me',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( __CLASS__, 'route_me' ),
+				'permission_callback' => '__return_true',
+			)
+		);
 
-		register_rest_route( $ns, '/auth/refresh', array(
-			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => array( __CLASS__, 'route_refresh' ),
-			'permission_callback' => '__return_true',
-		) );
+		register_rest_route(
+			$ns,
+			'/auth/refresh',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( __CLASS__, 'route_refresh' ),
+				'permission_callback' => '__return_true',
+			)
+		);
 	}
 
 	/* --------------------------------------------------------------------- *
@@ -107,7 +139,7 @@ class Hatch_Auth {
 		if ( self::rate_limited( $ip ) ) {
 			return new WP_Error(
 				'hatch_auth_rate_limited',
-				__( 'Too many attempts. Try again in a few minutes.', 'hatch' ),
+				__( 'Too many attempts. Try again in a few minutes.', 'hatch-bridge' ),
 				array( 'status' => 429 )
 			);
 		}
@@ -117,13 +149,13 @@ class Hatch_Auth {
 
 		if ( '' === $username || '' === $password ) {
 			self::bump_rate_limit( $ip );
-			return new WP_Error( 'hatch_auth_bad_request', __( 'Username and password are required.', 'hatch' ), array( 'status' => 400 ) );
+			return new WP_Error( 'hatch_auth_bad_request', __( 'Username and password are required.', 'hatch-bridge' ), array( 'status' => 400 ) );
 		}
 
 		$user = wp_authenticate( $username, $password );
 		if ( is_wp_error( $user ) ) {
 			self::bump_rate_limit( $ip );
-			return new WP_Error( 'hatch_auth_invalid', __( 'Invalid username or password.', 'hatch' ), array( 'status' => 401 ) );
+			return new WP_Error( 'hatch_auth_invalid', __( 'Invalid username or password.', 'hatch-bridge' ), array( 'status' => 401 ) );
 		}
 
 		return self::success_response( $user );
@@ -134,19 +166,19 @@ class Hatch_Auth {
 	 * --------------------------------------------------------------------- */
 
 	public static function route_register( WP_REST_Request $req ) {
-		// Honeypot — bots fill hidden fields. Silent reject.
+		// Honeypot - bots fill hidden fields. Silent reject.
 		$hp = (string) $req->get_param( 'hp_website' );
 		if ( '' !== trim( $hp ) ) {
-			return new WP_Error( 'hatch_auth_spam', __( 'Registration failed.', 'hatch' ), array( 'status' => 400 ) );
+			return new WP_Error( 'hatch_auth_spam', __( 'Registration failed.', 'hatch-bridge' ), array( 'status' => 400 ) );
 		}
 
 		if ( ! (int) get_option( 'users_can_register' ) ) {
-			return new WP_Error( 'hatch_auth_disabled', __( 'Registration is disabled on this site.', 'hatch' ), array( 'status' => 403 ) );
+			return new WP_Error( 'hatch_auth_disabled', __( 'Registration is disabled on this site.', 'hatch-bridge' ), array( 'status' => 403 ) );
 		}
 
 		$ip = self::client_ip();
 		if ( self::rate_limited( $ip ) ) {
-			return new WP_Error( 'hatch_auth_rate_limited', __( 'Too many attempts. Try again in a few minutes.', 'hatch' ), array( 'status' => 429 ) );
+			return new WP_Error( 'hatch_auth_rate_limited', __( 'Too many attempts. Try again in a few minutes.', 'hatch-bridge' ), array( 'status' => 429 ) );
 		}
 
 		$username = sanitize_user( (string) $req->get_param( 'username' ), true );
@@ -157,14 +189,14 @@ class Hatch_Auth {
 			self::bump_rate_limit( $ip );
 			return new WP_Error(
 				'hatch_auth_bad_request',
-				__( 'Username, valid email, and 8+ char password required.', 'hatch' ),
+				__( 'Username, valid email, and 8+ char password required.', 'hatch-bridge' ),
 				array( 'status' => 400 )
 			);
 		}
 
 		if ( username_exists( $username ) || email_exists( $email ) ) {
 			self::bump_rate_limit( $ip );
-			return new WP_Error( 'hatch_auth_exists', __( 'A user with that username or email already exists.', 'hatch' ), array( 'status' => 409 ) );
+			return new WP_Error( 'hatch_auth_exists', __( 'A user with that username or email already exists.', 'hatch-bridge' ), array( 'status' => 409 ) );
 		}
 
 		$user_id = wp_create_user( $username, $password, $email );
@@ -174,7 +206,7 @@ class Hatch_Auth {
 
 		$user = get_user_by( 'id', $user_id );
 		if ( ! $user ) {
-			return new WP_Error( 'hatch_auth_create_failed', __( 'User creation failed.', 'hatch' ), array( 'status' => 500 ) );
+			return new WP_Error( 'hatch_auth_create_failed', __( 'User creation failed.', 'hatch-bridge' ), array( 'status' => 500 ) );
 		}
 
 		return self::success_response( $user );
@@ -185,6 +217,13 @@ class Hatch_Auth {
 	 * --------------------------------------------------------------------- */
 
 	public static function route_logout( WP_REST_Request $req ) {
+		// Bump the user's token generation so every token issued before this
+		// point stops working, not only the cookie held by this browser.
+		$payload = self::verify_incoming_token( $req );
+		if ( $payload ) {
+			$uid = (int) $payload['sub'];
+			update_user_meta( $uid, self::VERSION_META, self::token_version( $uid ) + 1 );
+		}
 		self::clear_cookie();
 		return new WP_REST_Response( array( 'ok' => true ), 200 );
 	}
@@ -196,16 +235,20 @@ class Hatch_Auth {
 	public static function route_me( WP_REST_Request $req ) {
 		$payload = self::verify_incoming_token( $req );
 		if ( ! $payload ) {
-			return new WP_Error( 'hatch_auth_unauthorized', __( 'Not authenticated.', 'hatch' ), array( 'status' => 401 ) );
+			return new WP_Error( 'hatch_auth_unauthorized', __( 'Not authenticated.', 'hatch-bridge' ), array( 'status' => 401 ) );
 		}
 		$user = get_user_by( 'id', (int) $payload['sub'] );
-		if ( ! $user ) {
-			return new WP_Error( 'hatch_auth_unauthorized', __( 'User no longer exists.', 'hatch' ), array( 'status' => 401 ) );
+		if ( ! $user || ! self::token_matches_user( $payload, $user ) ) {
+			return new WP_Error( 'hatch_auth_unauthorized', __( 'Your session is no longer valid. Sign in again.', 'hatch-bridge' ), array( 'status' => 401 ) );
 		}
-		return new WP_REST_Response( array(
-			'user'       => self::user_shape( $user ),
-			'expires_at' => (int) $payload['exp'],
-		), 200 );
+		return new WP_REST_Response(
+			array(
+				'user'       => self::user_shape( $user ),
+				'expires_at' => (int) $payload['exp'],
+				'nonce'      => self::nonce_for( $user ),
+			),
+			200
+		);
 	}
 
 	/* --------------------------------------------------------------------- *
@@ -215,22 +258,22 @@ class Hatch_Auth {
 	public static function route_refresh( WP_REST_Request $req ) {
 		$payload = self::verify_incoming_token( $req );
 		if ( ! $payload ) {
-			return new WP_Error( 'hatch_auth_unauthorized', __( 'Not authenticated.', 'hatch' ), array( 'status' => 401 ) );
+			return new WP_Error( 'hatch_auth_unauthorized', __( 'Not authenticated.', 'hatch-bridge' ), array( 'status' => 401 ) );
 		}
 		$now = time();
 		$exp = (int) $payload['exp'];
 		if ( ( $exp - $now ) > self::REFRESH_WINDOW ) {
-			return new WP_Error( 'hatch_auth_refresh_too_early', __( 'Token not eligible for refresh yet.', 'hatch' ), array( 'status' => 400 ) );
+			return new WP_Error( 'hatch_auth_refresh_too_early', __( 'Token not eligible for refresh yet.', 'hatch-bridge' ), array( 'status' => 400 ) );
 		}
 		$user = get_user_by( 'id', (int) $payload['sub'] );
-		if ( ! $user ) {
-			return new WP_Error( 'hatch_auth_unauthorized', __( 'User no longer exists.', 'hatch' ), array( 'status' => 401 ) );
+		if ( ! $user || ! self::token_matches_user( $payload, $user ) ) {
+			return new WP_Error( 'hatch_auth_unauthorized', __( 'Your session is no longer valid. Sign in again.', 'hatch-bridge' ), array( 'status' => 401 ) );
 		}
 		return self::success_response( $user );
 	}
 
 	/* --------------------------------------------------------------------- *
-	 * Comment gating — populate current user from JWT so wp/v2/comments
+	 * Comment gating - populate current user from JWT so wp/v2/comments
 	 * posts as the JWT holder.
 	 * --------------------------------------------------------------------- */
 
@@ -250,11 +293,16 @@ class Hatch_Auth {
 		if ( is_user_logged_in() ) {
 			return $result;
 		}
-		$payload = self::verify_incoming_token( $request );
+		list( $payload, $via_cookie ) = self::incoming_token( $request );
 		if ( $payload && ! empty( $payload['sub'] ) ) {
 			$uid = (int) $payload['sub'];
 			if ( get_user_by( 'id', $uid ) ) {
 				wp_set_current_user( $uid );
+				// A cookie-borne token is sent by the browser on its own, so it
+				// only counts when the request also proves same-origin intent.
+				if ( $via_cookie && ! self::has_valid_rest_nonce() ) {
+					wp_set_current_user( 0 );
+				}
 			}
 		}
 		return $result;
@@ -271,13 +319,10 @@ class Hatch_Auth {
 			return $user_id;
 		}
 		// Cookie first.
-		$token = '';
-		if ( isset( $_COOKIE[ self::COOKIE_NAME ] ) ) {
-			$token = (string) $_COOKIE[ self::COOKIE_NAME ];
-		}
+		$token      = Hatch_Request::cookie( self::COOKIE_NAME );
+		$via_cookie = '' !== $token;
 		if ( '' === $token ) {
-			$auth = isset( $_SERVER['HTTP_AUTHORIZATION'] ) ? (string) $_SERVER['HTTP_AUTHORIZATION']
-				: ( isset( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) ? (string) $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] : '' );
+			$auth = Hatch_Request::authorization();
 			if ( $auth && stripos( $auth, 'Bearer ' ) === 0 ) {
 				$token = trim( substr( $auth, 7 ) );
 			}
@@ -289,54 +334,62 @@ class Hatch_Auth {
 		if ( ! $payload || empty( $payload['sub'] ) ) {
 			return $user_id;
 		}
-		$uid = (int) $payload['sub'];
-		return get_user_by( 'id', $uid ) ? $uid : $user_id;
+		$uid  = (int) $payload['sub'];
+		$user = get_user_by( 'id', $uid );
+		if ( ! $user || ! self::token_matches_user( $payload, $user ) ) {
+			return $user_id;
+		}
+		self::$cookie_auth_uid = $via_cookie ? $uid : 0;
+		return $uid;
 	}
 
 	/**
-	 * If our JWT filter already populated the current user, drop any
-	 * cookie-nonce error WP would otherwise raise. Leaves other error
-	 * codes intact so a malformed Authorization header still fails.
+	 * Apply WordPress core's cookie rule to a user authenticated from the
+	 * hatch_jwt cookie: a state-changing REST request needs a valid X-WP-Nonce.
 	 *
-	 * @param WP_Error|null|true $error
+	 * Mirrors rest_cookie_check_errors(): with no nonce the request continues
+	 * as an anonymous visitor; with a nonce that does not verify it fails with
+	 * a 403. Safe methods (GET, HEAD, OPTIONS) are not changed. Requests
+	 * authenticated by an Authorization header never reach this branch.
+	 *
+	 * @param WP_Error|null|true $result Result of earlier authentication checks.
 	 * @return WP_Error|null|true
 	 */
-	public static function clear_cookie_nonce_error( $error ) {
-		// WP core `rest_cookie_check_errors` calls wp_set_current_user(0)
-		// whenever a request lacks a wp_rest nonce, even if the wordpress
-		// logged-in cookie was valid. Re-authenticate from the hatch_jwt
-		// (or Bearer) token so REST endpoints see the real user again.
-		// Also drops the rest_cookie_invalid_nonce error the same path
-		// raises when a nonce was sent but did not verify.
-		if ( ! defined( 'REST_REQUEST' ) || ! REST_REQUEST ) {
-			return $error;
+	public static function require_nonce_for_cookie_auth( $result ) {
+		if ( ! empty( $result ) || 0 === self::$cookie_auth_uid ) {
+			return $result;
 		}
-		$uid = 0;
-		if ( isset( $_COOKIE[ self::COOKIE_NAME ] ) ) {
-			$p = self::verify_token( (string) $_COOKIE[ self::COOKIE_NAME ] );
-			if ( $p && ! empty( $p['sub'] ) ) {
-				$uid = (int) $p['sub'];
-			}
+		if ( get_current_user_id() !== self::$cookie_auth_uid ) {
+			return $result;
 		}
-		if ( 0 === $uid ) {
-			$auth = isset( $_SERVER['HTTP_AUTHORIZATION'] ) ? (string) $_SERVER['HTTP_AUTHORIZATION']
-				: ( isset( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) ? (string) $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] : '' );
-			if ( $auth && stripos( $auth, 'Bearer ' ) === 0 ) {
-				$p = self::verify_token( trim( substr( $auth, 7 ) ) );
-				if ( $p && ! empty( $p['sub'] ) ) {
-					$uid = (int) $p['sub'];
-				}
-			}
+		$method = strtoupper( Hatch_Request::server( 'REQUEST_METHOD' ) );
+		if ( in_array( $method, array( 'GET', 'HEAD', 'OPTIONS' ), true ) ) {
+			return $result;
 		}
-		if ( $uid > 0 && get_user_by( 'id', $uid ) ) {
-			if ( get_current_user_id() !== $uid ) {
-				wp_set_current_user( $uid );
-			}
-			if ( is_wp_error( $error ) && 'rest_cookie_invalid_nonce' === $error->get_error_code() ) {
-				return null;
-			}
+		$nonce = Hatch_Request::server( 'HTTP_X_WP_NONCE' );
+		if ( '' === $nonce ) {
+			wp_set_current_user( 0 );
+			return $result;
 		}
-		return $error;
+		if ( ! wp_verify_nonce( $nonce, 'wp_rest' ) ) {
+			wp_set_current_user( 0 );
+			return new WP_Error(
+				'hatch_auth_invalid_nonce',
+				__( 'Cookie check failed. Send a valid X-WP-Nonce header.', 'hatch-bridge' ),
+				array( 'status' => 403 )
+			);
+		}
+		return $result;
+	}
+
+	/**
+	 * Does this request carry a valid wp_rest nonce for the current user?
+	 *
+	 * @return bool
+	 */
+	private static function has_valid_rest_nonce(): bool {
+		$nonce = Hatch_Request::server( 'HTTP_X_WP_NONCE' );
+		return '' !== $nonce && false !== wp_verify_nonce( $nonce, 'wp_rest' );
 	}
 
 	/* --------------------------------------------------------------------- *
@@ -346,13 +399,17 @@ class Hatch_Auth {
 	private static function success_response( WP_User $user ): WP_REST_Response {
 		$now   = time();
 		$exp   = $now + self::TOKEN_TTL;
-		$token = self::sign_token( array(
-			'iss'   => 'hatch',
-			'iat'   => $now,
-			'exp'   => $exp,
-			'sub'   => (int) $user->ID,
-			'roles' => array_values( (array) $user->roles ),
-		) );
+		$token = self::sign_token(
+			array(
+				'iss'   => 'hatch',
+				'iat'   => $now,
+				'exp'   => $exp,
+				'sub'   => (int) $user->ID,
+				'ver'   => self::token_version( (int) $user->ID ),
+				'pw'    => self::password_stamp( $user ),
+				'roles' => array_values( (array) $user->roles ),
+			)
+		);
 		self::set_cookie( $token, $exp );
 
 		// Also mint a real WordPress session cookie (wordpress_logged_in_*).
@@ -364,19 +421,44 @@ class Hatch_Auth {
 		if ( function_exists( 'wp_set_auth_cookie' ) && ! headers_sent() ) {
 			wp_set_current_user( (int) $user->ID );
 			wp_set_auth_cookie( (int) $user->ID, true, is_ssl() );
-			do_action( 'wp_login', $user->user_login, $user );
+			do_action( 'wp_login', $user->user_login, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core action, so login listeners run after an Application Password exchange.
 			$wp_login_set = true;
 		}
 
-		return new WP_REST_Response( array(
-			'token'      => $token,
-			'user'       => self::user_shape( $user ),
-			'expires_at' => $exp,
-			'wp_login'   => $wp_login_set,
-			'ok'         => true,
-		), 200 );
+		return new WP_REST_Response(
+			array(
+				'token'      => $token,
+				'user'       => self::user_shape( $user ),
+				'expires_at' => $exp,
+				'nonce'      => self::nonce_for( $user ),
+				'wp_login'   => $wp_login_set,
+				'ok'         => true,
+			),
+			200
+		);
 	}
 
+	/**
+	 * A wp_rest nonce for the given user, for clients that authenticate with
+	 * the hatch_jwt cookie and must send X-WP-Nonce on writes.
+	 *
+	 * @param WP_User $user User the nonce is for.
+	 * @return string
+	 */
+	private static function nonce_for( WP_User $user ): string {
+		if ( get_current_user_id() !== (int) $user->ID ) {
+			wp_set_current_user( (int) $user->ID );
+		}
+		return wp_create_nonce( 'wp_rest' );
+	}
+
+	/**
+	 * Public user object. Roles are read from the user record at request time,
+	 * never from the token, so a demotion applies on the next request.
+	 *
+	 * @param WP_User $user User.
+	 * @return array
+	 */
 	private static function user_shape( WP_User $user ): array {
 		return array(
 			'id'     => (int) $user->ID,
@@ -388,7 +470,7 @@ class Hatch_Auth {
 	}
 
 	/* --------------------------------------------------------------------- *
-	 * JWT (HS256) — RFC 7519, fresh implementation on hash_hmac.
+	 * JWT (HS256) - RFC 7519, fresh implementation on hash_hmac.
 	 * --------------------------------------------------------------------- */
 
 	private static function get_secret(): string {
@@ -401,6 +483,7 @@ class Hatch_Auth {
 	}
 
 	private static function base64_url_encode( string $bytes ): string {
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- base64url segment encoding for a JWT (RFC 7515), not obfuscation.
 		return rtrim( strtr( base64_encode( $bytes ), '+/', '-_' ), '=' );
 	}
 
@@ -409,11 +492,51 @@ class Hatch_Auth {
 		if ( $pad > 0 ) {
 			$s .= str_repeat( '=', 4 - $pad );
 		}
-		return (string) base64_decode( strtr( $s, '-_', '+/' ) );
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- base64url segment decoding for a JWT (RFC 7515), strict mode; not obfuscation.
+		return (string) base64_decode( strtr( $s, '-_', '+/' ), true );
+	}
+
+	/**
+	 * Current token generation for a user. Logging out raises it.
+	 *
+	 * @param int $user_id User ID.
+	 * @return int
+	 */
+	private static function token_version( int $user_id ): int {
+		return (int) get_user_meta( $user_id, self::VERSION_META, true );
+	}
+
+	/**
+	 * Short stamp of the user's current password hash. A password change or
+	 * reset alters it, which retires every token minted before the change.
+	 *
+	 * @param WP_User $user User.
+	 * @return string
+	 */
+	private static function password_stamp( WP_User $user ): string {
+		return substr( hash_hmac( 'sha256', (string) $user->user_pass, self::get_secret() ), 0, 16 );
+	}
+
+	/**
+	 * Does a verified token still belong to the user's current session?
+	 *
+	 * @param array   $payload Verified token payload.
+	 * @param WP_User $user    User the token names.
+	 * @return bool
+	 */
+	private static function token_matches_user( array $payload, WP_User $user ): bool {
+		if ( ! isset( $payload['ver'], $payload['pw'] ) ) {
+			return false;
+		}
+		return self::token_version( (int) $user->ID ) === (int) $payload['ver']
+			&& hash_equals( self::password_stamp( $user ), (string) $payload['pw'] );
 	}
 
 	public static function sign_token( array $payload ): string {
-		$header    = array( 'alg' => 'HS256', 'typ' => 'JWT' );
+		$header    = array(
+			'alg' => 'HS256',
+			'typ' => 'JWT',
+		);
 		$h_seg     = self::base64_url_encode( (string) wp_json_encode( $header ) );
 		$p_seg     = self::base64_url_encode( (string) wp_json_encode( $payload ) );
 		$signing   = $h_seg . '.' . $p_seg;
@@ -427,7 +550,7 @@ class Hatch_Auth {
 			return null;
 		}
 		list( $h_seg, $p_seg, $s_seg ) = $parts;
-		$header = json_decode( self::base64_url_decode( $h_seg ), true );
+		$header                        = json_decode( self::base64_url_decode( $h_seg ), true );
 		if ( ! is_array( $header ) || ! isset( $header['alg'] ) || 'HS256' !== $header['alg'] ) {
 			return null;
 		}
@@ -443,19 +566,30 @@ class Hatch_Auth {
 		if ( time() >= (int) $payload['exp'] ) {
 			return null;
 		}
+		// Reject any token whose lifetime exceeds the current TTL, including
+		// tokens minted before the TTL was shortened from 7 days to 24 hours.
+		if ( empty( $payload['iat'] ) || ( (int) $payload['exp'] - (int) $payload['iat'] ) > self::TOKEN_TTL ) {
+			return null;
+		}
 		if ( ! isset( $payload['iss'] ) || 'hatch' !== $payload['iss'] ) {
 			return null;
 		}
 		return $payload;
 	}
 
-	private static function verify_incoming_token( WP_REST_Request $req ): ?array {
+	/**
+	 * Read and verify the token on a REST request.
+	 *
+	 * @param WP_REST_Request $req Request.
+	 * @return array{0: ?array, 1: bool} Verified payload (or null) and whether it came from the cookie.
+	 */
+	private static function incoming_token( WP_REST_Request $req ): array {
 		// Cookie first, then Authorization: Bearer.
-		if ( isset( $_COOKIE[ self::COOKIE_NAME ] ) ) {
-			$tok = (string) $_COOKIE[ self::COOKIE_NAME ];
-			$p   = self::verify_token( $tok );
+		$tok = Hatch_Request::cookie( self::COOKIE_NAME );
+		if ( '' !== $tok ) {
+			$p = self::verify_token( $tok );
 			if ( $p ) {
-				return $p;
+				return array( $p, true );
 			}
 		}
 		$auth = (string) $req->get_header( 'authorization' );
@@ -464,13 +598,18 @@ class Hatch_Auth {
 		}
 		if ( $auth && stripos( $auth, 'Bearer ' ) === 0 ) {
 			$tok = trim( substr( $auth, 7 ) );
-			return self::verify_token( $tok );
+			return array( self::verify_token( $tok ), false );
 		}
-		return null;
+		return array( null, false );
+	}
+
+	private static function verify_incoming_token( WP_REST_Request $req ): ?array {
+		list( $payload ) = self::incoming_token( $req );
+		return $payload;
 	}
 
 	/* --------------------------------------------------------------------- *
-	 * Cookie — RFC 6265, HttpOnly + SameSite=Lax; Secure only on HTTPS.
+	 * Cookie - RFC 6265, HttpOnly + SameSite=Lax; Secure only on HTTPS.
 	 * --------------------------------------------------------------------- */
 
 	private static function set_cookie( string $token, int $expires ): void {
@@ -480,14 +619,18 @@ class Hatch_Auth {
 		$secure   = is_ssl();
 		$samesite = 'Lax';
 		// PHP 7.3+ array signature.
-		setcookie( self::COOKIE_NAME, $token, array(
-			'expires'  => $expires,
-			'path'     => '/',
-			'domain'   => '',
-			'secure'   => $secure,
-			'httponly' => true,
-			'samesite' => $samesite,
-		) );
+		setcookie(
+			self::COOKIE_NAME,
+			$token,
+			array(
+				'expires'  => $expires,
+				'path'     => '/',
+				'domain'   => '',
+				'secure'   => $secure,
+				'httponly' => true,
+				'samesite' => $samesite,
+			)
+		);
 		$_COOKIE[ self::COOKIE_NAME ] = $token;
 	}
 
@@ -495,19 +638,23 @@ class Hatch_Auth {
 		if ( headers_sent() ) {
 			return;
 		}
-		setcookie( self::COOKIE_NAME, '', array(
-			'expires'  => time() - 3600,
-			'path'     => '/',
-			'domain'   => '',
-			'secure'   => is_ssl(),
-			'httponly' => true,
-			'samesite' => 'Lax',
-		) );
+		setcookie(
+			self::COOKIE_NAME,
+			'',
+			array(
+				'expires'  => time() - 3600,
+				'path'     => '/',
+				'domain'   => '',
+				'secure'   => is_ssl(),
+				'httponly' => true,
+				'samesite' => 'Lax',
+			)
+		);
 		unset( $_COOKIE[ self::COOKIE_NAME ] );
 	}
 
 	/* --------------------------------------------------------------------- *
-	 * Rate limiting — per-IP, transient-backed.
+	 * Rate limiting - per-IP, transient-backed.
 	 * --------------------------------------------------------------------- */
 
 	/**
@@ -521,21 +668,26 @@ class Hatch_Auth {
 	 * connection comes from a Cloudflare edge range, trust CF-Connecting-IP.
 	 * Falling back to the first entry of X-Forwarded-For under the same
 	 * gate covers non-CF trusted proxies. Anything else falls through to
-	 * REMOTE_ADDR — never trust proxy headers from an untrusted peer.
+	 * REMOTE_ADDR - never trust proxy headers from an untrusted peer.
 	 *
 	 * Backlog #145.
 	 *
 	 * @return string
 	 */
-	private static function client_ip(): string {
-		$remote = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : '0.0.0.0';
-		$ip     = $remote;
+	public static function client_ip(): string {
+		$remote = Hatch_Request::server( 'REMOTE_ADDR' );
+		if ( '' === $remote ) {
+			$remote = '0.0.0.0';
+		}
+		$ip = $remote;
 
 		if ( get_option( 'hatch_trust_cf_ip', false ) && self::request_from_trusted_edge( $remote ) ) {
-			if ( ! empty( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
-				$ip = (string) wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] );
-			} elseif ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-				$parts = explode( ',', (string) wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
+			$cf_ip     = Hatch_Request::server( 'HTTP_CF_CONNECTING_IP' );
+			$forwarded = Hatch_Request::server( 'HTTP_X_FORWARDED_FOR' );
+			if ( '' !== $cf_ip ) {
+				$ip = $cf_ip;
+			} elseif ( '' !== $forwarded ) {
+				$parts = explode( ',', $forwarded );
 				$ip    = trim( (string) $parts[0] );
 			}
 		}
@@ -563,19 +715,31 @@ class Hatch_Auth {
 		}
 		// Only IPv4 gate implemented; extending to Cloudflare's IPv6 /32/64
 		// list is a later change. Conservative default: reject on unknown.
-		$ranges = array(
-			'173.245.48.0/20',   '103.21.244.0/22',  '103.22.200.0/22',
-			'103.31.4.0/22',     '141.101.64.0/18',  '108.162.192.0/18',
-			'190.93.240.0/20',   '188.114.96.0/20',  '197.234.240.0/22',
-			'198.41.128.0/17',   '162.158.0.0/15',   '104.16.0.0/13',
-			'104.24.0.0/14',     '172.64.0.0/13',    '131.0.72.0/22',
+		$ranges  = array(
+			'173.245.48.0/20',
+			'103.21.244.0/22',
+			'103.22.200.0/22',
+			'103.31.4.0/22',
+			'141.101.64.0/18',
+			'108.162.192.0/18',
+			'190.93.240.0/20',
+			'188.114.96.0/20',
+			'197.234.240.0/22',
+			'198.41.128.0/17',
+			'162.158.0.0/15',
+			'104.16.0.0/13',
+			'104.24.0.0/14',
+			'172.64.0.0/13',
+			'131.0.72.0/22',
 		);
 		$ip_long = ip2long( $remote_ip );
-		if ( false === $ip_long ) return false;
+		if ( false === $ip_long ) {
+			return false;
+		}
 		foreach ( $ranges as $cidr ) {
 			list( $subnet, $bits ) = explode( '/', $cidr );
-			$subnet_long = ip2long( $subnet );
-			$mask        = -1 << ( 32 - (int) $bits );
+			$subnet_long           = ip2long( $subnet );
+			$mask                  = -1 << ( 32 - (int) $bits );
 			if ( ( $ip_long & $mask ) === ( $subnet_long & $mask ) ) {
 				return true;
 			}

@@ -1,15 +1,15 @@
 <?php
 /**
- * RankReady bridge — reads RankReady's headless-mode settings and exposes
+ * RankReady bridge - reads RankReady's headless-mode settings and exposes
  * them via Hatch's `/features` REST so the Astro frontend can proxy the
  * AI SEO surfaces (`/llms.txt`, `/.well-known/mcp.json`) and inject
  * RankReady's Summary + FAQ JSON-LD into page schema.
  *
- * v0.5 — was a detection-only stub. Now consumes RankReady's public
+ * v0.5 - was a detection-only stub. Now consumes RankReady's public
  * options directly (they're `register_setting`'d so this is a supported
  * read path, not an internals hack).
  *
- * RankReady coexists with Yoast / Rank Math / AIOSEO — it does not
+ * RankReady coexists with Yoast / Rank Math / AIOSEO - it does not
  * compete on head meta. Its job is the *AI answer layer*: llms.txt for
  * discovery, MCP well-known for AI-agent invocation, per-post AI Summary
  * as `Article.description`, per-post FAQ as `FAQPage` JSON-LD.
@@ -72,12 +72,12 @@ class Hatch_RankReady_Bridge {
 			return array( 'active' => false );
 		}
 
-		$origin = untrailingslashit( home_url() );
-		$hatch_secret = (string) get_option( 'hatch_webhook_secret', '' );
+		$origin               = untrailingslashit( home_url() );
+		$hatch_secret         = (string) get_option( 'hatch_webhook_secret', '' );
 		$rr_revalidate_target = (string) get_option( 'rnrd_headless_revalidate_url', '' );
 		$rr_revalidate_secret = (string) get_option( 'rnrd_headless_revalidate_secret', '' );
 
-		$llms_enabled     = 'on' === get_option( 'rnrd_llms_enable',      'off' );
+		$llms_enabled      = 'on' === get_option( 'rnrd_llms_enable', 'off' );
 		$llms_full_enabled = 'on' === get_option( 'rnrd_llms_full_enable', 'off' );
 
 		$version = '';
@@ -97,30 +97,30 @@ class Hatch_RankReady_Bridge {
 		}
 
 		return array(
-			'active'            => true,
-			'version'           => $version,
-			'headless_enabled'  => 'on' === get_option( 'rnrd_headless_enable', 'off' ),
-			'llms_txt' => array(
+			'active'           => true,
+			'version'          => $version,
+			'headless_enabled' => 'on' === get_option( 'rnrd_headless_enable', 'off' ),
+			'llms_txt'         => array(
 				'enabled' => $llms_enabled,
 				'url'     => $llms_enabled ? $origin . '/llms.txt' : '',
 			),
-			'llms_full_txt' => array(
+			'llms_full_txt'    => array(
 				'enabled' => $llms_full_enabled,
 				'url'     => $llms_full_enabled ? $origin . '/llms-full.txt' : '',
 			),
-			'mcp' => array(
+			'mcp'              => array(
 				// RankReady's MCP well-known is served by class-rnrd-mcp.php
 				// with its own master toggle; presence of the file is the
 				// simplest reliable signal short of a HEAD probe.
 				'enabled' => true,
 				'url'     => $origin . '/.well-known/mcp.json',
 			),
-			'revalidate' => array(
+			'revalidate'       => array(
 				'target'        => $rr_revalidate_target,
-				'matches_hatch' => ( $hatch_secret !== '' && $hatch_secret === $rr_revalidate_secret ),
+				'matches_hatch' => ( '' !== $hatch_secret && $hatch_secret === $rr_revalidate_secret ),
 			),
-			'endpoints' => array(
-				// {id} placeholder — Astro replaces on a per-post basis.
+			'endpoints'        => array(
+				// {id} placeholder - Astro replaces on a per-post basis.
 				'summary' => rest_url( 'rankready/v1/summary/{id}' ),
 				'faq'     => rest_url( 'rankready/v1/faq/get/{id}' ),
 			),

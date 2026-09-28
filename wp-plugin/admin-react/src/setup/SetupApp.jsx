@@ -1,1138 +1,707 @@
 /**
- * Setup Wizard — React shell.
+ * Hatch setup screen.
  *
- * Same Claude Design system as the dashboard. PHP supplies the data + nonces
- * via window.hatchBoot.state.setup; each step's form submits to the existing
- * admin-post handlers via real form POSTs so all legacy server logic runs
- * unchanged (theme save, App Password generation, deploy broker flow).
+ * One path: paste a Cloudflare API token, verify it, choose an account and an
+ * optional domain, read what a deploy changes, deploy, see the live address.
  *
- * Rules from DESIGN-SYSTEM.md enforced here:
- *  • One progress strip (the pill stepper). No second indicator.
- *  • No em-dashes in any copy.
- *  • Section heads use HxHead, not hand-rolled icon boxes.
- *  • Info / callout panels use HxCard, not ad-hoc styled <div>.
+ * Everything talks to the /hatch/v1/deploy/* REST routes. The token is typed
+ * here only long enough to send it to this site; the server stores it
+ * encrypted if the administrator asks it to.
  */
-import { useState, Fragment } from '@wordpress/element';
-import { HxIcon, HxBtn, HxBadge, HxCard, HxHead, HxInp, HxGL, HxSeg } from '../components.jsx';
-import { TP } from '../theme-previews.jsx';
+import { useState, useEffect, useCallback } from '@wordpress/element';
+import { __, sprintf } from '@wordpress/i18n';
+import { HxIcon, HxBtn, HxBadge, HxCard, HxInp, HxSeg, Chip, HxNotice, HxSpinner, HxField, hxFetch, hxErrorNode } from '../components.jsx';
 
-// ── Shared icon snippets ────────────────────────────────────────────────────
+const PROVIDER = 'cloudflare';
+const ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/i;
 
-const I = {
-	arrowR: <path d="M5 12h14M12 5l7 7-7 7" />,
-	arrowL: <path d="M19 12H5M12 19l-7-7 7-7" />,
-	check:  <polyline points="20 6 9 17 4 12" />,
-	alert:  <><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></>,
-	x:      <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>,
-	chev:   <polyline points="9 18 15 12 9 6" />,
-	info:   <><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></>,
+const ICON = {
+	external: <><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></>,
+	check: <polyline points="20 6 9 17 4 12" />,
 	rocket: <><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z" /><path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z" /><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" /><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" /></>,
-	globe:  <><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></>,
-	vercel: <path d="M12 2L2 20h20L12 2z" />,
-	server: <><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" /></>,
-	zap:    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />,
 };
 
-// ── Progress strip (single source of truth) ────────────────────────────────
+const selectStyle = {
+	width: '100%',
+	minHeight: 38,
+	padding: '6px 10px',
+	borderRadius: 6,
+	border: '1px solid var(--hx-border-2)',
+	background: 'var(--hx-surface)',
+	color: 'var(--hx-fg)',
+	fontFamily: 'inherit',
+	fontSize: 14,
+};
 
-function StepStrip({ step }) {
-	const steps = [
-		{ n: 1, label: 'Welcome' },
-		{ n: 2, label: 'Theme' },
-		{ n: 3, label: 'Deploy' },
-	];
-	return (
-		<div style={{ display: 'flex', justifyContent: 'center', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-			{steps.map((s, i) => {
-				const done   = s.n < step;
-				const active = s.n === step;
-				return (
-					<div key={s.n} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-						<div
-							style={{
-								display: 'inline-flex',
-								alignItems: 'center',
-								gap: 8,
-								padding: '5px 12px 5px 5px',
-								borderRadius: 999,
-								background: active ? 'var(--hx-fg)' : 'var(--hx-surface)',
-								border: `1px solid ${active ? 'var(--hx-fg)' : 'var(--hx-border)'}`,
-								transition: 'all .2s var(--hx-ease)',
-							}}
-						>
-							<div
-								style={{
-									width: 20,
-									height: 20,
-									borderRadius: '50%',
-									background: done ? 'var(--hx-success)' : active ? 'var(--hx-surface)' : 'var(--hx-surface-2)',
-									color: done ? '#fff' : active ? 'var(--hx-fg)' : 'var(--hx-subtle)',
-									display: 'grid',
-									placeItems: 'center',
-									fontSize: 11,
-									fontWeight: 700,
-								}}
-							>
-								{done ? '✓' : s.n}
-							</div>
-							<span
-								style={{
-									fontSize: 12,
-									fontWeight: 600,
-									color: active ? 'var(--hx-surface)' : done ? 'var(--hx-fg)' : 'var(--hx-subtle)',
-								}}
-							>
-								{s.label}
-							</span>
-						</div>
-						{i < steps.length - 1 && (
-							<div
-								style={{
-									width: 32,
-									height: 1,
-									background: done ? 'var(--hx-success)' : 'var(--hx-border)',
-								}}
-							/>
-						)}
-					</div>
-				);
-			})}
-		</div>
-	);
+const IDLE_DEPLOY = { phase: 'idle', error: '', message: '', warnings: [] };
+const IDLE_VERIFY = { phase: 'idle', error: '', accounts: [] };
+
+/**
+ * The address visitors use, from the saved deploy state.
+ *
+ * @param {Object} state Deploy state returned by GET /deploy/status.
+ * @return {string} Full URL, or an empty string.
+ */
+function publicUrlOf(state) {
+	if (!state) return '';
+	if (state.domain) {
+		return 'https://' + state.domain + (state.mount_mode === 'subfolder' ? state.subpath || '' : '');
+	}
+	return state.origin || '';
 }
 
-// ── Dark code block (reusable) ─────────────────────────────────────────────
-
-function CodeBlock({ children, copyText, label = 'Copy' }) {
-	const [copied, setCopied] = useState(false);
-	const copy = () => {
-		navigator.clipboard?.writeText(copyText);
-		setCopied(true);
-		setTimeout(() => setCopied(false), 1400);
-	};
+function StepCard({ n, title, desc, done, children }) {
 	return (
-		<div
-			style={{
-				background: '#18181b',
-				borderRadius: 10,
-				padding: '44px 16px 14px',
-				fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace',
-				fontSize: 12,
-				lineHeight: 1.7,
-				color: '#fafafa',
-				position: 'relative',
-				whiteSpace: 'pre-wrap',
-				wordBreak: 'break-all',
-				overflowWrap: 'anywhere',
-				overflowX: 'hidden',
-				width: '100%',
-				maxWidth: '100%',
-				boxSizing: 'border-box',
-				minWidth: 0,
-			}}
-		>
-			{/* Copy button sits in the top toolbar strip so it never overlaps
-			    the command. The strip is created via padding-top above. */}
-			<button
-				type="button"
-				onClick={copy}
-				style={{
-					position: 'absolute',
-					top: 8,
-					right: 8,
-					padding: '5px 12px',
-					fontSize: 11,
-					fontWeight: 600,
-					background: copied ? '#16a34a' : 'rgba(255,255,255,.1)',
-					border: `1px solid ${copied ? '#16a34a' : 'rgba(255,255,255,.18)'}`,
-					borderRadius: 999,
-					cursor: 'pointer',
-					color: '#fff',
-					fontFamily: 'inherit',
-					transition: 'background .12s var(--hx-ease), border-color .12s var(--hx-ease)',
-				}}
-			>
-				{copied ? '✓ Copied' : label}
-			</button>
-			{children}
-		</div>
-	);
-}
-
-function EnvBlock({ pairs }) {
-	const text = pairs.map((p) => `${p.k}=${p.v}`).join('\n');
-	return (
-		<CodeBlock copyText={text} label="Copy .env">
-			{pairs.map((p) => (
-				<div key={p.k} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-					<span style={{ color: 'rgba(255,255,255,.55)' }}>{p.k}=</span>{p.v}
-				</div>
-			))}
-		</CodeBlock>
-	);
-}
-
-// ── Page heading (consistent across steps) ─────────────────────────────────
-
-function PageHeading({ title, lede }) {
-	return (
-		<div>
-			<h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--hx-fg)', letterSpacing: '-0.025em', margin: 0, lineHeight: 1.2 }}>
-				{title}
-			</h2>
-			{lede && (
-				<p className="hx-label" style={{ color: 'var(--hx-subtle)', lineHeight: 1.6, marginTop: 8, marginBottom: 0 }}>
-					{lede}
-				</p>
-			)}
-		</div>
-	);
-}
-
-// ── Step 1: Welcome ────────────────────────────────────────────────────────
-
-function Step1Welcome({ boot, onContinue }) {
-	const checks = boot.state?.connection?.preflight || [];
-	const passed = checks.filter((c) => c.ok).length;
-	const total  = checks.length;
-	const allGood = total > 0 && passed === total;
-	const hasChecks = total > 0;
-	// v0.7.5 — Gate Continue on critical failures. Warnings (c.warn) are
-	// v0.7.5 — soft-warn model: every preflight item is informational.
-	// User can Continue even if items fail — they're diagnostics, not gates.
-	// App-passwords disable is a common "warning" that shouldn't block the video.
-	const criticalFails = 0;
-	const blocked = false;
-
-	const headIcon  = !hasChecks ? I.info    : allGood ? I.check : I.alert;
-	const headColor = !hasChecks ? 'var(--hx-muted)' : allGood ? 'var(--hx-success)' : 'var(--hx-warning)';
-	const headTitle = !hasChecks
-		? 'Preflight skipped'
-		: allGood
-			? 'Your install is ready'
-			: `${total - passed} suggestion${total - passed === 1 ? '' : 's'} found`;
-	const headDesc = !hasChecks
-		? 'No diagnostic checks available. You can continue to the next step.'
-		: allGood
-			? `Ran ${total} checks. Everything green. You can continue to the next step.`
-			: `Ran ${total} checks. Most are passing. Review below before continuing.`;
-
-	return (
-		<div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-			<PageHeading
-				title="Welcome"
-				lede="Hatch turns this WordPress install into a headless CMS. Astro frontend, edge deploy, your content stays here. Before we wire anything together, let's check the site is ready."
-			/>
-
-			<HxCard>
-				<HxHead
-					iconChildren={headIcon}
-					iconColor={headColor}
-					title={headTitle}
-					desc={headDesc}
-					mb={hasChecks && checks.length > 0 ? 14 : 0}
-					action={hasChecks && (
-						<HxBadge color={allGood ? 'green' : 'yellow'}>{passed} / {total}</HxBadge>
-					)}
-				/>
-
-				{hasChecks && checks.map((c, i) => (
-					<CheckRow key={i} check={c} last={i === checks.length - 1} />
-				))}
-			</HxCard>
-
-			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-				<a
-					href={boot.state?.setup?.skipUrl || '#'}
-					className="hx-desc"
-					style={{ color: 'var(--hx-subtle)', textDecoration: 'none' }}
+		<HxCard style={{ padding: 20 }}>
+			<div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 16 }}>
+				<div
+					aria-hidden="true"
+					style={{
+						width: 28,
+						height: 28,
+						borderRadius: '50%',
+						flexShrink: 0,
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						fontSize: 13,
+						fontWeight: 600,
+						background: done ? 'var(--hx-success)' : 'var(--hx-surface-2)',
+						color: done ? 'var(--hx-on-primary)' : 'var(--hx-fg)',
+						border: done ? 'none' : '1px solid var(--hx-border-2)',
+					}}
 				>
-					Skip wizard, I'll configure manually
-				</a>
-				<HxBtn variant="brand" onClick={onContinue} disabled={blocked} title={blocked ? `Fix ${criticalFails} critical issue${criticalFails === 1 ? '' : 's'} above to continue.` : undefined}>
-					Continue
-					<HxIcon size={14} color="currentColor">{I.arrowR}</HxIcon>
-				</HxBtn>
+					{done ? <HxIcon size={14} color="currentColor" sw={2.5}>{ICON.check}</HxIcon> : n}
+				</div>
+				<div style={{ flex: 1, minWidth: 0 }}>
+					<h2 className="hx-title" style={{ margin: 0, padding: 0, color: 'var(--hx-fg)' }}>{title}</h2>
+					{desc && <div className="hx-byline" style={{ color: 'var(--hx-subtle)', marginTop: 3 }}>{desc}</div>}
+				</div>
 			</div>
-		</div>
+			{children}
+		</HxCard>
 	);
 }
 
-function CheckRow({ check: c, last }) {
-	const state = c.ok ? 'ok' : c.warn ? 'warn' : 'fail';
-	const fg    = state === 'ok' ? 'var(--hx-success)' : state === 'warn' ? 'var(--hx-warning)' : 'var(--hx-danger)';
-	const icon  = state === 'ok' ? I.check : state === 'warn' ? I.alert : I.x;
+function FactRow({ label, children, last }) {
 	return (
 		<div
 			style={{
 				display: 'flex',
-				alignItems: 'flex-start',
-				gap: 12,
-				padding: '10px 0',
+				gap: 16,
+				justifyContent: 'space-between',
+				flexWrap: 'wrap',
+				padding: '11px 0',
 				borderBottom: last ? 'none' : '1px solid var(--hx-border)',
 			}}
 		>
-			<div style={{ flexShrink: 0, marginTop: 1 }}>
-				<HxIcon size={14} color={fg} sw={state === 'warn' ? 2 : 2.5}>{icon}</HxIcon>
-			</div>
-			<div style={{ flex: 1 }}>
-				<div className="hx-label" style={{ color: state === 'fail' ? fg : 'var(--hx-fg)' }}>
-					{c.label || c.l}
-				</div>
-				{c.note && (
-					<div className="hx-help" style={{ color: 'var(--hx-subtle)', marginTop: 3 }}>
-						{c.note}
-					</div>
-				)}
-			</div>
+			<div className="hx-desc" style={{ color: 'var(--hx-subtle)', minWidth: 120 }}>{label}</div>
+			<div className="hx-label" style={{ color: 'var(--hx-fg)', flex: '1 1 200px', minWidth: 0, overflowWrap: 'anywhere', textAlign: 'end' }}>{children}</div>
 		</div>
 	);
 }
-
-// ── Step 2: Theme ──────────────────────────────────────────────────────────
-
-function Step2Theme({ boot, onBack }) {
-	// v0.50.27 — Source themes from boot state so the Onboarding wizard and
-	// the Design tab show the SAME authoritative theme catalog (exact upstream
-	// names, demo links, author credits, MIT license). Local map only carries
-	// the SVG preview key + chip tint color per slug — visual metadata that
-	// doesn't belong in PHP.
-	const themeMeta = {
-		blog:       { previewKey: 'Blog',       col: '#3b82f6' },
-		tech:       { previewKey: 'Tech',       col: '#8b5cf6' },
-		docs:       { previewKey: 'Data',       col: '#0d9488' },
-		astropaper: { previewKey: 'AstroPaper', col: '#ff6b00' },
-		astrowind:  { previewKey: 'AstroWind',  col: '#2563eb' },
-		astronano:  { previewKey: 'Astro Nano', col: '#737373' },
-	};
-	const themes = (boot.state?.themes || []).map((t) => ({
-		id:      t.id,
-		name:    t.label || t.id,
-		desc:    t.desc  || '',
-		demo:    t.demo  || '',
-		author:  t.author|| '',
-		repo:    t.repo  || '',
-		license: t.license || '',
-		preview: themeMeta[t.id]?.previewKey || 'Blog',
-		col:     themeMeta[t.id]?.col || '#737373',
-	}));
-	const current = boot.state?.design?.theme || 'astropaper';
-	const [selected, setSelected] = useState(current);
-
-	return (
-		<div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-			<PageHeading
-				title="Pick a theme"
-				lede="The starter design your Astro frontend ships with. You can change it later from the Design tab."
-			/>
-
-			<form method="post" action={boot.setupUrl} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-				<input type="hidden" name="_wpnonce" value={boot.state?.setup?.nonces?.setup_step2 || ''} />
-				<input type="hidden" name="hatch_setup_step" value="2" />
-				<input type="hidden" name="hatch_theme" value={selected} />
-
-				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
-					{/* v0.5.7 — Custom theme tile always shown as 4th slot. Fork
-					    astro-starter, drop your own layout into themes/<slug>/,
-					    it appears here on next boot state refresh. Doc link
-					    points to the how-to guide bundled at
-					    hatch/docs/CUSTOM-THEME-BOILERPLATE.md */}
-					{themes.map((t) => {
-						const sel = selected === t.id;
-						return (
-							<div
-								key={t.id}
-								onClick={() => setSelected(t.id)}
-								style={{
-									border: '1px solid var(--hx-border)',
-									boxShadow: sel ? `0 0 0 2px ${t.col}` : 'none',
-									borderRadius: 12,
-									padding: '14px 16px',
-									cursor: 'pointer',
-									background: sel ? t.col + '0d' : 'var(--hx-surface-2)',
-									transition: 'box-shadow .18s var(--hx-ease), background .18s var(--hx-ease)',
-								}}
-							>
-								<div style={{ marginBottom: 10, borderRadius: 6, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)', opacity: sel ? 1 : 0.75 }}>
-									{TP[t.preview] || TP.Blog}
-								</div>
-								<div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6, marginBottom: 2 }}>
-									<div className="hx-desc" style={{ fontWeight: 700, color: 'var(--hx-fg)' }}>{t.name}</div>
-									{t.demo && (
-										<a
-											href={t.demo}
-											target="_blank"
-											rel="noopener noreferrer"
-											onClick={(e) => e.stopPropagation()}
-											className="hx-help"
-											style={{ color: 'var(--hx-subtle)', textDecoration: 'none', whiteSpace: 'nowrap' }}
-											title={`Live demo of ${t.name}`}
-										>
-											Demo ↗
-										</a>
-									)}
-								</div>
-								{t.author && (
-									<div className="hx-help" style={{ color: 'var(--hx-subtle)', marginBottom: 6 }}>
-										by{' '}
-										{t.repo ? (
-											<a
-												href={t.repo}
-												target="_blank"
-												rel="noopener noreferrer"
-												onClick={(e) => e.stopPropagation()}
-												style={{ color: 'var(--hx-muted)', textDecoration: 'none' }}
-											>
-												{t.author}
-											</a>
-										) : <span style={{ color: 'var(--hx-muted)' }}>{t.author}</span>}
-										{t.license && <span> · {t.license}</span>}
-									</div>
-								)}
-								<div
-									className="hx-help"
-									style={{
-										color: 'var(--hx-subtle)',
-										lineHeight: 1.5,
-										display: '-webkit-box',
-										WebkitLineClamp: 2,
-										WebkitBoxOrient: 'vertical',
-										overflow: 'hidden',
-										minHeight: 36,
-									}}
-									title={t.desc}
-								>
-									{t.desc}
-								</div>
-							</div>
-						);
-					})}
-					{/* v0.5.7 — Custom theme tile — 4th slot after the 3 built-ins.
-					    Non-selectable placeholder; clicking opens the guide in a
-					    new tab (bundled at wp-content/plugins/hatch/docs/CUSTOM-THEME-BOILERPLATE.md). */}
-					<a
-						href={(boot.pluginUrl || '/wp-content/plugins/hatch/').replace(/\/?$/, '/') + 'docs/CUSTOM-THEME-BOILERPLATE.md'}
-						target="_blank"
-						rel="noopener noreferrer"
-						style={{
-							border: '1px dashed var(--hx-border)',
-							borderRadius: 12,
-							padding: '14px 16px',
-							background: 'var(--hx-surface)',
-							display: 'flex',
-							flexDirection: 'column',
-							textDecoration: 'none',
-							color: 'inherit',
-							cursor: 'pointer',
-						}}
-					>
-						<div style={{ marginBottom: 10, borderRadius: 6, border: '1px solid rgba(0,0,0,0.06)', aspectRatio: '16/10', display: 'grid', placeItems: 'center', color: 'var(--hx-muted)', fontSize: 32 }}>
-							<span aria-hidden="true">＋</span>
-						</div>
-						<div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6, marginBottom: 2 }}>
-							<div className="hx-desc" style={{ fontWeight: 700, color: 'var(--hx-fg)' }}>Custom theme</div>
-							<span className="hx-help" style={{ color: 'var(--hx-subtle)', whiteSpace: 'nowrap' }}>MIT · fork</span>
-						</div>
-						<div className="hx-help" style={{ color: 'var(--hx-subtle)', marginBottom: 6 }}>by <span style={{ color: 'var(--hx-muted)' }}>you</span> · MIT</div>
-						<div className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.5 }}>
-							Fork the Astro starter shipped inside this plugin's <span className="hx-mono">astro-starter/</span>. Ship your own layout, components, and CSS while keeping every Hatch bridge live.
-						</div>
-						<div className="hx-help" style={{ color: 'var(--hx-primary)', marginTop: 8, fontWeight: 600 }}>
-							Read the boilerplate guide ↗
-						</div>
-					</a>
-				</div>
-
-				<HxCard status="info" style={{ padding: '14px 16px' }}>
-					<div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-						<HxIcon size={16} color="#2563eb" style={{ marginTop: 2, flexShrink: 0 }}>{I.info}</HxIcon>
-						<div className="hx-desc" style={{ flex: 1, color: 'var(--hx-fg)' }}>
-							<strong>Going headless</strong>{' '}
-							means WordPress keeps running here as the editor — wp-admin, REST API, and login stay the same. After your first deploy, visitors to this URL redirect to your new frontend. You can switch back any time from Appearance, Themes.
-						</div>
-					</div>
-				</HxCard>
-
-				<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-					<HxBtn variant="ghost" onClick={onBack} type="button">
-						<HxIcon size={14} color="currentColor">{I.arrowL}</HxIcon>
-						Back
-					</HxBtn>
-					<HxBtn variant="brand" type="submit">
-						Continue
-						<HxIcon size={14} color="currentColor">{I.arrowR}</HxIcon>
-					</HxBtn>
-				</div>
-			</form>
-		</div>
-	);
-}
-
-// ── Step 3 helper: broker form (Cloudflare + Vercel share this shape) ─────
-
-function BrokerForm({ provider, tokenName, tokenUrl, tokenUrlLabel, tokenPagePrompt, adminPostUrl, deployNonce, mountMode = 'root', subPath = '/blog', domain = '' }) {
-	const [token, setToken] = useState('');
-	const [save, setSave]   = useState(true);
-	const providerLabel = provider === 'cloudflare' ? 'Cloudflare' : 'Vercel';
-
-	const tempSuffix = provider === 'vercel' ? '.vercel.app' : '.workers.dev';
-	return (
-		<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-			{/* v0.5.7 — flat form. No numbered "Step 1/2". Just three fields:
-			    Get-token button (opens CF/Vercel page with permissions
-			    prefilled), API token, Deploy. Custom domain is optional and
-			    forwarded to the broker (mountMode + subPath come from
-			    Sub-step A above). */}
-			<p className="hx-desc" style={{ color: 'var(--hx-muted)', lineHeight: 1.55, margin: 0 }}>
-				Paste your {providerLabel} API token — Hatch builds and deploys Astro to a live <span className="hx-mono">{tempSuffix}</span> URL. Point a CNAME at it later when you're ready for a custom domain.
-			</p>
-
-			<div>
-				<HxBtn href={tokenUrl}>
-					Get {providerLabel} API token
-					<HxIcon size={13} color="currentColor">
-						<path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-						<polyline points="15 3 21 3 21 9" />
-						<line x1="10" y1="14" x2="21" y2="3" />
-					</HxIcon>
-				</HxBtn>
-				<p className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.5, margin: '6px 0 0' }}>
-					{tokenPagePrompt}
-				</p>
-			</div>
-
-			{provider === 'cloudflare' && (
-				<details style={{ borderRadius: 8, border: '1px solid var(--hx-border)', padding: 0 }}>
-					<summary style={{ cursor: 'pointer', padding: '10px 12px', fontSize: 12, fontWeight: 600, color: 'var(--hx-fg)', listStyle: 'none' }}>
-						How to create the token — Workers template + 1 extra row
-					</summary>
-					<div style={{ padding: '10px 14px 14px', borderTop: '1px solid var(--hx-border)', fontSize: 12.5, color: 'var(--hx-fg)', lineHeight: 1.7 }}>
-						<div><strong>Step 1.</strong> Create Token → pick <strong>"Edit Cloudflare Workers"</strong> (built-in preset).</div>
-						<div style={{ marginTop: 6 }}><strong>Step 2.</strong> Click <em>+ Add more</em> and add ONE row:</div>
-						<div style={{ paddingLeft: 12, marginTop: 4 }}>
-							<span className="hx-mono">User</span> · <span className="hx-mono">Memberships</span> · <span className="hx-mono">Read</span>
-						</div>
-						<div style={{ marginTop: 8, color: 'var(--hx-muted)' }}>Account Resources → <span className="hx-mono">Include · your account</span>. Continue → Create → copy.</div>
-					</div>
-				</details>
-			)}
-
-			<form
-				method="post"
-				action={adminPostUrl}
-				style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 2 }}
-			>
-				<input type="hidden" name="action"    value="hatch_start_deploy" />
-				<input type="hidden" name="_wpnonce"  value={deployNonce} />
-				<input type="hidden" name="provider"  value={provider} />
-				<input type="hidden" name="mountMode" value={mountMode} />
-				<input type="hidden" name="subPath"   value={subPath} />
-				<input type="hidden" name="domain"    value={(domain || '').trim()} />
-
-				<div>
-					<span className="hx-label" style={{ fontWeight: 600, color: 'var(--hx-fg)', display: 'block', marginBottom: 6 }}>
-						{providerLabel} API token
-					</span>
-					<HxInp
-						type="password"
-						name={tokenName}
-						placeholder={`Paste your ${providerLabel} API token`}
-						value={token}
-						onChange={(e) => setToken(e.target.value)}
-						mono
-						autoComplete="off"
-						spellCheck={false}
-					/>
-				</div>
-
-				<label className="hx-checkbox hx-help" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--hx-muted)', cursor: 'pointer' }}>
-					<input
-						type="checkbox"
-						name="save_token"
-						value="1"
-						checked={save}
-						onChange={(e) => setSave(e.target.checked)}
-					/>
-					Save token (encrypted) so future redeploys are one-click.
-				</label>
-
-				<div>
-					<HxBtn type="submit" disabled={!token.trim()}>
-						Build and deploy to {providerLabel}
-						<HxIcon size={13} color="currentColor"><path d="M5 12h14M12 5l7 7-7 7" /></HxIcon>
-					</HxBtn>
-				</div>
-
-				<p className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.5, margin: '4px 0 0' }}>
-					Build runs on <span className="hx-mono">hatch.adityaarsharma.com</span>. Tokens pass through in memory only, never written to disk. You'll be sent to a live build log, then back here when the deploy finishes.
-				</p>
-			</form>
-		</div>
-	);
-}
-
-// ── Step 3: Deploy ─────────────────────────────────────────────────────────
-
-// v0.5.7 — Sub-step progress strip inside Step 3. Small pill tracker so
-// the user always knows where they are in the 3-step deploy flow:
-//   A · Location    (Root vs Subfolder)
-//   B · Astro host  (CF / Vercel / Self / Netlify)
-//   C · Connect     (snippets or DNS record)
-// Clickable so a user who scrolled ahead can jump back.
-function SubStepStrip({ subStep, onJump }) {
-	const items = [
-		{ id: 'A', label: 'Location' },
-		{ id: 'B', label: 'Astro host' },
-		{ id: 'C', label: 'Connect' },
-	];
-	const activeIndex = items.findIndex((it) => it.id === subStep);
-	return (
-		<div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, justifyContent: 'center' }}>
-			{items.map((it, i) => {
-				const done    = i < activeIndex;
-				const current = it.id === subStep;
-				return (
-					<Fragment key={it.id}>
-						<button
-							type="button"
-							onClick={() => onJump && onJump(it.id)}
-							style={{
-								display: 'inline-flex', alignItems: 'center', gap: 8,
-								padding: '4px 10px 4px 4px',
-								borderRadius: 999,
-								border: '1px solid transparent',
-								background: 'transparent',
-								cursor: 'pointer',
-								fontFamily: 'inherit',
-							}}
-						>
-							<span
-								style={{
-									width: 22, height: 22, borderRadius: 999,
-									display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-									fontSize: 11, fontWeight: 700,
-									background: current ? 'var(--hx-primary)' : done ? 'var(--hx-success)' : 'var(--hx-surface-2)',
-									color:      (current || done) ? '#fff' : 'var(--hx-subtle)',
-									border: `1px solid ${current ? 'var(--hx-primary)' : done ? 'var(--hx-success)' : 'var(--hx-border)'}`,
-								}}
-							>
-								{done ? '✓' : it.id}
-							</span>
-							<span style={{ color: current ? 'var(--hx-fg)' : 'var(--hx-subtle)', fontWeight: current ? 600 : 500 }}>
-								{it.label}
-							</span>
-						</button>
-						{i < items.length - 1 && <span style={{ color: 'var(--hx-border)' }}>·</span>}
-					</Fragment>
-				);
-			})}
-		</div>
-	);
-}
-
-// v0.5.7 — Reverse-proxy snippet card. Three-tab picker (Nginx / Apache
-// / Cloudflare Worker). Each tab emits a copy-paste config block the user
-// pastes into their WP host's web-server config, mapping the subfolder
-// path (default /blog) to the Astro origin URL returned by the deploy.
-function ReverseProxySnippets({ subPath, parentHost, astroOrigin }) {
-	const [tab, setTab] = useState('nginx');
-	const origin = astroOrigin || '<paste-your-astro-origin-after-deploy>';
-	const nginxSnippet = `# /etc/nginx/sites-available/${parentHost}\nlocation ${subPath}/ {\n    proxy_pass ${origin}/;\n    proxy_set_header Host $host;\n    proxy_set_header X-Forwarded-For $remote_addr;\n    proxy_set_header X-Forwarded-Host ${parentHost};\n    proxy_ssl_server_name on;\n}`;
-	const apacheSnippet = `# /etc/apache2/sites-available/${parentHost}.conf\n<IfModule mod_proxy.c>\n    ProxyPreserveHost On\n    ProxyPass        ${subPath}/ ${origin}/\n    ProxyPassReverse ${subPath}/ ${origin}/\n</IfModule>`;
-	const cloudflareSnippet = `// Cloudflare Worker route: ${parentHost}${subPath}/*\nexport default {\n  async fetch(request) {\n    const url = new URL(request.url);\n    const origin = "${origin}";\n    const rest   = url.pathname.replace(/^${subPath.replace(/\//g, '\\/')}/, '');\n    return fetch(origin + rest + url.search, request);\n  }\n};`;
-	const map = { nginx: nginxSnippet, apache: apacheSnippet, cloudflare: cloudflareSnippet };
-	return (
-		<div>
-			<div style={{ marginBottom: 12 }}>
-				<HxSeg
-					value={tab}
-					onChange={setTab}
-					options={[
-						{ value: 'nginx',      label: 'Nginx' },
-						{ value: 'apache',     label: 'Apache / LiteSpeed' },
-						{ value: 'cloudflare', label: 'Cloudflare Worker' },
-					]}
-				/>
-			</div>
-			<CodeBlock copyText={map[tab]}>{map[tab]}</CodeBlock>
-			<p className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.55, margin: '10px 0 0' }}>
-				{tab === 'nginx'      && <>Reload with <span className="hx-mono">sudo nginx -s reload</span> after saving.</>}
-				{tab === 'apache'     && <>Reload Apache / LiteSpeed after saving. RunCloud users: paste under "Custom Config" for the web app.</>}
-				{tab === 'cloudflare' && <>Deploy the Worker, then add a route matching <span className="hx-mono">{parentHost}{subPath}/*</span>.</>}
-			</p>
-		</div>
-	);
-}
-
-// v0.5.7 — DNS record card for Root-domain mode on non-CF providers.
-// Vercel uses A + CNAME pair (their canonical). Others get a CNAME. Astro
-// origin is empty until deploy finishes — shows a "finish Deploy first"
-// warning card in that case.
-function DnsRecordTable({ parentHost, provider, astroOrigin }) {
-	const originHost = String(astroOrigin || '').replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
-	if ( ! originHost ) {
-		return (
-			<HxCard status="warn" style={{ padding: '12px 14px', margin: 0 }}>
-				<div className="hx-desc" style={{ color: 'var(--hx-fg)', lineHeight: 1.55 }}>
-					<strong>Finish the Deploy above first.</strong> The DNS target comes from your deployed Astro URL — Hatch fills it in here after the build finishes.
-				</div>
-			</HxCard>
-		);
-	}
-	const isIp = /^(\d{1,3}\.){3}\d{1,3}$/.test(originHost);
-	const rows = ( provider === 'vercel' )
-		? [
-			{ name: '@',   type: 'A',     value: '76.76.21.21' },
-			{ name: 'www', type: 'CNAME', value: 'cname.vercel-dns.com' },
-		]
-		: isIp
-			? [ { name: '@', type: 'A',     value: originHost } ]
-			: [ { name: '@', type: 'CNAME', value: originHost } ];
-	return (
-		<div style={{ overflowX: 'auto' }}>
-			<table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-				<thead>
-					<tr style={{ background: 'var(--hx-surface-2)', color: 'var(--hx-subtle)' }}>
-						<th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Name</th>
-						<th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Type</th>
-						<th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Value</th>
-					</tr>
-				</thead>
-				<tbody>
-					{rows.map((r) => (
-						<tr key={`${r.name}-${r.type}`} style={{ borderTop: '1px solid var(--hx-border)' }}>
-							<td style={{ padding: '10px 12px', fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace' }}>{r.name}</td>
-							<td style={{ padding: '10px 12px', fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace' }}>{r.type}</td>
-							<td style={{ padding: '10px 12px', fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', wordBreak: 'break-all' }}>{r.value}</td>
-						</tr>
-					))}
-				</tbody>
-			</table>
-		</div>
-	);
-}
-
-function Step3Deploy({ boot, onBack }) {
-	const setup = boot.state?.setup || {};
-	// v0.5.7 — sub-step tracker inside Step 3. A/B/C sub-flow so the user
-	// walks Location → Astro host → Connect in a linear sequence. Values
-	// persist across refresh via setup.subStep (PHP boot state).
-	const [subStep, setSubStep] = useState(setup.subStep || 'A');
-	const [open, setOpen] = useState('cloudflare');
-	const [manualUrl, setManualUrl] = useState('');
-	const [selfMode, setSelfMode] = useState('agent');
-	// v0.5.7 — Sub-step A restored: user picks Root domain vs Subfolder BEFORE
-	// choosing provider. Values forward to the deploy form as hidden inputs
-	// (mountMode + subPath) → PHP admin-post handler → broker /prepare.
-	const [mountMode, setMountMode] = useState(setup.mountMode || 'root');
-	const [subPath, setSubPath]     = useState(setup.subfolderPath || '/blog');
-	const [deployDomain, setDeployDomain] = useState(setup.deployDomain || boot.siteHost || '');
-
-	const envPairs = [
-		{ k: 'WP_API_URL',           v: setup.wpApiUrl     || '' },
-		{ k: 'WP_API_USER',          v: setup.wpUser       || '' },
-		{ k: 'WP_API_PASS',          v: setup.appPassword  || '<generate-from-connection-tab>' },
-		{ k: 'HATCH_WEBHOOK_SECRET', v: setup.webhookSecret || '' },
-	];
-
-	const options = [
-		{
-			id: 'cloudflare',
-			icon: I.globe,
-			iconColor: '#f97316',
-			label: 'Cloudflare',
-			desc: 'Free global edge network. One-click deploy.',
-			badge: 'Recommended',
-		},
-		{
-			id: 'vercel',
-			icon: I.vercel,
-			iconColor: 'var(--hx-fg)',
-			label: 'Vercel',
-			desc: 'Push-to-deploy with preview URLs and edge caching.',
-		},
-		{
-			id: 'self',
-			icon: I.server,
-			iconColor: 'var(--hx-success)',
-			label: 'Self-hosted',
-			desc: 'VPS, dedicated, or local. Install the agent or paste a URL.',
-		},
-		// v0.5.7 — Netlify Coming Soon per user feedback. Broker route ships
-		// with plugin but hasn't been smoke-tested end-to-end yet; tile is
-		// visible-but-disabled so users know it's on the roadmap.
-		{
-			id: 'netlify',
-			icon: I.zap || I.server,
-			iconColor: '#14b8a6',
-			label: 'Netlify',
-			desc: 'Continuous deploys, edge functions, atomic rollbacks.',
-			comingSoon: true,
-		},
-	];
-
-	// Use the server-built one-liner from PHP boot state. Old plugin
-	// (v0.50.10) built this same command in admin/setup-wizard.php at line ~500.
-	// It already embeds WP URL, user, app password, webhook secret as script
-	// flags — single copy-paste installs.
-	const installCmd  = setup.vpsOneLiner || '';
-	const deployNonce = setup.nonces?.start_deploy || '';
-
-	return (
-		<div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-			<PageHeading
-				title="Deploy your frontend"
-				lede="Three small decisions: where the site lives, where Astro runs, and how the two connect."
-			/>
-
-			<SubStepStrip subStep={subStep} onJump={setSubStep} />
-
-			{subStep === 'A' && (
-				<HxGL>Sub-step 1 of 3 · Deploy location</HxGL>
-			)}
-			{subStep === 'B' && (
-				<HxGL>Sub-step 2 of 3 · Where Astro runs</HxGL>
-			)}
-			{subStep === 'C' && (
-				<HxGL>Sub-step 3 of 3 · Connect the pieces</HxGL>
-			)}
-
-			{/* v0.5.7 — Sub-step A: mount mode picker (Root vs Subfolder). */}
-			{subStep === 'A' && (
-			<HxCard style={{ padding: 18 }}>
-				<HxHead
-					iconChildren={I.globe}
-					iconColor="var(--hx-primary)"
-					title="Where does the Astro frontend serve?"
-					desc="Pick Root when a new domain is dedicated to the headless frontend. Pick Subfolder to add /blog to an existing WordPress site."
-					mb={14}
-				/>
-				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
-					<button
-						type="button"
-						onClick={() => setMountMode('root')}
-						style={{
-							textAlign: 'left', padding: '14px 16px', borderRadius: 10,
-							border: `2px solid ${mountMode === 'root' ? 'var(--hx-primary)' : 'var(--hx-border)'}`,
-							background: mountMode === 'root' ? 'var(--hx-surface-2)' : 'var(--hx-surface)',
-							cursor: 'pointer', fontFamily: 'inherit',
-						}}
-					>
-						<div style={{ fontSize: 15, fontWeight: 700, color: 'var(--hx-fg)', marginBottom: 4 }}>Root domain</div>
-						<div className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.5 }}>Astro serves the whole domain. One CNAME, no reverse-proxy config.</div>
-					</button>
-					<button
-						type="button"
-						onClick={() => setMountMode('subfolder')}
-						style={{
-							textAlign: 'left', padding: '14px 16px', borderRadius: 10,
-							border: `2px solid ${mountMode === 'subfolder' ? 'var(--hx-primary)' : 'var(--hx-border)'}`,
-							background: mountMode === 'subfolder' ? 'var(--hx-surface-2)' : 'var(--hx-surface)',
-							cursor: 'pointer', fontFamily: 'inherit',
-						}}
-					>
-						<div style={{ fontSize: 15, fontWeight: 700, color: 'var(--hx-fg)', marginBottom: 4 }}>Subfolder</div>
-						<div className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.5 }}>Add {subPath} to your existing WordPress. Needs reverse-proxy access on your host.</div>
-					</button>
-				</div>
-				{mountMode === 'subfolder' && (() => {
-					// v0.5.8. Validate subfolder path with the same regex the
-					// backend (class-onboarding-cloudflare::normalize_subpath)
-					// and reverse-proxy config assume. Pattern is deliberately
-					// strict: leading slash, one-or-more lowercase-alphanum-dash
-					// segments, no trailing slash. Bad values (`/Blog`, `/b log`,
-					// `blog/`, `/blog/`) fail here so the deploy button below
-					// stays disabled until the user fixes it. The broker cannot
-					// undo a bad route on Cloudflare once written.
-					const SUBPATH_RE = /^\/[a-z0-9-]+(\/[a-z0-9-]+)*$/;
-					const subPathValid = SUBPATH_RE.test(subPath || '');
-					return (
-						<div style={{ marginTop: 14 }}>
-							<span className="hx-label" style={{ fontWeight: 600, color: 'var(--hx-fg)', display: 'block', marginBottom: 6 }}>
-								Subfolder path
-							</span>
-							<HxInp
-								type="text"
-								value={subPath}
-								onChange={(e) => setSubPath(e.target.value)}
-								placeholder="/blog"
-								pattern="^/[a-z0-9-]+(/[a-z0-9-]+)*$"
-								mono
-								spellCheck={false}
-							/>
-							<div
-								className="hx-help"
-								style={{
-									color: subPathValid ? 'var(--hx-subtle)' : 'var(--hx-danger, #d33)',
-									marginTop: 6,
-									fontSize: 12,
-									lineHeight: 1.5,
-								}}
-							>
-								{subPathValid
-									? 'Lowercase letters, digits, dashes. Leading slash, no trailing slash. Examples: /blog, /docs, /kb/support.'
-									: 'Invalid path. Use lowercase letters, digits, and dashes only. Must start with / and have no trailing slash. Example: /blog.'}
-							</div>
-						</div>
-					);
-				})()}
-			</HxCard>
-			)}
-
-			{subStep === 'B' && (
-			<div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-				{options.map((o) => {
-					const isOpen = open === o.id;
-					const disabled = !!o.comingSoon;
-					return (
-						<HxCard key={o.id} style={{ padding: 0, overflow: 'hidden', opacity: disabled ? 0.55 : 1 }}>
-							<div
-								onClick={() => { if ( disabled ) return; setOpen(isOpen ? null : o.id); }}
-								style={{
-									display: 'flex',
-									alignItems: 'center',
-									gap: 14,
-									padding: '14px 18px',
-									cursor: disabled ? 'not-allowed' : 'pointer',
-								}}
-							>
-								<div
-									style={{
-										width: 36,
-										height: 36,
-										borderRadius: 9,
-										background: 'var(--hx-surface-2)',
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'center',
-										flexShrink: 0,
-									}}
-								>
-									<HxIcon size={18} color={o.iconColor}>{o.icon}</HxIcon>
-								</div>
-								<div style={{ flex: 1 }}>
-									<div className="hx-label" style={{ fontWeight: 600, color: 'var(--hx-fg)', display: 'flex', alignItems: 'center', gap: 8 }}>
-										{o.label}
-										{o.badge && <HxBadge color="orange">{o.badge}</HxBadge>}
-										{o.comingSoon && <HxBadge color="gray">Coming soon</HxBadge>}
-									</div>
-									<div
-									className="hx-desc"
-									style={{
-										color: 'var(--hx-subtle)',
-										marginTop: 2,
-										whiteSpace: 'nowrap',
-										overflow: 'hidden',
-										textOverflow: 'ellipsis',
-									}}
-									title={o.desc}
-								>
-									{o.desc}
-								</div>
-								</div>
-								<HxIcon
-									size={14}
-									color="var(--hx-subtle)"
-									style={{ transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform .18s var(--hx-ease)' }}
-								>
-									{I.chev}
-								</HxIcon>
-							</div>
-
-							{isOpen && (
-								<div
-									style={{ padding: '18px 22px 22px', background: 'var(--hx-surface-2)', borderTop: '1px solid var(--hx-border)' }}
-									onClick={(e) => e.stopPropagation()}
-								>
-									{o.id === 'cloudflare' && (
-										<BrokerForm
-											provider="cloudflare"
-											tokenName="cf_token"
-											tokenUrl={setup.cfTokenUrl || '#'}
-											tokenUrlLabel="Open Cloudflare token page"
-											tokenPagePrompt="Required permissions are pre-filled. On the Cloudflare page, click Create Token, then copy the value."
-											adminPostUrl={boot.adminPostUrl}
-											deployNonce={deployNonce}
-											mountMode={mountMode}
-											subPath={subPath}
-											domain={deployDomain}
-										/>
-									)}
-
-									{o.id === 'vercel' && (
-										<BrokerForm
-											provider="vercel"
-											tokenName="vercel_token"
-											tokenUrl={setup.vercelTokenUrl || '#'}
-											tokenUrlLabel="Open Vercel tokens page"
-											tokenPagePrompt="On the Vercel page, click Create Token, give it any name, scope to your personal account, then copy the value."
-											adminPostUrl={boot.adminPostUrl}
-											deployNonce={deployNonce}
-											mountMode={mountMode}
-											subPath={subPath}
-											domain={deployDomain}
-										/>
-									)}
-
-									{o.id === 'self' && (
-										<>
-											{/* v0.50.21 — Paste-existing-URL tab removed. Self-hosted
-											    is ALWAYS the install agent (one bash command).
-											    Editing the frontend URL after first install lives
-											    in the Connection tab. */}
-											<p className="hx-desc" style={{ color: 'var(--hx-muted)', lineHeight: 1.6, margin: '0 0 10px' }}>
-												SSH into your server (Hetzner, DigitalOcean, RunCloud, Coolify — anywhere). Paste this one command. The script installs Node, clones the Hatch repo, writes your .env, and runs the first build.
-											</p>
-											{!setup.appPassword && (
-												<HxCard status="warning" className="hx-help" style={{ padding: '10px 12px', marginBottom: 12, color: 'var(--hx-fg)', lineHeight: 1.5 }}>
-													<strong>No Application Password generated yet.</strong> The command below has a placeholder for <span className="hx-mono">--wp-pass</span>. Generate one from Connection tab, then come back, or the agent build will fail to authenticate against WordPress.
-												</HxCard>
-											)}
-											<CodeBlock copyText={installCmd}>{installCmd}</CodeBlock>
-											<p className="hx-help" style={{ color: 'var(--hx-subtle)', lineHeight: 1.55, margin: '10px 0 0' }}>
-												After install, point your webapp at <span className="hx-mono">astro-starter/dist/</span>. Full RunCloud / Coolify / Dokploy guide is bundled inside this plugin at <span className="hx-mono">docs/hosting/vps-runcloud.md</span>
-											</p>
-											<details style={{ marginTop: 14 }}>
-												<summary className="hx-help" style={{ cursor: 'pointer', listStyle: 'none', color: 'var(--hx-subtle)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-													<HxIcon size={11} color="currentColor">{I.chev}</HxIcon>
-													Need just the .env block?
-												</summary>
-												<div style={{ marginTop: 10 }}>
-													<EnvBlock pairs={envPairs} />
-												</div>
-											</details>
-										</>
-									)}
-								</div>
-							)}
-						</HxCard>
-					);
-				})}
-			</div>
-			)}
-
-			{/* v0.5.7 — Reverse-proxy snippets. Shown when Subfolder mode is
-			    active. Cloudflare Workers handles path routing natively via
-			    the /prepare bindWorkerToDomain step, so the CF picker doesn't
-			    need this card — but Vercel / Self-hosted / manual deploys
-			    do. User picks nginx / apache / cloudflare-worker tab and
-			    copies the block into their WP host config. */}
-			{subStep === 'C' && mountMode === 'subfolder' && open !== 'cloudflare' && (
-				<HxCard style={{ padding: 18 }}>
-					<HxHead
-						iconChildren={I.server}
-						iconColor="var(--hx-primary)"
-						title={`Reverse-proxy ${subPath} to your Astro frontend`}
-						desc="Pick your web-server, copy the snippet, paste into the config, reload. Only needed if you're deploying to a non-Cloudflare host."
-						mb={12}
-					/>
-					<ReverseProxySnippets
-						subPath={subPath || '/blog'}
-						parentHost={boot.siteHost || 'yourdomain.com'}
-						astroOrigin={setup.astroOrigin || '<paste-your-astro-origin-after-deploy>'}
-					/>
-				</HxCard>
-			)}
-
-			{subStep === 'C' && mountMode === 'root' && open !== 'cloudflare' && (
-				<HxCard style={{ padding: 18 }}>
-					<HxHead
-						iconChildren={I.globe}
-						iconColor="var(--hx-primary)"
-						title="Add one DNS record"
-						desc={`Point ${boot.siteHost || 'your domain'} at your Astro deploy. Propagation is usually under 5 minutes.`}
-						mb={12}
-					/>
-					<DnsRecordTable
-						parentHost={boot.siteHost || 'yourdomain.com'}
-						provider={open || 'vercel'}
-						astroOrigin={setup.astroOrigin || ''}
-					/>
-				</HxCard>
-			)}
-
-			{subStep === 'C' && open === 'cloudflare' && (
-				<HxCard style={{ padding: 18 }}>
-					<HxHead
-						iconChildren={I.check}
-						iconColor="var(--hx-success)"
-						title="Cloudflare handles routing — nothing to configure"
-						desc={mountMode === 'root'
-							? `The Worker deploy in Sub-step B binds ${boot.siteHost || 'your domain'} directly. Click Launch when ready.`
-							: `The Worker route bound in Sub-step B intercepts ${subPath} — WordPress keeps everything else. Click Launch.`}
-						mb={0}
-					/>
-				</HxCard>
-			)}
-
-			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-				<HxBtn variant="ghost" onClick={() => {
-					if ( subStep === 'A' ) onBack();
-					else if ( subStep === 'B' ) setSubStep('A');
-					else setSubStep('B');
-				}}>
-					<HxIcon size={14} color="currentColor">{I.arrowL}</HxIcon>
-					Back
-				</HxBtn>
-				{subStep === 'A' && (
-					<HxBtn variant="brand" onClick={() => setSubStep('B')}>
-						Next: pick where Astro runs
-						<HxIcon size={14} color="currentColor">{I.arrowR}</HxIcon>
-					</HxBtn>
-				)}
-				{subStep === 'B' && (
-					<HxBtn variant="brand" onClick={() => setSubStep('C')}>
-						Next: connect the pieces
-						<HxIcon size={14} color="currentColor">{I.arrowR}</HxIcon>
-					</HxBtn>
-				)}
-				{subStep === 'C' && (
-					<HxBtn variant="brand" href={setup.completeUrl || '#'}>
-						Launch site ↗
-					</HxBtn>
-				)}
-			</div>
-
-			<p className="hx-help" style={{ textAlign: 'center', marginTop: 6, color: 'var(--hx-subtle)' }}>
-				Prefer the terminal? <span className="hx-mono">wp hatch setup --frontend=https://your-site.com</span>
-			</p>
-		</div>
-	);
-}
-
-// ── Root ───────────────────────────────────────────────────────────────────
 
 export default function SetupApp() {
 	const boot = window.hatchBoot || {};
-	const initialStep = Math.max(1, Math.min(3, parseInt(boot.step, 10) || 1));
-	const [step, setStep] = useState(initialStep);
+	const setup = (boot.state && boot.state.setup) || {};
+	const disc = setup.disclosure || {};
+	const companion = setup.companionTheme || {};
 
-	return (
+	const [data, setData] = useState({ phase: 'loading', error: '', provider: null, status: null });
+	const [changing, setChanging] = useState(false);
+
+	const [token, setToken] = useState('');
+	const [replacing, setReplacing] = useState(false);
+	const [verify, setVerify] = useState(IDLE_VERIFY);
+	const [accountId, setAccountId] = useState('');
+	const [zones, setZones] = useState({ phase: 'idle', error: '', list: [] });
+	const [domain, setDomain] = useState('');
+	const [mountMode, setMountMode] = useState('root');
+	const [subpath, setSubpath] = useState('/blog');
+	const [saveToken, setSaveToken] = useState(true);
+	const [publicAddress, setPublicAddress] = useState('');
+	const [ack, setAck] = useState(false);
+	const [allowPermalinks, setAllowPermalinks] = useState(false);
+	const [deploy, setDeploy] = useState(IDLE_DEPLOY);
+	const [forget, setForget] = useState({ phase: 'idle', error: '' });
+
+	const loadData = useCallback(async () => {
+		setData((d) => ({ ...d, phase: 'loading', error: '' }));
+		try {
+			const [prov, status] = await Promise.all([hxFetch('deploy/providers'), hxFetch('deploy/status')]);
+			const provider = ((prov && prov.providers) || []).find((p) => p.id === PROVIDER) || null;
+			setData({ phase: 'ready', error: '', provider, status });
+		} catch (e) {
+			setData({ phase: 'error', error: hxErrorNode(e), provider: null, status: null });
+		}
+	}, []);
+
+	useEffect(() => { loadData(); }, [loadData]);
+
+	const status = data.status || {};
+	const provider = data.provider;
+	const hasSavedToken = !!status.has_token;
+	const typedToken = token.trim();
+	const usingSavedToken = hasSavedToken && !replacing && !typedToken;
+	const tokenBody = typedToken ? { token: typedToken } : {};
+	const verified = verify.phase === 'ok';
+	const accounts = verify.accounts || [];
+
+	const resetVerification = () => {
+		setVerify(IDLE_VERIFY);
+		setAccountId('');
+		setZones({ phase: 'idle', error: '', list: [] });
+		setAck(false);
+		setAllowPermalinks(false);
+	};
+
+	const loadZones = async (body) => {
+		setZones({ phase: 'loading', error: '', list: [] });
+		try {
+			const res = await hxFetch(`deploy/${PROVIDER}/zones`, { method: 'POST', body: JSON.stringify(body) });
+			setZones({ phase: 'ok', error: '', list: (res && res.zones) || [] });
+		} catch (e) {
+			setZones({ phase: 'error', error: hxErrorNode(e), list: [] });
+		}
+	};
+
+	const runVerify = async () => {
+		setVerify({ phase: 'loading', error: '', accounts: [] });
+		setDeploy(IDLE_DEPLOY);
+		try {
+			const res = await hxFetch(`deploy/${PROVIDER}/verify`, { method: 'POST', body: JSON.stringify(tokenBody) });
+			const list = (res && res.accounts) || [];
+			setVerify({ phase: 'ok', error: '', accounts: list });
+			if (list.length === 1) setAccountId(list[0].id);
+			loadZones(tokenBody);
+		} catch (e) {
+			setVerify({ phase: 'error', error: hxErrorNode(e), accounts: [] });
+		}
+	};
+
+	const startAgain = () => {
+		const st = status.state || {};
+		setDomain(st.domain || '');
+		setMountMode(st.mount_mode === 'subfolder' ? 'subfolder' : 'root');
+		setSubpath(st.subpath || '/blog');
+		setToken('');
+		setReplacing(false);
+		resetVerification();
+		setDeploy(IDLE_DEPLOY);
+		setChanging(true);
+	};
+
+	const forgetToken = async () => {
+		setForget({ phase: 'busy', error: '' });
+		try {
+			await hxFetch(`deploy/${PROVIDER}/token`, { method: 'DELETE' });
+			setForget({ phase: 'idle', error: '' });
+			resetVerification();
+			setReplacing(false);
+			await loadData();
+		} catch (e) {
+			setForget({ phase: 'error', error: hxErrorNode(e) });
+		}
+	};
+
+	const accountReady = accounts.length > 1
+		? accountId !== ''
+		: accounts.length === 1 || ACCOUNT_ID_PATTERN.test(accountId.trim());
+	const needsPublicAddress = !!disc.wpUrlIsPrivate;
+	const canDeploy = verified && accountReady && ack && disc.appPasswordsOn !== false && deploy.phase !== 'running';
+
+	const runDeploy = async () => {
+		setDeploy({ phase: 'running', error: '', message: '', warnings: [] });
+		try {
+			const trimmedAddress = publicAddress.trim();
+			if (needsPublicAddress && trimmedAddress !== '') {
+				const saved = await hxFetch('options', { method: 'POST', body: JSON.stringify({ 'connection.wp_public_url': trimmedAddress }) });
+				if (!saved || !saved.applied || saved.applied['connection.wp_public_url'] === undefined) {
+					setDeploy({ phase: 'error', error: __('That public address is not a valid web address. Use the form https://example.com.', 'hatch-bridge'), message: '', warnings: [] });
+					return;
+				}
+			}
+			const res = await hxFetch(`deploy/${PROVIDER}/run`, {
+				method: 'POST',
+				body: JSON.stringify({
+					...tokenBody,
+					save_token: typedToken ? saveToken : false,
+					mount_mode: domain.trim() ? mountMode : 'root',
+					subpath,
+					domain: domain.trim(),
+					account_id: accountId.trim(),
+					consent: ack === true,
+					allow_permalinks: !!disc.permalinksPlain && allowPermalinks,
+				}),
+			});
+			setDeploy({ phase: 'done', error: '', message: (res && res.message) || '', warnings: (res && res.warnings) || [] });
+			setToken('');
+			setReplacing(false);
+			resetVerification();
+			setChanging(false);
+			await loadData();
+		} catch (e) {
+			if (e.code === 'hatch_cf_choose_account' && e.data && Array.isArray(e.data.accounts)) {
+				setVerify((v) => ({ ...v, accounts: e.data.accounts }));
+			}
+			setDeploy({ phase: 'error', error: hxErrorNode(e), message: '', warnings: [] });
+		}
+	};
+
+	// Screen frame.
+	const frame = (body) => (
 		<div className="hatch-react" style={{ minHeight: '100vh', paddingBottom: 60, background: 'var(--hx-bg)' }}>
-			{/* Header */}
-			<div style={{ textAlign: 'center', padding: '40px 24px 0' }}>
-				<div style={{ fontSize: 38, lineHeight: 1, marginBottom: 8 }}>🐣</div>
-				<h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--hx-fg)', letterSpacing: '-0.025em', lineHeight: 1.1, margin: 0 }}>
-					Hatch setup
+			<div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 16px 0' }}>
+				<h1 style={{ fontSize: 24, fontWeight: 600, color: 'var(--hx-fg)', lineHeight: 1.2, margin: 0, padding: 0 }}>
+					{__('Set up Hatch', 'hatch-bridge')}
 				</h1>
-				<p className="hx-desc" style={{ color: 'var(--hx-subtle)', marginTop: 6 }}>
-					Connect WordPress to your headless frontend in 3 steps.
+				<p style={{ fontSize: 14, color: 'var(--hx-subtle)', margin: '6px 0 0' }}>
+					{__('Publish a fast frontend for this WordPress site on your own Cloudflare account.', 'hatch-bridge')}
 				</p>
-			</div>
-
-			{/* Single progress strip */}
-			<div style={{ maxWidth: 640, margin: '20px auto 0', padding: '0 24px' }}>
-				<StepStrip step={step} />
-			</div>
-
-			{/* Step content */}
-			<div style={{ maxWidth: 640, margin: '28px auto 0', padding: '0 24px' }}>
-				<div key={step} className="hatch-tab-enter">
-					{step === 1 && <Step1Welcome boot={boot} onContinue={() => setStep(2)} />}
-					{step === 2 && <Step2Theme    boot={boot} onBack={() => setStep(1)} />}
-					{step === 3 && <Step3Deploy   boot={boot} onBack={() => setStep(2)} />}
+				<div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 24 }}>{body}</div>
+				<div style={{ marginTop: 24, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+					{setup.completeUrl && status.deployed && (
+						<a href={setup.completeUrl} style={{ color: 'var(--hx-link)' }}>{__('Finish and open the dashboard', 'hatch-bridge')}</a>
+					)}
+					{setup.skipUrl && !status.deployed && (
+						<a href={setup.skipUrl} style={{ color: 'var(--hx-link)' }}>{__('Skip setup for now', 'hatch-bridge')}</a>
+					)}
 				</div>
 			</div>
 		</div>
+	);
+
+	// Loading, error and empty states.
+	if (data.phase === 'loading') {
+		return frame(
+			<HxCard style={{ padding: 24 }}>
+				<HxSpinner label={__('Loading your deploy settings', 'hatch-bridge')} />
+			</HxCard>
+		);
+	}
+	if (data.phase === 'error') {
+		return frame(
+			<HxNotice
+				tone="error"
+				title={__('Could not load the setup screen', 'hatch-bridge')}
+				action={<HxBtn size="sm" variant="ghost" onClick={loadData}>{__('Try again', 'hatch-bridge')}</HxBtn>}
+			>
+				{data.error}
+			</HxNotice>
+		);
+	}
+	if (!provider) {
+		return frame(
+			<HxNotice
+				tone="warning"
+				title={__('Cloudflare deploys are not available', 'hatch-bridge')}
+				action={<HxBtn size="sm" variant="ghost" onClick={loadData}>{__('Check again', 'hatch-bridge')}</HxBtn>}
+			>
+				{__('This site did not report a Cloudflare deploy option. Reactivate the plugin and reload this page.', 'hatch-bridge')}
+			</HxNotice>
+		);
+	}
+
+	// Live view.
+	if (status.deployed && !changing) {
+		const st = status.state || {};
+		const url = publicUrlOf(st);
+		const last = status.last;
+		let servedFrom = __('A workers.dev address, no custom domain', 'hatch-bridge');
+		if (st.domain && st.mount_mode === 'subfolder') {
+			/* translators: 1: domain name, 2: folder path such as /blog. */
+			servedFrom = sprintf(__('%1$s, in the folder %2$s', 'hatch-bridge'), st.domain, st.subpath || '');
+		} else if (st.domain) {
+			/* translators: %s: domain name. */
+			servedFrom = sprintf(__('%s, the whole domain', 'hatch-bridge'), st.domain);
+		}
+		return frame(
+			<>
+				{deploy.phase === 'done' && (
+					<HxNotice tone="success" title={__('Deployed', 'hatch-bridge')}>{deploy.message}</HxNotice>
+				)}
+				{last && last.ok === false && (
+					<HxNotice tone="error" title={__('The last deploy failed', 'hatch-bridge')}>{last.message}</HxNotice>
+				)}
+				<HxCard style={{ padding: 20 }}>
+					<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
+						<h2 className="hx-title" style={{ margin: 0, padding: 0, color: 'var(--hx-fg)' }}>{__('Your frontend is deployed', 'hatch-bridge')}</h2>
+						<HxBadge color="green">{__('Live', 'hatch-bridge')}</HxBadge>
+					</div>
+					<FactRow label={__('Address', 'hatch-bridge')}>
+						{url ? <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--hx-link)' }}>{url}</a> : __('Not available', 'hatch-bridge')}
+					</FactRow>
+					<FactRow label={__('Served from', 'hatch-bridge')}>{servedFrom}</FactRow>
+					{st.script_name && <FactRow label={__('Worker name', 'hatch-bridge')}>{st.script_name}</FactRow>}
+					{st.deployed_at ? (
+						<FactRow label={__('Last deployed', 'hatch-bridge')} last>
+							{new Date(st.deployed_at * 1000).toLocaleString()}
+						</FactRow>
+					) : null}
+					<div style={{ display: 'flex', gap: 8, marginTop: 18, flexWrap: 'wrap' }}>
+						{url && (
+							<HxBtn href={url} variant="brand">
+								<HxIcon size={13} color="currentColor">{ICON.external}</HxIcon>
+								{__('Open the frontend', 'hatch-bridge')}
+							</HxBtn>
+						)}
+						<HxBtn variant="ghost" onClick={startAgain}>{__('Deploy again or change the domain', 'hatch-bridge')}</HxBtn>
+					</div>
+				</HxCard>
+				{deploy.warnings.map((w, i) => (
+					<HxNotice key={i} tone="warning">{w}</HxNotice>
+				))}
+				{hasSavedToken && (
+					<HxCard style={{ padding: 20 }}>
+						<h2 className="hx-title" style={{ margin: 0, padding: 0, color: 'var(--hx-fg)' }}>{__('Saved Cloudflare token', 'hatch-bridge')}</h2>
+						<p className="hx-desc" style={{ color: 'var(--hx-muted)', margin: '6px 0 14px' }}>
+							{__('A token is stored, encrypted, on this site so you can deploy again without pasting it. Forgetting it removes it from this site. It does not revoke the token in Cloudflare.', 'hatch-bridge')}
+						</p>
+						{forget.phase === 'error' && (
+							<HxNotice tone="error" style={{ marginBottom: 12 }}>{forget.error}</HxNotice>
+						)}
+						{forget.phase === 'confirm' ? (
+							<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+								<span className="hx-label">{__('Forget the saved token?', 'hatch-bridge')}</span>
+								<HxBtn size="sm" variant="danger" onClick={forgetToken}>{__('Yes, forget it', 'hatch-bridge')}</HxBtn>
+								<HxBtn size="sm" variant="ghost" onClick={() => setForget({ phase: 'idle', error: '' })}>{__('Cancel', 'hatch-bridge')}</HxBtn>
+							</div>
+						) : (
+							<HxBtn
+								size="sm"
+								variant="ghost"
+								disabled={forget.phase === 'busy'}
+								onClick={() => setForget({ phase: 'confirm', error: '' })}
+							>
+								{forget.phase === 'busy' ? __('Forgetting', 'hatch-bridge') : __('Forget saved token', 'hatch-bridge')}
+							</HxBtn>
+						)}
+					</HxCard>
+				)}
+			</>
+		);
+	}
+
+	// Deploy flow.
+	const permissions = provider.permissions || [];
+	const zoneChoices = (zones.list || []).filter((z) => !accountId || !z.account_id || z.account_id === accountId);
+	const themeName = disc.themeName || '';
+	let themeLine;
+	if (companion.active) {
+		themeLine = __('The Hatch Companion theme is already active. It sends visitors of your WordPress address to the frontend. Your earlier theme is put back if you disconnect or deactivate Hatch.', 'hatch-bridge');
+	} else if (themeName) {
+		/* translators: %s: name of the theme that is active now (used twice). */
+		themeLine = sprintf(__('Installs and activates the Hatch Companion theme. Your current theme, %s, is switched off and remembered. Visitors who open your WordPress address are sent to the frontend. %s is put back if you disconnect or deactivate Hatch.', 'hatch-bridge'), themeName, themeName);
+	} else {
+		themeLine = __('Installs and activates the Hatch Companion theme. Your current theme is switched off and remembered. Visitors who open your WordPress address are sent to the frontend. Your earlier theme is put back if you disconnect or deactivate Hatch.', 'hatch-bridge');
+	}
+	const readerUser = disc.readerUser || 'hatch-reader';
+	/* translators: 1: user name of the read-only account, 2: name of the application password. */
+	const appPasswordLine = disc.readerExists
+		? sprintf(__('Uses the read-only user %1$s (role Hatch Reader, it can only read). Creates an application password named "%2$s" for it and gives it to the Worker as a secret. Older passwords with that name are removed. No password of your own account is used.', 'hatch-bridge'), readerUser, disc.appPasswordName || '')
+		: sprintf(__('Creates a read-only user named %1$s (role Hatch Reader, it can only read and has no password anyone knows). Creates an application password named "%2$s" for it and gives it to the Worker as a secret. No password of your own account is used. Disconnecting removes the user again.', 'hatch-bridge'), readerUser, disc.appPasswordName || '');
+
+	return frame(
+		<>
+			{changing && status.deployed && (
+				<HxNotice
+					tone="info"
+					title={__('You are deploying again', 'hatch-bridge')}
+					action={<HxBtn size="sm" variant="ghost" onClick={() => setChanging(false)}>{__('Cancel', 'hatch-bridge')}</HxBtn>}
+				>
+					{__('This replaces the frontend that is live now.', 'hatch-bridge')}
+				</HxNotice>
+			)}
+
+			{/* Step 1: token */}
+			<StepCard
+				n={1}
+				done={verified}
+				title={__('Connect your Cloudflare account', 'hatch-bridge')}
+				desc={__('Hatch uses a Cloudflare API token to upload the frontend for you.', 'hatch-bridge')}
+			>
+				{!verified && (
+					<div style={{ marginBottom: 16 }}>
+						<p className="hx-desc" style={{ color: 'var(--hx-muted)', margin: '0 0 10px' }}>
+							{__('Create an API token in Cloudflare with these permissions, then paste it below.', 'hatch-bridge')}
+						</p>
+						<ul style={{ listStyle: 'none', margin: '0 0 12px', padding: 0 }}>
+							{permissions.map((p, i) => (
+								<li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '7px 0', borderBottom: i === permissions.length - 1 ? 'none' : '1px solid var(--hx-border)' }}>
+									<div style={{ flexShrink: 0, minWidth: 74 }}>
+										<HxBadge color={p.required ? 'orange' : 'neutral'}>{p.required ? __('Required', 'hatch-bridge') : __('Optional', 'hatch-bridge')}</HxBadge>
+									</div>
+									<div style={{ minWidth: 0 }}>
+										<div className="hx-label" style={{ color: 'var(--hx-fg)' }}>
+											{ /* translators: 1: permission area such as Account, 2: permission name, 3: access level such as Edit. */ sprintf(__('%1$s: %2$s (%3$s)', 'hatch-bridge'), p.scope, p.permission, p.access) }
+										</div>
+										<div className="hx-desc" style={{ color: 'var(--hx-subtle)' }}>{p.reason}</div>
+									</div>
+								</li>
+							))}
+						</ul>
+						{setup.cfTokenUrl && (
+							<a href={setup.cfTokenUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--hx-link)' }}>
+								{__('Open Cloudflare API tokens', 'hatch-bridge')}
+							</a>
+						)}
+					</div>
+				)}
+
+				{usingSavedToken && !verified && (
+					<div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+						<HxNotice tone="info">{__('A Cloudflare token is already saved on this site.', 'hatch-bridge')}</HxNotice>
+						<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+							<HxBtn variant="brand" onClick={runVerify} disabled={verify.phase === 'loading'}>
+								{verify.phase === 'loading' ? __('Checking', 'hatch-bridge') : __('Check saved token', 'hatch-bridge')}
+							</HxBtn>
+							<HxBtn variant="ghost" onClick={() => { setReplacing(true); setVerify(IDLE_VERIFY); }}>
+								{__('Use a different token', 'hatch-bridge')}
+							</HxBtn>
+						</div>
+					</div>
+				)}
+
+				{!usingSavedToken && !verified && (
+					<div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+						<HxField
+							label={__('Cloudflare API token', 'hatch-bridge')}
+							htmlFor="hatch-cf-token"
+							help={__('It goes from your browser to this site, and from this site to Cloudflare. Nowhere else.', 'hatch-bridge')}
+						>
+							<HxInp
+								id="hatch-cf-token"
+								type="password"
+								mono
+								autoComplete="off"
+								data-1p-ignore="true"
+								data-lpignore="true"
+								data-bwignore="true"
+								spellCheck={false}
+								value={token}
+								onChange={(e) => { setToken(e.target.value); if (verify.phase !== 'idle') setVerify(IDLE_VERIFY); }}
+								onKeyDown={(e) => { if (e.key === 'Enter' && typedToken && verify.phase !== 'loading') { e.preventDefault(); runVerify(); } }}
+							/>
+						</HxField>
+						<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+							<HxBtn variant="brand" onClick={runVerify} disabled={!typedToken || verify.phase === 'loading'}>
+								{verify.phase === 'loading' ? __('Checking', 'hatch-bridge') : __('Check token', 'hatch-bridge')}
+							</HxBtn>
+							{hasSavedToken && (
+								<HxBtn variant="ghost" onClick={() => { setReplacing(false); setToken(''); setVerify(IDLE_VERIFY); }}>
+									{__('Use the saved token', 'hatch-bridge')}
+								</HxBtn>
+							)}
+						</div>
+					</div>
+				)}
+
+				{verify.phase === 'loading' && (
+					<div style={{ marginTop: 12 }}><HxSpinner label={__('Checking the token with Cloudflare', 'hatch-bridge')} /></div>
+				)}
+				{verify.phase === 'error' && (
+					<HxNotice tone="error" title={__('The token was not accepted', 'hatch-bridge')} style={{ marginTop: 12 }}>
+						{verify.error}
+					</HxNotice>
+				)}
+				{verified && (
+					<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+						<span className="hx-label" style={{ color: 'var(--hx-fg)' }}>{__('Token accepted by Cloudflare.', 'hatch-bridge')}</span>
+						<HxBtn size="sm" variant="ghost" onClick={() => { resetVerification(); setToken(''); }}>
+							{__('Change token', 'hatch-bridge')}
+						</HxBtn>
+					</div>
+				)}
+			</StepCard>
+
+			{/* Step 2: account and address */}
+			{verified && (
+				<StepCard
+					n={2}
+					title={__('Choose where it will live', 'hatch-bridge')}
+					desc={__('Without a domain, the frontend gets a workers.dev address. Add a domain to serve it from your own.', 'hatch-bridge')}
+				>
+					<div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+						{accounts.length > 1 && (
+							<HxField label={__('Cloudflare account', 'hatch-bridge')} htmlFor="hatch-cf-account" help={__('This token can reach more than one account.', 'hatch-bridge')}>
+								<select id="hatch-cf-account" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={selectStyle}>
+									<option value="">{__('Choose an account', 'hatch-bridge')}</option>
+									{accounts.map((a) => (
+										<option key={a.id} value={a.id}>{a.name || a.id}</option>
+									))}
+								</select>
+							</HxField>
+						)}
+						{accounts.length === 1 && (
+							<FactRow label={__('Cloudflare account', 'hatch-bridge')} last>{accounts[0].name || accounts[0].id}</FactRow>
+						)}
+						{accounts.length === 0 && (
+							<HxField
+								label={__('Cloudflare account ID', 'hatch-bridge')}
+								htmlFor="hatch-cf-account-id"
+								help={__('This token cannot list your accounts. Paste the 32 character account ID from your Cloudflare dashboard, or add the optional Account Settings permission and check the token again.', 'hatch-bridge')}
+							>
+								<HxInp id="hatch-cf-account-id" mono autoComplete="off" spellCheck={false} value={accountId} onChange={(e) => setAccountId(e.target.value)} />
+							</HxField>
+						)}
+
+						<HxField
+							label={__('Domain (optional)', 'hatch-bridge')}
+							htmlFor="hatch-cf-domain"
+							help={__('A domain that is already in this Cloudflare account, such as example.com. Leave it empty to use a workers.dev address.', 'hatch-bridge')}
+						>
+							<HxInp id="hatch-cf-domain" mono autoComplete="off" spellCheck={false} placeholder="example.com" value={domain} onChange={(e) => setDomain(e.target.value)} />
+						</HxField>
+						{zones.phase === 'loading' && <HxSpinner label={__('Looking up your domains', 'hatch-bridge')} />}
+						{zones.phase === 'error' && (
+							<HxNotice tone="info" title={__('Could not list your domains', 'hatch-bridge')}>
+								{zones.error} {__('You can still type a domain above.', 'hatch-bridge')}
+							</HxNotice>
+						)}
+						{zones.phase === 'ok' && zoneChoices.length === 0 && (
+							<div className="hx-desc" style={{ color: 'var(--hx-subtle)' }}>
+								{__('This token sees no domains. Type one above, or add the optional Zone permissions to the token.', 'hatch-bridge')}
+							</div>
+						)}
+						{zoneChoices.length > 0 && (
+							<div>
+								<div className="hx-desc" style={{ color: 'var(--hx-subtle)', marginBottom: 8 }}>{__('Your domains', 'hatch-bridge')}</div>
+								<div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+									{zoneChoices.slice(0, 24).map((z) => (
+										<Chip key={z.id} label={z.name} active={domain.trim() === z.name} onClick={() => setDomain(domain.trim() === z.name ? '' : z.name)} />
+									))}
+								</div>
+							</div>
+						)}
+
+						{domain.trim() !== '' && (
+							<div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+								<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+									<div className="hx-label" style={{ color: 'var(--hx-fg)' }}>{__('How much of the domain', 'hatch-bridge')}</div>
+									<HxSeg
+										options={[
+											{ value: 'root', label: __('Whole domain', 'hatch-bridge') },
+											{ value: 'subfolder', label: __('One folder', 'hatch-bridge') },
+										]}
+										value={mountMode}
+										onChange={setMountMode}
+									/>
+								</div>
+								{mountMode === 'subfolder' && (
+									<HxField label={__('Folder', 'hatch-bridge')} htmlFor="hatch-cf-subpath" help={__('Letters, digits, dashes and slashes. For example /blog.', 'hatch-bridge')}>
+										<HxInp id="hatch-cf-subpath" mono autoComplete="off" spellCheck={false} value={subpath} onChange={(e) => setSubpath(e.target.value)} />
+									</HxField>
+								)}
+							</div>
+						)}
+					</div>
+				</StepCard>
+			)}
+
+			{/* Step 3: review and deploy */}
+			{verified && (
+				<StepCard
+					n={3}
+					done={deploy.phase === 'done'}
+					title={__('Review the changes, then deploy', 'hatch-bridge')}
+					desc={__('Deploying changes this WordPress site as well as your Cloudflare account. Nothing changes until you press Deploy.', 'hatch-bridge')}
+				>
+					<ul style={{ margin: '0 0 16px', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+						<li className="hx-desc" style={{ color: 'var(--hx-fg)' }}>
+							<strong>{__('Cloudflare.', 'hatch-bridge')}</strong>{' '}
+							{domain.trim()
+								? __('Uploads the frontend as a Worker, turns on its workers.dev address, and adds Workers routes so your domain serves it.', 'hatch-bridge')
+								: __('Uploads the frontend as a Worker and turns on its workers.dev address.', 'hatch-bridge')}
+						</li>
+						<li className="hx-desc" style={{ color: 'var(--hx-fg)' }}>
+							<strong>{__('Theme.', 'hatch-bridge')}</strong>{' '}{themeLine}
+						</li>
+						<li className="hx-desc" style={{ color: 'var(--hx-fg)' }}>
+							<strong>{__('Permalinks.', 'hatch-bridge')}</strong>{' '}
+							{disc.permalinksPlain
+								? __('Your permalinks are set to Plain. The frontend needs Post name (/%postname%/) to find your content. They are changed only if you tick the box below.', 'hatch-bridge')
+								: __('Your permalink settings stay as they are.', 'hatch-bridge')}
+						</li>
+						<li className="hx-desc" style={{ color: 'var(--hx-fg)' }}>
+							<strong>{__('Application password.', 'hatch-bridge')}</strong>{' '}{appPasswordLine}
+						</li>
+					</ul>
+
+					{disc.appPasswordsOn === false && (
+						<HxNotice
+							tone="error"
+							title={__('Application passwords are turned off', 'hatch-bridge')}
+							style={{ marginBottom: 14 }}
+							action={disc.appPasswordsUrl ? <HxBtn size="sm" variant="ghost" href={disc.appPasswordsUrl}>{__('Open your profile', 'hatch-bridge')}</HxBtn> : null}
+						>
+							{__('WordPress turns application passwords off when the site is not on HTTPS, and when a plugin or setting disables them. Switch the site to HTTPS or turn them back on, then come back to deploy.', 'hatch-bridge')}
+						</HxNotice>
+					)}
+
+					{needsPublicAddress && (
+						<div style={{ marginBottom: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+							<HxNotice tone="warning" title={__('Cloudflare cannot reach this site yet', 'hatch-bridge')}>
+								{ /* translators: %s: this site's address, for example http://localhost:8810. */ sprintf(__('%s is a local or private address. The deployed frontend will not be able to load your content until this site has an address that is reachable from the internet.', 'hatch-bridge'), disc.wpUrl || '') }
+							</HxNotice>
+							<HxField
+								label={__('Public address of this site (optional)', 'hatch-bridge')}
+								htmlFor="hatch-wp-public"
+								help={__('If this site is reachable from the internet at another address, enter it here. The frontend will read content from it.', 'hatch-bridge')}
+							>
+								<HxInp id="hatch-wp-public" mono autoComplete="off" spellCheck={false} placeholder="https://example.com" value={publicAddress} onChange={(e) => setPublicAddress(e.target.value)} />
+							</HxField>
+						</div>
+					)}
+
+					{typedToken && (
+						<label className="hx-checkbox" style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 12, color: 'var(--hx-fg)' }}>
+							<input type="checkbox" checked={saveToken} onChange={(e) => setSaveToken(e.target.checked)} style={{ marginTop: 2 }} />
+							<span className="hx-desc" style={{ color: 'var(--hx-fg)' }}>
+								{__('Keep this token on this site, encrypted, so I can deploy again without pasting it. You can forget it later.', 'hatch-bridge')}
+							</span>
+						</label>
+					)}
+
+					{disc.permalinksPlain && (
+						<label className="hx-checkbox" style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 12, color: 'var(--hx-fg)' }}>
+							<input type="checkbox" checked={allowPermalinks} onChange={(e) => setAllowPermalinks(e.target.checked)} style={{ marginTop: 2 }} />
+							<span className="hx-desc" style={{ color: 'var(--hx-fg)' }}>
+								{__('Change my permalinks from Plain to Post name. Leave this off to change them yourself under Settings, Permalinks. Until then the frontend cannot look up your posts.', 'hatch-bridge')}
+							</span>
+						</label>
+					)}
+
+					<label className="hx-checkbox" style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 16, color: 'var(--hx-fg)' }}>
+						<input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} style={{ marginTop: 2 }} />
+						<span className="hx-desc" style={{ color: 'var(--hx-fg)' }}>
+							{__('I have read these changes and want to deploy.', 'hatch-bridge')}
+						</span>
+					</label>
+
+					{!accountReady && (
+						<div className="hx-desc" style={{ color: 'var(--hx-subtle)', marginBottom: 10 }}>
+							{accounts.length > 1
+								? __('Choose a Cloudflare account above to continue.', 'hatch-bridge')
+								: __('Enter a valid Cloudflare account ID above to continue.', 'hatch-bridge')}
+						</div>
+					)}
+
+					{deploy.phase === 'error' && (
+						<HxNotice tone="error" title={__('The deploy did not finish', 'hatch-bridge')} style={{ marginBottom: 14 }}>
+							{deploy.error}
+						</HxNotice>
+					)}
+
+					{deploy.phase === 'running' ? (
+						<HxSpinner label={__('Deploying to Cloudflare. This can take a few minutes. Keep this tab open.', 'hatch-bridge')} />
+					) : (
+						<HxBtn variant="brand" onClick={runDeploy} disabled={!canDeploy}>
+							<HxIcon size={14} color="currentColor">{ICON.rocket}</HxIcon>
+							{__('Deploy to Cloudflare', 'hatch-bridge')}
+						</HxBtn>
+					)}
+				</StepCard>
+			)}
+		</>
 	);
 }

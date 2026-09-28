@@ -36,8 +36,10 @@ const headerBgClass = headerCfg.blur ? 'bg-hatch-bg/95 backdrop-blur' : 'bg-hatc
 const showColorModeBtn = headerCfg.color_mode_button;
 
 const brandDisplay = headerCfg.brand_display || 'auto';
-const showLogo = !!logoUrl && (brandDisplay === 'logo' || brandDisplay === 'both' || (brandDisplay === 'auto' && !!logoUrl));
-const showText = brandDisplay === 'text' || brandDisplay === 'both' || (brandDisplay === 'auto' && !logoUrl);
+// The site name must never vanish: if the design says "logo" but no logo is
+// uploaded, fall back to the text wordmark instead of rendering an empty brand.
+const showLogo = !!logoUrl && brandDisplay !== 'text';
+const showText = brandDisplay === 'text' || brandDisplay === 'both' || !showLogo;
 
 const topItems = menuItems.filter((item) => item.parent === 0).sort((a, b) => a.order - b.order);
 
@@ -48,7 +50,7 @@ const topItems = menuItems.filter((item) => item.parent === 0).sort((a, b) => a.
 // now only surfaces a link IF the user actually has a posts archive at
 // a real URL — using whatever slug they assigned (posts_page_slug).
 const fallbackNav: { href: string; label: string; target: string }[] = [];
-if (features.home.posts_page_id > 0 && features.home.posts_page_slug) {
+if ((features.home.posts_page_id ?? 0) > 0 && features.home.posts_page_slug) {
   const slug = features.home.posts_page_slug;
   fallbackNav.push({
     href: '/' + slug,
@@ -114,7 +116,7 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
         {showText && <span>{siteName}</span>}
       </a>
       {(navItems.length > 0 || showAuth) && (
-        <nav class="hatch-blog-navrow hidden md:flex" aria-label="Primary">
+        <nav class="hatch-blog-navrow hidden lg:flex" aria-label="Primary">
           {navItems.map((item) => (
             <a href={item.href} target={item.target || undefined} class:list={[isActive(item.href) ? 'is-active' : '']}>{item.label}</a>
           ))}
@@ -126,11 +128,11 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
           )}
         </nav>
       )}
-      <form role="search" method="get" action="/search" class="hatch-header-search hidden md:flex" aria-label="Site search">
+      <form role="search" method="get" action="/search" class="hatch-header-search hidden lg:flex" aria-label="Site search">
         <label class="hatch-header-search__label" for="hatch-header-search-input"><span class="sr-only">Search</span></label>
         <input id="hatch-header-search-input" type="search" name="q" placeholder="Search" autocomplete="off" />
       </form>
-      <button type="button" class="hatch-hamburger md:hidden inline-flex items-center justify-center w-10 h-10" aria-label="Open menu" aria-controls="hatch-mobile-drawer" aria-expanded="false">
+      <button type="button" class="hatch-hamburger lg:hidden inline-flex items-center justify-center w-10 h-10" aria-label="Open menu" aria-controls="hatch-mobile-drawer" aria-expanded="false">
         <svg class="h-5 w-5 hatch-icon-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         <svg class="h-5 w-5 hatch-icon-close hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
@@ -148,7 +150,7 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
         {showLogo && <img src={logoUrl} alt={siteName} class="h-5 w-auto max-w-[140px] mr-2" loading="eager" />}
         {showText && <span>{siteName}</span>}
       </a>
-      <nav class="hatch-tech-nav hidden md:inline-flex" aria-label="Primary">
+      <nav class="hatch-tech-nav hidden lg:inline-flex" aria-label="Primary">
         {navItems.map((item) => (
           <a href={item.href} target={item.target || undefined} class:list={[isActive(item.href) ? 'is-active' : '']}>{item.label}</a>
         ))}
@@ -159,10 +161,10 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
           <a href={accountHref} data-hatch-auth-link class:list={[isActive(accountHref) ? 'is-active' : '']}>{authLabel}</a>
         )}
       </nav>
-      <form role="search" method="get" action="/search" class="hatch-header-search hidden md:flex" aria-label="Site search">
+      <form role="search" method="get" action="/search" class="hatch-header-search hidden lg:flex" aria-label="Site search">
         <input type="search" name="q" placeholder="Search" autocomplete="off" aria-label="Search" />
       </form>
-      <button type="button" class="hatch-hamburger md:hidden inline-flex items-center justify-center w-9 h-9" style="border: 1px solid var(--hatch-border); border-radius: 3px; color: var(--hatch-fg-muted);" aria-label="Open menu" aria-controls="hatch-mobile-drawer" aria-expanded="false">
+      <button type="button" class="hatch-hamburger lg:hidden inline-flex items-center justify-center w-9 h-9" style="border: 1px solid var(--hatch-border); border-radius: 3px; color: var(--hatch-fg-muted);" aria-label="Open menu" aria-controls="hatch-mobile-drawer" aria-expanded="false">
         <svg class="h-4 w-4 hatch-icon-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         <svg class="h-4 w-4 hatch-icon-close hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
@@ -180,7 +182,7 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
         {showLogo && <img src={logoUrl} alt={siteName} class="h-6 w-auto max-w-[160px]" loading="eager" />}
         {showText && <span>{siteName}</span>}
       </a>
-      <nav class="hatch-docs-nav hidden md:inline-flex" aria-label="Primary">
+      <nav class="hatch-docs-nav hidden lg:inline-flex" aria-label="Primary">
         {navItems.map((item) => (
           <a href={item.href} target={item.target || undefined} class:list={[isActive(item.href) ? 'is-active' : '']}>{item.label}</a>
         ))}
@@ -191,10 +193,10 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
           <a href={accountHref} data-hatch-auth-link class:list={[isActive(accountHref) ? 'is-active' : '']}>{authLabel}</a>
         )}
       </nav>
-      <form role="search" method="get" action="/search" class="hatch-header-search hidden md:flex" aria-label="Site search">
+      <form role="search" method="get" action="/search" class="hatch-header-search hidden lg:flex" aria-label="Site search">
         <input type="search" name="q" placeholder="Search" autocomplete="off" aria-label="Search" />
       </form>
-      <button type="button" class="hatch-hamburger hatch-docs-mobile-toggle md:hidden inline-flex items-center justify-center w-9 h-9" style="border-radius: 6px; color: var(--hatch-fg-muted);" aria-label="Open menu" aria-controls="hatch-mobile-drawer" aria-expanded="false">
+      <button type="button" class="hatch-hamburger hatch-docs-mobile-toggle lg:hidden inline-flex items-center justify-center w-9 h-9" style="border-radius: 6px; color: var(--hatch-fg-muted);" aria-label="Open menu" aria-controls="hatch-mobile-drawer" aria-expanded="false">
         <svg class="h-4 w-4 hatch-icon-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         <svg class="h-4 w-4 hatch-icon-close hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
@@ -223,7 +225,7 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
 )}
 
 {/* ============================ SHARED DRAWER =========================== */}
-<div id="hatch-mobile-drawer" class="hatch-drawer md:hidden hidden border-t border-hatch-border bg-hatch-bg">
+<div id="hatch-mobile-drawer" class="hatch-drawer lg:hidden hidden border-t border-hatch-border bg-hatch-bg">
   <nav class="mx-auto px-5 sm:px-8 py-3 flex flex-col gap-1" aria-label="Primary mobile" style="max-width: var(--hatch-max-width, 1180px)">
     <form role="search" method="get" action="/search" class="hatch-header-search hatch-header-search--mobile flex mb-2" aria-label="Site search">
       <input type="search" name="q" placeholder="Search" autocomplete="off" aria-label="Search" style="flex:1;padding:10px 12px;border:1px solid var(--hatch-border);border-radius:6px;background:var(--hatch-bg-2);color:var(--hatch-fg);font-size:14px;" />
@@ -272,6 +274,10 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
     box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
     width: 220px;
   }
+  .hatch-header-search input[type="search"]:focus-visible {
+    outline: 2px solid var(--hatch-primary, currentColor);
+    outline-offset: 2px;
+  }
   .hatch-header-search--mobile input[type="search"]:focus {
     width: auto;
   }
@@ -280,7 +286,7 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
   .hatch-hamburger.is-open .hatch-icon-open { display: none; }
   .hatch-hamburger.is-open .hatch-icon-close { display: inline-block; }
   :global(body.hatch-drawer-open) { overflow: hidden; }
-  @media (min-width: 768px) {
+  @media (min-width: 1024px) {
     :global(body.hatch-drawer-open) { overflow: auto; }
   }
 </style>
@@ -312,7 +318,7 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
     btn.addEventListener('click', toggle);
     drawer.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', close); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
-    var mq = window.matchMedia('(min-width: 768px)');
+    var mq = window.matchMedia('(min-width: 1024px)');
     (mq.addEventListener ? mq.addEventListener('change', close) : mq.addListener(close));
   })();
 </script>

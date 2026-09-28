@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO bridge — auto-detects RankMath OR Yoast and proxies their getHead.
+ * SEO bridge - auto-detects RankMath OR Yoast and proxies their getHead.
  *
  * @package Hatch
  */
@@ -30,9 +30,24 @@ class Hatch_Seo_Bridge {
 	}
 
 	/**
-	 * No-op constructor — registered routes use static methods.
+	 * No-op constructor - registered routes use static methods.
 	 */
 	private function __construct() {}
+
+	/**
+	 * First non-empty string among the arguments; the last argument when all are empty.
+	 *
+	 * @param string ...$values Candidate values in priority order.
+	 * @return string
+	 */
+	private static function first_filled( string ...$values ): string {
+		foreach ( $values as $value ) {
+			if ( '' !== $value && '0' !== $value ) {
+				return $value;
+			}
+		}
+		return (string) end( $values );
+	}
 
 	/**
 	 * Get the rendered <head> HTML for a given URL.
@@ -55,7 +70,7 @@ class Hatch_Seo_Bridge {
 		} elseif ( 'yoast' === $detected ) {
 			$head = self::fetch_yoast_head( $url );
 		} else {
-			$head   = self::build_fallback_head( $url );
+			$head   = self::build_fallback_head();
 			$source = 'fallback';
 		}
 
@@ -75,7 +90,7 @@ class Hatch_Seo_Bridge {
 	 * @return string
 	 */
 	private static function fetch_rankmath_head( string $url ): string {
-		// RankMath validates against home URL — pass an internal URL.
+		// RankMath validates against home URL - pass an internal URL.
 		$internal_url = self::derive_internal_url( $url );
 		$api_url      = add_query_arg( 'url', rawurlencode( $internal_url ), home_url( '/wp-json/rankmath/v1/getHead' ) );
 
@@ -102,17 +117,16 @@ class Hatch_Seo_Bridge {
 			return '';
 		}
 		$body = json_decode( wp_remote_retrieve_body( $res ), true );
-		// Yoast returns { json: {...}, html: "..." } — we want HTML for parity with RankMath.
+		// Yoast returns { json: {...}, html: "..." } - we want HTML for parity with RankMath.
 		return isset( $body['html'] ) ? (string) $body['html'] : '';
 	}
 
 	/**
 	 * Minimal fallback head when no SEO plugin is installed.
 	 *
-	 * @param string $url URL.
 	 * @return string
 	 */
-	private static function build_fallback_head( string $url ): string {
+	private static function build_fallback_head(): string {
 		return sprintf(
 			'<title>%s</title><meta name="description" content="%s"/><meta name="robots" content="index, follow"/>',
 			esc_html( get_bloginfo( 'name' ) ),
@@ -210,27 +224,31 @@ class Hatch_Seo_Bridge {
 		$schemas  = array();
 
 		if ( $post_id ) {
-			$post       = get_post( $post_id );
-			$author_id  = $post ? (int) $post->post_author : 0;
-			$author     = $author_id ? get_userdata( $author_id ) : null;
-			$thumb_id   = get_post_thumbnail_id( $post_id );
-			$thumb_url  = $thumb_id ? wp_get_attachment_url( $thumb_id ) : '';
-			$published  = $post ? get_the_date( 'c', $post ) : '';
-			$modified   = $post ? get_the_modified_date( 'c', $post ) : '';
-			$title      = $post ? html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5 ) : '';
-			$excerpt    = $post ? wp_strip_all_tags( get_the_excerpt( $post ) ) : '';
+			$post      = get_post( $post_id );
+			$author_id = $post ? (int) $post->post_author : 0;
+			$author    = $author_id ? get_userdata( $author_id ) : null;
+			$thumb_id  = get_post_thumbnail_id( $post_id );
+			$thumb_url = $thumb_id ? wp_get_attachment_url( $thumb_id ) : '';
+			$published = $post ? get_the_date( 'c', $post ) : '';
+			$modified  = $post ? get_the_modified_date( 'c', $post ) : '';
+			$title     = $post ? html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5 ) : '';
+			$excerpt   = ( $post && ! self::body_withheld( $post ) ) ? wp_strip_all_tags( get_the_excerpt( $post ) ) : '';
 
 			$article = array(
-				'@context'         => 'https://schema.org',
-				'@type'            => 'Article',
-				'headline'         => $title,
-				'description'      => $excerpt,
-				'url'              => $url,
-				'datePublished'    => $published,
-				'dateModified'     => $modified,
-				'inLanguage'       => get_bloginfo( 'language' ),
-				'isPartOf'         => array( '@id' => $home . '/#website' ),
-				'publisher'        => array( '@type' => 'Organization', 'name' => $site, 'url' => $home ),
+				'@context'      => 'https://schema.org',
+				'@type'         => 'Article',
+				'headline'      => $title,
+				'description'   => $excerpt,
+				'url'           => $url,
+				'datePublished' => $published,
+				'dateModified'  => $modified,
+				'inLanguage'    => get_bloginfo( 'language' ),
+				'isPartOf'      => array( '@id' => $home . '/#website' ),
+				'publisher'     => array(
+					'@type' => 'Organization',
+					'name'  => $site,
+					'url'   => $home,
+				),
 			);
 
 			if ( $thumb_url ) {
@@ -250,12 +268,17 @@ class Hatch_Seo_Bridge {
 
 			$schemas[] = $article;
 
-			// BreadcrumbList — best-effort from the post's primary category.
+			// BreadcrumbList - best-effort from the post's primary category.
 			$cats        = get_the_category( $post_id );
 			$breadcrumbs = array(
-				array( '@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => $home ),
+				array(
+					'@type'    => 'ListItem',
+					'position' => 1,
+					'name'     => 'Home',
+					'item'     => $home,
+				),
 			);
-			$pos = 2;
+			$pos         = 2;
 			if ( ! empty( $cats ) ) {
 				$cat           = $cats[0];
 				$breadcrumbs[] = array(
@@ -265,7 +288,12 @@ class Hatch_Seo_Bridge {
 					'item'     => get_category_link( $cat->term_id ),
 				);
 			}
-			$breadcrumbs[] = array( '@type' => 'ListItem', 'position' => $pos, 'name' => $title, 'item' => $url );
+			$breadcrumbs[] = array(
+				'@type'    => 'ListItem',
+				'position' => $pos,
+				'name'     => $title,
+				'item'     => $url,
+			);
 
 			$schemas[] = array(
 				'@context'        => 'https://schema.org',
@@ -273,7 +301,7 @@ class Hatch_Seo_Bridge {
 				'itemListElement' => $breadcrumbs,
 			);
 		} else {
-			// Home or non-post URL — emit a WebSite node.
+			// Home or non-post URL - emit a WebSite node.
 			$schemas[] = array(
 				'@context' => 'https://schema.org',
 				'@type'    => 'WebSite',
@@ -358,10 +386,14 @@ class Hatch_Seo_Bridge {
 			? (string) wp_get_attachment_image_url( $y_tw_img_id, 'full' )
 			: trim( (string) get_post_meta( $post_id, '_yoast_wpseo_twitter-image', true ) );
 
-		// WP core fallbacks — excerpt for description, featured image for og_image.
-		$core_desc     = has_excerpt( $post )
-			? wp_strip_all_tags( get_the_excerpt( $post ) )
-			: wp_strip_all_tags( wp_trim_words( (string) $post->post_content, 30, '' ) );
+		// WP core fallbacks - excerpt for description, featured image for og_image.
+		if ( self::body_withheld( $post ) ) {
+			$core_desc = '';
+		} else {
+			$core_desc = has_excerpt( $post )
+				? wp_strip_all_tags( get_the_excerpt( $post ) )
+				: wp_strip_all_tags( wp_trim_words( (string) $post->post_content, 30, '' ) );
+		}
 		$thumb_id      = (int) get_post_thumbnail_id( $post_id );
 		$core_og_image = $thumb_id ? (string) wp_get_attachment_image_url( $thumb_id, 'full' ) : '';
 		$core_title    = html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5 );
@@ -373,14 +405,14 @@ class Hatch_Seo_Bridge {
 
 		$source = $has_rm ? 'rankmath' : ( $has_y ? 'yoast' : 'fallback' );
 
-		$description         = $rm_desc     ?: ( $y_desc     ?: $core_desc );
-		$focus_keyword       = $rm_focus    ?: $y_focus;
-		$og_title            = $rm_og_title ?: ( $y_og_title ?: $core_title );
-		$og_description      = $rm_og_desc  ?: ( $y_og_desc  ?: $description );
-		$og_image            = $rm_og_img   ?: ( $y_og_img   ?: $core_og_image );
-		$twitter_title       = $rm_tw_title ?: ( $y_tw_title ?: $og_title );
-		$twitter_description = $rm_tw_desc  ?: ( $y_tw_desc  ?: $og_description );
-		$twitter_image       = $rm_tw_img   ?: ( $y_tw_img   ?: $og_image );
+		$description         = self::first_filled( $rm_desc, $y_desc, $core_desc );
+		$focus_keyword       = self::first_filled( $rm_focus, $y_focus );
+		$og_title            = self::first_filled( $rm_og_title, $y_og_title, $core_title );
+		$og_description      = self::first_filled( $rm_og_desc, $y_og_desc, $description );
+		$og_image            = self::first_filled( $rm_og_img, $y_og_img, $core_og_image );
+		$twitter_title       = self::first_filled( $rm_tw_title, $y_tw_title, $og_title );
+		$twitter_description = self::first_filled( $rm_tw_desc, $y_tw_desc, $og_description );
+		$twitter_image       = self::first_filled( $rm_tw_img, $y_tw_img, $og_image );
 
 		return array(
 			'description'         => (string) $description,
@@ -398,11 +430,17 @@ class Hatch_Seo_Bridge {
 	/**
 	 * Register the resolved SEO block as a REST field on every public post type
 	 * that already opts in to REST. This makes `seo` available on the standard
-	 * /wp/v2/{type}/{id} responses too — not just /hatch/v1/content. Third-party
+	 * /wp/v2/{type}/{id} responses too - not just /hatch/v1/content. Third-party
 	 * consumers get identical resolution.
 	 */
 	public static function register_rest_fields(): void {
-		$types = get_post_types( array( 'public' => true, 'show_in_rest' => true ), 'names' );
+		$types = get_post_types(
+			array(
+				'public'       => true,
+				'show_in_rest' => true,
+			),
+			'names'
+		);
 		foreach ( $types as $type ) {
 			if ( 'attachment' === $type ) {
 				continue;
@@ -412,7 +450,7 @@ class Hatch_Seo_Bridge {
 				'hatch_seo',
 				array(
 					'schema'       => array(
-						'description' => __( 'Normalised SEO meta resolved from RankMath / Yoast / WP core.', 'hatch' ),
+						'description' => __( 'Normalised SEO meta resolved from RankMath / Yoast / WP core.', 'hatch-bridge' ),
 						'type'        => 'object',
 						'context'     => array( 'view', 'edit', 'embed' ),
 					),
@@ -440,7 +478,7 @@ class Hatch_Seo_Bridge {
 			return home_url();
 		}
 		$path = $parsed['path'];
-		// Strip a leading /blog if present — most Hatch setups serve at /blog/*.
+		// Strip a leading /blog if present - most Hatch setups serve at /blog/*.
 		$path = preg_replace( '#^/blog#', '', $path );
 		if ( '' === $path || '/' === $path ) {
 			return home_url();
@@ -452,5 +490,16 @@ class Hatch_Seo_Bridge {
 		 * @param string $url      Original public URL.
 		 */
 		return apply_filters( 'hatch_seo_internal_url', home_url( $path ), $url );
+	}
+
+	/**
+	 * Whether a post's text must not be exposed to this caller: it is
+	 * password protected and the caller cannot edit it.
+	 *
+	 * @param WP_Post $post Post.
+	 * @return bool
+	 */
+	private static function body_withheld( WP_Post $post ): bool {
+		return class_exists( 'Hatch_Rest_Api' ) ? Hatch_Rest_Api::is_body_withheld( $post ) : ( post_password_required( $post ) && ! current_user_can( 'edit_post', $post->ID ) );
 	}
 }

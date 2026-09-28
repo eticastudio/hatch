@@ -22,7 +22,7 @@ const auth =
     ? 'Basic ' + Buffer.from(`${WP_USER}:${WP_PASS}`).toString('base64')
     : '';
 
-const headers = auth ? { Authorization: auth } : {};
+const headers: Record<string, string> = auth ? { Authorization: auth } : {};
 
 export interface Post {
   id: number;

@@ -1,6 +1,6 @@
 <?php
 /**
- * WooCommerce Bridge — read-only product catalog exposure for headless storefronts.
+ * WooCommerce Bridge - read-only product catalog exposure for headless storefronts.
  *
  * **Scope (v0.8.0): read-only.** No cart, no checkout, no orders.
  * That lives in v0.9+ once we've designed a proper session/auth model that
@@ -35,7 +35,7 @@ defined( 'ABSPATH' ) || exit;
 class Hatch_WooCommerce_Bridge {
 
 	/**
-	 * Max page size (defensive — prevents accidental DOS via per_page=99999).
+	 * Max page size (defensive - prevents accidental DOS via per_page=99999).
 	 */
 	const MAX_PER_PAGE = 100;
 
@@ -62,15 +62,15 @@ class Hatch_WooCommerce_Bridge {
 	}
 
 	/**
-	 * Wire routes — but only if WooCommerce is actually loaded.
+	 * Wire routes - but only if WooCommerce is actually loaded.
 	 */
 	private function __construct() {
 		add_action( 'rest_api_init', array( $this, 'maybe_register_routes' ) );
 
 		// When products change, fire deploy hooks.
-		add_action( 'woocommerce_update_product',  array( $this, 'on_product_change' ), 10, 1 );
-		add_action( 'woocommerce_new_product',     array( $this, 'on_product_change' ), 10, 1 );
-		add_action( 'woocommerce_delete_product',  array( $this, 'on_product_change' ), 10, 1 );
+		add_action( 'woocommerce_update_product', array( $this, 'on_product_change' ), 10, 1 );
+		add_action( 'woocommerce_new_product', array( $this, 'on_product_change' ), 10, 1 );
+		add_action( 'woocommerce_delete_product', array( $this, 'on_product_change' ), 10, 1 );
 	}
 
 	/**
@@ -108,10 +108,22 @@ class Hatch_WooCommerce_Bridge {
 				'callback'            => array( $this, 'route_products' ),
 				'permission_callback' => '__return_true',
 				'args'                => array(
-					'page'     => array( 'default' => 1,  'sanitize_callback' => 'absint' ),
-					'per_page' => array( 'default' => 24, 'sanitize_callback' => 'absint' ),
-					'category' => array( 'default' => '', 'sanitize_callback' => 'sanitize_text_field' ),
-					'search'   => array( 'default' => '', 'sanitize_callback' => 'sanitize_text_field' ),
+					'page'     => array(
+						'default'           => 1,
+						'sanitize_callback' => 'absint',
+					),
+					'per_page' => array(
+						'default'           => 24,
+						'sanitize_callback' => 'absint',
+					),
+					'category' => array(
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'search'   => array(
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
 					'orderby'  => array(
 						'default'           => 'date',
 						'enum'              => array( 'date', 'price', 'popularity', 'rating', 'title' ),
@@ -122,7 +134,10 @@ class Hatch_WooCommerce_Bridge {
 						'enum'              => array( 'asc', 'desc' ),
 						'sanitize_callback' => 'sanitize_key',
 					),
-					'on_sale'  => array( 'default' => false, 'sanitize_callback' => 'rest_sanitize_boolean' ),
+					'on_sale'  => array(
+						'default'           => false,
+						'sanitize_callback' => 'rest_sanitize_boolean',
+					),
 				),
 			)
 		);
@@ -135,7 +150,10 @@ class Hatch_WooCommerce_Bridge {
 				'callback'            => array( $this, 'route_product' ),
 				'permission_callback' => '__return_true',
 				'args'                => array(
-					'id' => array( 'required' => true, 'sanitize_callback' => 'absint' ),
+					'id' => array(
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+					),
 				),
 			)
 		);
@@ -148,7 +166,10 @@ class Hatch_WooCommerce_Bridge {
 				'callback'            => array( $this, 'route_variations' ),
 				'permission_callback' => '__return_true',
 				'args'                => array(
-					'id' => array( 'required' => true, 'sanitize_callback' => 'absint' ),
+					'id' => array(
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+					),
 				),
 			)
 		);
@@ -171,7 +192,10 @@ class Hatch_WooCommerce_Bridge {
 				'callback'            => array( $this, 'route_featured' ),
 				'permission_callback' => '__return_true',
 				'args'                => array(
-					'per_page' => array( 'default' => 8, 'sanitize_callback' => 'absint' ),
+					'per_page' => array(
+						'default'           => 8,
+						'sanitize_callback' => 'absint',
+					),
 				),
 			)
 		);
@@ -182,7 +206,7 @@ class Hatch_WooCommerce_Bridge {
 	 * --------------------------------------------------------------------- */
 
 	/**
-	 * GET /store/products — paginated, filtered product list.
+	 * GET /store/products - paginated, filtered product list.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response
@@ -231,7 +255,7 @@ class Hatch_WooCommerce_Bridge {
 
 		$query    = wc_get_products( $args );
 		$products = is_object( $query ) && isset( $query->products ) ? $query->products : array();
-		$total    = is_object( $query ) && isset( $query->total )    ? (int) $query->total : count( $products );
+		$total    = is_object( $query ) && isset( $query->total ) ? (int) $query->total : count( $products );
 		$pages    = is_object( $query ) && isset( $query->max_num_pages ) ? (int) $query->max_num_pages : 1;
 
 		if ( $on_sale ) {
@@ -247,13 +271,13 @@ class Hatch_WooCommerce_Bridge {
 		);
 
 		$response = rest_ensure_response( $payload );
-		$response->header( 'X-Hatch-Total',       (string) $total );
+		$response->header( 'X-Hatch-Total', (string) $total );
 		$response->header( 'X-Hatch-Total-Pages', (string) $pages );
 		return $response;
 	}
 
 	/**
-	 * GET /store/products/{id} — single product (full payload).
+	 * GET /store/products/{id} - single product (full payload).
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error
@@ -262,16 +286,32 @@ class Hatch_WooCommerce_Bridge {
 		$id      = (int) $request['id'];
 		$product = wc_get_product( $id );
 		if ( ! $product ) {
-			return new WP_Error( 'hatch_store_not_found', __( 'Product not found.', 'hatch' ), array( 'status' => 404 ) );
+			return new WP_Error( 'hatch_store_not_found', __( 'Product not found.', 'hatch-bridge' ), array( 'status' => 404 ) );
 		}
-		if ( 'publish' !== $product->get_status() ) {
-			return new WP_Error( 'hatch_store_not_public', __( 'Product is not public.', 'hatch' ), array( 'status' => 403 ) );
+		if ( ! $this->is_product_public( $product ) ) {
+			return new WP_Error( 'hatch_store_not_public', __( 'Product is not public.', 'hatch-bridge' ), array( 'status' => 403 ) );
 		}
 		return rest_ensure_response( $this->normalize_product( $product, true ) );
 	}
 
 	/**
-	 * GET /store/products/{id}/variations — for variable products.
+	 * Is this product safe to show a signed-out visitor?
+	 *
+	 * Published and not behind a post password the caller has not entered.
+	 *
+	 * @param WC_Product $product Product.
+	 * @return bool
+	 */
+	private function is_product_public( $product ): bool {
+		if ( 'publish' !== $product->get_status() ) {
+			return false;
+		}
+		$post = get_post( $product->get_id() );
+		return $post instanceof WP_Post && ! Hatch_Rest_Api::is_body_withheld( $post );
+	}
+
+	/**
+	 * GET /store/products/{id}/variations - for variable products.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error
@@ -280,7 +320,10 @@ class Hatch_WooCommerce_Bridge {
 		$id      = (int) $request['id'];
 		$product = wc_get_product( $id );
 		if ( ! $product || ! $product->is_type( 'variable' ) ) {
-			return new WP_Error( 'hatch_store_not_variable', __( 'Not a variable product.', 'hatch' ), array( 'status' => 400 ) );
+			return new WP_Error( 'hatch_store_not_variable', __( 'Not a variable product.', 'hatch-bridge' ), array( 'status' => 400 ) );
+		}
+		if ( ! $this->is_product_public( $product ) ) {
+			return new WP_Error( 'hatch_store_not_public', __( 'Product is not public.', 'hatch-bridge' ), array( 'status' => 403 ) );
 		}
 		$variations = array();
 		foreach ( $product->get_available_variations() as $variation ) {
@@ -295,11 +338,16 @@ class Hatch_WooCommerce_Bridge {
 				'attributes'     => (array) ( $variation['attributes'] ?? array() ),
 			);
 		}
-		return rest_ensure_response( array( 'product_id' => $id, 'variations' => $variations ) );
+		return rest_ensure_response(
+			array(
+				'product_id' => $id,
+				'variations' => $variations,
+			)
+		);
 	}
 
 	/**
-	 * GET /store/categories — flat list with parent IDs.
+	 * GET /store/categories - flat list with parent IDs.
 	 *
 	 * @return WP_REST_Response
 	 */
@@ -339,7 +387,7 @@ class Hatch_WooCommerce_Bridge {
 	}
 
 	/**
-	 * GET /store/featured — first N featured products.
+	 * GET /store/featured - first N featured products.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response
@@ -363,25 +411,17 @@ class Hatch_WooCommerce_Bridge {
 	}
 
 	/* ------------------------------------------------------------------------
-	 * Hooks — fire deploys on product change
+	 * Hooks - cache invalidation on product change
 	 * --------------------------------------------------------------------- */
 
 	/**
-	 * Trigger deploys when a product changes (debounced inside Deploy_Hooks).
+	 * Drop the cached category list when a product changes.
 	 *
-	 * @param int $product_id Product ID.
 	 * @return void
 	 */
-	public function on_product_change( $product_id ): void {
+	public function on_product_change(): void {
 		// Invalidate the category cache.
 		delete_transient( 'hatch_store_categories' );
-
-		if ( class_exists( 'Hatch_Deploy_Hooks' ) ) {
-			$hooks = Hatch_Deploy_Hooks::instance();
-			foreach ( array_keys( Hatch_Deploy_Hooks::providers() ) as $provider ) {
-				$hooks->fire( $provider, 'product_' . (int) $product_id );
-			}
-		}
 	}
 
 	/* ------------------------------------------------------------------------
@@ -410,6 +450,7 @@ class Hatch_WooCommerce_Bridge {
 		}
 
 		$primary_image = wp_get_attachment_image_url( (int) $product->get_image_id(), 'large' );
+		$product_terms = get_the_terms( $id, 'product_cat' );
 
 		$payload = array(
 			'id'             => $id,
@@ -426,17 +467,17 @@ class Hatch_WooCommerce_Bridge {
 			'in_stock'       => (bool) $product->is_in_stock(),
 			'stock_quantity' => $product->managing_stock() ? (int) $product->get_stock_quantity() : null,
 			'featured'       => (bool) $product->is_featured(),
-			'image'          => $primary_image ?: '',
+			'image'          => (string) $primary_image,
 			'rating'         => (float) $product->get_average_rating(),
 			'rating_count'   => (int) $product->get_rating_count(),
-			'categories'     => wp_list_pluck( get_the_terms( $id, 'product_cat' ) ?: array(), 'slug' ),
+			'categories'     => wp_list_pluck( is_array( $product_terms ) ? $product_terms : array(), 'slug' ),
 		);
 
 		if ( $full ) {
-			$payload['description'] = wp_kses_post( $product->get_description() );
-			$payload['gallery']     = $gallery;
-			$payload['sku']         = (string) $product->get_sku();
-			$payload['attributes']  = $this->normalize_attributes( $product );
+			$payload['description']   = wp_kses_post( $product->get_description() );
+			$payload['gallery']       = $gallery;
+			$payload['sku']           = (string) $product->get_sku();
+			$payload['attributes']    = $this->normalize_attributes( $product );
 			$payload['variation_ids'] = $product->is_type( 'variable' )
 				? array_map( 'intval', $product->get_children() )
 				: array();
@@ -457,13 +498,24 @@ class Hatch_WooCommerce_Bridge {
 			if ( ! $attr instanceof WC_Product_Attribute ) {
 				continue;
 			}
-			$options = $attr->is_taxonomy()
-				? wp_list_pluck( get_terms( array( 'taxonomy' => $attr->get_name(), 'hide_empty' => false ) ) ?: array(), 'name' )
+			$attr_terms = $attr->is_taxonomy()
+				? get_terms(
+					array(
+						'taxonomy'   => $attr->get_name(),
+						'hide_empty' => false,
+					)
+				)
+				: array();
+			$options    = $attr->is_taxonomy()
+				? wp_list_pluck(
+					is_array( $attr_terms ) ? $attr_terms : array(),
+					'name'
+				)
 				: $attr->get_options();
-			$out[] = array(
-				'slug'    => (string) $attr->get_name(),
-				'name'    => (string) wc_attribute_label( $attr->get_name() ),
-				'options' => array_values( array_filter( array_map( 'strval', $options ) ) ),
+			$out[]      = array(
+				'slug'         => (string) $attr->get_name(),
+				'name'         => (string) wc_attribute_label( $attr->get_name() ),
+				'options'      => array_values( array_filter( array_map( 'strval', $options ) ) ),
 				'is_variation' => (bool) $attr->get_variation(),
 			);
 		}

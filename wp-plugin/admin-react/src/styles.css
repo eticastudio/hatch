@@ -1,5 +1,5 @@
 /*
- * Hatch admin — React app stylesheet.
+ * Hatch admin, React app stylesheet.
  *
  * Scoped to .hatch-react. Token block is the canonical source for the React
  * admin. Mirrors the marketing site's tokens 1:1 so design.md saved from this
@@ -9,22 +9,22 @@
  *   1. palette         : surface / border / text / brand / state / gray scale (light)
  *   2. dark palette    : same token names, dark values, [data-hx-theme="dark"]
  *   3. space           : --hx-space-1..7
- *   4. grid            : .hx-grid, .hx-flex, .hx-gap-*
+ *   4. grid            : .hx-grid-cols-*
  *   5. component styles: pill nav, save bar, buttons, checkboxes, etc.
  *
  * Design lineage: clean-room, learned from product admin dashboards
- * (Linear, Stripe, Vercel) via Mobbin reference reads. Zero code copied.
+ * via Mobbin reference reads. Zero code copied.
  * Values were derived from a monotonic oklch gray ramp so light/dark stay
  * visually balanced without hand-tuning.
  */
 
 /* ─────────────────────────────────────────────────────────────────────────
-   1. palette — light (default)
+   1. palette, light (default)
    Every color used in the admin resolves to one of these tokens. If you
    reach for a hex literal in a tab, you owe a token instead.
    ───────────────────────────────────────────────────────────────────────── */
 .hatch-react {
-	/* Gray scale — 12 steps, monotonic in perceived lightness.
+	/* Gray scale, 12 steps, monotonic in perceived lightness.
 	   1..3 = surfaces, 4..6 = borders, 7..9 = interactive/muted text,
 	   10..12 = body/heading text. Same rung count in dark; only values flip. */
 	--hx-gray-1:  #ffffff;
@@ -59,15 +59,18 @@
 	--hx-muted:       var(--hx-text-muted);   /* legacy alias */
 	--hx-subtle:      var(--hx-text-subtle);  /* legacy alias */
 
-	/* Brand — Hatch warm orange. `primary` passes AA-Large on white;
-	   `primary-hover` is one shade darker; `primary-subtle` is a wash used
-	   for focus rings + subtle badge fills. Keep in both themes. */
-	--hx-primary:         #ea5d00;
-	--hx-primary-hover:   #c94f00;
-	--hx-primary-subtle:  #fff3e8;
+	/* Accent. Follows the administrator's chosen WordPress colour scheme via
+	   --wp-admin-theme-color, so buttons and focus rings match the rest of
+	   wp-admin. The fallback is WordPress's default blue. `primary-subtle` is
+	   a wash used for focus rings and subtle fills. */
+	--hx-primary:         var(--wp-admin-theme-color, #2271b1);
+	--hx-primary-hover:   var(--wp-admin-theme-color-darker-10, #135e96);
+	--hx-primary-subtle:  color-mix(in srgb, var(--hx-primary) 10%, var(--hx-surface));
 	--hx-primary-3:       var(--hx-primary-subtle); /* legacy alias */
+	--hx-link:            var(--hx-primary);
+	--hx-on-primary:      #ffffff;
 
-	/* State — foreground + subtle-fill pair for each. */
+	/* State, foreground + subtle-fill pair for each. */
 	--hx-success:         #16a34a;
 	--hx-success-subtle:  #dcfce7;
 	--hx-warning:         #d97706;
@@ -80,7 +83,7 @@
 	/* Motion */
 	--hx-ease: cubic-bezier(0.16, 1, 0.3, 1);
 
-	font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
 	color: var(--hx-text);
 	-webkit-font-smoothing: antialiased;
 }
@@ -122,10 +125,11 @@
 	--hx-muted:       var(--hx-text-muted);
 	--hx-subtle:      var(--hx-text-subtle);
 
-	--hx-primary:         #ff7a1a;
-	--hx-primary-hover:   #ff8f3d;
-	--hx-primary-subtle:  #3a1f0a;
+	--hx-primary:         var(--wp-admin-theme-color, #3858e9);
+	--hx-primary-hover:   var(--wp-admin-theme-color-darker-10, #2145e6);
+	--hx-primary-subtle:  color-mix(in srgb, var(--hx-primary) 18%, var(--hx-surface));
 	--hx-primary-3:       var(--hx-primary-subtle);
+	--hx-link:            #8fa3ff; /* text-safe on the dark surface, 7:1 */
 
 	--hx-success:         #4ade80;
 	--hx-success-subtle:  #0a2a17;
@@ -138,7 +142,7 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   3. space — the only spacing scale used in the admin.
+   3. space, the only spacing scale used in the admin.
    ───────────────────────────────────────────────────────────────────────── */
 .hatch-react {
 	--hx-space-1: 4px;
@@ -151,40 +155,42 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   4. grid — layout utilities.
+   4. grid, layout utilities.
    Use these in tabs instead of style={{display:'grid', gridTemplateColumns:...}}.
-   .hx-grid                — display:grid + gap
-   .hx-grid-cols-{2,3,4}   — fixed n equal columns
-   .hx-grid-stack          — responsive auto-fit, min column 260px
-   .hx-flex / .hx-flex-col — display:flex row/column
-   .hx-gap-{1..6}          — gap = --hx-space-{n}
+   .hx-grid-cols-{2,3}    , fixed n equal columns
    ───────────────────────────────────────────────────────────────────────── */
-.hatch-react .hx-grid            { display: grid; gap: var(--hx-space-3); }
 .hatch-react .hx-grid-cols-2     { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--hx-space-3); }
 .hatch-react .hx-grid-cols-3     { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hx-space-3); }
-.hatch-react .hx-grid-cols-4     { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--hx-space-3); }
-.hatch-react .hx-grid-stack      { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--hx-space-3); }
-.hatch-react .hx-grid-stack-lg   { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: var(--hx-space-4); }
-.hatch-react .hx-flex            { display: flex; }
-.hatch-react .hx-flex-col        { display: flex; flex-direction: column; }
-.hatch-react .hx-flex-wrap       { flex-wrap: wrap; }
-.hatch-react .hx-items-center    { align-items: center; }
-.hatch-react .hx-justify-between { justify-content: space-between; }
-.hatch-react .hx-gap-1           { gap: var(--hx-space-1); }
-.hatch-react .hx-gap-2           { gap: var(--hx-space-2); }
-.hatch-react .hx-gap-3           { gap: var(--hx-space-3); }
-.hatch-react .hx-gap-4           { gap: var(--hx-space-4); }
-.hatch-react .hx-gap-5           { gap: var(--hx-space-5); }
-.hatch-react .hx-gap-6           { gap: var(--hx-space-6); }
 
 @media (max-width: 640px) {
 	.hatch-react .hx-grid-cols-2,
-	.hatch-react .hx-grid-cols-3,
-	.hatch-react .hx-grid-cols-4 { grid-template-columns: 1fr; }
+	.hatch-react .hx-grid-cols-3 { grid-template-columns: 1fr; }
+}
+
+/* Settings row: label on the start side, control on the end side. The control
+   never shrinks on a wide screen. On a narrow screen the row may wrap so a wide
+   control (count chips, a text field) drops under its label instead of pushing
+   the page sideways. */
+.hatch-react .hx-row-ctl { flex-shrink: 0; }
+@media (max-width: 640px) {
+	.hatch-react .hx-row { flex-wrap: wrap; }
+	.hatch-react .hx-row-ctl { flex-shrink: 1; min-width: 0; max-width: 100%; }
+}
+
+/* Tab pill strip: scrolls sideways on a narrow screen. The native scrollbar is
+   hidden (it was a chunky grey bar under the labels) and the right edge fades
+   to show there is more. Arrow keys and touch still scroll it. */
+.hatch-react .hx-tabstrip { scrollbar-width: none; -ms-overflow-style: none; }
+.hatch-react .hx-tabstrip::-webkit-scrollbar { display: none; }
+@media (max-width: 640px) {
+	.hatch-react .hx-tabstrip {
+		-webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+		mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+	}
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   5. component styles — everything below inherits tokens above.
+   5. component styles, everything below inherits tokens above.
    Do NOT hardcode colors here; if a value is missing, add a token.
    ───────────────────────────────────────────────────────────────────────── */
 
@@ -210,31 +216,45 @@
 	background-repeat: no-repeat;
 	background-position: right 10px center;
 	background-size: 12px;
-	padding-right: 30px !important;
+	padding-inline-end: 30px !important;
 	cursor: pointer;
 }
 .hatch-react select:hover { border-color: var(--hx-border-strong); }
+[dir="rtl"] .hatch-react select { background-position: left 10px center; }
 
-/* WP admin's default left margin leaks in; cancel it. */
-#wpcontent { padding-left: 0 !important; }
-.hatch-react { margin: 0 !important; padding-left: 0 !important; }
+/* The app draws its own full-bleed layout: cancel wp-admin's content padding
+   on the two Hatch screens only. */
+body.toplevel_page_hatch #wpcontent,
+body.admin_page_hatch-setup #wpcontent { padding-inline-start: 0 !important; }
+.hatch-react { margin: 0 !important; padding-inline-start: 0 !important; }
 
-body.toplevel_page_hatch .wrap > h1:first-of-type,
-body.toplevel_page_hatch .wrap > .notice,
+/* Mount wrapper: no default .wrap margin. The hr.wp-header-end marker makes
+   WordPress place admin notices between it and the app, so they get the same
+   side gutter as the app content. */
+.hatch-wrap { margin: 0; max-width: none; }
+.hatch-wrap > .notice { margin: 12px max(16px, calc((100% - 728px) / 2)) 0; }
 body.toplevel_page_hatch #screen-meta,
-body.toplevel_page_hatch #screen-meta-links { display: none !important; }
-body.toplevel_page_hatch #wpbody-content { padding-bottom: 0 !important; }
-body.toplevel_page_hatch #wpfooter { display: none !important; }
+body.toplevel_page_hatch #screen-meta-links,
+body.admin_page_hatch-setup #screen-meta,
+body.admin_page_hatch-setup #screen-meta-links { display: none !important; }
+body.toplevel_page_hatch #wpbody-content,
+body.admin_page_hatch-setup #wpbody-content { padding-bottom: 0 !important; }
+
+/* Login address shown in the security bookmark notice. */
+.hatch-login-url { word-break: break-all; }
 
 /* Dark mode: make sure the WP-admin surround inherits our page bg so the
    pale WP chrome doesn't halo the dark app. */
 body.toplevel_page_hatch[data-hx-theme="dark"],
 body.toplevel_page_hatch[data-hx-theme="dark"] #wpbody,
-body.toplevel_page_hatch[data-hx-theme="dark"] #wpbody-content {
+body.toplevel_page_hatch[data-hx-theme="dark"] #wpbody-content,
+body.admin_page_hatch-setup[data-hx-theme="dark"],
+body.admin_page_hatch-setup[data-hx-theme="dark"] #wpbody,
+body.admin_page_hatch-setup[data-hx-theme="dark"] #wpbody-content {
 	background: #0f0f11;
 }
 
-/* Focus rings — WCAG 2.4.7 */
+/* Focus rings, WCAG 2.4.7 */
 .hatch-react button:focus-visible,
 .hatch-react input:focus-visible,
 .hatch-react select:focus-visible,
@@ -243,24 +263,6 @@ body.toplevel_page_hatch[data-hx-theme="dark"] #wpbody-content {
 	outline: 2px solid var(--hx-primary);
 	outline-offset: 2px;
 	border-radius: 4px;
-}
-
-/* Meta pills (GitHub / Docs) in header */
-.hatch-react .hatch-meta-pill {
-	display: inline-flex;
-	align-items: center;
-	gap: 5px;
-	padding: 4px 12px;
-	border-radius: 999px;
-	border: 1px solid var(--hx-border);
-	font-size: 12px;
-	color: var(--hx-text-muted);
-	text-decoration: none;
-	transition: border-color .15s var(--hx-ease), color .15s var(--hx-ease);
-}
-.hatch-react .hatch-meta-pill:hover {
-	border-color: var(--hx-border-strong);
-	color: var(--hx-text);
 }
 
 /* Footer links */
@@ -287,13 +289,9 @@ body.toplevel_page_hatch[data-hx-theme="dark"] #wpbody-content {
 .hatch-react .hatch-save-bar { animation: hxPopIn 0.16s var(--hx-ease) both; }
 
 @media (min-width: 783px) {
-	body.toplevel_page_hatch:not(.folded) .hatch-react .hatch-save-bar { margin-left: 80px; }
-	body.toplevel_page_hatch.folded          .hatch-react .hatch-save-bar { margin-left: 18px; }
-	body.auto-fold:not(.folded) .hatch-react .hatch-save-bar { margin-left: 80px; }
+	body.toplevel_page_hatch:not(.folded) .hatch-react .hatch-save-bar { margin-inline-start: 80px; }
+	body.toplevel_page_hatch.folded          .hatch-react .hatch-save-bar { margin-inline-start: 18px; }
 }
-
-@keyframes hxFadeIn { from { opacity: 0; } to { opacity: 1; } }
-.hatch-react .hatch-modal-enter { animation: hxFadeIn 0.18s var(--hx-ease) both; }
 
 .hatch-react .hx-card-hover { transition: box-shadow 0.2s var(--hx-ease); }
 .hatch-react .hx-card-hover:hover { box-shadow: 0 4px 20px rgba(0,0,0,.07); }
@@ -306,10 +304,10 @@ body.toplevel_page_hatch[data-hx-theme="dark"] #wpbody-content {
 	.hatch-react .hatch-save-bar { animation: none; }
 }
 
-/* Save bar buttons — warm dark surface stays dark in both themes for anchor. */
+/* Save bar buttons, warm dark surface stays dark in both themes for anchor. */
 .hatch-react .hatch-sb-discard {
 	padding: 7px 16px;
-	border-radius: 999px;
+	border-radius: 6px;
 	cursor: pointer;
 	font-family: inherit;
 	font-size: 13px;
@@ -322,27 +320,27 @@ body.toplevel_page_hatch[data-hx-theme="dark"] #wpbody-content {
 .hatch-react .hatch-sb-discard:hover { border-color: rgba(255,255,255,0.3); }
 .hatch-react .hatch-sb-save {
 	padding: 7px 18px;
-	border-radius: 999px;
+	border-radius: 6px;
 	cursor: pointer;
 	font-family: inherit;
 	font-size: 13px;
 	font-weight: 700;
 	background: var(--hx-primary);
-	color: #fff;
+	color: var(--hx-on-primary);
 	border: none;
 	transition: opacity .15s var(--hx-ease);
 }
 .hatch-react .hatch-sb-save:hover { opacity: 0.88; }
 .hatch-react .hatch-sb-retry {
-	margin-left: 4px;
+	margin-inline-start: 4px;
 	padding: 4px 12px;
-	border-radius: 999px;
+	border-radius: 6px;
 	cursor: pointer;
 	font-family: inherit;
 	font-size: 12px;
 	font-weight: 600;
 	background: var(--hx-danger);
-	color: #fff;
+	color: var(--hx-on-primary);
 	border: none;
 }
 
@@ -366,17 +364,6 @@ body.toplevel_page_hatch[data-hx-theme="dark"] #wpbody-content {
 .hatch-react ::-webkit-scrollbar { width: 6px; }
 .hatch-react ::-webkit-scrollbar-track { background: transparent; }
 .hatch-react ::-webkit-scrollbar-thumb { background: var(--hx-border-strong); border-radius: 3px; }
-
-/* Inline monospace */
-.hatch-react .hx-mono {
-	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-	font-size: 0.92em;
-	color: var(--hx-text);
-	background: transparent;
-	padding: 0;
-	border: none;
-	word-break: break-all;
-}
 
 /* Branded checkbox */
 .hatch-react .hx-checkbox { user-select: none; -webkit-user-select: none; }
@@ -413,7 +400,7 @@ body.toplevel_page_hatch[data-hx-theme="dark"] #wpbody-content {
 .hatch-react .hx-checkbox input[type="checkbox"]:checked::after {
 	content: '';
 	position: absolute;
-	left: 5px;
+	inset-inline-start: 5px;
 	top: 1.5px;
 	width: 5px;
 	height: 10px;
@@ -444,7 +431,7 @@ body.toplevel_page_hatch[data-hx-theme="dark"] #wpbody-content {
 }
 .hatch-react h1, .hatch-react h2, .hatch-react h3, .hatch-react .hx-title { text-wrap: balance; }
 .hatch-react p, .hatch-react .hx-desc, .hatch-react .hx-byline { text-wrap: pretty; }
-.hatch-react [class*="tabular"], .hatch-react code, .hatch-react .hx-badge, .hatch-react time { font-variant-numeric: tabular-nums; }
+.hatch-react [class*="tabular"], .hatch-react code, .hatch-react time { font-variant-numeric: tabular-nums; }
 
 .hatch-react * {
 	transition-property: background-color, border-color, color, fill, stroke, opacity, transform, box-shadow;
@@ -452,9 +439,7 @@ body.toplevel_page_hatch[data-hx-theme="dark"] #wpbody-content {
 	transition-timing-function: var(--hx-ease);
 }
 .hatch-react button:not(:disabled):active,
-.hatch-react .hx-btn:not(:disabled):active,
-.hatch-react [role="button"]:not(:disabled):active,
-.hatch-react .hx-seg-item:not(:disabled):active { transform: scale(0.96); }
+.hatch-react [role="button"]:not(:disabled):active { transform: scale(0.96); }
 
 .hatch-react a:focus-visible,
 .hatch-react button:focus-visible,
@@ -466,55 +451,6 @@ body.toplevel_page_hatch[data-hx-theme="dark"] #wpbody-content {
 	outline: 2px solid var(--hx-primary);
 	outline-offset: 2px;
 	border-radius: 4px;
-}
-
-.hatch-react .hx-icon-btn,
-.hatch-react button.hx-close { position: relative; }
-.hatch-react .hx-icon-btn::before,
-.hatch-react button.hx-close::before {
-	content: "";
-	position: absolute;
-	inset: 50% 50%;
-	width: 40px; height: 40px;
-	transform: translate(-50%, -50%);
-	pointer-events: auto;
-}
-
-/* .hx-btn variants */
-.hatch-react .hx-btn {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 6px;
-	padding: 8px 14px;
-	border-radius: 6px;
-	font-family: inherit;
-	font-size: 13px;
-	font-weight: 600;
-	line-height: 1.2;
-	cursor: pointer;
-	text-decoration: none;
-	border: 1px solid transparent;
-	background: transparent;
-	color: var(--hx-text);
-}
-.hatch-react .hx-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-
-.hatch-react .hx-btn-primary {
-	background: var(--hx-primary);
-	color: #fff;
-	border-color: var(--hx-primary);
-}
-.hatch-react .hx-btn-primary:hover:not(:disabled) { background: var(--hx-primary-hover); border-color: var(--hx-primary-hover); }
-
-.hatch-react .hx-btn-ghost {
-	background: transparent;
-	color: var(--hx-text);
-	border: 1px solid var(--hx-border);
-}
-.hatch-react .hx-btn-ghost:hover:not(:disabled) {
-	background: var(--hx-primary-subtle);
-	border-color: var(--hx-border-strong);
 }
 
 /* Theme toggle button in header */

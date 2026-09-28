@@ -8,11 +8,11 @@
  * that proxies the request back to WordPress and streams the binary.
  *
  * Why:
- *   1. Visitors never see `wp-content` in your HTML — clean branding.
- *   2. Frontend origin is the single source of truth — no cross-origin, no
+ *   1. Visitors never see `wp-content` in your HTML - clean branding.
+ *   2. Frontend origin is the single source of truth - no cross-origin, no
  *      CORS, no third-party host showing up in `<img src>`.
  *   3. Astro frontend can transparently transform the image (Sharp → WebP /
- *      AVIF) before serving — without the WordPress URL ever leaking.
+ *      AVIF) before serving - without the WordPress URL ever leaking.
  *
  * Active when `hatch_image_proxy_url` is non-empty. The Frontline (Connection)
  * tab toggle controls that option indirectly via the Image optimization
@@ -38,16 +38,16 @@ class Hatch_Media_Rewriter {
 		add_filter( 'the_content', array( __CLASS__, 'rewrite_html' ), 99 );
 		add_filter( 'the_excerpt', array( __CLASS__, 'rewrite_html' ), 99 );
 
-		// REST API responses for posts, pages, attachments — the headless
+		// REST API responses for posts, pages, attachments - the headless
 		// frontend reads everything through REST.
 		foreach ( array( 'post', 'page', 'attachment' ) as $type ) {
-			add_filter( "rest_prepare_{$type}", array( __CLASS__, 'rewrite_rest_response' ), 99, 3 );
+			add_filter( "rest_prepare_{$type}", array( __CLASS__, 'rewrite_rest_response' ), 99, 1 );
 		}
 
-		// Direct attachment URL helpers — covers featured images, OG meta, etc.
-		add_filter( 'wp_get_attachment_url',       array( __CLASS__, 'rewrite_html' ), 99 );
+		// Direct attachment URL helpers - covers featured images, OG meta, etc.
+		add_filter( 'wp_get_attachment_url', array( __CLASS__, 'rewrite_html' ), 99 );
 		add_filter( 'wp_get_attachment_image_src', array( __CLASS__, 'rewrite_src_array' ), 99 );
-		add_filter( 'wp_calculate_image_srcset',   array( __CLASS__, 'rewrite_srcset' ), 99 );
+		add_filter( 'wp_calculate_image_srcset', array( __CLASS__, 'rewrite_srcset' ), 99 );
 	}
 
 	public static function is_enabled(): bool {
@@ -55,14 +55,16 @@ class Hatch_Media_Rewriter {
 	}
 
 	public static function frontend_base(): string {
-		// v0.50.13 — image proxy URL silently defaults to the configured
+		// v0.50.13 - image proxy URL silently defaults to the configured
 		// frontend URL. The earlier behaviour required setting BOTH
 		// `hatch_image_proxy_url` and `hatch_frontend_url`; setups that left
 		// proxy blank produced un-rewritten URLs, and setups that had a stale
 		// proxy URL produced 404s (e.g. test-frontend.example.com hangover
 		// from a fixture). Explicit non-empty override still wins.
 		$explicit = untrailingslashit( (string) get_option( 'hatch_image_proxy_url', '' ) );
-		if ( '' !== $explicit ) return $explicit;
+		if ( '' !== $explicit ) {
+			return $explicit;
+		}
 		return untrailingslashit( (string) get_option( 'hatch_frontend_url', '' ) );
 	}
 
@@ -84,9 +86,9 @@ class Hatch_Media_Rewriter {
 			return $content;
 		}
 
-		$home          = home_url();
-		$uploads_path  = '/wp-content/uploads/';
-		$new_prefix    = trailingslashit( $frontend ) . ltrim( self::ROUTE, '/' );
+		$home         = home_url();
+		$uploads_path = '/wp-content/uploads/';
+		$new_prefix   = trailingslashit( $frontend ) . ltrim( self::ROUTE, '/' );
 
 		// Match home_url() exactly, plus both http/https variants of the same host.
 		$home_no_scheme = preg_replace( '#^https?://#', '', untrailingslashit( $home ) );
@@ -94,8 +96,8 @@ class Hatch_Media_Rewriter {
 		$content = str_replace(
 			array(
 				'https://' . $home_no_scheme . $uploads_path,
-				'http://'  . $home_no_scheme . $uploads_path,
-				'//'       . $home_no_scheme . $uploads_path,
+				'http://' . $home_no_scheme . $uploads_path,
+				'//' . $home_no_scheme . $uploads_path,
 			),
 			$new_prefix,
 			$content
@@ -119,7 +121,7 @@ class Hatch_Media_Rewriter {
 	}
 
 	/**
-	 * Helper for `wp_calculate_image_srcset` — the sources arg is
+	 * Helper for `wp_calculate_image_srcset` - the sources arg is
 	 * [ width => [ 'url' => …, 'descriptor' => …, 'value' => … ], … ].
 	 *
 	 * @param mixed $sources
@@ -143,11 +145,9 @@ class Hatch_Media_Rewriter {
 	 * and rewrites each in place.
 	 *
 	 * @param WP_REST_Response $response
-	 * @param WP_Post          $post
-	 * @param WP_REST_Request  $request
 	 * @return WP_REST_Response
 	 */
-	public static function rewrite_rest_response( $response, $post, $request ) {
+	public static function rewrite_rest_response( $response ) {
 		if ( ! ( $response instanceof WP_REST_Response ) ) {
 			return $response;
 		}

@@ -18,7 +18,7 @@ class Hatch_Detector {
 	/**
 	 * Plugin file paths to detect.
 	 *
-	 * Keep this list curated — adding a plugin here is a public contract.
+	 * Keep this list curated - adding a plugin here is a public contract.
 	 *
 	 * @var array<string,string>
 	 */
@@ -100,7 +100,7 @@ class Hatch_Detector {
 	}
 
 	/**
-	 * Detect form plugin(s) — multiple may coexist.
+	 * Detect form plugin(s) - multiple may coexist.
 	 *
 	 * @return array<string>
 	 */
@@ -183,7 +183,7 @@ class Hatch_Detector {
 	}
 
 	/**
-	 * Full detection report — used by REST /info endpoint and admin dashboard.
+	 * Full detection report - used by REST /info endpoint and admin dashboard.
 	 *
 	 * @return array<string,mixed>
 	 */
@@ -193,14 +193,14 @@ class Hatch_Detector {
 			$out[ $key ] = self::is_plugin_active( $file );
 		}
 		return array(
-			'plugins'        => $out,
-			'seo'            => self::get_seo_plugin(),
-			'forms'          => self::get_form_plugins(),
-			'membership'     => self::get_membership_plugin(),
-			'custom_fields'  => self::get_custom_fields_plugin(),
-			'cpt_manager'    => self::get_cpt_plugin(),
-			'i18n'           => self::get_i18n_plugin(),
-			'has_rankready'  => self::is_active( 'rankready' ),
+			'plugins'       => $out,
+			'seo'           => self::get_seo_plugin(),
+			'forms'         => self::get_form_plugins(),
+			'membership'    => self::get_membership_plugin(),
+			'custom_fields' => self::get_custom_fields_plugin(),
+			'cpt_manager'   => self::get_cpt_plugin(),
+			'i18n'          => self::get_i18n_plugin(),
+			'has_rankready' => self::is_active( 'rankready' ),
 		);
 	}
 

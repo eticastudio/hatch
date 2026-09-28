@@ -1,21 +1,27 @@
 <?php
 /**
- * Hatch · Cloudflare Turnstile on the WordPress side.
+ * Cloudflare Turnstile on the WordPress side.
  *
  * v0.22 wired Turnstile for the HEADLESS frontend (Comments + Forms via REST).
  * v0.25 adds protection for the WP backend itself:
  *
- *   1. wp-login.php — Turnstile widget on the login form; verify on submit.
+ *   1. wp-login.php - Turnstile widget on the login form; verify on submit.
  *      Protects brute-force surface even when the headless frontend hides
  *      the WP domain.
- *   2. wp-comments-post — Turnstile on the classic WordPress comment form
+ *   2. wp-comments-post - Turnstile on the classic WordPress comment form
  *      so the same anti-spam runs whether visitors comment via the headless
  *      frontend OR (rare but real) hit wp-comments-post.php directly.
  *
  * Reuses Hatch_Integrations::verify_turnstile(). Site key + secret key are
- * configured once in Tools → Hatch → Integrations and apply everywhere.
+ * configured once in the Hatch admin (Content tab) and apply everywhere.
  *
- * No effect when Turnstile is not enabled — every hook short-circuits early.
+ * No effect when Turnstile is not enabled: every hook short-circuits early.
+ * When Cloudflare cannot be reached, or the saved secret key is rejected,
+ * the check lets the request continue instead of locking the login out (see
+ * Hatch_Integrations::verify_turnstile()).
+ *
+ * The widget script is loaded from challenges.cloudflare.com only on pages
+ * that show a protected form, and only after the administrator enabled it.
  *
  * @package Hatch
  */
@@ -23,6 +29,8 @@
 defined( 'ABSPATH' ) || exit;
 
 class Hatch_Turnstile_WP {
+
+	const API_SCRIPT = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
 
 	public static function instance(): self {
 		static $i = null;
@@ -33,33 +41,35 @@ class Hatch_Turnstile_WP {
 	}
 
 	private function __construct() {
-		// v0.50.31 — wp-login.php protection is GATED by an explicit toggle so
+		// v0.50.31 - wp-login.php protection is GATED by an explicit toggle so
 		// users can opt in without forcing it. Default OFF; turn on in Security
 		// tab → "Spam protection for WP Admin login". Requires Turnstile keys
-		// (set in Content tab) — silently no-op when keys are missing.
+		// (set in Content tab) - silently no-op when keys are missing.
 		if ( get_option( 'hatch_security_turnstile_login', false ) && self::has_keys() ) {
-			add_action( 'login_enqueue_scripts',     array( __CLASS__, 'enqueue_turnstile_login' ) );
-			add_action( 'login_form',                array( __CLASS__, 'render_widget_login' ) );
-			add_action( 'lostpassword_form',         array( __CLASS__, 'render_widget_login' ) );
-			add_action( 'register_form',             array( __CLASS__, 'render_widget_login' ) );
-			add_filter( 'authenticate',              array( __CLASS__, 'verify_login' ), 99, 3 );
-			add_filter( 'lostpassword_post',         array( __CLASS__, 'verify_lostpassword' ), 10, 1 );
-			add_action( 'login_head',                array( __CLASS__, 'login_inline_style' ) );
+			add_action( 'login_enqueue_scripts', array( __CLASS__, 'enqueue_turnstile_login' ) );
+			add_action( 'login_form', array( __CLASS__, 'render_widget_login' ) );
+			add_action( 'lostpassword_form', array( __CLASS__, 'render_widget_login' ) );
+			add_action( 'register_form', array( __CLASS__, 'render_widget_login' ) );
+			add_filter( 'authenticate', array( __CLASS__, 'verify_login' ), 99, 3 );
+			add_filter( 'lostpassword_post', array( __CLASS__, 'verify_lostpassword' ), 10, 1 );
+			add_action( 'login_head', array( __CLASS__, 'login_inline_style' ) );
 		}
 
 		// --- WP classic comment form (only matters if user has WP comments enabled
 		// AND visible on the WP-rendered side; on a headless setup this is rare,
 		// but kept gated for parity). ---
 		if ( get_option( 'hatch_security_turnstile_comments', false ) && self::has_keys() ) {
-			add_action( 'comment_form_after_fields',          array( __CLASS__, 'render_widget_comments' ) );
-			add_action( 'comment_form_logged_in_after',       array( __CLASS__, 'render_widget_comments' ) );
-			add_filter( 'preprocess_comment',                 array( __CLASS__, 'verify_comment' ), 10, 1 );
+			add_action( 'comment_form_after_fields', array( __CLASS__, 'render_widget_comments' ) );
+			add_action( 'comment_form_logged_in_after', array( __CLASS__, 'render_widget_comments' ) );
+			add_filter( 'preprocess_comment', array( __CLASS__, 'verify_comment' ), 10, 1 );
 		}
 	}
 
-	/** Cheap check — do we have a usable key pair? */
+	/** Cheap check - do we have a usable key pair? */
 	private static function has_keys(): bool {
-		if ( ! class_exists( 'Hatch_Integrations' ) ) return false;
+		if ( ! class_exists( 'Hatch_Integrations' ) ) {
+			return false;
+		}
 		$ts = (array) ( Hatch_Integrations::get_all()['turnstile'] ?? array() );
 		return ! empty( $ts['site_key'] ) && ! empty( $ts['secret_key'] );
 	}
@@ -70,7 +80,10 @@ class Hatch_Turnstile_WP {
 
 	private static function config(): array {
 		if ( ! class_exists( 'Hatch_Integrations' ) ) {
-			return array( 'enabled' => false, 'site_key' => '' );
+			return array(
+				'enabled'  => false,
+				'site_key' => '',
+			);
 		}
 		$cfg = Hatch_Integrations::get_all()['turnstile'] ?? array();
 		return array(
@@ -84,14 +97,28 @@ class Hatch_Turnstile_WP {
 		return $c['enabled'] && '' !== $c['site_key'];
 	}
 
+	/**
+	 * Visitor address, sent to Cloudflare as the optional remoteip hint.
+	 * REMOTE_ADDR only: forwarded-for headers are client controlled.
+	 *
+	 * @return string
+	 */
 	private static function client_ip(): string {
-		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : '';
-		if ( isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
-			$ip = (string) $_SERVER['HTTP_CF_CONNECTING_IP'];
-		} elseif ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-			$ip = trim( explode( ',', (string) $_SERVER['HTTP_X_FORWARDED_FOR'] )[0] );
-		}
-		return preg_replace( '/[^0-9a-fA-F:\.]/', '', $ip ) ?? '';
+		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		return rest_is_ip_address( $ip ) ? $ip : '';
+	}
+
+	/**
+	 * Read the Turnstile response field posted by the widget.
+	 *
+	 * Called from the login, lost-password and comment hooks, which run before
+	 * WordPress can supply a nonce; the token itself is verified with Cloudflare.
+	 *
+	 * @return string
+	 */
+	private static function posted_token(): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- login and comment forms carry no nonce; the Turnstile token is the check.
+		return isset( $_POST['cf-turnstile-response'] ) ? sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) ) : '';
 	}
 
 	/* ----------------------------------------------------------------
@@ -104,10 +131,13 @@ class Hatch_Turnstile_WP {
 		}
 		wp_enqueue_script(
 			'cf-turnstile',
-			'https://challenges.cloudflare.com/turnstile/v0/api.js',
+			self::API_SCRIPT,
 			array(),
-			null,
-			array( 'in_footer' => false, 'strategy' => 'defer' )
+			HATCH_VERSION,
+			array(
+				'in_footer' => false,
+				'strategy'  => 'defer',
+			)
 		);
 	}
 
@@ -144,21 +174,21 @@ class Hatch_Turnstile_WP {
 		if ( ! self::active() ) {
 			return $user;
 		}
-		// Skip when the credentials already failed — let WP show its native error.
+		// Skip when the credentials already failed - let WP show its native error.
 		if ( is_wp_error( $user ) || empty( $username ) || empty( $password ) ) {
 			return $user;
 		}
-		// Skip programmatic logins (XML-RPC, app passwords, REST cookie auth) —
+		// Skip programmatic logins (XML-RPC, app passwords, REST cookie auth) -
 		// the Turnstile token only makes sense on a browser-rendered form.
-		if ( ! isset( $_POST['log'], $_POST['pwd'] ) ) {
+		if ( ! isset( $_POST['log'], $_POST['pwd'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Only tests that a login form was posted; the credentials are checked by core's authenticate flow.
 			return $user;
 		}
-		$token = isset( $_POST['cf-turnstile-response'] ) ? (string) wp_unslash( $_POST['cf-turnstile-response'] ) : '';
+		$token = self::posted_token();
 		$ok    = Hatch_Integrations::verify_turnstile( $token, self::client_ip() );
 		if ( ! $ok ) {
 			return new WP_Error(
 				'hatch_turnstile_login',
-				__( '<strong>Anti-spam check failed.</strong> Try again.', 'hatch' )
+				__( '<strong>Anti-spam check failed.</strong> Try again.', 'hatch-bridge' )
 			);
 		}
 		return $user;
@@ -174,11 +204,11 @@ class Hatch_Turnstile_WP {
 		if ( ! self::active() ) {
 			return $errors;
 		}
-		$token = isset( $_POST['cf-turnstile-response'] ) ? (string) wp_unslash( $_POST['cf-turnstile-response'] ) : '';
+		$token = self::posted_token();
 		$ok    = Hatch_Integrations::verify_turnstile( $token, self::client_ip() );
 		if ( ! $ok ) {
 			$err = ( $errors instanceof WP_Error ) ? $errors : new WP_Error();
-			$err->add( 'hatch_turnstile_lost', __( '<strong>Anti-spam check failed.</strong> Try again.', 'hatch' ) );
+			$err->add( 'hatch_turnstile_lost', __( '<strong>Anti-spam check failed.</strong> Try again.', 'hatch-bridge' ) );
 			return $err;
 		}
 		return $errors;
@@ -194,17 +224,23 @@ class Hatch_Turnstile_WP {
 		}
 		$c = self::config();
 		printf(
-			'<p class="comment-form-turnstile"><div class="cf-turnstile" data-sitekey="%s" data-theme="auto"></div></p>',
+			'<div class="comment-form-turnstile"><div class="cf-turnstile" data-sitekey="%s" data-theme="auto"></div></div>',
 			esc_attr( $c['site_key'] )
 		);
-		// Enqueue the API script on the same response.
-		add_action( 'wp_footer', function () {
-			echo '<script async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>';
-		}, 99 );
+		wp_enqueue_script(
+			'cf-turnstile',
+			self::API_SCRIPT,
+			array(),
+			HATCH_VERSION,
+			array(
+				'in_footer' => true,
+				'strategy'  => 'defer',
+			)
+		);
 	}
 
 	/**
-	 * Hooked into preprocess_comment — last chance to reject before WP inserts.
+	 * Hooked into preprocess_comment - last chance to reject before WP inserts.
 	 *
 	 * @param array $data
 	 * @return array|never
@@ -213,18 +249,21 @@ class Hatch_Turnstile_WP {
 		if ( ! self::active() ) {
 			return $data;
 		}
-		// Skip pingbacks / trackbacks — they don't go through the comment form.
+		// Skip pingbacks / trackbacks - they don't go through the comment form.
 		$type = isset( $data['comment_type'] ) ? (string) $data['comment_type'] : '';
 		if ( in_array( $type, array( 'pingback', 'trackback' ), true ) ) {
 			return $data;
 		}
-		$token = isset( $_POST['cf-turnstile-response'] ) ? (string) wp_unslash( $_POST['cf-turnstile-response'] ) : '';
+		$token = self::posted_token();
 		$ok    = Hatch_Integrations::verify_turnstile( $token, self::client_ip() );
 		if ( ! $ok ) {
 			wp_die(
-				esc_html__( 'Anti-spam check failed. Please go back and try again.', 'hatch' ),
-				esc_html__( 'Comment rejected', 'hatch' ),
-				array( 'response' => 400, 'back_link' => true )
+				esc_html__( 'Anti-spam check failed. Please go back and try again.', 'hatch-bridge' ),
+				esc_html__( 'Comment rejected', 'hatch-bridge' ),
+				array(
+					'response'  => 400,
+					'back_link' => true,
+				)
 			);
 		}
 		return $data;

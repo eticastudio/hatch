@@ -1,17 +1,15 @@
 import type { APIRoute } from 'astro';
 
 /**
- * Same-domain image proxy. Forwards /img?url=…&w=…&format=webp to the
- * configured backend (Hatch shared broker by default, or whatever the
- * HATCH_IMG_BACKEND env var points at). Resulting image is served from
- * the frontend origin — no cross-origin, no third-party domain in HTML.
- *
- * This is the "enterprise pattern": single origin, frontend proxies through
- * to whichever image processor (shared broker today, self-hosted tomorrow).
+ * Same-domain image endpoint. By default it streams the allowlisted source
+ * image (your WordPress media or this site's own origin) straight through, so
+ * no third-party host is ever contacted. If the operator sets HATCH_IMG_BACKEND
+ * to an image processor they run, /img?url=…&w=…&format=webp is forwarded there
+ * instead. Either way the browser only ever talks to the frontend origin.
  *
  * Cache the response aggressively — output is content-addressable.
  */
-const BACKEND = (import.meta.env.HATCH_IMG_BACKEND || 'https://hatch.adityaarsharma.com').replace(/\/$/, '');
+const BACKEND = String(import.meta.env.HATCH_IMG_BACKEND || '').trim().replace(/\/$/, '');
 
 // Backlog #161 — SSRF allowlist. Without this the proxy will fetch any
 // attacker-controlled URL (169.254.169.254, internal admin dashboards, etc.)
@@ -73,6 +71,26 @@ export const GET: APIRoute = async ({ request, url }) => {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  // No image backend configured: serve the original bytes from the allowlisted
+  // source. Nothing leaves your own WordPress or this origin.
+  if (!BACKEND) {
+    try {
+      const direct = await fetch(src, { signal: AbortSignal.timeout(15_000), headers: { 'User-Agent': 'Hatch-img/1.0' } });
+      if (!direct.ok || !(direct.headers.get('content-type') || '').startsWith('image/')) {
+        return Response.redirect(src, 302);
+      }
+      return new Response(direct.body, {
+        status: 200,
+        headers: {
+          'Content-Type': direct.headers.get('content-type') as string,
+          'Cache-Control': 'public, max-age=86400',
+        },
+      });
+    } catch {
+      return Response.redirect(src, 302);
+    }
   }
 
   const backendUrl = new URL(BACKEND + '/img');

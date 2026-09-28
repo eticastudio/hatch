@@ -1,0 +1,499 @@
+globalThis.process ??= {};
+globalThis.process.env ??= {};
+import { _ as addAttribute, d as renderTemplate, h as maybeRenderHead } from "./server_BrNLrt74.mjs";
+import { t as createComponent } from "./compiler_CLadzSv0.mjs";
+import { n as getFeatures } from "./features_Ccz4SEbt.mjs";
+//#region src/components/HatchForm.astro
+var $$HatchForm = createComponent(async ($$result, $$props, $$slots) => {
+	const ts = (await getFeatures()).integrations?.turnstile;
+	const tsKey = ts && ts.enabled && ts.site_key ? String(ts.site_key) : "";
+	return renderTemplate`${maybeRenderHead($$result)}<div id="hatch-form-config"${addAttribute(tsKey, "data-turnstile-key")} hidden></div><script>
+  (function () {
+    if (window.__hatchFormHydrated) return;
+    window.__hatchFormHydrated = true;
+    const tsKey = (document.getElementById('hatch-form-config') || { dataset: {} }).dataset.turnstileKey || '';
+
+    // v0.8: schema + submit both go through the Astro-origin proxy at
+    // /api/hatch-form/{provider}/{id}[/submit]. Keeps the browser on
+    // one origin and hides the private docker WP hostname.
+    const schemaUrl = (provider, id) => \`/api/hatch-form/\${provider}/\${id}\`;
+
+    // ---- native validator (mirror of src/lib/form-validator.ts) ----------
+    // Inlined because this file is <script is:inline>: Astro's bundler
+    // does not run on inline scripts, so we cannot \`import\`. Kept in sync
+    // manually; both surfaces have unit tests around the same rule shapes.
+    const EMAIL_RE = /^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/;
+    function vIsEmpty(v) {
+      if (v === null || v === undefined) return true;
+      if (typeof v === 'string') return v.trim() === '';
+      if (Array.isArray(v)) return v.length === 0;
+      if (typeof v === 'boolean') return v === false;
+      return false;
+    }
+    function vAsString(v) {
+      if (v === null || v === undefined) return '';
+      if (Array.isArray(v)) return v.join(',');
+      return String(v);
+    }
+    function vLooksNumeric(v) {
+      if (v === null || v === undefined || v === '') return false;
+      const n = Number(v);
+      return !Number.isNaN(n) && Number.isFinite(n);
+    }
+    function validateField(rules, value) {
+      if (!rules || !rules.length) return { ok: true };
+      const empty = vIsEmpty(value);
+      const hasRequired = rules.some((r) => r.type === 'required');
+      for (const r of rules) {
+        if (r.type === 'required') {
+          if (empty) return { ok: false, error: r.message || 'This field is required.' };
+          continue;
+        }
+        if (empty && !hasRequired) continue;
+        if (empty && hasRequired) continue;
+        switch (r.type) {
+          case 'email':
+            if (!EMAIL_RE.test(vAsString(value))) return { ok: false, error: r.message || 'Enter a valid email address.' };
+            break;
+          case 'url':
+            try { new URL(vAsString(value)); } catch { return { ok: false, error: r.message || 'Enter a valid URL.' }; }
+            break;
+          case 'numeric':
+            if (!vLooksNumeric(value)) return { ok: false, error: r.message || 'Enter a number.' };
+            break;
+          case 'min': {
+            const n = Number(r.value);
+            if (vLooksNumeric(value) && Number(value) < n) return { ok: false, error: r.message || \`Must be at least \${n}.\` };
+            if (!vLooksNumeric(value) && vAsString(value).length < n) return { ok: false, error: r.message || \`Must be at least \${n} characters.\` };
+            break;
+          }
+          case 'max': {
+            const n = Number(r.value);
+            if (vLooksNumeric(value) && Number(value) > n) return { ok: false, error: r.message || \`Must be no more than \${n}.\` };
+            if (!vLooksNumeric(value) && vAsString(value).length > n) return { ok: false, error: r.message || \`Must be no more than \${n} characters.\` };
+            break;
+          }
+          case 'regex':
+            try {
+              const re = new RegExp(r.value, r.flags || '');
+              if (!re.test(vAsString(value))) return { ok: false, error: r.message || 'Invalid format.' };
+            } catch { /* bad server regex: do not block */ }
+            break;
+        }
+      }
+      return { ok: true };
+    }
+    function validateForm(schema, data) {
+      const errors = {};
+      for (const f of (schema.fields || [])) {
+        let rules = Array.isArray(f.rules) ? f.rules.slice() : [];
+        if (f.required && !rules.some((r) => r.type === 'required')) rules.unshift({ type: 'required' });
+        if (!rules.length) continue;
+        const r = validateField(rules, data[f.name]);
+        if (!r.ok && r.error) errors[f.name] = r.error;
+      }
+      return { ok: Object.keys(errors).length === 0, errors };
+    }
+    // ---- /validator ------------------------------------------------------
+
+    function el(tag, attrs, ...children) {
+      const node = document.createElement(tag);
+      if (attrs) {
+        for (const [k, v] of Object.entries(attrs)) {
+          if (v === false || v == null) continue;
+          if (k === 'class') node.className = v;
+          else if (k === 'html') node.innerHTML = v;
+          else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
+          else node.setAttribute(k, v === true ? '' : v);
+        }
+      }
+      for (const c of children) {
+        if (c == null) continue;
+        node.append(c instanceof Node ? c : document.createTextNode(c));
+      }
+      return node;
+    }
+
+    function renderField(f) {
+      const id = \`hf-\${f.name}-\${Math.random().toString(36).slice(2, 7)}\`;
+      const wrap = el('div', {
+        class: 'hatch-form__field',
+        'data-type': f.type,
+        'data-hatch-field': f.name,
+      });
+
+      if (f.type === 'html') {
+        wrap.classList.add('hatch-form__html');
+        wrap.innerHTML = f.html || '';
+        return wrap;
+      }
+      if (f.type === 'hidden') {
+        return el('input', { type: 'hidden', name: f.name, value: f.default || '' });
+      }
+
+      if (f.label) {
+        wrap.append(el('label', { class: 'hatch-form__label', for: id },
+          f.label,
+          f.required ? el('span', { class: 'hatch-form__req', 'aria-hidden': 'true' }, ' *') : null,
+        ));
+      }
+
+      let input;
+      const common = {
+        id, name: f.name,
+        placeholder: f.placeholder || null,
+        required: f.required || null,
+        // A field defined without a label still needs an accessible name.
+        'aria-label': f.label ? null : (f.placeholder || f.name),
+        class: 'hatch-form__input',
+      };
+
+      if (f.type === 'textarea') {
+        input = el('textarea', { ...common, rows: 5 });
+        if (f.default) input.value = f.default;
+      } else if (f.type === 'select') {
+        input = el('select', common);
+        if (!f.required) input.append(el('option', { value: '' }, f.placeholder || 'Select'));
+        for (const opt of (f.options || [])) {
+          const o = el('option', { value: opt.value }, opt.label);
+          if (opt.value === f.default) o.selected = true;
+          input.append(o);
+        }
+      } else if (f.type === 'radio' || f.type === 'checkbox') {
+        input = el('div', { class: \`hatch-form__choices hatch-form__choices--\${f.type}\` });
+        for (const opt of (f.options || [])) {
+          const cid = \`\${id}-\${opt.value.replace(/[^a-z0-9]/gi, '')}\`;
+          input.append(el('label', { class: 'hatch-form__choice', for: cid },
+            el('input', {
+              type: f.type, id: cid,
+              name: f.type === 'checkbox' ? \`\${f.name}[]\` : f.name,
+              value: opt.value,
+              required: f.required && f.type === 'radio' ? '' : null,
+            }),
+            el('span', null, opt.label),
+          ));
+        }
+      } else {
+        input = el('input', { ...common, type: f.type });
+        if (f.default) input.value = f.default;
+      }
+
+      wrap.append(input);
+      // Per-field error slot painted by paintErrors(). Matches the pattern
+      // used in checkout.astro so themes can style once and cover both.
+      wrap.append(el('div', {
+        class: 'hatch-form__field-error',
+        'data-hatch-field-error': f.name,
+        hidden: '',
+      }));
+      return wrap;
+    }
+
+    function collectValues(form) {
+      const out = {};
+      const fd = new FormData(form);
+      for (const [k, v] of fd.entries()) {
+        // arrays for checkbox[] etc.
+        const key = k.replace(/\\[\\]$/, '');
+        if (k.endsWith('[]')) {
+          if (!Array.isArray(out[key])) out[key] = [];
+          out[key].push(v);
+        } else if (key in out) {
+          out[key] = Array.isArray(out[key]) ? [...out[key], v] : [out[key], v];
+        } else {
+          out[key] = v;
+        }
+      }
+      return out;
+    }
+
+    function clearErrors(form) {
+      form.querySelectorAll('[data-hatch-field-error]').forEach((n) => {
+        n.textContent = '';
+        n.setAttribute('hidden', '');
+      });
+      form.querySelectorAll('[aria-invalid="true"]').forEach((n) => {
+        n.removeAttribute('aria-invalid');
+      });
+    }
+
+    function paintErrors(form, errors) {
+      let firstInvalid = null;
+      for (const [fieldName, msg] of Object.entries(errors || {})) {
+        const slot = form.querySelector(\`[data-hatch-field-error="\${CSS.escape(fieldName)}"]\`);
+        if (slot) {
+          slot.textContent = msg;
+          slot.removeAttribute('hidden');
+        }
+        // Mark the actual input(s). Checkbox groups use \`name[]\`, so match both.
+        const inputs = form.querySelectorAll(
+          \`[name="\${CSS.escape(fieldName)}"], [name="\${CSS.escape(fieldName)}[]"]\`
+        );
+        inputs.forEach((inp) => inp.setAttribute('aria-invalid', 'true'));
+        if (!firstInvalid && inputs.length) firstInvalid = inputs[0];
+      }
+      if (firstInvalid && typeof firstInvalid.focus === 'function') {
+        try { firstInvalid.focus(); } catch { /* ignore */ }
+      }
+    }
+
+    async function hydrate(mount) {
+      const id = mount.getAttribute('data-hatch-form-id');
+      const provider = mount.getAttribute('data-hatch-form-provider');
+      if (!id || !provider) return;
+
+      // Loading placeholder using theme tokens.
+      mount.innerHTML = '';
+      mount.classList.add('hatch-form-scope');
+      mount.append(el('div', { class: 'hatch-form__loading' }, 'Loading form'));
+
+      let schema;
+      try {
+        const res = await fetch(schemaUrl(provider, id), { credentials: 'omit' });
+        schema = await res.json();
+        if (!res.ok || !schema.ok) throw new Error(schema.msg || schema.error || 'schema_failed');
+      } catch (e) {
+        mount.innerHTML = '';
+        mount.append(el('div', { class: 'hatch-form__error' }, 'Form is unavailable right now.'));
+        return;
+      }
+
+      const form = el('form', {
+        class: 'hatch-form',
+        novalidate: '',
+        'data-provider': provider,
+        'data-form-id': id,
+        // Do NOT emit \`data-hatch-form\` here: a legacy selector in hatch-blocks.js
+        // re-hydrates any matching element and would replace this native form with
+        // an error. Schema and submit go through /hatch/v1/forms/{provider}/{id}.
+        'data-hatch-form-hydrated': '1',
+      });
+
+      if (schema.title) {
+        form.append(el('h2', { class: 'hatch-form__title' }, schema.title));
+      }
+      for (const f of (schema.fields || [])) {
+        form.append(renderField(f));
+      }
+      // Honeypot: hidden from people and assistive tech, filled in by bots.
+      // The WordPress side treats any value here as spam.
+      form.append(el('div', { 'aria-hidden': 'true', style: 'position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden' },
+        el('input', { type: 'text', name: 'hatch_hp', tabindex: '-1', autocomplete: 'off', value: '' })));
+      const submitBtn = el('button', {
+        type: 'submit',
+        class: 'hatch-form__submit hatch-btn hatch-btn--primary',
+      }, schema.i18n?.submit_label || schema.submit?.button_text || 'Submit');
+      const status = el('div', { class: 'hatch-form__status', 'aria-live': 'polite' });
+      let tsWidget = null;
+      if (tsKey) {
+        const tsBox = el('div', { class: 'hatch-form__turnstile' });
+        form.append(tsBox);
+        loadTurnstile().then((ts) => {
+          if (ts) tsWidget = { api: ts, id: ts.render(tsBox, { sitekey: tsKey, theme: 'auto' }) };
+        }).catch(() => { /* widget unavailable: the form still submits without a token */ });
+      }
+      form.append(el('div', { class: 'hatch-form__actions' }, submitBtn));
+      form.append(status);
+
+      form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        status.textContent = '';
+        status.className = 'hatch-form__status';
+        clearErrors(form);
+
+        // v0.9: client-side validation runs BEFORE the network POST so
+        // WP never sees an unvalidated payload (previously that returned
+        // 500 for missing-required cases on some plugin builds).
+        const values = collectValues(form);
+        const localCheck = validateForm(schema, values);
+        if (!localCheck.ok) {
+          paintErrors(form, localCheck.errors);
+          status.classList.add('hatch-form__status--error');
+          status.textContent = schema.i18n?.validation_msg || 'Please fix the highlighted fields.';
+          return;
+        }
+
+        submitBtn.disabled = true;
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = schema.i18n?.sending || 'Sending';
+
+        const tsToken = tsWidget ? (tsWidget.api.getResponse(tsWidget.id) || '') : '';
+        try {
+          const res = await fetch(schema.submit.url, {
+            method: schema.submit.method || 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(tsToken ? { fields: values, turnstile_token: tsToken, 'cf-turnstile-response': tsToken } : { fields: values }),
+            credentials: 'omit',
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.ok) {
+            form.reset();
+            status.classList.add('hatch-form__status--success');
+            status.textContent = data.message || schema.i18n?.success_msg || 'Thanks, your message has been received.';
+          } else {
+            status.classList.add('hatch-form__status--error');
+            // Server-side field errors: paint per-field where names align,
+            // fall back to the status region for form-level errors.
+            const serverErrors = data && data.errors && typeof data.errors === 'object' ? data.errors : null;
+            if (serverErrors) {
+              const flat = {};
+              for (const [k, v] of Object.entries(serverErrors)) {
+                flat[k] = Array.isArray(v) ? v.join(' ') : String(v);
+              }
+              paintErrors(form, flat);
+            }
+            const errs = serverErrors ? Object.values(serverErrors).flat().join(' ') : '';
+            status.textContent = errs || data.msg || schema.i18n?.error_msg || 'Something went wrong.';
+          }
+        } catch (e) {
+          status.classList.add('hatch-form__status--error');
+          status.textContent = schema.i18n?.error_msg || 'Something went wrong.';
+        } finally {
+          if (tsWidget) { try { tsWidget.api.reset(tsWidget.id); } catch (e) { /* ignore */ } }
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        }
+      });
+
+      mount.innerHTML = '';
+      mount.append(form);
+    }
+
+    // v0.51: raw WPForms fallback interceptor.
+    // When post_content ships full wpforms markup (block editor embeds,
+    // older content saved before the shortcode-to-marker replacement
+    // was in place), the marker div does not exist and hydrate() never
+    // runs. Without this the browser would submit the form to the WP
+    // JSON content endpoint that produced the page, which navigates
+    // away and looks like a broken redirect.
+    //
+    // We intercept the submit, repackage the wpforms[fields][N] payload
+    // into the {fields: {N: value}} shape the /api/hatch-form proxy
+    // already speaks, and render success/error in place using tokens.
+    function collectWpforms(form) {
+      const fields = {};
+      const fd = new FormData(form);
+      const bracket = /^wpforms\\[fields\\]\\[([^\\]]+)\\](?:\\[\\])?$/;
+      for (const [rawKey, val] of fd.entries()) {
+        const m = rawKey.match(bracket);
+        if (!m) continue;
+        const key = m[1];
+        if (rawKey.endsWith('[]')) {
+          if (!Array.isArray(fields[key])) fields[key] = [];
+          fields[key].push(val);
+        } else if (key in fields) {
+          fields[key] = Array.isArray(fields[key]) ? [...fields[key], val] : [fields[key], val];
+        } else {
+          fields[key] = val;
+        }
+      }
+      return fields;
+    }
+
+    function bindWpformsFallback(form) {
+      if (form.__hatchWpformsBound) return;
+      form.__hatchWpformsBound = true;
+
+      const formId = form.getAttribute('data-formid') || (form.id || '').replace(/^wpforms-form-/, '');
+      if (!formId) return;
+
+      // Rewrite the action to our same-origin proxy so any accidental
+      // native submit (JS error, keyboard enter before bind) still lands
+      // on a working endpoint instead of the content JSON endpoint.
+      form.setAttribute('action', \`/api/hatch-form/wpforms/\${formId}/submit\`);
+      form.setAttribute('method', 'post');
+
+      const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+      const originalText = submitBtn ? (submitBtn.textContent || submitBtn.value || 'Submit') : 'Submit';
+      const sendingText = submitBtn ? (submitBtn.getAttribute('data-alt-text') || 'Sending...') : 'Sending...';
+
+      let status = form.querySelector('.hatch-wpforms-status');
+      if (!status) {
+        status = el('div', { class: 'hatch-wpforms-status', 'aria-live': 'polite' });
+        form.append(status);
+      }
+
+      form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        status.textContent = '';
+        status.className = 'hatch-wpforms-status';
+
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          if ('textContent' in submitBtn && submitBtn.tagName === 'BUTTON') submitBtn.textContent = sendingText;
+        }
+
+        const fields = collectWpforms(form);
+        try {
+          const res = await fetch(\`/api/hatch-form/wpforms/\${formId}/submit\`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ fields }),
+            credentials: 'omit',
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && (data.ok || data.success)) {
+            const container = form.closest('.wpforms-container') || form.parentNode;
+            const wrap = el('div', {
+              class: 'wpforms-confirmation-container hatch-wpforms-success',
+              html: '<strong>Sent.</strong> Thanks, we’ll be in touch.',
+            });
+            container.replaceChild(wrap, form);
+            if (data.redirect_url || data.confirmation?.redirect_url) {
+              const to = data.redirect_url || data.confirmation.redirect_url;
+              setTimeout(() => { try { window.location.assign(String(to)); } catch {} }, 400);
+            }
+            return;
+          }
+          status.classList.add('hatch-wpforms-status--error');
+          const errText = (data && (data.msg || data.message || data.error)) || \`Submission failed (HTTP \${res.status}).\`;
+          status.textContent = String(errText);
+        } catch (e) {
+          status.classList.add('hatch-wpforms-status--error');
+          status.textContent = 'Something went wrong sending the form.';
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            if (submitBtn.tagName === 'BUTTON') submitBtn.textContent = originalText;
+          }
+        }
+      }, { capture: true });
+    }
+
+    // Loads Turnstile once, on demand. Resolves null when the script cannot load.
+    let tsPromise = null;
+    function loadTurnstile() {
+      if (window.turnstile) return Promise.resolve(window.turnstile);
+      if (!tsPromise) {
+        tsPromise = new Promise((resolve) => {
+          const s = document.createElement('script');
+          s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+          s.async = true;
+          s.onload = () => resolve(window.turnstile || null);
+          s.onerror = () => resolve(null);
+          document.head.appendChild(s);
+        });
+      }
+      return tsPromise;
+    }
+
+    // Lets public/hatch-blocks.js hand a block-editor form over once it knows the provider.
+    window.hatchHydrateForm = hydrate;
+
+    function boot() {
+      const mounts = document.querySelectorAll('[data-hatch-form-id][data-hatch-form-provider]');
+      mounts.forEach((m) => { hydrate(m); });
+      // Fallback for raw wpforms markup that came through un-shortcoded.
+      document.querySelectorAll('form.wpforms-form').forEach(bindWpformsFallback);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot);
+    } else {
+      boot();
+    }
+  })();
+<\/script>`;
+}, "/private/var/folders/jy/60wbwnvn217_b5__lf567vwh0000gn/T/hatch-bundle.ChBLnj/astro/src/components/HatchForm.astro", void 0);
+//#endregion
+export { $$HatchForm as t };

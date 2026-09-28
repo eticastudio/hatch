@@ -1,15 +1,15 @@
 /**
- * Hatch admin — React SPA entrypoint.
+ * Hatch admin: React entry point.
  *
- * Mounts on <div id="hatch-react-root"> rendered by hatch_render_admin_page().
- * Reads initial state from window.hatchBoot.state for SSR-style first paint —
- * no fetch round-trip on mount. Saves go through hxFetch() to POST
- * /hatch/v1/options which the plugin's REST controller accepts as a flat
- * key/value batch.
+ * Mounts on <div id="hatch-react-root">, rendered by the PHP admin page.
+ * Reads initial state from window.hatchBoot.state, so there is no fetch on
+ * first paint. Saves go through hxFetch() to POST /hatch/v1/options, which
+ * accepts a flat batch of dot-path keys and values.
  *
- * Design contract: admin-react/DESIGN-SYSTEM.md. Locked from Claude Design v2.
+ * Design contract: admin-react/DESIGN-SYSTEM.md.
  */
-import { createRoot, useState, useMemo, useEffect, useCallback } from '@wordpress/element';
+import { createRoot, useState, useMemo, useEffect, useCallback, useRef } from '@wordpress/element';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import { HxIcon, hxFetch } from './components.jsx';
 import Connection from './tabs/Connection.jsx';
 import Design from './tabs/Design.jsx';
@@ -44,13 +44,13 @@ function applyTheme(next) {
 applyTheme(resolveTheme());
 
 const TABS = [
-	{ id: 'connection',  label: 'Connection',  Component: Connection },
-	{ id: 'design',      label: 'Design',      Component: Design },
-	{ id: 'content',     label: 'Content',     Component: Content },
-	{ id: 'bridge',      label: 'Bridge',      Component: PluginBridge },
-	{ id: 'performance', label: 'Performance', Component: Performance },
-	{ id: 'security',    label: 'Security',    Component: Security },
-	{ id: 'status',      label: 'Status',      Component: Status },
+	{ id: 'connection',  label: () => __( 'Connection', 'hatch-bridge' ),  Component: Connection },
+	{ id: 'design',      label: () => __( 'Design', 'hatch-bridge' ),      Component: Design },
+	{ id: 'content',     label: () => __( 'Content', 'hatch-bridge' ),     Component: Content },
+	{ id: 'bridge',      label: () => __( 'Plugins', 'hatch-bridge' ),     Component: PluginBridge },
+	{ id: 'performance', label: () => __( 'Performance', 'hatch-bridge' ), Component: Performance },
+	{ id: 'security',    label: () => __( 'Security', 'hatch-bridge' ),    Component: Security },
+	{ id: 'status',      label: () => __( 'Status', 'hatch-bridge' ),      Component: Status },
 ];
 
 function App() {
@@ -58,7 +58,7 @@ function App() {
 	const initialState = boot.state || {};
 
 	// Hash routing keeps tab state shareable / survivable across refresh.
-	const initialTab = (window.location.hash || '#connection').slice(1);
+	const initialTab = (window.location.hash || '#connection').slice(1).split('&')[0];
 	const [tab, setTabRaw] = useState(TABS.some((t) => t.id === initialTab) ? initialTab : 'connection');
 	const setTab = (id) => {
 		setTabRaw(id);
@@ -66,7 +66,7 @@ function App() {
 	};
 	useEffect(() => {
 		const onHash = () => {
-			const id = window.location.hash.slice(1);
+			const id = window.location.hash.slice(1).split('&')[0];
 			if (TABS.some((t) => t.id === id)) setTabRaw(id);
 		};
 		window.addEventListener('hashchange', onHash);
@@ -77,6 +77,8 @@ function App() {
 	const [pending, setPending] = useState({});
 	const [phase, setPhase] = useState('idle'); // idle | saving | saved | error
 	const [lastSaved, setLastSaved] = useState(null);
+	const [saveError, setSaveError] = useState('');
+	const tabRefs = useRef({});
 
 	/* Theme state: seeded from the same resolver used at boot so React and
 	   the DOM never disagree. Toggle flips DOM attribute + persists + updates
@@ -132,6 +134,7 @@ function App() {
 	const save = useCallback(async () => {
 		if (Object.keys(pending).length === 0) return;
 		setPhase('saving');
+		setSaveError('');
 		try {
 			await hxFetch('options', { method: 'POST', body: JSON.stringify(pending) });
 			setPending({});
@@ -139,7 +142,7 @@ function App() {
 			setLastSaved(new Date());
 			setTimeout(() => setPhase('idle'), 2200);
 		} catch (e) {
-			console.error('[hatch] save failed', e);
+			setSaveError(e && e.message ? e.message : '');
 			setPhase('error');
 		}
 	}, [pending]);
@@ -150,7 +153,7 @@ function App() {
 		setPhase('idle');
 	}, [initialState]);
 
-	// ⌘S / Ctrl-S keyboard shortcut.
+	// Cmd+S or Ctrl+S saves.
 	useEffect(() => {
 		const h = (e) => {
 			if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -165,24 +168,35 @@ function App() {
 	const fmtSaved = (d) => {
 		if (!d) return null;
 		const m = Math.round((Date.now() - d.getTime()) / 60000);
-		return m < 1 ? 'just now' : m === 1 ? '1 min ago' : `${m} mins ago`;
+		/* translators: %d: number of minutes. */
+		return m < 1 ? __( 'just now', 'hatch-bridge' ) : sprintf( _n( '%d minute ago', '%d minutes ago', m, 'hatch-bridge' ), m );
 	};
 
 	const Current = TABS.find((t) => t.id === tab)?.Component || Connection;
-	// Disabled by request — users don't want a constant attention dot on Security.
-	const securityBadge = false;
+	const onTabKey = (e) => {
+		const keys = { ArrowRight: 1, ArrowLeft: -1 };
+		if (!keys[e.key]) return;
+		e.preventDefault();
+		const dir = document.documentElement.dir === 'rtl' ? -keys[e.key] : keys[e.key];
+		const idx = TABS.findIndex((t) => t.id === tab);
+		const next = TABS[(idx + dir + TABS.length) % TABS.length];
+		setTab(next.id);
+		const el = tabRefs.current[next.id];
+		if (el) el.focus();
+	};
 
 	return (
 		<div className="hatch-react" style={{ minHeight: '100vh', paddingBottom: 100, background: 'var(--hx-bg)' }}>
-			{/* ── Header ───────────────────────────────────────────────── */}
-			<div style={{ textAlign: 'center', padding: '44px 24px 0' }}>
-				<div style={{ fontSize: 44, lineHeight: 1, marginBottom: 10 }}>🐣</div>
-				<h1 style={{ fontSize: 28, fontWeight: 700, color: 'var(--hx-fg)', letterSpacing: '-0.035em', lineHeight: 1, margin: 0 }}>
-					Hatch
+			{/* Header */}
+			<div style={{ textAlign: 'center', padding: '32px 16px 0' }}>
+				<h1 style={{ fontSize: 24, fontWeight: 600, color: 'var(--hx-fg)', lineHeight: 1.2, margin: 0, padding: 0 }}>
+					{ __( 'Hatch', 'hatch-bridge' ) }
 				</h1>
-				<p style={{ fontSize: 14, color: 'var(--hx-subtle)', marginTop: 6 }}>The Headless Engine for WordPress</p>
+				<p style={{ fontSize: 14, color: 'var(--hx-subtle)', margin: '6px 0 0' }}>
+					{ __( 'Connect this WordPress site to a fast frontend on Cloudflare.', 'hatch-bridge' ) }
+				</p>
 
-				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 18, flexWrap: 'wrap' }}>
+				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
 					<span
 						style={{
 							padding: '4px 12px',
@@ -190,18 +204,16 @@ function App() {
 							border: '1px solid var(--hx-border)',
 							fontSize: 12,
 							color: 'var(--hx-subtle)',
-							fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace',
 						}}
 					>
-						v{boot.version || ''}
+						{ /* translators: %s: plugin version number, for example 1.0.0. */ sprintf( __( 'Version %s', 'hatch-bridge' ), boot.version || '' ) }
 					</span>
-					{/* Dark mode toggle. Icon swaps based on current theme. */}
 					<button
 						type="button"
 						className="hx-theme-toggle"
 						onClick={toggleTheme}
-						aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-						title={theme === 'dark' ? 'Light theme' : 'Dark theme'}
+						aria-label={ theme === 'dark' ? __( 'Switch to the light theme', 'hatch-bridge' ) : __( 'Switch to the dark theme', 'hatch-bridge' ) }
+						title={ theme === 'dark' ? __( 'Light theme', 'hatch-bridge' ) : __( 'Dark theme', 'hatch-bridge' ) }
 					>
 						{theme === 'dark' ? (
 							<HxIcon size={14} sw={2}>
@@ -217,11 +229,14 @@ function App() {
 				</div>
 			</div>
 
-			{/* ── Pill segmented tab nav ───────────────────────────────── */}
-			<div style={{ display: 'flex', justifyContent: 'center', padding: '28px 24px 0' }}>
+			{/* Tab navigation. Scrolls sideways on a narrow screen instead of overflowing the page. */}
+			<div style={{ display: 'flex', justifyContent: 'center', padding: '24px 16px 0' }}>
 				<div
+					className="hx-tabstrip"
 					style={{
 						display: 'inline-flex',
+						maxWidth: '100%',
+						overflowX: 'auto',
 						background: 'var(--hx-surface-2)',
 						borderRadius: 999,
 						padding: 4,
@@ -229,14 +244,16 @@ function App() {
 						border: '1px solid var(--hx-border)',
 					}}
 					role="tablist"
-					aria-label="Hatch settings tabs"
+					aria-label={ __( 'Hatch settings', 'hatch-bridge' ) }
+					onKeyDown={onTabKey}
 				>
 					{TABS.map(({ id, label }) => {
 						const active = tab === id;
-						const badge = id === 'security' && securityBadge;
 						return (
 							<button
 								key={id}
+								ref={(el) => { tabRefs.current[id] = el; }}
+								type="button"
 								role="tab"
 								id={`hatch-tab-${id}`}
 								aria-selected={active}
@@ -244,7 +261,7 @@ function App() {
 								tabIndex={active ? 0 : -1}
 								onClick={() => setTab(id)}
 								style={{
-									padding: '8px 18px',
+									padding: '8px 16px',
 									borderRadius: 999,
 									border: 'none',
 									background: active ? 'var(--hx-surface)' : 'transparent',
@@ -254,27 +271,10 @@ function App() {
 									cursor: 'pointer',
 									fontFamily: 'inherit',
 									boxShadow: active ? '0 1px 4px rgba(0,0,0,.1), 0 0 0 0.5px rgba(0,0,0,.06)' : 'none',
-									transition: 'all .18s var(--hx-ease)',
 									whiteSpace: 'nowrap',
-									position: 'relative',
 								}}
 							>
-								{label}
-								{badge && (
-									<span
-										style={{
-											position: 'absolute',
-											top: 6,
-											right: 8,
-											width: 6,
-											height: 6,
-											borderRadius: '50%',
-											background: '#d97706',
-											display: 'inline-block',
-										}}
-										aria-label="Needs attention"
-									/>
-								)}
+								{label()}
 							</button>
 						);
 					})}
@@ -282,7 +282,7 @@ function App() {
 			</div>
 
 			{/* ── Tab content ──────────────────────────────────────────── */}
-			<div style={{ maxWidth: 760, margin: '24px auto 0', padding: '0 24px' }}>
+			<div style={{ maxWidth: 760, margin: '24px auto 0', padding: '0 16px' }}>
 				<div
 					key={tab}
 					className="hatch-tab-enter"
@@ -299,12 +299,12 @@ function App() {
 				</div>
 			</div>
 
-			{/* ── Footer ───────────────────────────────────────────────── */}
+			{/* Footer */}
 			<div
 				style={{
 					maxWidth: 760,
-					margin: '40px auto 0',
-					padding: '0 24px 24px',
+					margin: '32px auto 0',
+					padding: '0 16px 24px',
 					display: 'flex',
 					alignItems: 'center',
 					justifyContent: 'space-between',
@@ -312,89 +312,72 @@ function App() {
 					gap: 12,
 				}}
 			>
-				<div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-					<a href={setupUrl} className="hatch-foot-link">Run setup wizard again</a>
-					<a href="https://adityaarsharma.com/connect" target="_blank" rel="noopener noreferrer" className="hatch-foot-link">Need help with setup?</a>
-				</div>
-				<span style={{ fontSize: 12, color: 'var(--hx-subtle)', fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace' }}>
-					{lastSaved ? `Saved ${fmtSaved(lastSaved)} · ` : ''}Hatch v{boot.version || ''} · MIT licensed
+				<a href={setupUrl} className="hatch-foot-link">{ __( 'Open the setup screen', 'hatch-bridge' ) }</a>
+				<span style={{ fontSize: 12, color: 'var(--hx-subtle)' }}>
+					{ lastSaved ? /* translators: %s: how long ago, for example "2 minutes ago". */ sprintf( __( 'Saved %s', 'hatch-bridge' ), fmtSaved( lastSaved ) ) : '' }
 				</span>
 			</div>
 
-			{/* ── Floating save bar (warm dark #18181b, ⌘S badge) ─────── */}
+			{/* Floating save bar */}
 			{(dirtyCount > 0 || phase !== 'idle') && (
 				<div
 					className="hatch-save-bar"
+					role="region"
+					aria-label={ __( 'Unsaved changes', 'hatch-bridge' ) }
 					style={{
 						position: 'fixed',
 						bottom: 24,
 						left: '50%',
 						transform: 'translateX(-50%)',
 						zIndex: 200,
-						borderRadius: 999,
-						overflow: 'hidden',
+						maxWidth: 'calc(100vw - 24px)',
+						borderRadius: 12,
 						boxShadow: '0 8px 32px rgba(0,0,0,.16), 0 2px 8px rgba(0,0,0,.1)',
 						display: 'flex',
 						alignItems: 'center',
+						justifyContent: 'center',
+						flexWrap: 'wrap',
 						gap: 12,
-						whiteSpace: 'nowrap',
 						background: '#18181b',
-							border: '1px solid rgba(255,255,255,.08)',
-							padding: '12px 20px',
+						border: '1px solid rgba(255,255,255,.08)',
+						padding: '12px 16px',
 					}}
 				>
 					{phase === 'saved' && (
-						<span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500, color: '#ffffff' }}>
+						<span role="status" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500, color: '#ffffff' }}>
 							<HxIcon size={16} color="#22c55e" sw={2.5}>
 								<polyline points="20 6 9 17 4 12" />
 							</HxIcon>
-							Saved. Frontend picks up in ~60 seconds.
+							{ __( 'Saved.', 'hatch-bridge' ) }
 						</span>
 					)}
 					{phase === 'saving' && (
-						<span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500, color: '#ffffff' }}>
+						<span role="status" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500, color: '#ffffff' }}>
 							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'hxSpin 0.8s linear infinite' }}>
 								<path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity="0.2" />
 								<path d="M21 12a9 9 0 01-9 9" />
 							</svg>
-							Saving...
+							{ __( 'Saving...', 'hatch-bridge' ) }
 						</span>
 					)}
 					{phase === 'error' && (
-						<span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500, color: '#ffffff' }}>
+						<span role="alert" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500, color: '#ffffff', flexWrap: 'wrap' }}>
 							<HxIcon size={16} color="#f87171" sw={2.5}>
 								<line x1="18" y1="6" x2="6" y2="18" />
 								<line x1="6" y1="6" x2="18" y2="18" />
 							</HxIcon>
-							Save failed. Check console.
-							<button onClick={save} className="hatch-sb-retry">Retry</button>
+							{ saveError || __( 'Your changes were not saved.', 'hatch-bridge' ) }
+							<button type="button" onClick={save} className="hatch-sb-retry">{ __( 'Try again', 'hatch-bridge' ) }</button>
 						</span>
 					)}
 					{phase === 'idle' && dirtyCount > 0 && (
 						<>
 							<span style={{ fontSize: 13, color: '#ffffff', fontWeight: 500 }}>
-								{dirtyCount} unsaved change{dirtyCount !== 1 ? 's' : ''}
+								{ /* translators: %d: number of unsaved changes. */ sprintf( _n( '%d unsaved change', '%d unsaved changes', dirtyCount, 'hatch-bridge' ), dirtyCount ) }
 							</span>
-							<span style={{ fontSize: 13, color: 'rgba(255,255,255,.5)' }}>·</span>
-							<span style={{ fontSize: 13, color: 'rgba(255,255,255,.75)' }}>
-								Frontend picks up in ~60s · no redeploy needed
-							</span>
-							<span
-								style={{
-									fontSize: 11,
-									color: 'rgba(255,255,255,.28)',
-									border: '1px solid rgba(255,255,255,.12)',
-									borderRadius: 5,
-									padding: '2px 6px',
-									fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace',
-									marginLeft: 2,
-								}}
-							>
-								⌘S
-							</span>
-							<div style={{ display: 'flex', gap: 6, marginLeft: 8 }}>
-								<button onClick={discard} className="hatch-sb-discard">Discard</button>
-								<button onClick={save} className="hatch-sb-save">Save</button>
+							<div style={{ display: 'flex', gap: 6 }}>
+								<button type="button" onClick={discard} className="hatch-sb-discard">{ __( 'Discard', 'hatch-bridge' ) }</button>
+								<button type="button" onClick={save} className="hatch-sb-save">{ __( 'Save changes', 'hatch-bridge' ) }</button>
 							</div>
 						</>
 					)}

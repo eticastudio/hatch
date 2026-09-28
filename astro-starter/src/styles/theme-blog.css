@@ -43,7 +43,7 @@
 
 	/* Text ramp — three weights of legibility. */
 	--hatch-fg-muted:     color-mix(in oklab, var(--hatch-fg) 70%, var(--hatch-bg));
-	--hatch-fg-subtle:    color-mix(in oklab, var(--hatch-fg) 45%, var(--hatch-bg));
+	--hatch-fg-subtle:    color-mix(in oklab, var(--hatch-fg) 62%, var(--hatch-bg));
 
 	/* Borders — warm hairlines, not cool gray. */
 	--hatch-border:        color-mix(in oklab, var(--hatch-bg) 78%, var(--hatch-fg));
@@ -109,6 +109,11 @@
 	color: var(--hatch-fg);
 }
 
+@media (max-width: 1023px) {
+	[data-hatch-theme="blog"] .hatch-header-inner { padding-block: 18px 16px; }
+	[data-hatch-theme="blog"] .hatch-blog-wordmark { text-align: left; font-size: 24px; }
+}
+
 [data-hatch-theme="blog"] .hatch-blog-actions {
 	display: inline-flex;
 	gap: 16px;
@@ -141,7 +146,7 @@
 	font-size: 14px;
 	letter-spacing: 0;
 }
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
 	[data-hatch-theme="blog"] .hatch-blog-navrow {
 		display: flex;
 	}
@@ -580,7 +585,7 @@
 /* ═════════════════════════════════════════════════════════════════
    BLOG THEME SIGNATURES: editorial gravitas.
    Serif titles on products/forms, warm paper backgrounds, generous
-   spacing. Everything renders through the Hatch Bridge; zero plugin
+   spacing. Everything renders through the Hatch REST bridge; zero plugin
    CSS ships. Applied only when [data-hatch-theme="blog"].
    ═════════════════════════════════════════════════════════════════ */
 [data-hatch-theme="blog"] .hatch-product-card__title,

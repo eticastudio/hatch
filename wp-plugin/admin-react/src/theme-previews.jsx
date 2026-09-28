@@ -9,7 +9,7 @@
 
 export const TP = {
 	Blog: (
-		<svg viewBox="0 0 80 48" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', display: 'block' }}>
+		<svg viewBox="0 0 80 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style={{ width: '100%', display: 'block' }}>
 			<rect width="80" height="48" rx="5" fill="#eff6ff" />
 			<rect x="6" y="7" width="68" height="14" rx="3" fill="#bfdbfe" />
 			<rect x="6" y="25" width="36" height="3" rx="1.5" fill="#3b82f6" opacity="0.7" />
@@ -19,7 +19,7 @@ export const TP = {
 		</svg>
 	),
 	Tech: (
-		<svg viewBox="0 0 80 48" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', display: 'block' }}>
+		<svg viewBox="0 0 80 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style={{ width: '100%', display: 'block' }}>
 			<rect width="80" height="48" rx="5" fill="#1e1b4b" />
 			<rect x="6" y="7" width="18" height="3" rx="1.5" fill="#a78bfa" />
 			<rect x="6" y="14" width="55" height="2" rx="1" fill="#6d28d9" opacity="0.6" />
@@ -30,7 +30,7 @@ export const TP = {
 		</svg>
 	),
 	Data: (
-		<svg viewBox="0 0 80 48" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', display: 'block' }}>
+		<svg viewBox="0 0 80 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style={{ width: '100%', display: 'block' }}>
 			<rect width="80" height="48" rx="5" fill="#f0fdfa" />
 			<rect x="0" y="0" width="22" height="48" rx="5" fill="#0d9488" opacity="0.15" />
 			<rect x="3" y="8" width="16" height="2" rx="1" fill="#0d9488" opacity="0.6" />
@@ -42,7 +42,7 @@ export const TP = {
 		</svg>
 	),
 	AstroPaper: (
-		<svg viewBox="0 0 80 48" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', display: 'block' }}>
+		<svg viewBox="0 0 80 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style={{ width: '100%', display: 'block' }}>
 			<rect width="80" height="48" rx="5" fill="#fafafa" />
 			<rect x="6" y="6" width="68" height="1" rx="0.5" fill="#e5e5e5" />
 			<rect x="12" y="12" width="56" height="9" rx="2" fill="#ff6b00" opacity="0.1" />
@@ -52,7 +52,7 @@ export const TP = {
 		</svg>
 	),
 	AstroWind: (
-		<svg viewBox="0 0 80 48" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', display: 'block' }}>
+		<svg viewBox="0 0 80 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style={{ width: '100%', display: 'block' }}>
 			<rect width="80" height="48" rx="5" fill="#1d4ed8" />
 			<rect x="0" y="0" width="80" height="28" rx="5" fill="#1e40af" />
 			<rect x="10" y="7" width="60" height="6" rx="2" fill="#fff" opacity="0.9" />
@@ -63,7 +63,7 @@ export const TP = {
 		</svg>
 	),
 	'Astro Nano': (
-		<svg viewBox="0 0 80 48" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', display: 'block' }}>
+		<svg viewBox="0 0 80 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style={{ width: '100%', display: 'block' }}>
 			<rect width="80" height="48" rx="5" fill="#fff" />
 			<rect x="10" y="7" width="14" height="2" rx="1" fill="#737373" opacity="0.5" />
 			<rect x="10" y="13" width="60" height="5" rx="1.5" fill="#111" opacity="0.7" />

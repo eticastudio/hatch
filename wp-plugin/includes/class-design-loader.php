@@ -1,12 +1,12 @@
 <?php
 /**
- * Hatch Design Loader — user-editable design tokens via a `design.md` paste.
+ * Hatch Design Loader - user-editable design tokens via a `design.md` paste.
  *
  * Concept: the user describes their brand in a single Markdown file with a
  * YAML frontmatter block. Hatch parses it, validates the known keys, and
  * exposes them on /hatch/v1/design. The Astro starter reads that endpoint
  * at SSR time and injects CSS variables + swaps fonts. No AI tokens needed
- * at runtime — the schema is rule-based and predictable.
+ * at runtime - the schema is rule-based and predictable.
  *
  * Expected frontmatter shape:
  *
@@ -30,7 +30,7 @@
  *     pronouns: we | I | you
  *   ---
  *
- * Body below the frontmatter is stored verbatim — used later for AI rebuilds
+ * Body below the frontmatter is stored verbatim - used later for AI rebuilds
  * (v0.30+) but currently rendered as a Markdown preview in the admin tab.
  *
  * @package Hatch
@@ -40,8 +40,8 @@ defined( 'ABSPATH' ) || exit;
 
 class Hatch_Design_Loader {
 
-	const OPTION_KEY      = 'hatch_design_md';     // raw markdown
-	const OPTION_PARSED   = 'hatch_design_parsed'; // parsed array, cached
+	const OPTION_KEY    = 'hatch_design_md';     // raw markdown
+	const OPTION_PARSED = 'hatch_design_parsed'; // parsed array, cached
 
 	/**
 	 * Allowed values per token. Keeps the JSON shape tight + predictable.
@@ -56,7 +56,7 @@ class Hatch_Design_Loader {
 			'layout.max_width'             => array( '720', '1080', '1280' ),
 			'voice.tone'                   => array( 'professional', 'casual', 'playful' ),
 			'voice.pronouns'               => array( 'we', 'I', 'you' ),
-			// Templates — layout control per page type.
+			// Templates - layout control per page type.
 			'templates.single_sidebar'     => array( 'right', 'left', 'none' ),
 			'templates.single_hero'        => array( 'featured', 'compact', 'none' ),
 			'templates.single_width'       => array( 'narrow', 'medium', 'wide' ),
@@ -74,7 +74,7 @@ class Hatch_Design_Loader {
 	 */
 	public static function defaults(): array {
 		return array(
-			'brand' => array(
+			'brand'     => array(
 				'name'         => '',
 				'primary'      => '#ff6b35',
 				'accent'       => '#0a0a0a',
@@ -85,12 +85,12 @@ class Hatch_Design_Loader {
 				'font_mono'    => 'JetBrains Mono',
 				'mode'         => 'auto',
 			),
-			'layout' => array(
+			'layout'    => array(
 				'density'   => 'comfortable',
 				'rounded'   => 'smooth',
 				'max_width' => '1080',
 			),
-			'voice' => array(
+			'voice'     => array(
 				'tone'     => 'professional',
 				'pronouns' => 'we',
 			),
@@ -103,7 +103,7 @@ class Hatch_Design_Loader {
 				'archive_excerpt'    => 'true',
 				'not_found_search'   => 'true',
 			),
-			'body' => '',
+			'body'      => '',
 		);
 	}
 
@@ -131,18 +131,30 @@ class Hatch_Design_Loader {
 
 		// Hard limit: 64 KB. Designs are tokens, not novels.
 		if ( strlen( $raw_md ) > 65536 ) {
-			return array( 'ok' => false, 'parsed' => array(), 'errors' => array( 'design.md exceeds 64 KB. Keep it tight.' ) );
+			return array(
+				'ok'     => false,
+				'parsed' => array(),
+				'errors' => array( 'design.md exceeds 64 KB. Keep it tight.' ),
+			);
 		}
 
 		$parsed = self::parse( $raw_md );
 		if ( ! empty( $parsed['errors'] ) ) {
-			return array( 'ok' => false, 'parsed' => $parsed['data'], 'errors' => $parsed['errors'] );
+			return array(
+				'ok'     => false,
+				'parsed' => $parsed['data'],
+				'errors' => $parsed['errors'],
+			);
 		}
 
 		update_option( self::OPTION_KEY, $raw_md, false );
 		update_option( self::OPTION_PARSED, $parsed['data'], false );
 
-		return array( 'ok' => true, 'parsed' => $parsed['data'], 'errors' => array() );
+		return array(
+			'ok'     => true,
+			'parsed' => $parsed['data'],
+			'errors' => array(),
+		);
 	}
 
 	/**
@@ -181,7 +193,7 @@ class Hatch_Design_Loader {
 
 		if ( preg_match( '/^---\s*\n(.*?)\n---\s*\n?(.*)$/s', $md, $m ) ) {
 			$front = $m[1];
-			$body  = isset( $m[2] ) ? trim( $m[2] ) : '';
+			$body  = trim( $m[2] );
 		} else {
 			// No frontmatter → treat the whole thing as body, run with defaults.
 			return array(
@@ -211,7 +223,10 @@ class Hatch_Design_Loader {
 		}
 
 		$data['body'] = $body;
-		return array( 'data' => $data, 'errors' => $errors );
+		return array(
+			'data'   => $data,
+			'errors' => $errors,
+		);
 	}
 
 	/**
@@ -286,18 +301,18 @@ class Hatch_Design_Loader {
 			return strtolower( $value );
 		}
 
-		// Font names — accept anything printable, single line, <= 60 chars.
+		// Font names - accept anything printable, single line, <= 60 chars.
 		if ( in_array( $dotted, array( 'brand.font_heading', 'brand.font_body', 'brand.font_mono' ), true ) ) {
 			$value = preg_replace( '/[^a-zA-Z0-9 _\-]/', '', $value );
 			return substr( trim( $value ), 0, 60 );
 		}
 
-		// Name — short string.
+		// Name - short string.
 		if ( 'brand.name' === $dotted ) {
 			return substr( sanitize_text_field( $value ), 0, 60 );
 		}
 
-		// Enum tokens — must match allowed list.
+		// Enum tokens - must match allowed list.
 		$allowed = self::allowed();
 		if ( isset( $allowed[ $dotted ] ) ) {
 			if ( ! in_array( $value, $allowed[ $dotted ], true ) ) {
@@ -332,16 +347,20 @@ class Hatch_Design_Loader {
 	 * ---------------------------------------------------------------- */
 
 	public static function register_routes(): void {
-		register_rest_route( HATCH_REST_NAMESPACE, '/design', array(
-			'methods'             => WP_REST_Server::READABLE,
-			'callback'            => array( __CLASS__, 'route_get_design' ),
-			'permission_callback' => '__return_true',
-		) );
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/design',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( __CLASS__, 'route_get_design' ),
+				'permission_callback' => '__return_true',
+			)
+		);
 	}
 
 	public static function route_get_design(): WP_REST_Response {
 		$d = self::get_design();
-		// Don't ship the body in the public endpoint — it's purely for the
+		// Don't ship the body in the public endpoint - it's purely for the
 		// admin/AI-rebuild flow, not the frontend renderer.
 		unset( $d['body'] );
 		return new WP_REST_Response( $d, 200 );

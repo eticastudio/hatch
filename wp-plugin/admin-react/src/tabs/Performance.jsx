@@ -1,25 +1,27 @@
 /**
- * Performance tab — tight, scannable copy.
+ * Performance tab.
  *
- * Voice rules:
- *   - Label: 3-5 words, noun phrase, scannable
- *   - Desc:  ONE sentence (≈15-22 words). Concrete benefit + why.
- *   - No "ON:/OFF:" prose — the toggle's state shows that visually.
- *   - Keep numbers where they matter (Lighthouse points, payload size).
+ * Copy rules:
+ *   - Label: 3 to 5 words, noun phrase.
+ *   - Description: one sentence that says what the setting does and why.
+ *   - The toggle shows the on/off state, so descriptions do not repeat it.
+ *   - No numeric claims that are not measured on the site.
  */
-import { HxCard, HxHead, HxRow, HxToggle, HxIcon, HxGL, HxBadge, HxBtn } from '../components.jsx';
+import { __, sprintf } from '@wordpress/i18n';
+import { HxCard, HxHead, HxRow, HxToggle, HxIcon } from '../components.jsx';
 
-const BLOAT_ITEMS = [
-	{ slug: 'emoji',          label: 'Emoji script',           desc: 'Removes wp-emoji-release.min.js + inline detector + s.w.org DNS-prefetch. Browsers render unicode natively.' },
-	{ slug: 'embed',          label: 'wp-embed.js',            desc: 'Dequeues the oEmbed provider script. Astro is not embedded in third-party sites.' },
-	{ slug: 'xmlrpc',         label: 'XML-RPC + pingbacks',    desc: 'Disables xmlrpc.php entirely and drops the RSD link + X-Pingback header. Closes a top brute-force vector.' },
-	{ slug: 'head_cruft',     label: 'Head discoverability tags', desc: 'Strips RSD, WLW manifest, wp_generator (version leak), shortlinks, adjacent-post links, feed discovery, and REST root link.' },
-	{ slug: 'block_css',      label: 'Block library CSS',      desc: 'Dequeues wp-block-library, block-library-theme, global-styles, classic-theme-styles from the WP frontend.' },
-	{ slug: 'jquery_migrate', label: 'jQuery Migrate (frontend)', desc: 'Deregisters jquery-migrate on the public frontend only. Admin keeps it for legacy plugin BC.' },
-	{ slug: 'oembed',         label: 'oEmbed discovery',       desc: 'Removes oEmbed discovery links + host JS + REST route. Zero use in a headless setup.' },
-	{ slug: 'rest_users',     label: 'REST /wp/v2/users lockdown', desc: 'Requires auth to list users. Stops anonymous author enumeration (top brute-force recon target).' },
-	{ slug: 'self_pingback',  label: 'Self-pingbacks',         desc: 'Prevents WP from pinging its own URLs when you publish internal links.' },
-	{ slug: 'feeds',          label: 'WP feeds → Astro feed',  desc: 'Redirects /feed and friends to your Astro /blog/rss.xml (or 410 if no frontend URL yet). Opt-in even with master ON.' },
+// The slug is the stored key. Only label and desc are shown to the user.
+const getBloatItems = () => [
+	{ slug: 'emoji',          label: __('Emoji script', 'hatch-bridge'),                desc: __('Removes the WordPress emoji script, its inline detector and the s.w.org DNS prefetch. Browsers draw emoji on their own.', 'hatch-bridge') },
+	{ slug: 'embed',          label: __('wp-embed script', 'hatch-bridge'),             desc: __('Removes the script that lets other sites embed your posts. Your Astro frontend is not embedded in third-party sites.', 'hatch-bridge') },
+	{ slug: 'xmlrpc',         label: __('XML-RPC and pingbacks', 'hatch-bridge'),       desc: __('Turns off xmlrpc.php and removes the RSD link and the X-Pingback header. XML-RPC is a common target for password guessing.', 'hatch-bridge') },
+	{ slug: 'head_cruft',     label: __('Extra tags in the page head', 'hatch-bridge'), desc: __('Removes the RSD link, WLW manifest, WordPress version tag, shortlinks, adjacent-post links, feed links and the REST API link.', 'hatch-bridge') },
+	{ slug: 'block_css',      label: __('Block library CSS', 'hatch-bridge'),           desc: __('Stops WordPress from loading its block library, global styles and classic theme styles on the WordPress site itself.', 'hatch-bridge') },
+	{ slug: 'jquery_migrate', label: __('jQuery Migrate (public pages)', 'hatch-bridge'), desc: __('Removes jQuery Migrate from public pages only. The admin keeps it so older plugins still work.', 'hatch-bridge') },
+	{ slug: 'oembed',         label: __('oEmbed discovery', 'hatch-bridge'),            desc: __('Removes the oEmbed discovery links, the host script and the oEmbed REST route. A headless site does not use them.', 'hatch-bridge') },
+	{ slug: 'rest_users',     label: __('Lock the users REST route', 'hatch-bridge'),   desc: __('Requires a login to list users through /wp/v2/users, so visitors cannot look up author names.', 'hatch-bridge') },
+	{ slug: 'self_pingback',  label: __('Self-pingbacks', 'hatch-bridge'),              desc: __('Stops WordPress from sending pingbacks to your own posts when you link between them.', 'hatch-bridge') },
+	{ slug: 'feeds',          label: __('WordPress feeds', 'hatch-bridge'),             desc: __('Sends /feed and related URLs to /blog/rss.xml on your Astro site. If no frontend URL is set, they return 410 Gone. This one stays off unless you turn it on.', 'hatch-bridge') },
 ];
 
 export default function Performance({ state, onDirty, setSetting }) {
@@ -28,16 +30,17 @@ export default function Performance({ state, onDirty, setSetting }) {
 	const bloat    = perf.bloat        || {};
 	const master   = !!perf.bloat_kill;
 	const onToggle = (path) => (v) => { setSetting(path, v); onDirty(); };
+	const bloatItems = getBloatItems();
 
 	const showSmartTip = !!snippets.gtm_id && !perf.partytown;
 
-	// Count killers currently active for the summary line.
-	const activeCount = BLOAT_ITEMS.filter(i => bloat[i.slug]).length;
+	// Count individual killers currently on, for the summary line.
+	const activeCount = bloatItems.filter((i) => bloat[i.slug]).length;
 
 	return (
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-			{/* ─── KILL WP BLOAT — one-click headless tune-up ─── */}
+			{/* Remove WordPress bloat: one switch for the headless tune-up. */}
 			<HxCard status={master ? 'success' : undefined}>
 				<HxHead
 					iconChildren={<>
@@ -46,37 +49,47 @@ export default function Performance({ state, onDirty, setSetting }) {
 						<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
 					</>}
 					iconColor="#ef4444"
-					title="Kill WordPress bloat"
-					desc="One switch: strip emoji script, wp-embed, XML-RPC, RSD/generator/shortlink tags, block-library CSS, jQuery Migrate, oEmbed discovery, self-pingbacks, and lock down /wp/v2/users. Safe for headless — WP frontend isn't shown to end users."
+					title={__('Remove WordPress bloat', 'hatch-bridge')}
+					desc={__('One switch that turns off the emoji script, wp-embed, XML-RPC, extra head tags, block library CSS, jQuery Migrate, oEmbed discovery and self-pingbacks, and locks the users REST route. Safe for a headless site, because visitors see your Astro frontend and not the WordPress theme.', 'hatch-bridge')}
 					mb={14}
 				/>
 
 				<HxRow
-					label="Kill bloat + harden origin"
+					label={__('Remove bloat and harden the origin', 'hatch-bridge')}
 					desc={master
-						? `${activeCount} bloat sources removed. Every WP page now ships less HTML, fewer requests, and no version leak.`
-						: 'Removes ~9 unnecessary head elements, 2–4 HTTP requests, and 40–60KB of block CSS on every WP-origin page.'}
+						? __('On. WordPress pages send less HTML, make fewer requests and no longer show the WordPress version.', 'hatch-bridge')
+						: __('Removes extra head tags, scripts and block CSS from pages served by WordPress itself.', 'hatch-bridge')}
 					last
 				>
-					<HxToggle on={master} onChange={onToggle('performance.bloat_kill')} ariaLabel="Kill WordPress bloat" />
+					<HxToggle on={master} onChange={onToggle('performance.bloat_kill')} ariaLabel={__('Remove WordPress bloat', 'hatch-bridge')} />
 				</HxRow>
 
 				<details style={{ marginTop: 14, borderTop: '1px solid var(--hx-border)', paddingTop: 12 }}>
 					<summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 500, color: 'var(--hx-muted)', userSelect: 'none' }}>
-						Advanced — pick individual killers
+						{__('Advanced: choose individual items', 'hatch-bridge')}
 					</summary>
 					<div style={{ marginTop: 10, opacity: master ? 0.55 : 1, pointerEvents: master ? 'none' : 'auto' }}>
 						{master && (
 							<div className="hx-desc" style={{ marginBottom: 8, fontSize: 12 }}>
-								Master switch is on — every safe killer is already active. Turn it off to pick a subset.
+								{__('The main switch is on, so every safe item is already active. Turn it off to choose a subset.', 'hatch-bridge')}
 							</div>
 						)}
-						{BLOAT_ITEMS.map((item, i) => (
+						{!master && activeCount > 0 && (
+							<div className="hx-desc" style={{ marginBottom: 8, fontSize: 12 }}>
+								{sprintf(
+									/* translators: 1: number of items turned on, 2: total number of items. */
+									__('%1$d of %2$d items are on.', 'hatch-bridge'),
+									activeCount,
+									bloatItems.length
+								)}
+							</div>
+						)}
+						{bloatItems.map((item, i) => (
 							<HxRow
 								key={item.slug}
 								label={item.label}
 								desc={item.desc}
-								last={i === BLOAT_ITEMS.length - 1}
+								last={i === bloatItems.length - 1}
 							>
 								<HxToggle
 									on={!!bloat[item.slug]}
@@ -89,45 +102,45 @@ export default function Performance({ state, onDirty, setSetting }) {
 				</details>
 			</HxCard>
 
-			{/* ─── LIVE — toggles that change frontend instantly ─── */}
+			{/* Live tuning: settings that change the frontend on the next page load. */}
 			<HxCard>
 				<HxHead
 					iconChildren={<>
 						<polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
 					</>}
 					iconColor="#10b981"
-					title="Live tuning"
-					desc="Every switch here takes effect on the next page load. No rebuild required."
+					title={__('Live tuning', 'hatch-bridge')}
+					desc={__('These settings apply on the next page load. No rebuild needed.', 'hatch-bridge')}
 					mb={14}
 				/>
 
 				<HxRow
-					label="Clean media URLs"
-					desc="Hides /wp-content/uploads in your HTML and auto-serves WebP/AVIF. Typically ~40% smaller images."
+					label={__('Clean media URLs', 'hatch-bridge')}
+					desc={__('Hides /wp-content/uploads in your page HTML and serves images in WebP or AVIF when the browser supports it.', 'hatch-bridge')}
 				>
-					<HxToggle on={!!perf.image_proxy} onChange={onToggle('performance.image_proxy')} />
+					<HxToggle on={!!perf.image_proxy} onChange={onToggle('performance.image_proxy')} ariaLabel={__('Clean media URLs', 'hatch-bridge')} />
 				</HxRow>
 
 				<HxRow
-					label="Instant navigation"
-					desc="Browser pre-renders the next page on hover. Click feels sub-100ms instead of 300–800ms."
+					label={__('Instant navigation', 'hatch-bridge')}
+					desc={__('The browser starts loading the next page when a visitor hovers over a link, so the click feels faster.', 'hatch-bridge')}
 				>
-					<HxToggle on={!!perf.prefetch_enabled} onChange={onToggle('performance.prefetch_enabled')} />
+					<HxToggle on={!!perf.prefetch_enabled} onChange={onToggle('performance.prefetch_enabled')} ariaLabel={__('Instant navigation', 'hatch-bridge')} />
 				</HxRow>
 
 				<HxRow
-					label="Analytics off main thread"
-					desc="Runs Google Tag Manager in a Web Worker. Typical Lighthouse Performance gain: 15–30 points."
+					label={__('Analytics off the main thread', 'hatch-bridge')}
+					desc={__('Runs Google Tag Manager in a web worker so it does not block the page while it loads.', 'hatch-bridge')}
 				>
-					<HxToggle on={!!perf.partytown} onChange={onToggle('performance.partytown')} />
+					<HxToggle on={!!perf.partytown} onChange={onToggle('performance.partytown')} ariaLabel={__('Analytics off the main thread', 'hatch-bridge')} />
 				</HxRow>
 
 				<HxRow
-					label="Real-user telemetry"
-					desc="Beams TTFB + LCP from real visitors so you spot regressions. Zero PII, ~200 bytes per pageview."
+					label={__('Real-visitor timing', 'hatch-bridge')}
+					desc={__('Sends page load timings (TTFB and LCP) from real visitors so you can spot slowdowns.', 'hatch-bridge')}
 					last
 				>
-					<HxToggle on={!!perf.telemetry} onChange={onToggle('performance.telemetry')} />
+					<HxToggle on={!!perf.telemetry} onChange={onToggle('performance.telemetry')} ariaLabel={__('Real-visitor timing', 'hatch-bridge')} />
 				</HxRow>
 			</HxCard>
 
@@ -140,24 +153,21 @@ export default function Performance({ state, onDirty, setSetting }) {
 							<line x1="12" y1="16" x2="12.01" y2="16" />
 						</HxIcon>
 						<div className="hx-desc" style={{ flex: 1, color: 'var(--hx-fg)' }}>
-							<strong>GTM is set, Partytown is off.</strong> Flip Partytown on for an instant Lighthouse boost.
+							<strong>{__('Google Tag Manager is set, but the web worker option is off.', 'hatch-bridge')}</strong>
+							{' '}
+							{__('Turn on "Analytics off the main thread" to keep it from blocking the page.', 'hatch-bridge')}
 						</div>
 						<button
 							type="button"
 							onClick={() => { setSetting('performance.partytown', true); onDirty(); }}
 							className="hx-help"
-							style={{ fontWeight: 600, color: 'var(--hx-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', paddingLeft: 8 }}
-						>Enable →</button>
+							style={{ fontWeight: 600, color: 'var(--hx-link)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', paddingInlineStart: 8 }}
+						>
+							{__('Turn on', 'hatch-bridge')}
+						</button>
 					</div>
 				</HxCard>
 			)}
-
-			{/* v0.50.31 — Auto-tuned card removed from UI. Per user direction:
-			    these always work best for headless WordPress, no user attention
-			    needed. SSR, HTML compression, Sharp on your own server, Constrained
-			    layout, and auto critical-CSS all stay locked in code; we just
-			    don't surface them as a "look at all the things you can't change"
-			    card. Less cognitive load on every visit. */}
 
 		</div>
 	);

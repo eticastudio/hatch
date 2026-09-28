@@ -7,15 +7,16 @@
 #
 # Why Workers and not Pages: CF Workers has a public 1-click deploy URL pattern
 # (deploy.workers.cloudflare.com), which lets users deploy from inside CF's own
-# UI — no API token paste, no broker build server in the loop. Pages has no
-# equivalent. Both run the same Astro SSR `_worker.js` bundle the @astrojs/
-# cloudflare adapter produces, so the build pipeline is unchanged.
+# UI — no API token paste, no broker build server in the loop. `astro build`
+# (Cloudflare adapter, the default build target) writes dist/client (static
+# assets) and dist/server (worker + generated wrangler.json), and leaves
+# .wrangler/deploy/config.json so `wrangler deploy` picks them up from here.
 
 name = "hatch-frontend"
-# main removed in v0.16.1 — @astrojs/cloudflare v14 uses @cloudflare/vite-plugin
-# which validates `main` at Vite-config-resolve time (before the build creates
-# the file). The adapter emits the worker entry itself and wires it in via the
-# plugin, so `main` here is redundant and breaks the build.
+# `main` is the adapter's unified entrypoint (Astro 6 / @astrojs/cloudflare v14
+# docs, "Changed: Wrangler entrypoint configuration"). It is a package specifier,
+# not a build artefact, so it resolves before and after `astro build`.
+main = "@astrojs/cloudflare/entrypoints/server"
 compatibility_date = "2025-09-01"
 compatibility_flags = [ "nodejs_compat" ]
 
@@ -25,12 +26,10 @@ compatibility_flags = [ "nodejs_compat" ]
 binding   = "ASSETS"
 directory = "./dist"
 
-# Environment variables. The deploy button prompts the user to fill these in
-# during the 1-click flow. Empty strings here are placeholders — the user
-# enters their actual WP credentials. All four are required for the SSR
-# frontend to fetch content from WordPress.
+# Environment variables. Only the non-sensitive WordPress URL is declared here,
+# as Cloudflare's Astro docs prescribe. Credentials must never live in this file:
+# WP_API_USER, WP_API_PASS and HATCH_WEBHOOK_SECRET are secrets, set with
+# `wrangler secret put <NAME>` (or supplied by the Hatch plugin deploy).
+# The deploy fills WP_API_URL in for you; never hard-code a site URL here.
 [vars]
-WP_API_URL           = ""
-WP_API_USER          = ""
-WP_API_PASS          = ""
-HATCH_WEBHOOK_SECRET = ""
+WP_API_URL = ""

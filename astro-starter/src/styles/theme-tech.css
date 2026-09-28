@@ -34,7 +34,7 @@
 	--hatch-bg-4:         #cfd5dd;
 
 	--hatch-fg-muted:     #3a414b;
-	--hatch-fg-subtle:    #6b727e;
+	--hatch-fg-subtle:    #5d6470;
 
 	--hatch-border:        #d8dde4;
 	--hatch-border-strong: #aab3bf;
@@ -50,13 +50,16 @@
 
 	--hatch-bg-2:       #11141a;
 	--hatch-bg-3:       #1a1f27;
-	--hatch-bg-4:       color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 22%, #000);
+	--hatch-bg-4:       color-mix(in oklab, var(--hatch-fg) 14%, var(--hatch-bg));
 
-	--hatch-fg-muted:   color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 60%, #000);
-	--hatch-fg-subtle:  color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 40%, #000);
+	/* Muted, subtle and border ramps are derived from FG mixed into BG.
+	   They were previously derived from BG mixed with black, which yields
+	   near-black text on a near-black page (contrast under 1.3:1). */
+	--hatch-fg-muted:   color-mix(in oklab, var(--hatch-fg) 72%, var(--hatch-bg));
+	--hatch-fg-subtle:  color-mix(in oklab, var(--hatch-fg) 56%, var(--hatch-bg));
 
-	--hatch-border:        color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 15%, #000);
-	--hatch-border-strong: color-mix(in oklab, var(--hatch-bg-design, #f7f8fa) 25%, #000);
+	--hatch-border:        color-mix(in oklab, var(--hatch-fg) 16%, var(--hatch-bg));
+	--hatch-border-strong: color-mix(in oklab, var(--hatch-fg) 28%, var(--hatch-bg));
 }
 
 /* === Base typography ============================================== */
@@ -109,7 +112,14 @@
 }
 
 [data-hatch-theme="tech"] .hatch-tech-nav {
-	display: inline-flex;
+	/* Unlayered rules beat Tailwind's `hidden lg:inline-flex`, so the breakpoint
+	   lives here: the inline nav shows from 1024px, the drawer below. */
+	display: none;
+}
+@media (min-width: 1024px) {
+	[data-hatch-theme="tech"] .hatch-tech-nav { display: inline-flex; }
+}
+[data-hatch-theme="tech"] .hatch-tech-nav {
 	gap: 0;
 	align-items: center;
 	font-size: 13px;
@@ -692,7 +702,7 @@
 	color: color-mix(in oklab, var(--hatch-fg) 55%, transparent);
 }
 [data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments button[type="submit"] {
-	color: var(--hatch-fg);
+	color: var(--hatch-primary-fg);
 	background: color-mix(in oklab, var(--hatch-primary) 85%, black);
 	border-color: var(--hatch-primary);
 }

@@ -1,6 +1,6 @@
 <?php
 /**
- * Hatch Menus Bridge — exposes registered WP nav menus to the frontend.
+ * Hatch Menus Bridge - exposes registered WP nav menus to the frontend.
  *
  * GET /hatch/v1/menus            → all registered locations with their assigned menu names
  * GET /hatch/v1/menus/{location} → flat item list for a specific nav menu location
@@ -27,8 +27,8 @@ class Hatch_Menus_Bridge {
 		if ( ! function_exists( 'register_nav_menu' ) ) {
 			return;
 		}
-		register_nav_menu( 'primary', __( 'Primary (site header)', 'hatch' ) );
-		register_nav_menu( 'footer',  __( 'Footer navigation', 'hatch' ) );
+		register_nav_menu( 'primary', __( 'Primary (site header)', 'hatch-bridge' ) );
+		register_nav_menu( 'footer', __( 'Footer navigation', 'hatch-bridge' ) );
 	}
 
 	/**
@@ -42,13 +42,13 @@ class Hatch_Menus_Bridge {
 		$result     = array();
 
 		foreach ( $registered as $slug => $name ) {
-			$menu_id = isset( $assigned[ $slug ] ) ? (int) $assigned[ $slug ] : 0;
-			$menu    = $menu_id ? wp_get_nav_menu_object( $menu_id ) : null;
+			$menu_id  = isset( $assigned[ $slug ] ) ? (int) $assigned[ $slug ] : 0;
+			$menu     = $menu_id ? wp_get_nav_menu_object( $menu_id ) : null;
 			$result[] = array(
 				'location' => $slug,
 				'name'     => $name,
-				'menu'     => ( $menu && ! is_wp_error( $menu ) ) ? $menu->name : null,
-				'menu_id'  => $menu_id ?: null,
+				'menu'     => $menu ? $menu->name : null,
+				'menu_id'  => $menu_id > 0 ? $menu_id : null,
 			);
 		}
 
@@ -67,7 +67,7 @@ class Hatch_Menus_Bridge {
 		$assigned = get_nav_menu_locations();
 		$menu_id  = isset( $assigned[ $location ] ) ? (int) $assigned[ $location ] : 0;
 
-		// v0.44 — Hatch override: user can pick a specific menu in the admin
+		// v0.44 - Hatch override: user can pick a specific menu in the admin
 		// (Connector → Menu) without having to assign locations in Appearance → Menus.
 		if ( 'primary' === $location ) {
 			$override = (int) get_option( 'hatch_menu_primary_id', 0 );
@@ -81,8 +81,8 @@ class Hatch_Menus_Bridge {
 			}
 		}
 
-		// v0.44 — fallback: if STILL no menu, auto-use the first menu that
-		// exists. Means "create a menu in WP and it just shows up" — no
+		// v0.44 - fallback: if STILL no menu, auto-use the first menu that
+		// exists. Means "create a menu in WP and it just shows up" - no
 		// Appearance → Menus → Manage Locations checkbox needed.
 		if ( ! $menu_id && in_array( $location, array( 'primary', 'footer' ), true ) ) {
 			$all_menus = wp_get_nav_menus();
@@ -96,18 +96,18 @@ class Hatch_Menus_Bridge {
 		}
 
 		$items = wp_get_nav_menu_items( $menu_id );
-		if ( ! $items || is_wp_error( $items ) ) {
+		if ( ! $items ) {
 			return array();
 		}
 
-		$wp_home          = home_url();
-		$wp_home_slash    = trailingslashit( $wp_home );
-		$wp_home_noslash  = untrailingslashit( $wp_home );
+		$wp_home         = home_url();
+		$wp_home_slash   = trailingslashit( $wp_home );
+		$wp_home_noslash = untrailingslashit( $wp_home );
 
 		$out = array();
 		foreach ( $items as $item ) {
 			$url = (string) $item->url;
-			// v0.7.4 — normalize away ANY host prefix, not just wp_home.
+			// v0.7.4 - normalize away ANY host prefix, not just wp_home.
 			// The url-rewrite mu-plugin can inject tunnel/public host via
 			// post_link filter, which breaks the home_url strip below.
 			// wp_make_link_relative safely converts //host/path → /path.

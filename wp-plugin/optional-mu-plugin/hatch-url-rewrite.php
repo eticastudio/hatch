@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Hatch — public URL rewriter (mu-plugin)
+ * Plugin Name: Hatch - public URL rewriter (mu-plugin)
  * Description: Rewrites localhost / private-IP media URLs to the Hatch
  *              frontend origin's `/hatch-media/` proxy so headless demos
  *              serve images correctly whether WP runs on a bare docker
@@ -11,7 +11,7 @@
  *
  * Auto-reads the frontend from `hatch_frontend_url` WP option (set by the
  * Hatch wizard); falls back to the `HATCH_PUBLIC_HOST` env var / constant.
- * Copy to `wp-content/mu-plugins/` — WordPress auto-loads mu-plugins, no
+ * Copy to `wp-content/mu-plugins/` - WordPress auto-loads mu-plugins, no
  * activation needed. Safe to leave installed in production: the filters
  * are no-ops until the option is populated.
  *
@@ -49,7 +49,7 @@ function hatch_mu_frontend_host(): string {
 
 	// Safety: if the "frontend" resolves to another private host, the
 	// rewrite would just swap one un-reachable URL for another and the
-	// browser would still 404. Bail — better to leave the original URL
+	// browser would still 404. Bail - better to leave the original URL
 	// than to leak `http://localhost:...` into a production render.
 	if ( '' !== $opt && preg_match( '#^https?://(localhost|127\.0\.0\.1|host\.docker\.internal)(:\d+)?$#i', $opt ) ) {
 		return '';
@@ -63,8 +63,8 @@ function hatch_mu_frontend_host(): string {
  * `/wp-content/uploads/` path is rewritten to
  * `<frontend>/hatch-media/<rest>`.
  *
- * Everything else — non-string values, empty strings, URLs that already
- * live on a public host — passes through unchanged.
+ * Everything else - non-string values, empty strings, URLs that already
+ * live on a public host - passes through unchanged.
  *
  * @param mixed $url
  * @return mixed
@@ -84,7 +84,7 @@ function hatch_mu_rewrite_url( $url ) {
 	);
 
 	// Non-uploads URLs from a stale host still get the host swapped so links
-	// stay clickable — permalinks, feed URLs, embed URLs, etc.
+	// stay clickable - permalinks, feed URLs, embed URLs, etc.
 	$url = preg_replace(
 		'#^https?://' . $stale_hosts . '#i',
 		$to,
@@ -112,7 +112,7 @@ add_filter( 'wp_calculate_image_srcset', function ( $sources ) use ( $hatch_mu_r
 	return $sources;
 }, 99 );
 
-// REST responses that expose the attachment `source_url` — the headless
+// REST responses that expose the attachment `source_url` - the headless
 // frontend reads featured images through this shape.
 add_filter( 'rest_prepare_attachment', function ( $response ) use ( $hatch_mu_rewrite ) {
 	if ( ! ( $response instanceof WP_REST_Response ) ) return $response;
@@ -129,7 +129,7 @@ add_filter( 'rest_prepare_attachment', function ( $response ) use ( $hatch_mu_re
 	return $response;
 }, 99 );
 
-// Sweep embedded stale hosts out of rendered post content — pre-existing
+// Sweep embedded stale hosts out of rendered post content - pre-existing
 // image tags in old posts still hardcode a localhost origin.
 add_filter( 'the_content', function ( $html ) use ( $hatch_mu_rewrite ) {
 	if ( ! is_string( $html ) || '' === $html ) return $html;

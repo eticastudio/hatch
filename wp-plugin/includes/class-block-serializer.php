@@ -1,10 +1,10 @@
 <?php
 /**
- * Block Serializer — turns a post's Gutenberg block tree into clean JSON
+ * Block Serializer - turns a post's Gutenberg block tree into clean JSON
  * for the Astro frontend to render with native components.
  *
  * Without this, headless frontends get `post.content.rendered` which is raw
- * HTML — a dump. The frontend has to set:html and loses:
+ * HTML - a dump. The frontend has to set:html and loses:
  *   - lazy-loaded images via Astro's <Image>
  *   - component-level hydration boundaries
  *   - design-system class consistency
@@ -100,27 +100,32 @@ class Hatch_Block_Serializer {
 		$post    = get_post( $id );
 
 		if ( ! $post instanceof WP_Post ) {
-			return new WP_Error( 'hatch_block_not_found', __( 'Post not found.', 'hatch' ), array( 'status' => 404 ) );
+			return new WP_Error( 'hatch_block_not_found', __( 'Post not found.', 'hatch-bridge' ), array( 'status' => 404 ) );
 		}
 
 		$public_statuses = array( 'publish' );
 		if ( 'edit' === $context ) {
 			// Edit context = require auth + cap.
 			if ( ! is_user_logged_in() ) {
-				return new WP_Error( 'hatch_block_auth_required', __( 'Authentication required.', 'hatch' ), array( 'status' => 401 ) );
+				return new WP_Error( 'hatch_block_auth_required', __( 'Authentication required.', 'hatch-bridge' ), array( 'status' => 401 ) );
 			}
 			return current_user_can( 'edit_post', $id );
 		}
 
 		// View context = post must be public.
 		if ( ! in_array( $post->post_status, $public_statuses, true ) ) {
-			return new WP_Error( 'hatch_block_not_public', __( 'Post is not public.', 'hatch' ), array( 'status' => 403 ) );
+			return new WP_Error( 'hatch_block_not_public', __( 'Post is not public.', 'hatch-bridge' ), array( 'status' => 403 ) );
+		}
+		// A password-protected post's blocks are its body: keep them from
+		// anyone who has not unlocked the post or cannot edit it.
+		if ( Hatch_Rest_Api::is_body_withheld( $post ) ) {
+			return new WP_Error( 'hatch_block_password_protected', __( 'This post is password protected.', 'hatch-bridge' ), array( 'status' => 403 ) );
 		}
 		return true;
 	}
 
 	/**
-	 * GET /post/{id}/blocks — returns the normalized block tree.
+	 * GET /post/{id}/blocks - returns the normalized block tree.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error
@@ -129,16 +134,16 @@ class Hatch_Block_Serializer {
 		$id   = (int) $request['id'];
 		$post = get_post( $id );
 		if ( ! $post instanceof WP_Post ) {
-			return new WP_Error( 'hatch_block_not_found', __( 'Post not found.', 'hatch' ), array( 'status' => 404 ) );
+			return new WP_Error( 'hatch_block_not_found', __( 'Post not found.', 'hatch-bridge' ), array( 'status' => 404 ) );
 		}
 
-		$raw    = (string) $post->post_content;
-		$tree   = self::serialize_content( $raw );
-		$meta   = array(
-			'id'         => $post->ID,
-			'slug'       => $post->post_name,
-			'title'      => get_the_title( $post ),
-			'modified'   => mysql_to_rfc3339( $post->post_modified_gmt ),
+		$raw  = (string) $post->post_content;
+		$tree = self::serialize_content( $raw );
+		$meta = array(
+			'id'          => $post->ID,
+			'slug'        => $post->post_name,
+			'title'       => get_the_title( $post ),
+			'modified'    => mysql_to_rfc3339( $post->post_modified_gmt ),
 			'block_count' => self::count_blocks( $tree ),
 		);
 
@@ -166,7 +171,7 @@ class Hatch_Block_Serializer {
 	 */
 	public static function serialize_content( string $content ): array {
 		if ( ! function_exists( 'parse_blocks' ) ) {
-			// Pre-5.0 fallback — no blocks; treat whole content as one classic block.
+			// Pre-5.0 fallback - no blocks; treat whole content as one classic block.
 			return array(
 				array(
 					'name'        => 'core/freeform',
@@ -200,15 +205,15 @@ class Hatch_Block_Serializer {
 				continue;
 			}
 
-			$name        = (string) ( $block['blockName'] ?? 'core/freeform' );
-			$attrs       = isset( $block['attrs'] ) && is_array( $block['attrs'] ) ? $block['attrs'] : array();
-			$inner_html  = isset( $block['innerHTML'] ) ? (string) $block['innerHTML'] : '';
+			$name         = (string) ( $block['blockName'] ?? 'core/freeform' );
+			$attrs        = isset( $block['attrs'] ) && is_array( $block['attrs'] ) ? $block['attrs'] : array();
+			$inner_html   = isset( $block['innerHTML'] ) ? (string) $block['innerHTML'] : '';
 			$inner_blocks = isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] )
 				? self::normalize_tree( $block['innerBlocks'], $depth + 1 )
 				: array();
 
 			// Run core's render filter for blocks that need server-side rendering
-			// (latest-posts, query-loop, shortcodes, etc) — we still pass the HTML.
+			// (latest-posts, query-loop, shortcodes, etc) - we still pass the HTML.
 			if ( '' !== $name && function_exists( 'render_block' ) && ! empty( $block['innerHTML'] ) ) {
 				// Only render dynamic blocks (those without static save). Static blocks
 				// already have correct HTML in innerHTML; rendering them is a no-op but
@@ -243,9 +248,9 @@ class Hatch_Block_Serializer {
 			return null;
 		}
 
-		// Allow filtering — themes/plugins can declare extra dynamic blocks.
+		// Allow filtering - themes/plugins can declare extra dynamic blocks.
 		$dynamic = apply_filters(
-			'hatch/dynamic_block_names',
+			'hatch_dynamic_block_names',
 			array(
 				'core/latest-posts',
 				'core/latest-comments',

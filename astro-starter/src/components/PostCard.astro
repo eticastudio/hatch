@@ -14,9 +14,13 @@ interface Props {
   variant?: 'default' | 'compact' | 'feature';
   /** Set false to hide excerpt in archive grids (design.md archive_excerpt: false). */
   showExcerpt?: boolean;
+  /** Heading level for the card title. Use 2 under a page H1, 3 under an H2 section. */
+  headingLevel?: 2 | 3;
 }
 
-const { post, variant = 'default', showExcerpt = true } = Astro.props;
+const { post, variant = 'default', showExcerpt = true, headingLevel = 3 } = Astro.props;
+const Title = `h${headingLevel}` as 'h2' | 'h3';
+const authorName = post.author?.name?.trim() || '';
 const features = await getFeatures();
 const href = `/blog/${post.slug}`;
 
@@ -61,10 +65,9 @@ const dateLabel = (() => {
       </h2>
       {showExcerpt && post.excerpt && <p class="mt-3 text-hatch-fg-muted line-clamp-2">{post.excerpt}</p>}
       <div class="mt-5 flex items-center gap-3 text-[13px] text-hatch-fg-subtle">
-        {post.author && <span>{post.author.name}</span>}
-        <span>·</span>
+        {authorName && <><span>{authorName}</span><span aria-hidden="true">·</span></>}
         <time datetime={post.publishedAt}>{dateLabel}</time>
-        {showRtPill && (<><span>·</span><span>{rtText(post.readMinutes)}</span></>)}
+        {showRtPill && (<><span aria-hidden="true">·</span><span>{rtText(post.readMinutes)}</span></>)}
       </div>
     </div>
   </a>
@@ -86,8 +89,8 @@ const dateLabel = (() => {
     </div>
   </a>
 ) : (
-  <a href={href} class="post-card group block">
-    <div class="aspect-[16/10] overflow-hidden rounded-lg bg-hatch-bg-3 mb-4">
+  <a href={href} class="post-card hatch-post-card group flex flex-col h-full">
+    <div class="hatch-post-card-media aspect-[16/10] overflow-hidden rounded-lg bg-hatch-bg-3 mb-4">
       {post.featuredImage ? (
         <HatchImage features={features} src={post.featuredImage} alt={post.featuredImageAlt || ''} width={800} height={500} class={`w-full h-full object-cover ${hoverClass}`} />
       ) : showFallback ? (
@@ -95,16 +98,16 @@ const dateLabel = (() => {
       ) : null}
     </div>
     {post.category && (
-      <span class="inline-block text-[11px] uppercase tracking-wider font-medium text-hatch-primary mb-2">{post.category}</span>
+      <span class="hatch-post-card-eyebrow inline-block self-start text-[11px] uppercase tracking-wider font-medium text-hatch-primary mb-2">{post.category}</span>
     )}
-    <h3 class="text-lg font-semibold leading-snug tracking-tight group-hover:text-hatch-primary transition-colors line-clamp-2">
+    <Title class="hatch-post-card-title text-lg font-semibold leading-snug tracking-tight group-hover:text-hatch-primary transition-colors line-clamp-2">
       {post.title}
-    </h3>
-    {showExcerpt && post.excerpt && <p class="mt-2 text-[14px] text-hatch-fg-muted line-clamp-2 leading-relaxed">{post.excerpt}</p>}
-    <div class="mt-3 flex items-center gap-2 text-[13px] text-hatch-fg-subtle">
-      {post.author && <><span>{post.author.name}</span><span>·</span></>}
+    </Title>
+    {showExcerpt && post.excerpt && <p class="hatch-post-card-excerpt mt-2 text-[14px] text-hatch-fg-muted line-clamp-2 leading-relaxed">{post.excerpt}</p>}
+    <div class="hatch-post-card-meta mt-auto pt-3 flex items-center gap-2 text-[13px] text-hatch-fg-subtle">
+      {authorName && <><span>{authorName}</span><span aria-hidden="true">·</span></>}
       <time datetime={post.publishedAt}>{dateLabel}</time>
-      {showRtPill && post.readMinutes > 0 && <><span>·</span><span>{rtText(post.readMinutes)}</span></>}
+      {showRtPill && post.readMinutes > 0 && <><span aria-hidden="true">·</span><span>{rtText(post.readMinutes)}</span></>}
     </div>
   </a>
 )}

@@ -34,6 +34,15 @@ export interface HatchHome {
   mode: 'posts' | 'page';
   static_page_slug: string;
   static_page_id: number;
+  /**
+   * WP Reading → "Posts page". NOT emitted by the current /hatch/v1/features
+   * route (Hatch_Features::route_features only sends mode, static_page_slug and
+   * static_page_id), so it is always absent today. Consumers treat absence as
+   * "no posts page assigned" (see archiveUrl() in url-builder.ts).
+   */
+  posts_page_id?: number;
+  /** Slug of the Posts page. Absent under the same conditions as posts_page_id. */
+  posts_page_slug?: string;
 }
 
 export interface HatchCpt {
@@ -112,6 +121,13 @@ export interface HatchDesign {
     archive_excerpt: 'true' | 'false';
     not_found_search: 'true' | 'false';
   };
+  /**
+   * v0.50.20 — hydrated from hatch_design_borders by Hatch_Features::route_features.
+   * Absent on the client-side fallback; designToCssVars() supplies the same defaults.
+   */
+  borders?: { color: string; shadow: string };
+  /** v0.50.20 — hydrated from hatch_design_breakpoints (px). Absent on the fallback. */
+  breakpoints?: { mobile: number; tablet: number; desktop: number };
 }
 
 // v0.50.15 — Aesthetic option groups exposed by /hatch/v1/features.
@@ -153,7 +169,20 @@ export interface HatchAesthetic {
     show_hero: boolean; show_topics: boolean;
   };
   post_navigation: { related_count: number; related_source: 'category' | 'tags' | 'mixed'; };
+  /** Not emitted by the current WP route; see HatchSidebarWidget. */
+  sidebar?: { position: 'left' | 'right' | 'none'; widgets: HatchSidebarWidget[] };
 }
+
+/**
+ * Sidebar widget config, read by components/Sidebar.astro. NOT emitted by the
+ * current /hatch/v1/features route, so `aesthetic.sidebar` is always absent
+ * today and Sidebar.astro falls back to the caller's defaultWidgets.
+ */
+export type HatchSidebarWidget =
+  | { type: 'categories'; title?: string }
+  | { type: 'recent_posts'; title?: string; count?: number }
+  | { type: 'tags'; title?: string; max?: number }
+  | { type: 'custom_html'; title?: string; html?: string };
 
 /** v0.50.31 — Runtime perf controls honored by PageLayout + middleware. */
 export interface HatchPerf {
@@ -325,8 +354,8 @@ export async function getFeatures(): Promise<HatchFeatures> {
             templates:   { ...DESIGN_FALLBACK.templates, ...(data.design.templates || {}) },
             // v0.50.20 — preserve borders + breakpoints so designToCssVars()
             // can emit --hatch-border-color, --hatch-shadow, --hatch-bp-*.
-            borders:     { color: '#e5e5e5', shadow: 'soft',                 ...((data.design as any).borders     || {}) },
-            breakpoints: { mobile: 640, tablet: 1024, desktop: 1280,         ...((data.design as any).breakpoints || {}) },
+            borders:     { color: '#e5e5e5', shadow: 'soft',                 ...(data.design.borders     || {}) },
+            breakpoints: { mobile: 640, tablet: 1024, desktop: 1280,         ...(data.design.breakpoints || {}) },
           }
         : DESIGN_FALLBACK,
       aesthetic: {
@@ -440,6 +469,9 @@ export function imgSrc(
  * URLs (idempotent).
  */
 export function rewriteContentImages(html: string, features: HatchFeatures, maxWidth = 1200): string {
+  // The page template already renders the title as the one H1, so any H1 an
+  // author put inside the body is demoted to H2 (keeps one H1 and no heading skips).
+  if (html) html = html.replace(/<h1\b/gi, '<h2').replace(/<\/h1>/gi, '</h2>');
   const proxy = features.image_proxy_url?.trim();
   if (!proxy || !html) return html;
   const proxyHost = proxy.replace(/\/$/, '');

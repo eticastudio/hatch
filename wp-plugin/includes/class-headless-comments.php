@@ -1,6 +1,6 @@
 <?php
 /**
- * Hatch Headless Comments — minimal REST endpoint for the Astro frontend to
+ * Hatch Headless Comments - minimal REST endpoint for the Astro frontend to
  * post comments back to WP without bouncing the user through wp-comments-post.
  *
  *  - GET  /hatch/v1/comments?post={id}   → flat tree of approved comments
@@ -24,75 +24,110 @@ class Hatch_Headless_Comments {
 	const RATE_WINDOW = 300;
 
 	public static function register_routes(): void {
-		// v0.50.13 — gated by the Content tab "Enable headless comments"
+		// v0.50.13 - gated by the Content tab "Enable headless comments"
 		// toggle. If off, route does not register and the frontend component
 		// falls back to "comments disabled".
 		$flags = (array) get_option( 'hatch_content_flags', array() );
 		if ( isset( $flags['comments_enabled'] ) && ! $flags['comments_enabled'] ) {
 			return;
 		}
-		register_rest_route( HATCH_REST_NAMESPACE, '/comments', array(
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/comments',
 			array(
-				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( __CLASS__, 'route_list' ),
-				'permission_callback' => '__return_true',
-				'args'                => array(
-					'post' => array( 'type' => 'integer', 'required' => true ),
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( __CLASS__, 'route_list' ),
+					'permission_callback' => '__return_true',
+					'args'                => array(
+						'post' => array(
+							'type'     => 'integer',
+							'required' => true,
+						),
+					),
 				),
-			),
-			array(
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( __CLASS__, 'route_submit' ),
-				'permission_callback' => '__return_true',
-			),
-		) );
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( __CLASS__, 'route_submit' ),
+					'permission_callback' => '__return_true',
+				),
+			)
+		);
 	}
 
 	public static function route_list( WP_REST_Request $req ): WP_REST_Response {
 		$post_id = (int) $req->get_param( 'post' );
 		if ( $post_id <= 0 ) {
-			return new WP_REST_Response( array( 'comments' => array(), 'count' => 0 ), 200 );
-		}
-		$comments = get_comments( array(
-			'post_id' => $post_id,
-			'status'  => 'approve',
-			'orderby' => 'comment_date_gmt',
-			'order'   => 'ASC',
-			'number'  => 200,
-		) );
-		$out = array();
-		foreach ( $comments as $c ) {
-			$out[] = array(
-				'id'         => (int) $c->comment_ID,
-				'parent'     => (int) $c->comment_parent,
-				'author'     => $c->comment_author,
-				'avatar'     => get_avatar_url( $c, array( 'size' => 64 ) ),
-				'date_gmt'   => mysql_to_rfc3339( $c->comment_date_gmt ),
-				'content'    => apply_filters( 'comment_text', $c->comment_content, $c ),
-				'is_author'  => ( (int) $c->user_id > 0 ) && user_can( (int) $c->user_id, 'edit_posts' ),
+			return new WP_REST_Response(
+				array(
+					'comments' => array(),
+					'count'    => 0,
+				),
+				200
 			);
 		}
-		return new WP_REST_Response( array( 'comments' => $out, 'count' => count( $out ) ), 200 );
+		$target = get_post( $post_id );
+		$pto    = $target ? get_post_type_object( $target->post_type ) : null;
+		if ( ! $target || 'publish' !== $target->post_status || ! $pto || empty( $pto->public ) || Hatch_Rest_Api::is_body_withheld( $target ) ) {
+			return new WP_REST_Response(
+				array(
+					'comments' => array(),
+					'count'    => 0,
+				),
+				200
+			);
+		}
+		$comments = get_comments(
+			array(
+				'post_id' => $post_id,
+				'status'  => 'approve',
+				'orderby' => 'comment_date_gmt',
+				'order'   => 'ASC',
+				'number'  => 200,
+			)
+		);
+		$out      = array();
+		foreach ( $comments as $c ) {
+			$out[] = array(
+				'id'        => (int) $c->comment_ID,
+				'parent'    => (int) $c->comment_parent,
+				'author'    => $c->comment_author,
+				'avatar'    => get_avatar_url( $c, array( 'size' => 64 ) ),
+				'date_gmt'  => mysql_to_rfc3339( $c->comment_date_gmt ),
+				'content'   => apply_filters( 'comment_text', $c->comment_content, $c ), // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core filter.
+				'is_author' => ( (int) $c->user_id > 0 ) && user_can( (int) $c->user_id, 'edit_posts' ),
+			);
+		}
+		return new WP_REST_Response(
+			array(
+				'comments' => $out,
+				'count'    => count( $out ),
+			),
+			200
+		);
 	}
 
 	public static function route_submit( WP_REST_Request $req ) {
 		$cfg = Hatch_Integrations::get_all()['comments'];
 		if ( ! $cfg['enabled'] ) {
-			return self::field_error( 'hatch_comments_disabled', __( 'Comments are disabled.', 'hatch' ), 403 );
+			return self::field_error( 'hatch_comments_disabled', __( 'Comments are disabled.', 'hatch-bridge' ), 403 );
 		}
 
 		// Honeypot: bots fill everything. Real humans never touch a hidden field.
 		$honey = trim( (string) $req->get_param( 'hatch_hp' ) );
-		if ( $honey !== '' ) {
+		if ( '' !== $honey ) {
 			// Silently accept-and-drop to avoid teaching spammers what tripped.
-			return new WP_REST_Response( array(
-				'ok'         => true,
-				'comment_id' => 0,
-				'status'     => 'pending',
-				'id'         => 0,
-				'approved'   => false,
-				'message'    => __( 'Thanks — your comment is awaiting moderation.', 'hatch' ),
-			), 201 );
+			return new WP_REST_Response(
+				array(
+					'ok'         => true,
+					'comment_id' => 0,
+					'status'     => 'pending',
+					'id'         => 0,
+					'approved'   => false,
+					'message'    => __( 'Thanks - your comment is awaiting moderation.', 'hatch-bridge' ),
+				),
+				201
+			);
 		}
 
 		// Per-IP rate limit: 3 submissions per 5 minutes.
@@ -102,7 +137,7 @@ class Hatch_Headless_Comments {
 		if ( $count >= self::RATE_LIMIT ) {
 			return self::field_error(
 				'hatch_rate_limited',
-				__( 'You are commenting too quickly. Please wait a few minutes and try again.', 'hatch' ),
+				__( 'You are commenting too quickly. Please wait a few minutes and try again.', 'hatch-bridge' ),
 				429
 			);
 		}
@@ -120,36 +155,48 @@ class Hatch_Headless_Comments {
 
 		$field_errors = array();
 		if ( $post_id <= 0 || ! get_post( $post_id ) ) {
-			return self::field_error( 'hatch_invalid_post', __( 'Invalid post.', 'hatch' ), 400, 'post' );
+			return self::field_error( 'hatch_invalid_post', __( 'Invalid post.', 'hatch-bridge' ), 400, 'post' );
 		}
 		if ( 'publish' !== get_post_status( $post_id ) ) {
-			return self::field_error( 'hatch_invalid_post', __( 'Post is not published.', 'hatch' ), 400, 'post' );
+			return self::field_error( 'hatch_invalid_post', __( 'Post is not published.', 'hatch-bridge' ), 400, 'post' );
+		}
+		if ( post_password_required( $post_id ) ) {
+			return self::field_error( 'hatch_invalid_post', __( 'Post is password protected.', 'hatch-bridge' ), 403, 'post' );
+		}
+		if ( $parent > 0 ) {
+			$parent_comment = get_comment( $parent );
+			if ( ! $parent_comment || (int) $parent_comment->comment_post_ID !== $post_id ) {
+				$parent = 0;
+			}
 		}
 		if ( ! comments_open( $post_id ) ) {
-			return self::field_error( 'hatch_comments_closed', __( 'Comments are closed on this post.', 'hatch' ), 403 );
+			return self::field_error( 'hatch_comments_closed', __( 'Comments are closed on this post.', 'hatch-bridge' ), 403 );
 		}
-		if ( $author === '' ) {
-			$field_errors['author'] = __( 'Name is required.', 'hatch' );
+		if ( '' === $author ) {
+			$field_errors['author'] = __( 'Name is required.', 'hatch-bridge' );
 		}
 		if ( ! is_email( $email ) ) {
-			$field_errors['email'] = __( 'A valid email is required.', 'hatch' );
+			$field_errors['email'] = __( 'A valid email is required.', 'hatch-bridge' );
 		}
 		if ( strlen( trim( wp_strip_all_tags( $content ) ) ) < 3 ) {
-			$field_errors['content'] = __( 'Please write a longer comment.', 'hatch' );
+			$field_errors['content'] = __( 'Please write a longer comment.', 'hatch-bridge' );
 		}
 		if ( ! empty( $field_errors ) ) {
-			return new WP_REST_Response( array(
-				'ok'           => false,
-				'code'         => 'hatch_invalid_fields',
-				'message'      => __( 'Please fix the highlighted fields.', 'hatch' ),
-				'field_errors' => $field_errors,
-			), 400 );
+			return new WP_REST_Response(
+				array(
+					'ok'           => false,
+					'code'         => 'hatch_invalid_fields',
+					'message'      => __( 'Please fix the highlighted fields.', 'hatch-bridge' ),
+					'field_errors' => $field_errors,
+				),
+				400
+			);
 		}
 
 		if ( ! empty( $cfg['turnstile'] ) ) {
 			$ok = Hatch_Integrations::verify_turnstile( $token, $ip );
 			if ( ! $ok ) {
-				return self::field_error( 'hatch_turnstile', __( 'Anti-spam challenge failed. Try again.', 'hatch' ), 400 );
+				return self::field_error( 'hatch_turnstile', __( 'Anti-spam challenge failed. Try again.', 'hatch-bridge' ), 400 );
 			}
 		}
 
@@ -162,9 +209,12 @@ class Hatch_Headless_Comments {
 
 		// Temporarily force moderation flag onto the pipeline via filter if
 		// the admin toggle asked for it but WP core option is off.
-		$filter_added = false;
+		$filter_added  = false;
+		$force_pending = null;
 		if ( $moderate && ! (int) get_option( 'comment_moderation' ) ) {
-			$force_pending = function ( $approved ) { return 0; };
+			$force_pending = function () {
+				return 0;
+			};
 			add_filter( 'pre_comment_approved', $force_pending, 20 );
 			$filter_added = true;
 		}
@@ -182,7 +232,7 @@ class Hatch_Headless_Comments {
 
 		$comment = wp_new_comment( $commentdata, true );
 
-		if ( $filter_added && isset( $force_pending ) ) {
+		if ( $filter_added && $force_pending instanceof Closure ) {
 			remove_filter( 'pre_comment_approved', $force_pending, 20 );
 		}
 
@@ -197,16 +247,16 @@ class Hatch_Headless_Comments {
 				set_transient( $rate_k, self::RATE_LIMIT, self::RATE_WINDOW );
 				return self::field_error(
 					'hatch_rate_limited',
-					__( 'You are commenting too quickly. Please wait a few minutes and try again.', 'hatch' ),
+					__( 'You are commenting too quickly. Please wait a few minutes and try again.', 'hatch-bridge' ),
 					429
 				);
 			}
-			return self::field_error( 'hatch_insert_failed', $msg ?: __( 'Could not save comment.', 'hatch' ), 400 );
+			return self::field_error( 'hatch_insert_failed', '' !== (string) $msg ? $msg : __( 'Could not save comment.', 'hatch-bridge' ), 400 );
 		}
 
 		$comment_id = (int) $comment;
 		if ( $comment_id <= 0 ) {
-			return self::field_error( 'hatch_insert_failed', __( 'Could not save comment.', 'hatch' ), 500 );
+			return self::field_error( 'hatch_insert_failed', __( 'Could not save comment.', 'hatch-bridge' ), 500 );
 		}
 
 		$status_str = wp_get_comment_status( $comment_id );
@@ -217,19 +267,22 @@ class Hatch_Headless_Comments {
 		// not count against the limit (fixing a typo should not lock you out).
 		set_transient( $rate_k, $count + 1, self::RATE_WINDOW );
 
-		return new WP_REST_Response( array(
-			'ok'         => true,
-			'comment_id' => $comment_id,
-			'status'     => $status_out,
-			// Legacy keys the current frontend script reads. Kept alongside
-			// the new keys so we do not break the deployed page while the
-			// component upgrades.
-			'id'         => $comment_id,
-			'approved'   => $approved,
-			'message'    => $approved
-				? __( 'Comment posted.', 'hatch' )
-				: __( 'Held for moderation.', 'hatch' ),
-		), 201 );
+		return new WP_REST_Response(
+			array(
+				'ok'         => true,
+				'comment_id' => $comment_id,
+				'status'     => $status_out,
+				// Legacy keys the current frontend script reads. Kept alongside
+				// the new keys so we do not break the deployed page while the
+				// component upgrades.
+				'id'         => $comment_id,
+				'approved'   => $approved,
+				'message'    => $approved
+					? __( 'Comment posted.', 'hatch-bridge' )
+					: __( 'Held for moderation.', 'hatch-bridge' ),
+			),
+			201
+		);
 	}
 
 	private static function field_error( string $code, string $message, int $status, string $field = '' ): WP_REST_Response {
@@ -238,20 +291,14 @@ class Hatch_Headless_Comments {
 			'code'    => $code,
 			'message' => $message,
 		);
-		if ( $field !== '' ) {
+		if ( '' !== $field ) {
 			$body['field_errors'] = array( $field => $message );
 		}
 		return new WP_REST_Response( $body, $status );
 	}
 
 	private static function ip(): string {
-		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : '';
-		if ( isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
-			$ip = (string) $_SERVER['HTTP_CF_CONNECTING_IP'];
-		} elseif ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-			$ip = trim( explode( ',', (string) $_SERVER['HTTP_X_FORWARDED_FOR'] )[0] );
-		}
-		return preg_replace( '/[^0-9a-fA-F:\.]/', '', $ip ) ?? '';
+		return Hatch_Auth::client_ip();
 	}
 }
 

@@ -67,7 +67,7 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
       </div>
     ) : (
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-7 gap-y-12">
-        {posts.map((post) => <PostCard post={post} />)}
+        {posts.map((post) => <PostCard post={post} headingLevel={2} />)}
       </div>
     )}
 

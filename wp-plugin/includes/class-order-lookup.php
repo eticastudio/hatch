@@ -25,35 +25,37 @@ class Hatch_Order_Lookup {
 	const RATE_LIMIT_MAX    = 10;
 	const RATE_LIMIT_WINDOW = 60; // seconds
 
+	/**
+	 * Failed-key limit per order id, across all IPs, so a spread-out guesser
+	 * cannot work one order from many addresses.
+	 */
+	const ORDER_FAIL_MAX    = 10;
+	const ORDER_FAIL_WINDOW = 900; // seconds
+
 	public static function boot(): void {
 		add_action( 'rest_api_init', array( __CLASS__, 'register_routes' ) );
 	}
 
 	/**
-	 * Best-effort client IP. Prefers CF-Connecting-IP (Cloudflare) then the
-	 * first entry of X-Forwarded-For, then REMOTE_ADDR. Returns 'unknown'
-	 * if nothing usable so we still rate-limit anonymous callers together
-	 * rather than opening a bypass.
+	 * Client IP used for rate limiting.
+	 *
+	 * The direct peer (REMOTE_ADDR) unless the site owner has switched on the
+	 * `hatch_trust_cf_ip` option and the request arrives from a Cloudflare
+	 * edge, in which case Hatch_Auth::client_ip() reads the forwarded address.
+	 * Proxy headers are never read from an untrusted peer, so a caller cannot
+	 * pick its own rate-limit bucket. Returns "unknown" when nothing usable is
+	 * present so anonymous callers share one bucket instead of bypassing the limit.
+	 *
+	 * @return string
 	 */
 	protected static function client_ip(): string {
-		$candidates = array(
-			isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ? (string) $_SERVER['HTTP_CF_CONNECTING_IP'] : '',
-			isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ? (string) $_SERVER['HTTP_X_FORWARDED_FOR'] : '',
-			isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : '',
-		);
-		foreach ( $candidates as $raw ) {
-			$raw = trim( $raw );
-			if ( '' === $raw ) {
-				continue;
-			}
-			// XFF may be a comma chain "client, proxy1, proxy2"; take first.
-			$first = trim( strtok( $raw, ',' ) );
-			$ip    = filter_var( $first, FILTER_VALIDATE_IP );
-			if ( $ip ) {
-				return $ip;
-			}
+		if ( class_exists( 'Hatch_Auth' ) ) {
+			$ip = Hatch_Auth::client_ip();
+		} else {
+			$ip = Hatch_Request::server( 'REMOTE_ADDR' );
 		}
-		return 'unknown';
+		$valid = filter_var( trim( $ip ), FILTER_VALIDATE_IP );
+		return $valid ? (string) $valid : 'unknown';
 	}
 
 	/**
@@ -74,6 +76,27 @@ class Hatch_Order_Lookup {
 		return false;
 	}
 
+	/**
+	 * Has this order id collected too many wrong keys in the current window?
+	 *
+	 * @param int $order_id Order id.
+	 * @return bool
+	 */
+	protected static function order_locked( int $order_id ): bool {
+		return (int) get_transient( 'hatch_ol_id_' . $order_id ) >= self::ORDER_FAIL_MAX;
+	}
+
+	/**
+	 * Record one wrong-key attempt against an order id.
+	 *
+	 * @param int $order_id Order id.
+	 * @return void
+	 */
+	protected static function note_failed_key( int $order_id ): void {
+		$key = 'hatch_ol_id_' . $order_id;
+		set_transient( $key, (int) get_transient( $key ) + 1, self::ORDER_FAIL_WINDOW );
+	}
+
 	public static function register_routes(): void {
 		register_rest_route(
 			'hatch/v1',
@@ -83,8 +106,14 @@ class Hatch_Order_Lookup {
 				'callback'            => array( __CLASS__, 'get_order' ),
 				'permission_callback' => '__return_true',
 				'args'                => array(
-					'id'  => array( 'required' => true, 'sanitize_callback' => 'absint' ),
-					'key' => array( 'required' => true, 'sanitize_callback' => 'sanitize_text_field' ),
+					'id'  => array(
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+					),
+					'key' => array(
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
 				),
 			)
 		);
@@ -92,7 +121,7 @@ class Hatch_Order_Lookup {
 
 	public static function get_order( WP_REST_Request $req ) {
 		if ( ! function_exists( 'wc_get_order' ) ) {
-			return new WP_Error( 'hatch_woo_missing', esc_html__( 'WooCommerce not active', 'hatch' ), array( 'status' => 500 ) );
+			return new WP_Error( 'hatch_woo_missing', esc_html__( 'WooCommerce not active', 'hatch-bridge' ), array( 'status' => 500 ) );
 		}
 
 		// Rate-limit BEFORE any DB work so an abuser cannot cheaply enumerate
@@ -101,7 +130,7 @@ class Hatch_Order_Lookup {
 		if ( self::is_rate_limited( $ip ) ) {
 			return new WP_Error(
 				'hatch_rate_limited',
-				esc_html__( 'Too many requests. Try again in a minute.', 'hatch' ),
+				esc_html__( 'Too many requests. Try again in a minute.', 'hatch-bridge' ),
 				array( 'status' => 429 )
 			);
 		}
@@ -109,7 +138,15 @@ class Hatch_Order_Lookup {
 		$id  = (int) $req->get_param( 'id' );
 		$key = (string) $req->get_param( 'key' );
 		if ( $id <= 0 || '' === $key ) {
-			return new WP_Error( 'hatch_bad_request', esc_html__( 'Missing id or key', 'hatch' ), array( 'status' => 400 ) );
+			return new WP_Error( 'hatch_bad_request', esc_html__( 'Missing id or key', 'hatch-bridge' ), array( 'status' => 400 ) );
+		}
+
+		if ( self::order_locked( $id ) ) {
+			return new WP_Error(
+				'hatch_rate_limited',
+				esc_html__( 'Too many requests. Try again in a few minutes.', 'hatch-bridge' ),
+				array( 'status' => 429 )
+			);
 		}
 
 		$order = wc_get_order( $id );
@@ -117,7 +154,8 @@ class Hatch_Order_Lookup {
 		// so an attacker cannot map which order IDs exist by watching 401 vs 404.
 		// hash_equals runs when order exists so the branch stays timing-safe.
 		if ( ! $order || ! hash_equals( (string) $order->get_order_key(), $key ) ) {
-			return new WP_Error( 'hatch_not_found', esc_html__( 'Order not found', 'hatch' ), array( 'status' => 404 ) );
+			self::note_failed_key( $id );
+			return new WP_Error( 'hatch_not_found', esc_html__( 'Order not found', 'hatch-bridge' ), array( 'status' => 404 ) );
 		}
 
 		$items = array();
@@ -132,24 +170,26 @@ class Hatch_Order_Lookup {
 		$currency = $order->get_currency();
 		$sym      = get_woocommerce_currency_symbol( $currency );
 
-		return rest_ensure_response( array(
-			'id'           => $order->get_id(),
-			'order_number' => (string) $order->get_order_number(),
-			'status'       => (string) $order->get_status(),
-			'created_at'   => $order->get_date_created() ? $order->get_date_created()->date( 'c' ) : '',
-			'items'        => $items,
-			'totals'       => array(
-				'currency_code'        => $currency,
-				'currency_symbol'      => $sym,
-				'currency_minor_unit'  => wc_get_price_decimals(),
-				'subtotal'             => wc_format_decimal( $order->get_subtotal(), 2 ),
-				'shipping'             => wc_format_decimal( $order->get_shipping_total(), 2 ),
-				'tax'                  => wc_format_decimal( $order->get_total_tax(), 2 ),
-				'total'                => wc_format_decimal( $order->get_total(), 2 ),
-			),
-			'billing_address'  => $order->get_address( 'billing' ),
-			'shipping_address' => $order->get_address( 'shipping' ),
-			'payment_method'   => (string) $order->get_payment_method_title(),
-		) );
+		return rest_ensure_response(
+			array(
+				'id'               => $order->get_id(),
+				'order_number'     => (string) $order->get_order_number(),
+				'status'           => (string) $order->get_status(),
+				'created_at'       => $order->get_date_created() ? $order->get_date_created()->date( 'c' ) : '',
+				'items'            => $items,
+				'totals'           => array(
+					'currency_code'       => $currency,
+					'currency_symbol'     => $sym,
+					'currency_minor_unit' => wc_get_price_decimals(),
+					'subtotal'            => wc_format_decimal( $order->get_subtotal(), 2 ),
+					'shipping'            => wc_format_decimal( $order->get_shipping_total(), 2 ),
+					'tax'                 => wc_format_decimal( $order->get_total_tax(), 2 ),
+					'total'               => wc_format_decimal( $order->get_total(), 2 ),
+				),
+				'billing_address'  => $order->get_address( 'billing' ),
+				'shipping_address' => $order->get_address( 'shipping' ),
+				'payment_method'   => (string) $order->get_payment_method_title(),
+			)
+		);
 	}
 }

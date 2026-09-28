@@ -34,7 +34,7 @@ const footerItems = menuItems.filter((item) => item.parent === 0).sort((a, b) =>
 const fallbackLinks: { href: string; label: string; target: string }[] = [
   { href: '/', label: 'Home', target: '' },
 ];
-if (features.home.posts_page_id > 0 && features.home.posts_page_slug) {
+if ((features.home.posts_page_id ?? 0) > 0 && features.home.posts_page_slug) {
   const slug = features.home.posts_page_slug;
   fallbackLinks.push({
     href: '/' + slug,

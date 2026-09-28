@@ -1,12 +1,12 @@
 <?php
 /**
- * Hatch Admin Quiet Mode — suppresses third-party admin notices ONLY on
+ * Hatch Admin Quiet Mode - suppresses third-party admin notices ONLY on
  * Hatch's own admin screens (?page=hatch* + hatch-setup).
  *
  * WordPress plugins have a long-standing habit of nagging on every wp-admin
  * page: SEO conflict warnings, plugin setup reminders, review requests,
  * Action Scheduler past-due nags. They bleed into every screenshot and every
- * demo recording. This class strips them, but ONLY on Hatch pages — every
+ * demo recording. This class strips them, but ONLY on Hatch pages - every
  * other wp-admin page (Plugins, Settings, Yoast/RankMath config pages) still
  * shows notices normally, so users don't miss actionable warnings.
  *
@@ -58,7 +58,7 @@ class Hatch_Admin_Quiet {
 		if ( empty( $wp_filter[ $hook ] ) || ! is_object( $wp_filter[ $hook ] ) ) {
 			return;
 		}
-		// Collect first, then remove — never mutate the array we're iterating.
+		// Collect first, then remove - never mutate the array we're iterating.
 		$to_remove = array();
 		foreach ( $wp_filter[ $hook ]->callbacks as $priority => $callbacks ) {
 			foreach ( $callbacks as $id => $cb ) {
@@ -79,16 +79,16 @@ class Hatch_Admin_Quiet {
 	 * Action Scheduler, WPForms review nag, ACF prompts, WooCommerce
 	 * upgrade banners) gets stripped for this request only.
 	 */
-	private static function is_hatch_callback( $fn ): bool {
-		if ( is_string( $fn ) ) {
-			return 0 === stripos( $fn, 'hatch_' ) || 0 === stripos( $fn, 'Hatch_' );
+	private static function is_hatch_callback( $callback ): bool {
+		if ( is_string( $callback ) ) {
+			return 0 === stripos( $callback, 'hatch_' ) || 0 === stripos( $callback, 'Hatch_' );
 		}
-		if ( is_array( $fn ) && ! empty( $fn[0] ) ) {
-			$class = is_object( $fn[0] ) ? get_class( $fn[0] ) : (string) $fn[0];
+		if ( is_array( $callback ) && ! empty( $callback[0] ) ) {
+			$class = is_object( $callback[0] ) ? get_class( $callback[0] ) : (string) $callback[0];
 			return 0 === stripos( $class, 'Hatch_' ) || 0 === stripos( $class, 'Hatch\\' );
 		}
-		if ( is_object( $fn ) && $fn instanceof Closure ) {
-			// Anonymous closures — assume third-party. Hatch's own closures
+		if ( is_object( $callback ) && $callback instanceof Closure ) {
+			// Anonymous closures - assume third-party. Hatch's own closures
 			// (there are a couple in class-hardening.php) will get dropped
 			// too; that's acceptable, they're non-critical status hints.
 			return false;

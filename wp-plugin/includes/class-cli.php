@@ -2,7 +2,7 @@
 /**
  * Hatch WP-CLI commands.
  *
- * The "no Claude Code needed" path — one terminal command sets up everything
+ * The "no Claude Code needed" path - one terminal command sets up everything
  * a headless frontend needs from the WordPress side.
  *
  * Commands:
@@ -43,7 +43,7 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 class Hatch_CLI {
 
 	/**
-	 * Full setup — diagnose, generate App Password, set webhook URL, print .env.
+	 * Full setup - diagnose, generate App Password, set webhook URL, print .env.
 	 *
 	 * ## OPTIONS
 	 *
@@ -79,7 +79,7 @@ class Hatch_CLI {
 		WP_CLI::log( WP_CLI::colorize( '%c╭─ Hatch Setup ───────────────────────────────────────%n' ) );
 		WP_CLI::log( WP_CLI::colorize( '%c│%n' ) );
 		WP_CLI::log( WP_CLI::colorize( sprintf( '%%c│%%n WordPress URL : %s', home_url() ) ) );
-		WP_CLI::log( WP_CLI::colorize( sprintf( '%%c│%%n Frontend URL  : %s', $frontend ?: '(skipping webhook)' ) ) );
+		WP_CLI::log( WP_CLI::colorize( sprintf( '%%c│%%n Frontend URL  : %s', '' !== (string) $frontend ? $frontend : '(skipping webhook)' ) ) );
 		WP_CLI::log( WP_CLI::colorize( '%c│%n' ) );
 		WP_CLI::log( WP_CLI::colorize( '%c╰─────────────────────────────────────────────────────%n' ) );
 		WP_CLI::log( '' );
@@ -105,7 +105,12 @@ class Hatch_CLI {
 		if ( ! $user_id ) {
 			$user = get_user_by( 'login', 'admin' );
 			if ( ! $user ) {
-				$users = get_users( array( 'role' => 'administrator', 'number' => 1 ) );
+				$users = get_users(
+					array(
+						'role'   => 'administrator',
+						'number' => 1,
+					)
+				);
 				$user  = $users[0] ?? null;
 			}
 			if ( ! $user ) {
@@ -133,7 +138,7 @@ class Hatch_CLI {
 			WP_CLI::success( sprintf( 'Webhook URL set to %s', $revalidate_url ) );
 		} else {
 			WP_CLI::log( '' );
-			WP_CLI::log( WP_CLI::colorize( '%y▶ Step 3/4: Webhook URL (skipped — no --frontend flag)%n' ) );
+			WP_CLI::log( WP_CLI::colorize( '%y▶ Step 3/4: Webhook URL (skipped - no --frontend flag)%n' ) );
 		}
 
 		// Step 4: Print .env.
@@ -141,7 +146,7 @@ class Hatch_CLI {
 		WP_CLI::log( WP_CLI::colorize( '%y▶ Step 4/4: Copy this into your frontend .env file:%n' ) );
 		WP_CLI::log( '' );
 		$webhook_secret = (string) get_option( 'hatch_webhook_secret', '' );
-		$lines = array(
+		$lines          = array(
 			'HATCH_WP_URL=' . home_url(),
 			'WORDPRESS_USER=' . $user->user_login,
 			'WORDPRESS_APP_PASSWORD=' . $password,
@@ -220,21 +225,23 @@ class Hatch_CLI {
 				default:
 					$icon = '·';
 			}
-			WP_CLI::log( sprintf( '  %s %s — %s', $icon, $c['label'], $c['message'] ) );
+			WP_CLI::log( sprintf( '  %s %s - %s', $icon, $c['label'], $c['message'] ) );
 			if ( ! empty( $c['fix'] ) && 'pass' !== $c['severity'] ) {
 				WP_CLI::log( '      ' . WP_CLI::colorize( '%n→ ' ) . $c['fix'] );
 			}
 		}
 		WP_CLI::log( '' );
-		WP_CLI::log( sprintf(
-			'  %s %d pass · %s %d warn · %s %d fail',
-			WP_CLI::colorize( '%g✓%n' ),
-			(int) $report['pass_count'],
-			WP_CLI::colorize( '%y!%n' ),
-			(int) $report['warn_count'],
-			WP_CLI::colorize( '%r✕%n' ),
-			(int) $report['fail_count']
-		) );
+		WP_CLI::log(
+			sprintf(
+				'  %s %d pass · %s %d warn · %s %d fail',
+				WP_CLI::colorize( '%g✓%n' ),
+				(int) $report['pass_count'],
+				WP_CLI::colorize( '%y!%n' ),
+				(int) $report['warn_count'],
+				WP_CLI::colorize( '%r✕%n' ),
+				(int) $report['fail_count']
+			)
+		);
 	}
 
 	/**
@@ -270,7 +277,7 @@ class Hatch_CLI {
 			WP_CLI::error( 'Could not create App Password: ' . $created->get_error_message() );
 		}
 		list( $password ) = $created;
-		$user = get_userdata( $user_id );
+		$user             = get_userdata( $user_id );
 
 		WP_CLI::log( sprintf( 'Username: %s', $user->user_login ) );
 		WP_CLI::log( sprintf( 'Password: %s', $password ) );
@@ -314,10 +321,10 @@ class Hatch_CLI {
 
 		WP_CLI::log( sprintf( 'Hatch %s on WordPress %s (PHP %s)', HATCH_VERSION, $data['wp_version'], PHP_VERSION ) );
 		WP_CLI::log( sprintf( 'Site: %s', home_url() ) );
-		WP_CLI::log( sprintf( 'Webhook: %s', $data['webhook_url'] ?: '(not configured)' ) );
+		WP_CLI::log( sprintf( 'Webhook: %s', ! empty( $data['webhook_url'] ) ? $data['webhook_url'] : '(not configured)' ) );
 		WP_CLI::log( '' );
 		WP_CLI::log( sprintf( 'SEO plugin    : %s', $data['detected']['seo'] ) );
-		WP_CLI::log( sprintf( 'Forms         : %s', implode( ', ', $data['detected']['forms'] ) ?: 'none' ) );
+		WP_CLI::log( sprintf( 'Forms         : %s', ! empty( $data['detected']['forms'] ) ? implode( ', ', $data['detected']['forms'] ) : 'none' ) );
 		WP_CLI::log( sprintf( 'Custom fields : %s', $data['detected']['custom_fields'] ) );
 		WP_CLI::log( sprintf( 'CPT manager   : %s', $data['detected']['cpt_manager'] ) );
 		WP_CLI::log( sprintf( 'i18n          : %s', $data['detected']['i18n'] ) );

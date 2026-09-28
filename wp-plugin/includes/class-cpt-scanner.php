@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
 class Hatch_Cpt_Scanner {
 
 	/**
-	 * Built-in WordPress post types — never warn on these.
+	 * Built-in WordPress post types - never warn on these.
 	 *
 	 * @var array<string>
 	 */
@@ -127,22 +127,22 @@ class Hatch_Cpt_Scanner {
 
 		$types = get_post_types( array(), 'objects' );
 		foreach ( $types as $type ) {
-			$name = isset( $type->name ) ? (string) $type->name : '';
+			$name = (string) $type->name;
 			if ( in_array( $name, self::CORE_TYPES, true ) ) {
 				continue;
 			}
-			// Skip private, non-public types — they may legitimately not be in REST.
-			$public = isset( $type->public ) ? (bool) $type->public : false;
+			// Skip private, non-public types - they may legitimately not be in REST.
+			$public = (bool) $type->public;
 			if ( ! $public ) {
 				continue;
 			}
 
 			++$result['total_custom'];
-			$show_in_rest = isset( $type->show_in_rest ) ? (bool) $type->show_in_rest : false;
-			$rest_base    = isset( $type->rest_base ) && ! empty( $type->rest_base ) ? (string) $type->rest_base : $name;
+			$show_in_rest = (bool) $type->show_in_rest;
+			$rest_base    = ! empty( $type->rest_base ) ? (string) $type->rest_base : $name;
 			$label        = isset( $type->labels->name ) ? (string) $type->labels->name : $name;
 
-			$summary = array(
+			$summary               = array(
 				'name'         => sanitize_key( $name ),
 				'label'        => sanitize_text_field( $label ),
 				'show_in_rest' => $show_in_rest,
@@ -211,27 +211,30 @@ class Hatch_Cpt_Scanner {
 		?>
 		<div class="notice notice-error is-dismissible">
 			<p>
-				<strong><?php esc_html_e( 'Hatch — Headless WordPress', 'hatch' ); ?>:</strong>
+				<strong><?php esc_html_e( 'Hatch - Headless WordPress', 'hatch-bridge' ); ?>:</strong>
 				<?php
 				printf(
 					/* translators: 1: number of hidden CPTs, 2: comma-separated list */
-					esc_html( _n(
-						'%1$d custom post type is not accessible via REST API: %2$s. Your headless frontend will receive 404 errors when querying it.',
-						'%1$d custom post types are not accessible via REST API: %2$s. Your headless frontend will receive 404 errors when querying them.',
-						(int) $status['hidden'],
-						'hatch'
-					) ),
+					esc_html(
+						/* translators: 1: number of hidden custom post types, 2: comma-separated list. */
+						_n(
+							'%1$d custom post type is not accessible via REST API: %2$s. Your headless frontend will receive 404 errors when querying it.',
+							'%1$d custom post types are not accessible via REST API: %2$s. Your headless frontend will receive 404 errors when querying them.',
+							(int) $status['hidden'],
+							'hatch-bridge'
+						)
+					),
 					(int) $status['hidden'],
 					// $names_display is already escaped above.
 					$names_display // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				);
 				?>
-				<a href="<?php echo esc_url( admin_url( 'tools.php?page=hatch#health' ) ); ?>">
-					<?php esc_html_e( 'Open Hatch health panel →', 'hatch' ); ?>
+				<a href="<?php echo esc_url( admin_url( 'admin.php?page=hatch#status' ) ); ?>">
+					<?php esc_html_e( 'Open Hatch health panel →', 'hatch-bridge' ); ?>
 				</a>
 				&nbsp;|&nbsp;
 				<a href="<?php echo esc_url( $dismiss_url ); ?>">
-					<?php esc_html_e( 'Dismiss for 7 days', 'hatch' ); ?>
+					<?php esc_html_e( 'Dismiss for 7 days', 'hatch-bridge' ); ?>
 				</a>
 			</p>
 		</div>
@@ -239,7 +242,7 @@ class Hatch_Cpt_Scanner {
 	}
 
 	/**
-	 * Handle dismiss click — nonce-verified.
+	 * Handle dismiss click - nonce-verified.
 	 *
 	 * @return void
 	 */

@@ -20,7 +20,7 @@ const showSidebar = flags.sidebarSide !== 'none' && toc.length > 0;
   {flags.showBreadcrumb && (
     <nav aria-label="Breadcrumb" class="text-[11.5px] text-hatch-fg-subtle mb-6 truncate">
       <a href="/blog" class="hover:text-hatch-fg transition-colors">blog</a>
-      {post.category && <> {flags.breadcrumbSep} <a href={`/blog/category/${post.category.slug}`} class="hover:text-hatch-fg transition-colors">{post.category.slug}</a></>}
+      {post.category && <> {flags.breadcrumbSep} <a href={`/blog/category/${post.categorySlug}`} class="hover:text-hatch-fg transition-colors">{post.categorySlug}</a></>}
       {' '}{flags.breadcrumbSep}{' '}<span class="text-hatch-fg-muted">{post.slug}</span>
     </nav>
   )}

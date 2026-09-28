@@ -788,7 +788,7 @@ img, video, picture, canvas {
 	line-height: 1.35;
 }
 .hatch-form-scope .hatch-form__req {
-	color: color-mix(in oklab, var(--color-hatch-primary, currentColor) 70%, transparent);
+	color: color-mix(in oklab, var(--color-hatch-primary, currentColor) 65%, var(--color-hatch-fg, #000));
 	margin-left: 0.15rem;
 }
 .hatch-form-scope .hatch-form__input,
@@ -883,3 +883,39 @@ img, video, picture, canvas {
 	padding-block: 0.2rem;
 }
 
+
+/*
+ * Dark-mode legibility for the brand colour.
+ * The Design tab writes --hatch-primary inline on <html>, which beats every
+ * theme dark block. A mid-tone brand colour (e.g. #c2410c) then measures about
+ * 3.5:1 on a dark surface, under the 4.5:1 WCAG AA floor for small text such as
+ * category eyebrows and links. In dark mode the brand colour is lifted 30% toward
+ * white (oklab), which clears 4.5:1 on the dark surfaces every theme uses.
+ * Light mode keeps the exact brand colour.
+ */
+[data-hatch-mode="dark"] {
+	--hatch-primary: color-mix(in oklab, var(--hatch-primary-brand, #ff6b00) 70%, white) !important;
+	/* Label colour for solid primary surfaces, chosen against the lifted colour
+	   in lib/design.ts (darkPrimaryForeground). Falls back to near-black. */
+	--hatch-primary-fg: var(--hatch-primary-fg-dark, #0b0d10) !important;
+}
+
+
+/* Footer links: give every link a 24px-tall hit area (WCAG 2.5.8) on all themes. */
+.hatch-footer-links a {
+	display: inline-flex;
+	align-items: center;
+	min-height: 24px;
+}
+
+/* Below the desktop breakpoint the colour-mode toggle sits inline, just left of the
+   hamburger, instead of floating over the top-right corner above it. */
+@media (max-width: 1023px) {
+  .hatch-color-mode-toggle { top: 22px !important; right: 68px !important; }
+  [data-hatch-theme="tech"] .hatch-color-mode-toggle { top: 16px !important; }
+  [data-hatch-theme="blog"] .hatch-color-mode-toggle { top: 20px !important; }
+  /* Keep the brand clear of the toggle, and pin the hamburger to the top row so
+     it stays level with the toggle when a long site name wraps. */
+  .hatch-header-inner > a:first-child { margin-right: 48px; }
+  .hatch-header-inner .hatch-hamburger { align-self: flex-start; flex-shrink: 0; }
+}

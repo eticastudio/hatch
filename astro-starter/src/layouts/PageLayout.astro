@@ -86,7 +86,7 @@ const usePageTransitions = features.aesthetic.animation.page_transitions;
 //     hover) on supported browsers, falls back to standard prefetch
 //     elsewhere. User no longer picks the strategy — best-by-default.
 //   - partytown → conditional Web Worker init (analytics off main thread)
-//   - telemetry → POST navigation + LCP to broker after page load
+//   - telemetry → POST navigation + LCP to this site's own /api/telemetry after page load (opt-in)
 const perf = features.perf;
 const prefetchStrategy = perf.prefetch_enabled ? 'prerender' : null;
 
@@ -173,7 +173,9 @@ if (cacheTtl !== 0) {
         on click is effectively zero. Falls back to standard prefetch in
         browsers that don't support Speculation Rules. Safer than
         prerender="prerender" attribute because it's per-link not per-page. */}
-    {prefetchStrategy === 'prerender' && (
+    {/* Skipped when ClientRouter is on: its head swap re-inserts this script and
+        Chrome then ignores it with a console warning; ClientRouter already prefetches. */}
+    {prefetchStrategy === 'prerender' && !usePageTransitions && (
       <script type="speculationrules" is:inline set:html={JSON.stringify({
         prerender: [{
           source: 'document',
@@ -194,9 +196,9 @@ if (cacheTtl !== 0) {
       </>
     )}
 
-    {/* v0.50.31 — Telemetry: fires a lightweight LCP + TTFB beacon to the
-        Hatch broker once per page, only when explicitly enabled. No PII,
-        no IP, no cookies — just numbers. */}
+    {/* Telemetry: fires a lightweight LCP + TTFB beacon to this site's own
+        /api/telemetry once per page, only when the owner turns it on (off by
+        default). It is never sent to a third party. No PII, no IP, no cookies. */}
     {perf.telemetry && (
       <script is:inline define:vars={{ siteUrl: features.site.url }}>
         addEventListener('load', function () {

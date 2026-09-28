@@ -1,19 +1,18 @@
 /**
- * Connection tab — full action restoration.
+ * Connection tab.
  *
- * Surfaces every PHP admin-post handler the OLD v0.50.10 plugin exposed:
- *   - hatch_save_frontend_url    (Edit frontend URL inline)
- *   - hatch_generate_app_password (mint a fresh App Password for VPS install)
- *   - hatch_rotate_app_pwds      (advanced: rotate all)
- *   - hatch_test_webhook         (verify webhook delivery)
- *   - hatch_mark_deployed        (manually mark deployed, skip broker)
- *   - hatch_clear_token          (clear encrypted broker token)
+ * Shows whether the frontend is deployed and where, the health of the link
+ * between WordPress and the frontend, the companion theme, and the preflight
+ * checks. Deploying and changing the deploy happens on the setup screen.
  *
- * All use real <form method=post> to boot.adminPostUrl with nonces from
- * setup.nonces.* in boot state. No fake setTimeouts.
+ * Data: GET /hatch/v1/deploy/status for the deploy, boot state for the
+ * heartbeat, companion theme and preflight. Two actions are real admin-post
+ * forms (probe the heartbeat, install the companion theme), each with its own
+ * nonce from setup.nonces. The cache refresh is POST /hatch/v1/revalidate.
  */
-import { useState, useRef } from '@wordpress/element';
-import { HxIcon, HxBtn, HxBadge, HxCard, HxHead, HxRow, HxInp, hxFetch } from '../components.jsx';
+import { useState, useEffect, useCallback } from '@wordpress/element';
+import { __, _n, sprintf } from '@wordpress/i18n';
+import { HxIcon, HxBtn, HxBadge, HxCard, HxHead, HxRow, HxNotice, HxSpinner, hxFetch, hxErrorNode } from '../components.jsx';
 
 const ICON = {
 	link: <><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" /></>,
@@ -25,165 +24,240 @@ const ICON = {
 	refresh: <><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></>,
 	chev: <polyline points="9 18 15 12 9 6" />,
 	external: <><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></>,
-	key: <><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" /></>,
-	bolt: <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />,
-	tool: <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />,
+	layout: <path d="M3 9h18M9 21V9M3 3h18v18H3z" />,
 };
 
 const HEART = {
-	good: { color: 'var(--hx-success)', badge: 'green',   label: 'Healthy' },
-	warn: { color: 'var(--hx-warning)', badge: 'yellow',  label: 'Slow'    },
-	bad:  { color: 'var(--hx-danger)', badge: 'red',     label: 'Down'    },
-	muted:{ color: 'var(--hx-subtle)', badge: 'neutral', label: 'Pending' },
+	good: { color: 'var(--hx-success)', badge: 'green', label: () => __('Healthy', 'hatch-bridge') },
+	warn: { color: 'var(--hx-warning)', badge: 'yellow', label: () => __('Slow', 'hatch-bridge') },
+	bad: { color: 'var(--hx-danger)', badge: 'red', label: () => __('Down', 'hatch-bridge') },
+	muted: { color: 'var(--hx-subtle)', badge: 'neutral', label: () => __('Pending', 'hatch-bridge') },
 };
 
-export default function Connection({ state, onSetup }) {
-	const [openPreflight, setOpenPreflight] = useState(false);
-	const [redeployPhase, setRedeployPhase] = useState('idle'); // idle | running | sent | error
+/**
+ * The address visitors use, from the saved deploy state.
+ *
+ * @param {Object} st Deploy state from GET /deploy/status.
+ * @return {string} Full URL, or an empty string.
+ */
+function publicUrlOf(st) {
+	if (!st) return '';
+	if (st.domain) {
+		return 'https://' + st.domain + (st.mount_mode === 'subfolder' ? st.subpath || '' : '');
+	}
+	return st.origin || '';
+}
 
-	const redeploy = async () => {
-		setRedeployPhase('running');
+/**
+ * Read the result of the companion theme install from the URL hash. The
+ * install form redirects to #connection&companion=ok or =fail.
+ *
+ * @return {string} "ok", "fail" or an empty string.
+ */
+function companionResult() {
+	const m = /[#&]companion=(ok|fail)\b/.exec(window.location.hash || '');
+	return m ? m[1] : '';
+}
+
+export default function Connection({ state }) {
+	const boot = window.hatchBoot || {};
+	const conn = state.connection || {};
+	const setup = state.setup || {};
+	const nonces = setup.nonces || {};
+	const adminPost = boot.adminPostUrl;
+	const setupUrl = boot.setupUrl || 'admin.php?page=hatch-setup';
+	const companion = setup.companionTheme || { installed: false, active: false, error: '' };
+
+	const [data, setData] = useState({ phase: 'loading', error: '', status: null });
+	const [openPreflight, setOpenPreflight] = useState(false);
+	const [refresh, setRefresh] = useState({ phase: 'idle', error: '' });
+	const [installResult] = useState(companionResult);
+
+	const load = useCallback(async () => {
+		setData((d) => ({ ...d, phase: 'loading', error: '' }));
 		try {
-			await hxFetch('revalidate', { method: 'POST', body: JSON.stringify({ reason: 'react-admin-redeploy' }) });
-			setRedeployPhase('sent');
-			setTimeout(() => setRedeployPhase('idle'), 2400);
+			const status = await hxFetch('deploy/status');
+			setData({ phase: 'ready', error: '', status });
 		} catch (e) {
-			console.error('[hatch] redeploy failed', e);
-			setRedeployPhase('error');
-			setTimeout(() => setRedeployPhase('idle'), 3000);
+			setData({ phase: 'error', error: hxErrorNode(e), status: null });
+		}
+	}, []);
+
+	useEffect(() => { load(); }, [load]);
+
+	const refreshCache = async () => {
+		setRefresh({ phase: 'running', error: '' });
+		try {
+			await hxFetch('revalidate', { method: 'POST', body: JSON.stringify({ reason: 'admin-refresh' }) });
+			setRefresh({ phase: 'sent', error: '' });
+		} catch (e) {
+			setRefresh({ phase: 'error', error: hxErrorNode(e) });
 		}
 	};
 
-	const conn      = state.connection || {};
-	const setup     = state.setup || {};
-	const nonces    = setup.nonces || {};
-	const adminPost = (window.hatchBoot || {}).adminPostUrl;
-	const companion = setup.companionTheme || { installed: false, active: false, slug: 'hatch-companion' };
+	if (data.phase === 'loading') {
+		return (
+			<HxCard>
+				<HxSpinner label={__('Loading the deploy status', 'hatch-bridge')} />
+			</HxCard>
+		);
+	}
+	if (data.phase === 'error') {
+		return (
+			<HxNotice
+				tone="error"
+				title={__('Could not load the deploy status', 'hatch-bridge')}
+				action={<HxBtn size="sm" variant="ghost" onClick={load}>{__('Try again', 'hatch-bridge')}</HxBtn>}
+			>
+				{data.error}
+			</HxNotice>
+		);
+	}
 
-
-	const url       = conn.frontendUrl || '';
-	const isLive    = !!url;
-	// v0.5.9. Label reflects the ACTUAL mount mode chosen in the setup
-	// wizard, not a hard-coded string. mountMode comes from the boot payload
-	// (dashboard.php reads the hatch_mount_mode option written by the broker
-	// on prepare and by Hatch_Onboarding_Cloudflare on deploy). If the
-	// payload is missing (older PHP still cached), we infer: URLs on
-	// *.workers.dev are almost always root-mounted preview deploys, so treat
-	// them as 'root'; everything else falls back to 'subfolder' which was
-	// the previous default.
-	const rawHost   = conn.hostLabel || 'Self-hosted';
-	const mountMode = conn.mountMode || (/workers\.dev/.test(url) ? 'root' : 'subfolder');
-	const hostLabel = /cloud\s*flare/i.test(rawHost)
-		? `Cloudflare Workers (${mountMode})`
-		: rawHost;
-	const heartRaw  = conn.heartbeat || {};
-	const heart     = HEART[heartRaw.healthClass] || HEART.muted;
-	const heartDesc = heartRaw.healthLabel || 'No heartbeat yet. First probe runs within 5 minutes.';
-	const checks    = conn.preflight || [];
-	const passed    = checks.filter((c) => c.ok).length;
-	const total     = checks.length;
-	const allGood   = total > 0 && passed === total;
+	const status = data.status || {};
+	const st = status.state || {};
+	const last = status.last;
+	const isLive = !!status.deployed;
+	const url = publicUrlOf(st);
 	const prettyUrl = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+
+	let servedFrom = __('A workers.dev address', 'hatch-bridge');
+	if (st.domain && st.mount_mode === 'subfolder') {
+		/* translators: 1: domain name, 2: folder path such as /blog. */
+		servedFrom = sprintf(__('%1$s, in the folder %2$s', 'hatch-bridge'), st.domain, st.subpath || '');
+	} else if (st.domain) {
+		/* translators: %s: domain name. */
+		servedFrom = sprintf(__('%s, the whole domain', 'hatch-bridge'), st.domain);
+	}
+
+	const heartRaw = conn.heartbeat || {};
+	const heart = HEART[heartRaw.healthClass] || HEART.muted;
+	const heartDesc = heartRaw.healthLabel || __('No check has run yet. The first one runs within a few minutes.', 'hatch-bridge');
+	const checks = conn.preflight || [];
+	const passed = checks.filter((c) => c.ok).length;
+	const total = checks.length;
+	const allGood = total > 0 && passed === total;
+	const remaining = total - passed;
+	/* translators: %d: number of checks that need attention. */
+	const attentionDesc = sprintf(_n('%d check needs attention. The connection works. This item can make deploys smoother.', '%d checks need attention. The connection works. These items can make deploys smoother.', remaining, 'hatch-bridge'), remaining);
+
+	let companionDesc = __('A small theme that sends visitors of your WordPress address to the frontend. The frontend does not work for visitors without it.', 'hatch-bridge');
+	if (companion.active) {
+		companionDesc = __('Active. Visitors of your WordPress address are sent to the frontend.', 'hatch-bridge');
+	} else if (companion.installed) {
+		companionDesc = __('Installed but not active. Activating it switches your current theme off.', 'hatch-bridge');
+	}
+	let companionBadge = ['neutral', __('Not installed', 'hatch-bridge')];
+	if (companion.active) companionBadge = ['green', __('Active', 'hatch-bridge')];
+	else if (companion.installed) companionBadge = ['yellow', __('Installed', 'hatch-bridge')];
 
 	return (
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-			{/* ── Frontline status ────────────────────────────────────── */}
+			{last && last.ok === false && (
+				<HxNotice tone="error" title={__('The last deploy failed', 'hatch-bridge')}>{last.message}</HxNotice>
+			)}
+
+			{/* Frontend status */}
 			<HxCard>
 				<HxHead
 					iconChildren={isLive ? ICON.link : ICON.offline}
 					iconColor={isLive ? 'var(--hx-success)' : 'var(--hx-muted)'}
-					title={isLive ? 'Frontline is live' : 'Not connected yet'}
+					title={isLive ? __('Your frontend is live', 'hatch-bridge') : __('Not deployed yet', 'hatch-bridge')}
 					desc={
 						isLive
-							? 'Saves invalidate the frontend cache in about 60 seconds. No redeploy needed.'
-							: 'Run the setup wizard to point Hatch at your Astro frontend.'
+							? __('Visitors see the frontend. WordPress stays where you edit.', 'hatch-bridge')
+							: __('Connect your Cloudflare account to publish the frontend. It takes a few minutes.', 'hatch-bridge')
 					}
-					mb={isLive ? 16 : 18}
+					mb={isLive ? 12 : 18}
 				/>
 
 				{isLive ? (
 					<>
-						<FrontendUrlRow url={url} prettyUrl={prettyUrl} adminPost={adminPost} nonce={nonces.save_frontend_url} />
+						<HxRow label={__('Address', 'hatch-bridge')} desc={servedFrom}>
+							{url ? (
+								<a href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--hx-link)', overflowWrap: 'anywhere' }}>{prettyUrl}</a>
+							) : (
+								<span className="hx-desc" style={{ color: 'var(--hx-subtle)' }}>{__('Not available', 'hatch-bridge')}</span>
+							)}
+						</HxRow>
 
-						<HxRow label="Heartbeat" desc={heartDesc}>
-							<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-								<HxIcon size={14} color={heart.color}>{ICON.pulse}</HxIcon>
-								<HxBadge color={heart.badge}>{heart.label}</HxBadge>
+						<HxRow label={__('Connection check', 'hatch-bridge')} desc={heartDesc}>
+							<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+								<HxBadge color={heart.badge}>{heart.label()}</HxBadge>
 								<form method="post" action={adminPost} style={{ display: 'inline' }}>
-									<input type="hidden" name="action"   value="hatch_probe_heartbeat" />
+									<input type="hidden" name="action" value="hatch_probe_heartbeat" />
 									<input type="hidden" name="_wpnonce" value={nonces.probe_heartbeat || ''} />
-									<HxBtn type="submit" variant="ghost">Probe now</HxBtn>
+									<HxBtn type="submit" variant="ghost" size="sm">{__('Check now', 'hatch-bridge')}</HxBtn>
 								</form>
 							</span>
 						</HxRow>
 
-						<HxRow label="Host" desc="Where your Astro build runs.">
-							<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-								<HxBadge color="neutral">{hostLabel}</HxBadge>
-								<HxBtn variant="ghost" onClick={onSetup} title="Vercel / Netlify options coming later">Change</HxBtn>
-							</span>
-						</HxRow>
 						<HxRow
-							label=""
-							desc={
-								mountMode === 'subfolder'
-									? 'Hatch runs your Astro build on Cloudflare Workers, mounted at your /blog subfolder. No DNS changes required.'
-									: 'Hatch runs your Astro build on Cloudflare Workers at the domain root. No subfolder path.'
-							}
+							label={__('Cloudflare token', 'hatch-bridge')}
+							desc={status.has_token ? __('Saved on this site, encrypted.', 'hatch-bridge') : __('Not saved. You will paste it again to deploy.', 'hatch-bridge')}
 							last
-						/>
+						>
+							<HxBadge color={status.has_token ? 'green' : 'neutral'}>{status.has_token ? __('Saved', 'hatch-bridge') : __('Not saved', 'hatch-bridge')}</HxBadge>
+						</HxRow>
 
+						{refresh.phase === 'sent' && (
+							<HxNotice tone="success" style={{ marginTop: 14 }}>
+								{__('Cache refresh requested. The frontend picks up your latest content shortly.', 'hatch-bridge')}
+							</HxNotice>
+						)}
+						{refresh.phase === 'error' && (
+							<HxNotice tone="error" title={__('Could not refresh the cache', 'hatch-bridge')} style={{ marginTop: 14 }}>
+								{refresh.error}
+							</HxNotice>
+						)}
 
-						<div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
-							<HxBtn href={url} target="_blank" rel="noopener noreferrer">
-								<HxIcon size={13} color="currentColor">{ICON.external}</HxIcon>
-								Visit live site
+						<div style={{ display: 'flex', gap: 8, marginTop: 18, flexWrap: 'wrap' }}>
+							{url && (
+								<HxBtn href={url} variant="brand">
+									<HxIcon size={13} color="currentColor">{ICON.external}</HxIcon>
+									{__('Open the frontend', 'hatch-bridge')}
+								</HxBtn>
+							)}
+							<HxBtn variant="ghost" onClick={refreshCache} disabled={refresh.phase === 'running'}>
+								<HxIcon size={13}>{ICON.refresh}</HxIcon>
+								{refresh.phase === 'running' ? __('Refreshing', 'hatch-bridge') : __('Refresh frontend cache', 'hatch-bridge')}
 							</HxBtn>
-							<HxBtn variant="ghost" onClick={() => { window.location.hash = '#status'; }}>
-								<HxIcon size={13}>{ICON.pulse}</HxIcon>
-								View Status
-							</HxBtn>
-							<HxBtn variant="ghost" onClick={redeploy} disabled={redeployPhase === 'running'}>
-								<PhaseGlyph phase={redeployPhase} idleIcon={ICON.refresh} />
-								{redeployPhase === 'running' ? 'Redeploying' : redeployPhase === 'sent' ? 'Done' : redeployPhase === 'error' ? 'Failed' : 'Redeploy'}
-							</HxBtn>
+							<HxBtn variant="ghost" href={setupUrl}>{__('Deploy again or change the domain', 'hatch-bridge')}</HxBtn>
 						</div>
 					</>
 				) : (
-					<HxBtn variant="brand" onClick={onSetup}>Run setup wizard</HxBtn>
+					<HxBtn variant="brand" href={setupUrl}>{__('Set up Hatch', 'hatch-bridge')}</HxBtn>
 				)}
 			</HxCard>
 
-			{/* ── Companion theme ─────────────────────────────────────── */}
+			{/* Companion theme */}
 			{isLive && (
 				<HxCard>
-					<div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-						<HxHead
-							iconChildren={<><path d="M3 9h18M9 21V9M3 3h18v18H3z" /></>}
-							iconColor={companion.active ? 'var(--hx-success)' : (companion.installed ? 'var(--hx-warning)' : 'var(--hx-muted)')}
-							title="Companion theme"
-							desc={
-								companion.active
-									? 'Active. Visitors to this WordPress URL 302-redirect to your Astro frontend automatically.'
-									: companion.installed
-										? 'Installed but not active. Activate to flip this site into headless mode — visitors will redirect to the frontend.'
-										: 'A 1-file WP theme that 302-redirects every page to your Astro frontend. Required to flip into headless mode.'
-							}
-							mb={0}
-							action={
-								<HxBadge color={companion.active ? 'green' : (companion.installed ? 'yellow' : 'neutral')}>
-									{companion.active ? 'Active' : (companion.installed ? 'Installed' : 'Not installed')}
-								</HxBadge>
-							}
-						/>
-					</div>
+					{installResult === 'ok' && (
+						<HxNotice tone="success" title={__('Companion theme activated', 'hatch-bridge')} style={{ marginBottom: 14 }} />
+					)}
+					{(installResult === 'fail' || !!companion.error) && (
+						<HxNotice tone="error" title={__('The companion theme could not be installed', 'hatch-bridge')} style={{ marginBottom: 14 }}>
+							{companion.error
+								? companion.error
+								: __('Check that WordPress can write to the themes folder, then try again.', 'hatch-bridge')}
+						</HxNotice>
+					)}
+					<HxHead
+						iconChildren={ICON.layout}
+						iconColor={companion.active ? 'var(--hx-success)' : (companion.installed ? 'var(--hx-warning)' : 'var(--hx-muted)')}
+						title={__('Companion theme', 'hatch-bridge')}
+						desc={companionDesc}
+						mb={0}
+						action={<HxBadge color={companionBadge[0]}>{companionBadge[1]}</HxBadge>}
+					/>
 					{!companion.active && (
 						<div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--hx-border)' }}>
 							<form method="post" action={adminPost}>
-								<input type="hidden" name="action"   value="hatch_install_companion_theme" />
+								<input type="hidden" name="action" value="hatch_install_companion_theme" />
 								<input type="hidden" name="_wpnonce" value={nonces.install_companion || ''} />
-								<HxBtn type="submit" variant={companion.installed ? 'default' : 'ghost'}>
-									{companion.installed ? 'Activate companion theme' : 'Install + activate'}
+								<HxBtn type="submit" variant={companion.installed ? 'brand' : 'ghost'}>
+									{companion.installed ? __('Activate companion theme', 'hatch-bridge') : __('Install and activate', 'hatch-bridge')}
 								</HxBtn>
 							</form>
 						</div>
@@ -191,27 +265,45 @@ export default function Connection({ state, onSetup }) {
 				</HxCard>
 			)}
 
-			{/* ── Preflight ────────────────────────────────────────────── */}
+			{/* Preflight */}
 			{total > 0 && (
-				<HxCard hover style={{ cursor: 'pointer' }}>
-					<div
+				<HxCard>
+					<button
+						type="button"
+						aria-expanded={openPreflight}
+						aria-controls="hatch-preflight-list"
 						onClick={() => setOpenPreflight((o) => !o)}
-						style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}
+						style={{
+							boxSizing: 'border-box',
+							width: '100%',
+							margin: 0,
+							padding: 0,
+							border: 0,
+							background: 'none',
+							color: 'inherit',
+							font: 'inherit',
+							textAlign: 'start',
+							cursor: 'pointer',
+							display: 'flex',
+							alignItems: 'center',
+							justifyContent: 'space-between',
+							gap: 14,
+						}}
 					>
-						<div style={{ flex: 1 }}>
+						<span style={{ flex: 1, minWidth: 0 }}>
 							<HxHead
-								iconChildren={ICON.alert}
+								iconChildren={allGood ? ICON.check : ICON.alert}
 								iconColor={allGood ? 'var(--hx-success)' : 'var(--hx-warning)'}
-								title="Preflight diagnostic"
+								title={__('Preflight checks', 'hatch-bridge')}
 								desc={
 									allGood
-										? 'Every check passing. Your stack is configured correctly.'
-										: `${total - passed} suggestion${total - passed === 1 ? '' : 's'}. Connection works, items below polish the deploy.`
+										? __('Every check passes.', 'hatch-bridge')
+										: attentionDesc
 								}
 								mb={0}
 							/>
-						</div>
-						<div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+						</span>
+						<span style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
 							<HxBadge color={allGood ? 'green' : 'yellow'}>{passed} / {total}</HxBadge>
 							<HxIcon
 								size={15}
@@ -220,11 +312,11 @@ export default function Connection({ state, onSetup }) {
 							>
 								{ICON.chev}
 							</HxIcon>
-						</div>
-					</div>
+						</span>
+					</button>
 
 					{openPreflight && (
-						<div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--hx-border)' }} onClick={(e) => e.stopPropagation()}>
+						<div id="hatch-preflight-list" style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--hx-border)' }}>
 							{checks.map((c, i) => (
 								<CheckRow key={i} check={c} last={i === checks.length - 1} />
 							))}
@@ -232,109 +324,35 @@ export default function Connection({ state, onSetup }) {
 					)}
 				</HxCard>
 			)}
-</div>
+		</div>
 	);
-}
-
-// ── FrontendUrlRow: inline edit ────────────────────────────────────────────
-
-function FrontendUrlRow({ url, prettyUrl, adminPost, nonce }) {
-	const [editing, setEditing] = useState(false);
-	const [value, setValue] = useState(url);
-	const formRef = useRef(null);
-
-	if (!editing) {
-		return (
-			<HxRow label="Frontend URL" desc="Where visitors land. Click Edit to change without re-running the wizard.">
-				<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-					<a
-						href={url}
-						target="_blank"
-						rel="noopener noreferrer"
-						style={{
-							display: 'inline-flex', alignItems: 'center', gap: 6,
-							padding: '5px 11px', borderRadius: 999,
-							background: 'var(--hx-surface-2)', border: '1px solid var(--hx-border)',
-							color: 'var(--hx-fg)', fontSize: 12,
-							fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace',
-							textDecoration: 'none', maxWidth: 280,
-							overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-						}}
-					>
-						{prettyUrl}
-						<HxIcon size={11} color="var(--hx-subtle)">
-							<path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-							<polyline points="15 3 21 3 21 9" />
-							<line x1="10" y1="14" x2="21" y2="3" />
-						</HxIcon>
-					</a>
-					<HxBtn variant="ghost" onClick={() => setEditing(true)}>Edit</HxBtn>
-				</span>
-			</HxRow>
-		);
-	}
-
-	return (
-		<HxRow label="Frontend URL" desc="Press Save to update. The companion theme will redirect to the new URL.">
-			<form ref={formRef} method="post" action={adminPost} style={{ display: 'flex', gap: 6 }}>
-				<input type="hidden" name="action"   value="hatch_save_frontend_url" />
-				<input type="hidden" name="_wpnonce" value={nonce || ''} />
-				<HxInp
-					name="hatch_frontend_url"
-					mono
-					value={value}
-					onChange={(e) => setValue(e.target.value)}
-					autoComplete="off"
-					full={false}
-				/>
-				<HxBtn type="submit">Save</HxBtn>
-				<HxBtn variant="ghost" onClick={() => { setEditing(false); setValue(url); }} type="button">Cancel</HxBtn>
-			</form>
-		</HxRow>
-	);
-}
-
-
-
-// ── Small helpers ──────────────────────────────────────────────────────────
-
-function PhaseGlyph({ phase, idleIcon }) {
-	if (phase === 'running') {
-		return (
-			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'hxSpin 0.8s linear infinite' }}>
-				<path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity="0.2" />
-				<path d="M21 12a9 9 0 01-9 9" />
-			</svg>
-		);
-	}
-	if (phase === 'sent')  return <HxIcon size={13} color="#16a34a" sw={2.5}>{ICON.check}</HxIcon>;
-	if (phase === 'error') return <HxIcon size={13} color="#b91c1c" sw={2.5}>{ICON.x}</HxIcon>;
-	return <HxIcon size={13}>{idleIcon}</HxIcon>;
 }
 
 function CheckRow({ check: c, last }) {
-	const state = c.ok ? 'ok' : c.warn ? 'warn' : 'fail';
-	const fg    = state === 'ok' ? 'var(--hx-success)' : state === 'warn' ? 'var(--hx-warning)' : 'var(--hx-danger)';
-	const icon  = state === 'ok' ? ICON.check : state === 'warn' ? ICON.alert : ICON.x;
+	const kind = c.ok ? 'ok' : c.warn ? 'warn' : 'fail';
+	const fg = kind === 'ok' ? 'var(--hx-success)' : kind === 'warn' ? 'var(--hx-warning)' : 'var(--hx-danger)';
+	const icon = kind === 'ok' ? ICON.check : kind === 'warn' ? ICON.alert : ICON.x;
+	const word = kind === 'ok' ? __('Passed', 'hatch-bridge') : kind === 'warn' ? __('Warning', 'hatch-bridge') : __('Failed', 'hatch-bridge');
 	return (
 		<div
 			style={{
-				display: 'flex', alignItems: 'flex-start', gap: 12,
+				display: 'flex',
+				alignItems: 'flex-start',
+				gap: 12,
 				padding: '10px 0',
 				borderBottom: last ? 'none' : '1px solid var(--hx-border)',
 			}}
 		>
 			<div style={{ flexShrink: 0, marginTop: 1 }}>
-				<HxIcon size={14} color={fg} sw={state === 'warn' ? 2 : 2.5}>{icon}</HxIcon>
+				<HxIcon size={14} color={fg} sw={kind === 'warn' ? 2 : 2.5}>{icon}</HxIcon>
 			</div>
-			<div style={{ flex: 1 }}>
-				<div className="hx-label" style={{ color: state === 'fail' ? fg : 'var(--hx-fg)' }}>
+			<div style={{ flex: 1, minWidth: 0 }}>
+				<div className="hx-label" style={{ color: 'var(--hx-fg)' }}>
+					<span className="screen-reader-text">{word}: </span>
 					{c.label || c.l}
 				</div>
 				{c.note && (
-					<div className="hx-help" style={{ color: 'var(--hx-subtle)', marginTop: 3 }}>
-						{c.note}
-					</div>
+					<div className="hx-help" style={{ color: 'var(--hx-subtle)', marginTop: 3 }}>{c.note}</div>
 				)}
 			</div>
 		</div>

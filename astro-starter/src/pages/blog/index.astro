@@ -117,7 +117,7 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
           </div>
         )}
         <div class={`grid ${archiveGridClass} gap-x-7 gap-y-12`}>
-          {(showHero && page === 1 && !activeCategory ? posts.slice(1) : posts).map((post) => <PostCard post={post} showExcerpt={showExcerpt} />)}
+          {(showHero && page === 1 && !activeCategory ? posts.slice(1) : posts).map((post) => <PostCard post={post} showExcerpt={showExcerpt} headingLevel={2} />)}
         </div>
       </>
     )}

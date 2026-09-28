@@ -2,7 +2,7 @@
 /**
  * Forms Bridge: WPForms / Fluent Forms / Gravity / CF7.
  *
- * Contract (Hatch Bridge rule): Zero plugin CSS or JS ships to the frontend.
+ * Contract (Hatch rule): Zero plugin CSS or JS ships to the frontend.
  * WP normalizes each provider's form into `{fields[], submit_endpoint, nonce}`.
  * Astro renders its own <HatchForm> using Hatch tokens and POSTs values here.
  * WP replays the plugin's own submission pipeline (validation, spam, notify).
@@ -20,14 +20,19 @@ defined( 'ABSPATH' ) || exit;
 
 class Hatch_Forms_Bridge {
 
+	/**
+	 * Name of the hidden honeypot field the frontend form renders empty.
+	 */
+	const HONEYPOT_FIELD = 'hatch_hp';
+
 	private static $instance = null;
 
 	public static function instance(): Hatch_Forms_Bridge {
 		if ( null === self::$instance ) {
 			self::$instance = new self();
 			add_action( 'rest_api_init', array( __CLASS__, 'register_routes' ) );
-			add_filter( 'hatch/content/html', array( __CLASS__, 'rewrite_form_shortcodes' ), 10, 2 );
-			// v0.52 — ensure the Hatch-owned submissions table exists so
+			add_filter( 'hatch_content_html', array( __CLASS__, 'rewrite_form_shortcodes' ), 10, 1 );
+			// v0.52 - ensure the Hatch-owned submissions table exists so
 			// every provider (including WPForms Lite, which has no entries
 			// API) persists to DB. Cheap: only runs schema-check once per
 			// process, dbDelta is a no-op when up to date.
@@ -38,7 +43,7 @@ class Hatch_Forms_Bridge {
 
 	/* --------------------------------------------------------------------- *
 	 * Hatch-owned submissions store (works for every provider)
-	 * v0.52 — WPForms Lite has no entries API, Pro's entry->add is the
+	 * v0.52 - WPForms Lite has no entries API, Pro's entry->add is the
 	 * only path that natively persists. We mirror EVERY submission into
 	 * wp_hatch_form_submissions so operators always have a queryable log.
 	 * --------------------------------------------------------------------- */
@@ -50,7 +55,7 @@ class Hatch_Forms_Bridge {
 		global $wpdb;
 		$table   = $wpdb->prefix . 'hatch_form_submissions';
 		$charset = $wpdb->get_charset_collate();
-		$sql = "CREATE TABLE {$table} (
+		$sql     = "CREATE TABLE {$table} (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			provider VARCHAR(32) NOT NULL,
 			form_id BIGINT UNSIGNED NOT NULL,
@@ -72,15 +77,50 @@ class Hatch_Forms_Bridge {
 		$table = $wpdb->prefix . 'hatch_form_submissions';
 		$ip    = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 		$ua    = isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 254 ) : '';
-		$ok = $wpdb->insert( $table, array(
-			'provider'   => $provider,
-			'form_id'    => $form_id,
-			'fields'     => wp_json_encode( $fields ),
-			'ip_address' => $ip,
-			'user_agent' => $ua,
-			'created_at' => current_time( 'mysql' ),
-		), array( '%s', '%d', '%s', '%s', '%s', '%s' ) );
+		$ok    = $wpdb->insert(
+			$table,
+			array(
+				'provider'   => $provider,
+				'form_id'    => $form_id,
+				'fields'     => wp_json_encode( $fields ),
+				'ip_address' => $ip,
+				'user_agent' => $ua,
+				'created_at' => current_time( 'mysql' ),
+			),
+			array( '%s', '%d', '%s', '%s', '%s', '%s' )
+		);
+		self::prune_submissions();
 		return $ok ? (int) $wpdb->insert_id : 0;
+	}
+
+	/**
+	 * Delete stored submissions older than the retention period.
+	 *
+	 * Runs at most once a day, on a submission, so the table cannot grow
+	 * without limit and IP addresses are not kept forever. The period is 90
+	 * days and can be changed with the `hatch_form_retention_days` filter;
+	 * a value of 0 keeps everything.
+	 *
+	 * @return void
+	 */
+	private static function prune_submissions(): void {
+		if ( get_transient( 'hatch_forms_pruned' ) ) {
+			return;
+		}
+		set_transient( 'hatch_forms_pruned', 1, DAY_IN_SECONDS );
+		/**
+		 * Filters how many days Hatch keeps stored form submissions.
+		 *
+		 * @param int $days Retention in days. 0 keeps submissions forever.
+		 */
+		$days = (int) apply_filters( 'hatch_form_retention_days', 90 );
+		if ( $days <= 0 ) {
+			return;
+		}
+		global $wpdb;
+		$table  = $wpdb->prefix . 'hatch_form_submissions';
+		$cutoff = wp_date( 'Y-m-d H:i:s', time() - $days * DAY_IN_SECONDS );
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE created_at < %s", $cutoff ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is built from the core prefix.
 	}
 
 	private function __construct() {}
@@ -88,31 +128,43 @@ class Hatch_Forms_Bridge {
 	public static function register_routes(): void {
 		$ns = defined( 'HATCH_REST_NAMESPACE' ) ? HATCH_REST_NAMESPACE : 'hatch/v1';
 
-		register_rest_route( $ns, '/forms', array(
-			'methods'             => WP_REST_Server::READABLE,
-			'callback'            => array( __CLASS__, 'list_forms' ),
-			'permission_callback' => '__return_true',
-		) );
+		register_rest_route(
+			$ns,
+			'/forms',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( __CLASS__, 'list_forms' ),
+				'permission_callback' => '__return_true',
+			)
+		);
 
-		register_rest_route( $ns, '/forms/(?P<provider>[a-z_]+)/(?P<id>\d+)', array(
-			'methods'             => WP_REST_Server::READABLE,
-			'callback'            => array( __CLASS__, 'get_schema' ),
-			'permission_callback' => '__return_true',
-			'args'                => array(
-				'provider' => array( 'sanitize_callback' => 'sanitize_key' ),
-				'id'       => array( 'sanitize_callback' => 'absint' ),
-			),
-		) );
+		register_rest_route(
+			$ns,
+			'/forms/(?P<provider>[a-z_]+)/(?P<id>\d+)',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( __CLASS__, 'get_schema' ),
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'provider' => array( 'sanitize_callback' => 'sanitize_key' ),
+					'id'       => array( 'sanitize_callback' => 'absint' ),
+				),
+			)
+		);
 
-		register_rest_route( $ns, '/forms/(?P<provider>[a-z_]+)/(?P<id>\d+)/submit', array(
-			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => array( __CLASS__, 'submit_form' ),
-			'permission_callback' => '__return_true',
-			'args'                => array(
-				'provider' => array( 'sanitize_callback' => 'sanitize_key' ),
-				'id'       => array( 'sanitize_callback' => 'absint' ),
-			),
-		) );
+		register_rest_route(
+			$ns,
+			'/forms/(?P<provider>[a-z_]+)/(?P<id>\d+)/submit',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( __CLASS__, 'submit_form' ),
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'provider' => array( 'sanitize_callback' => 'sanitize_key' ),
+					'id'       => array( 'sanitize_callback' => 'absint' ),
+				),
+			)
+		);
 	}
 
 	/* --------------------------------------------------------------------- *
@@ -135,7 +187,11 @@ class Hatch_Forms_Bridge {
 		$forms = wpforms()->form->get( '', array( 'orderby' => 'title' ) );
 		$out   = array();
 		foreach ( (array) $forms as $form ) {
-			$out[] = array( 'id' => (int) $form->ID, 'title' => $form->post_title, 'provider' => 'wpforms' );
+			$out[] = array(
+				'id'       => (int) $form->ID,
+				'title'    => $form->post_title,
+				'provider' => 'wpforms',
+			);
 		}
 		return $out;
 	}
@@ -148,7 +204,11 @@ class Hatch_Forms_Bridge {
 			$forms = \FluentForm\App\Models\Form::orderBy( 'title' )->get();
 			$out   = array();
 			foreach ( $forms as $f ) {
-				$out[] = array( 'id' => (int) $f->id, 'title' => $f->title, 'provider' => 'fluent' );
+				$out[] = array(
+					'id'       => (int) $f->id,
+					'title'    => $f->title,
+					'provider' => 'fluent',
+				);
 			}
 			return $out;
 		} catch ( \Throwable $e ) {
@@ -163,20 +223,30 @@ class Hatch_Forms_Bridge {
 		$forms = GFAPI::get_forms();
 		$out   = array();
 		foreach ( (array) $forms as $form ) {
-			$out[] = array( 'id' => (int) $form['id'], 'title' => (string) $form['title'], 'provider' => 'gravity' );
+			$out[] = array(
+				'id'       => (int) $form['id'],
+				'title'    => (string) $form['title'],
+				'provider' => 'gravity',
+			);
 		}
 		return $out;
 	}
 
 	private static function list_cf7(): array {
-		$cf7 = get_posts( array(
-			'post_type'      => 'wpcf7_contact_form',
-			'posts_per_page' => 200,
-			'post_status'    => 'publish',
-		) );
+		$cf7 = get_posts(
+			array(
+				'post_type'      => 'wpcf7_contact_form',
+				'posts_per_page' => 100,
+				'post_status'    => 'publish',
+			)
+		);
 		$out = array();
 		foreach ( $cf7 as $post ) {
-			$out[] = array( 'id' => (int) $post->ID, 'title' => $post->post_title, 'provider' => 'cf7' );
+			$out[] = array(
+				'id'       => (int) $post->ID,
+				'title'    => $post->post_title,
+				'provider' => 'cf7',
+			);
 		}
 		return $out;
 	}
@@ -192,10 +262,14 @@ class Hatch_Forms_Bridge {
 			return new WP_Error( 'hatch_forms_bad_id', 'Missing form id', array( 'status' => 400 ) );
 		}
 		switch ( $provider ) {
-			case 'fluent':  return self::schema_fluent( $id );
-			case 'wpforms': return self::schema_wpforms( $id );
-			case 'gravity': return self::schema_gravity( $id );
-			case 'cf7':     return self::schema_cf7( $id );
+			case 'fluent':
+				return self::schema_fluent( $id );
+			case 'wpforms':
+				return self::schema_wpforms( $id );
+			case 'gravity':
+				return self::schema_gravity( $id );
+			case 'cf7':
+				return self::schema_cf7( $id );
 		}
 		return new WP_Error( 'hatch_forms_unsupported', 'Unknown provider', array( 'status' => 400 ) );
 	}
@@ -226,7 +300,7 @@ class Hatch_Forms_Bridge {
 		if ( ! $name ) {
 			return null;
 		}
-		$map = array(
+		$map    = array(
 			'input_text'     => 'text',
 			'input_email'    => 'email',
 			'input_number'   => 'number',
@@ -253,9 +327,15 @@ class Hatch_Forms_Bridge {
 			'rules'       => self::rules_from_fluent( $sett, $native ),
 		);
 		if ( in_array( $native, array( 'select', 'radio', 'checkbox' ), true ) && ! empty( $sett['advanced_options'] ) ) {
-			$out['options'] = array_map( static function ( $o ) {
-				return array( 'value' => isset( $o['value'] ) ? $o['value'] : '', 'label' => isset( $o['label'] ) ? $o['label'] : '' );
-			}, $sett['advanced_options'] );
+			$out['options'] = array_map(
+				static function ( $o ) {
+					return array(
+						'value' => isset( $o['value'] ) ? $o['value'] : '',
+						'label' => isset( $o['label'] ) ? $o['label'] : '',
+					);
+				},
+				$sett['advanced_options']
+			);
 		}
 		return $out;
 	}
@@ -267,7 +347,7 @@ class Hatch_Forms_Bridge {
 	 * SubmissionService on POST /submit.
 	 */
 	private static function rules_from_fluent( array $sett, string $native ): array {
-		$vr = isset( $sett['validation_rules'] ) && is_array( $sett['validation_rules'] ) ? $sett['validation_rules'] : array();
+		$vr    = isset( $sett['validation_rules'] ) && is_array( $sett['validation_rules'] ) ? $sett['validation_rules'] : array();
 		$rules = array();
 
 		if ( ! empty( $vr['required']['value'] ) ) {
@@ -336,8 +416,19 @@ class Hatch_Forms_Bridge {
 		$fields = array();
 		if ( ! empty( $data['fields'] ) && is_array( $data['fields'] ) ) {
 			foreach ( $data['fields'] as $f ) {
-				$type = isset( $f['type'] ) ? $f['type'] : 'text';
-				$map  = array( 'name' => 'text', 'email' => 'email', 'textarea' => 'textarea', 'select' => 'select', 'radio' => 'radio', 'checkbox' => 'checkbox', 'number' => 'number', 'url' => 'url', 'phone' => 'tel', 'date-time' => 'date' );
+				$type   = isset( $f['type'] ) ? $f['type'] : 'text';
+				$map    = array(
+					'name'      => 'text',
+					'email'     => 'email',
+					'textarea'  => 'textarea',
+					'select'    => 'select',
+					'radio'     => 'radio',
+					'checkbox'  => 'checkbox',
+					'number'    => 'number',
+					'url'       => 'url',
+					'phone'     => 'tel',
+					'date-time' => 'date',
+				);
 				$native = isset( $map[ $type ] ) ? $map[ $type ] : 'text';
 				$rules  = array();
 				if ( ! empty( $f['required'] ) ) {
@@ -382,15 +473,27 @@ class Hatch_Forms_Bridge {
 		}
 		$fields = array();
 		foreach ( (array) $form['fields'] as $f ) {
-			$map = array( 'text' => 'text', 'email' => 'email', 'textarea' => 'textarea', 'select' => 'select', 'radio' => 'radio', 'checkbox' => 'checkbox', 'number' => 'number', 'phone' => 'tel', 'website' => 'url', 'date' => 'date', 'hidden' => 'hidden' );
-			$type = isset( $f->type ) ? $f->type : 'text';
+			$map      = array(
+				'text'     => 'text',
+				'email'    => 'email',
+				'textarea' => 'textarea',
+				'select'   => 'select',
+				'radio'    => 'radio',
+				'checkbox' => 'checkbox',
+				'number'   => 'number',
+				'phone'    => 'tel',
+				'website'  => 'url',
+				'date'     => 'date',
+				'hidden'   => 'hidden',
+			);
+			$type     = isset( $f->type ) ? $f->type : 'text';
 			$fields[] = array(
 				'name'        => 'input_' . $f->id,
 				'type'        => isset( $map[ $type ] ) ? $map[ $type ] : 'text',
 				'label'       => isset( $f->label ) ? $f->label : '',
 				'placeholder' => isset( $f->placeholder ) ? $f->placeholder : '',
-				'required'    => ! empty( $f->isRequired ),
-				'default'     => isset( $f->defaultValue ) ? $f->defaultValue : '',
+				'required'    => ! empty( $f->isRequired ), // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Property name comes from the Gravity Forms field object.
+				'default'     => isset( $f->defaultValue ) ? $f->defaultValue : '', // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Property name comes from the Gravity Forms field object.
 			);
 		}
 		return self::response( 'gravity', $id, $form['title'], $fields );
@@ -411,12 +514,23 @@ class Hatch_Forms_Bridge {
 					if ( ! $name || in_array( $basetype, array( 'submit', '' ), true ) ) {
 						continue;
 					}
-					$map = array( 'text' => 'text', 'email' => 'email', 'textarea' => 'textarea', 'select' => 'select', 'checkbox' => 'checkbox', 'radio' => 'radio', 'tel' => 'tel', 'url' => 'url', 'number' => 'number', 'date' => 'date' );
+					$map      = array(
+						'text'     => 'text',
+						'email'    => 'email',
+						'textarea' => 'textarea',
+						'select'   => 'select',
+						'checkbox' => 'checkbox',
+						'radio'    => 'radio',
+						'tel'      => 'tel',
+						'url'      => 'url',
+						'number'   => 'number',
+						'date'     => 'date',
+					);
 					$fields[] = array(
 						'name'     => $name,
 						'type'     => isset( $map[ $basetype ] ) ? $map[ $basetype ] : 'text',
 						'label'    => $name,
-						'required' => ( isset( $tag->is_required ) && $tag->is_required() ),
+						'required' => ( method_exists( $tag, 'is_required' ) && $tag->is_required() ),
 						'default'  => '',
 					);
 				}
@@ -429,19 +543,22 @@ class Hatch_Forms_Bridge {
 		// v0.51 (#208): shape aligned with HatchForm.astro + the Astro proxy.
 		// Client checks `schema.ok` and posts to `schema.submit.url` (proxy
 		// rewrites the URL to same-origin /api/hatch-form/{provider}/{id}/submit).
-		return new WP_REST_Response( array(
-			'ok'              => true,
-			'provider'        => $provider,
-			'id'              => $id,
-			'title'           => $title,
-			'fields'          => $fields,
-			'submit'          => array(
-				'url'    => rest_url( 'hatch/v1/forms/' . $provider . '/' . $id . '/submit' ),
-				'method' => 'POST',
+		return new WP_REST_Response(
+			array(
+				'ok'              => true,
+				'provider'        => $provider,
+				'id'              => $id,
+				'title'           => $title,
+				'fields'          => $fields,
+				'submit'          => array(
+					'url'    => rest_url( 'hatch/v1/forms/' . $provider . '/' . $id . '/submit' ),
+					'method' => 'POST',
+				),
+				// Kept for backwards-compat with any existing consumers.
+				'submit_endpoint' => rest_url( 'hatch/v1/forms/' . $provider . '/' . $id . '/submit' ),
 			),
-			// Kept for backwards-compat with any existing consumers.
-			'submit_endpoint' => rest_url( 'hatch/v1/forms/' . $provider . '/' . $id . '/submit' ),
-		), 200 );
+			200
+		);
 	}
 
 	/* --------------------------------------------------------------------- *
@@ -449,6 +566,40 @@ class Hatch_Forms_Bridge {
 	 * --------------------------------------------------------------------- */
 
 	public static function submit_form( WP_REST_Request $req ) {
+		// REMOTE_ADDR unless the owner enabled hatch_trust_cf_ip and the peer is a
+		// Cloudflare edge, so a caller cannot choose its own rate-limit bucket.
+		$client_ip = class_exists( 'Hatch_Auth' ) ? Hatch_Auth::client_ip() : Hatch_Request::server( 'REMOTE_ADDR' );
+		$limit_key = 'hatch_form_rl_' . md5( $client_ip );
+		$attempts  = (int) get_transient( $limit_key );
+		/**
+		 * Filters how many form submissions one address may send in five minutes.
+		 *
+		 * @param int $max Default 10.
+		 */
+		$max_attempts = (int) apply_filters( 'hatch_form_rate_limit', 10 );
+		if ( $max_attempts > 0 && $attempts >= $max_attempts ) {
+			return new WP_Error(
+				'hatch_rate_limited',
+				__( 'Too many submissions. Please wait a few minutes and try again.', 'hatch-bridge' ),
+				array( 'status' => 429 )
+			);
+		}
+		set_transient( $limit_key, $attempts + 1, 5 * MINUTE_IN_SECONDS );
+
+		/**
+		 * Filters the largest submission body, in bytes, this public route accepts.
+		 *
+		 * @param int $bytes Default 64 KB.
+		 */
+		$max_bytes = (int) apply_filters( 'hatch_form_max_body_bytes', 64 * KB_IN_BYTES );
+		if ( $max_bytes > 0 && strlen( (string) $req->get_body() ) > $max_bytes ) {
+			return new WP_Error(
+				'hatch_form_too_large',
+				__( 'This submission is too large.', 'hatch-bridge' ),
+				array( 'status' => 413 )
+			);
+		}
+
 		$provider = (string) $req->get_param( 'provider' );
 		$id       = (int) $req->get_param( 'id' );
 		$payload  = $req->get_json_params();
@@ -459,17 +610,40 @@ class Hatch_Forms_Bridge {
 			$payload = array();
 		}
 		$fields = isset( $payload['fields'] ) && is_array( $payload['fields'] ) ? $payload['fields'] : $payload;
+		if ( count( $fields ) > 200 ) {
+			return new WP_Error(
+				'hatch_form_too_large',
+				__( 'This submission is too large.', 'hatch-bridge' ),
+				array( 'status' => 413 )
+			);
+		}
+
+		// Honeypot: a hidden field real visitors never fill. A bot that does gets a
+		// normal-looking success so it learns nothing, and nothing is stored or sent.
+		$trap = isset( $payload[ self::HONEYPOT_FIELD ] ) ? $payload[ self::HONEYPOT_FIELD ] : ( $fields[ self::HONEYPOT_FIELD ] ?? '' );
+		if ( is_scalar( $trap ) && '' !== trim( (string) $trap ) ) {
+			return new WP_REST_Response( array( 'ok' => true ), 200 );
+		}
+		unset( $fields[ self::HONEYPOT_FIELD ] );
 
 		$result = null;
 		switch ( $provider ) {
-			case 'fluent':  $result = self::submit_fluent( $id, $fields ); break;
-			case 'gravity': $result = self::submit_gravity( $id, $fields ); break;
-			case 'wpforms': $result = self::submit_wpforms_real( $id, $fields ); break;
-			case 'cf7':     $result = self::submit_cf7_real( $id, $fields, $req ); break;
+			case 'fluent':
+				$result = self::submit_fluent( $id, $fields );
+				break;
+			case 'gravity':
+				$result = self::submit_gravity( $id, $fields );
+				break;
+			case 'wpforms':
+				$result = self::submit_wpforms_real( $id, $fields );
+				break;
+			case 'cf7':
+				$result = self::submit_cf7_real( $id, $fields );
+				break;
 			default:
 				return new WP_Error( 'hatch_forms_unsupported', 'Unknown provider', array( 'status' => 400 ) );
 		}
-		// v0.52 — mirror every successful submission to the Hatch-owned
+		// v0.52 - mirror every successful submission to the Hatch-owned
 		// table so operators have a queryable log even when the plugin
 		// itself (e.g. WPForms Lite) does not persist entries.
 		$is_success = ( $result instanceof WP_REST_Response )
@@ -479,7 +653,7 @@ class Hatch_Forms_Bridge {
 			self::ensure_submissions_table();
 			$sid = self::persist_submission( $provider, $id, $fields );
 			if ( $sid ) {
-				$data = $result->get_data();
+				$data                  = $result->get_data();
 				$data['submission_id'] = $sid;
 				$result->set_data( $data );
 			}
@@ -509,31 +683,43 @@ class Hatch_Forms_Bridge {
 		// the new class is missing. Both replay the same pipeline.
 		if ( class_exists( '\FluentForm\App\Services\Form\SubmissionHandlerService' ) ) {
 			try {
+				// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- Public headless form endpoint: there is no browser session to bind a nonce to; abuse is limited by the per-address rate limit in submit_form() and by the form plugin's own honeypot and spam checks.
 				$_POST['data']    = http_build_query( $fields );
 				$_POST['form_id'] = $id;
 				$_REQUEST         = array_merge( (array) $_REQUEST, $_POST );
-				$service          = new \FluentForm\App\Services\Form\SubmissionHandlerService();
-				$result           = $service->handleSubmission( $fields, $id );
-				$msg = 'Thanks for submitting.';
-				$entry = 0;
+				// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended
+				$service = new \FluentForm\App\Services\Form\SubmissionHandlerService();
+				$result  = $service->handleSubmission( $fields, $id );
+				$msg     = 'Thanks for submitting.';
+				$entry   = 0;
 				if ( is_array( $result ) ) {
-					if ( isset( $result['message'] ) ) $msg = (string) $result['message'];
-					if ( isset( $result['insert_id'] ) ) $entry = (int) $result['insert_id'];
+					if ( isset( $result['message'] ) ) {
+						$msg = (string) $result['message'];
+					}
+					if ( isset( $result['insert_id'] ) ) {
+						$entry = (int) $result['insert_id'];
+					}
 				}
-				return new WP_REST_Response( array(
-					'ok'      => true,
-					'message' => $msg,
-					'entry'   => $entry,
-				), 200 );
+				return new WP_REST_Response(
+					array(
+						'ok'      => true,
+						'message' => $msg,
+						'entry'   => $entry,
+					),
+					200
+				);
 			} catch ( \FluentForm\Framework\Validator\ValidationException $ve ) {
-				return new WP_REST_Response( array(
-					'ok'     => false,
-					'errors' => method_exists( $ve, 'errors' ) ? $ve->errors() : array(),
-				), 422 );
+				return new WP_REST_Response(
+					array(
+						'ok'     => false,
+						'errors' => method_exists( $ve, 'errors' ) ? $ve->errors() : array(),
+					),
+					422
+				);
 			} catch ( \Throwable $e ) {
 				return new WP_Error(
 					'hatch_fluent_handler_failed',
-					'Fluent SubmissionHandlerService failed: ' . $e->getMessage(),
+					__( 'Fluent Forms could not process this submission.', 'hatch-bridge' ),
 					array( 'status' => 503 )
 				);
 			}
@@ -542,20 +728,25 @@ class Hatch_Forms_Bridge {
 		if ( class_exists( '\FluentForm\App\Services\Submission\SubmissionService' )
 			&& method_exists( '\FluentForm\App\Services\Submission\SubmissionService', 'submit' ) ) {
 			try {
+				// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- Public headless form endpoint: there is no browser session to bind a nonce to; abuse is limited by the per-address rate limit in submit_form() and by the form plugin's own honeypot and spam checks.
 				$_POST['data']    = http_build_query( $fields );
 				$_POST['form_id'] = $id;
 				$_REQUEST         = array_merge( (array) $_REQUEST, $_POST );
-				$service          = new \FluentForm\App\Services\Submission\SubmissionService();
-				$result           = $service->submit();
-				return new WP_REST_Response( array(
-					'ok'      => true,
-					'message' => isset( $result['message'] ) ? (string) $result['message'] : 'Thanks for submitting.',
-					'entry'   => isset( $result['insert_id'] ) ? (int) $result['insert_id'] : 0,
-				), 200 );
+				// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended
+				$service = new \FluentForm\App\Services\Submission\SubmissionService();
+				$result  = $service->submit();
+				return new WP_REST_Response(
+					array(
+						'ok'      => true,
+						'message' => isset( $result['message'] ) ? (string) $result['message'] : 'Thanks for submitting.',
+						'entry'   => isset( $result['insert_id'] ) ? (int) $result['insert_id'] : 0,
+					),
+					200
+				);
 			} catch ( \Throwable $e ) {
 				return new WP_Error(
 					'hatch_fluent_service_failed',
-					'Fluent SubmissionService failed: ' . $e->getMessage(),
+					__( 'Fluent Forms could not process this submission.', 'hatch-bridge' ),
 					array( 'status' => 503 )
 				);
 			}
@@ -577,12 +768,15 @@ class Hatch_Forms_Bridge {
 			return $result;
 		}
 		$valid = ! empty( $result['is_valid'] );
-		return new WP_REST_Response( array(
-			'ok'      => $valid,
-			'message' => $valid ? ( isset( $result['confirmation_message'] ) ? wp_strip_all_tags( (string) $result['confirmation_message'] ) : 'Submitted' ) : 'Validation failed',
-			'errors'  => isset( $result['validation_messages'] ) ? $result['validation_messages'] : array(),
-			'entry'   => isset( $result['entry_id'] ) ? (int) $result['entry_id'] : 0,
-		), $valid ? 200 : 422 );
+		return new WP_REST_Response(
+			array(
+				'ok'      => $valid,
+				'message' => $valid ? ( isset( $result['confirmation_message'] ) ? wp_strip_all_tags( (string) $result['confirmation_message'] ) : 'Submitted' ) : 'Validation failed',
+				'errors'  => isset( $result['validation_messages'] ) ? $result['validation_messages'] : array(),
+				'entry'   => isset( $result['entry_id'] ) ? (int) $result['entry_id'] : 0,
+			),
+			$valid ? 200 : 422
+		);
 	}
 
 	private static function submit_wpforms_real( int $id, array $fields ) {
@@ -595,29 +789,34 @@ class Hatch_Forms_Bridge {
 		}
 		$form_data = wpforms_decode( $form->post_content );
 		$entry_id  = 0;
-		if ( function_exists( 'wpforms' ) && isset( wpforms()->entry ) ) {
-			$entry_id = (int) wpforms()->entry->add( array(
-				'form_id'      => $id,
-				'user_id'      => get_current_user_id(),
-				'fields'       => wp_json_encode( $fields ),
-				'ip_address'   => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
-				'user_agent'   => isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 254 ) : '',
-				'date'         => current_time( 'mysql' ),
-				'status'       => '',
-				'type'         => '',
-				'viewed'       => 0,
-				'starred'      => 0,
-			) );
+		if ( isset( wpforms()->entry ) ) {
+			$entry_id = (int) wpforms()->entry->add(
+				array(
+					'form_id'    => $id,
+					'user_id'    => get_current_user_id(),
+					'fields'     => wp_json_encode( $fields ),
+					'ip_address' => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
+					'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 254 ) : '',
+					'date'       => current_time( 'mysql' ),
+					'status'     => '',
+					'type'       => '',
+					'viewed'     => 0,
+					'starred'    => 0,
+				)
+			);
 		}
-		do_action( 'wpforms_process_complete', $fields, array(), $id, $form_data );
-		return new WP_REST_Response( array(
-			'ok'      => true,
-			'message' => isset( $form_data['settings']['confirmations'][1]['message'] ) ? wp_strip_all_tags( (string) $form_data['settings']['confirmations'][1]['message'] ) : 'Thanks.',
-			'entry'   => $entry_id,
-		), 200 );
+		do_action( 'wpforms_process_complete', $fields, array(), $id, $form_data ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPForms action, fired so its own listeners run.
+		return new WP_REST_Response(
+			array(
+				'ok'      => true,
+				'message' => isset( $form_data['settings']['confirmations'][1]['message'] ) ? wp_strip_all_tags( (string) $form_data['settings']['confirmations'][1]['message'] ) : 'Thanks.',
+				'entry'   => $entry_id,
+			),
+			200
+		);
 	}
 
-	private static function submit_cf7_real( int $id, array $fields, WP_REST_Request $req ) {
+	private static function submit_cf7_real( int $id, array $fields ) {
 		if ( ! class_exists( 'WPCF7_ContactForm' ) ) {
 			return new WP_Error( 'hatch_cf7_missing', 'Contact Form 7 not active', array( 'status' => 503 ) );
 		}
@@ -628,30 +827,36 @@ class Hatch_Forms_Bridge {
 		foreach ( $fields as $k => $v ) {
 			$body[ $k ] = is_array( $v ) ? $v : (string) $v;
 		}
-		$res = wp_remote_post( $url, array(
-			'body'    => $body,
-			'timeout' => 15,
-			'headers' => array( 'Accept' => 'application/json' ),
-		) );
+		$res = wp_remote_post(
+			$url,
+			array(
+				'body'    => $body,
+				'timeout' => 15,
+				'headers' => array( 'Accept' => 'application/json' ),
+			)
+		);
 		if ( is_wp_error( $res ) ) {
 			return $res;
 		}
 		$code = wp_remote_retrieve_response_code( $res );
 		$json = json_decode( wp_remote_retrieve_body( $res ), true );
 		$ok   = isset( $json['status'] ) && 'mail_sent' === $json['status'];
-		return new WP_REST_Response( array(
-			'ok'      => $ok,
-			'message' => isset( $json['message'] ) ? (string) $json['message'] : '',
-			'errors'  => isset( $json['invalid_fields'] ) ? $json['invalid_fields'] : array(),
-		), $code ?: 200 );
+		return new WP_REST_Response(
+			array(
+				'ok'      => $ok,
+				'message' => isset( $json['message'] ) ? (string) $json['message'] : '',
+				'errors'  => isset( $json['invalid_fields'] ) ? $json['invalid_fields'] : array(),
+			),
+			$code > 0 ? (int) $code : 200
+		);
 	}
 
 	/* --------------------------------------------------------------------- *
 	 * Shortcode rewriter: [fluentform id=X] -> <div class="hatch-form-mount">
-	 * Hooked to `hatch/content/html` filter (from route_content_by_slug).
+	 * Hooked to `hatch_content_html` filter (from route_content_by_slug).
 	 * --------------------------------------------------------------------- */
 
-	public static function rewrite_form_shortcodes( string $html, $post = null ): string {
+	public static function rewrite_form_shortcodes( string $html ): string {
 		$patterns = array(
 			'fluent'  => '/\[fluentform\s+id=[\'"]?(\d+)[\'"]?[^\]]*\]/i',
 			'wpforms' => '/\[wpforms\s+id=[\'"]?(\d+)[\'"]?[^\]]*\]/i',
@@ -659,13 +864,17 @@ class Hatch_Forms_Bridge {
 			'cf7'     => '/\[contact-form-7\s+id=[\'"]?(\d+)[\'"]?[^\]]*\]/i',
 		);
 		foreach ( $patterns as $provider => $regex ) {
-			$html = preg_replace_callback( $regex, static function ( $m ) use ( $provider ) {
-				return sprintf(
-					'<div class="hatch-form-mount" data-hatch-form-provider="%s" data-hatch-form-id="%d"></div>',
-					esc_attr( $provider ),
-					(int) $m[1]
-				);
-			}, $html );
+			$html = preg_replace_callback(
+				$regex,
+				static function ( $m ) use ( $provider ) {
+					return sprintf(
+						'<div class="hatch-form-mount" data-hatch-form-provider="%s" data-hatch-form-id="%d"></div>',
+						esc_attr( $provider ),
+						(int) $m[1]
+					);
+				},
+				$html
+			);
 		}
 		return $html;
 	}

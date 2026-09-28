@@ -1,9 +1,9 @@
 <?php
 /**
- * Hatch Diagnostic — preflight checks before connecting a headless frontend.
+ * Hatch Diagnostic - preflight checks before connecting a headless frontend.
  *
  * Runs 12 checks that catch every common reason a fresh WP install can't talk
- * to a headless frontend. Returns a structured report — each issue has a
+ * to a headless frontend. Returns a structured report - each issue has a
  * SEVERITY (fail/warn/pass), a HUMAN message, and a FIX hint with a direct link.
  *
  * Used by:
@@ -11,7 +11,7 @@
  *   - REST: GET /hatch/v1/diagnostic (admin-only)
  *   - WP-CLI: `wp hatch diagnose`
  *
- * Every check is non-destructive — pure reads.
+ * Every check is non-destructive - pure reads.
  *
  * @package Hatch
  */
@@ -74,7 +74,7 @@ class Hatch_Diagnostic {
 	 * @return array<string,mixed>
 	 */
 	public static function run(): array {
-		// V0.6: removed check_cors_headers() — CORS only matters for client-side
+		// V0.6: removed check_cors_headers() - CORS only matters for client-side
 		// fetching (rare in Astro/static-rendered headless sites). The warning was
 		// noise. Documented separately in docs/client-side-fetching.md for users
 		// who do need it.
@@ -88,21 +88,25 @@ class Hatch_Diagnostic {
 			self::check_app_passwords_available(),
 			self::check_active_security_plugins(),
 			self::check_caching_plugins_safe(),
-			// Revalidation webhook check intentionally OMITTED in v0.18+ —
+			// Revalidation webhook check intentionally OMITTED in v0.18+ -
 			// the Astro starter runs in SSR mode, so content is always fresh
 			// (60s edge cache TTL). No webhook needed. Filter to re-enable
 			// for users who want explicit push-on-publish.
-			...( apply_filters( 'hatch/diagnostic_include_webhook_check', false )
+			...( apply_filters( 'hatch_diagnostic_include_webhook_check', false )
 				? array( self::check_webhook_configured() )
 				: array() ),
 			self::check_acf_rest_exposed(),
 			self::check_cpts_rest_exposed(),
 		);
 
-		$counts = array( 'pass' => 0, 'warn' => 0, 'fail' => 0 );
+		$counts = array(
+			'pass' => 0,
+			'warn' => 0,
+			'fail' => 0,
+		);
 		foreach ( $checks as $c ) {
 			if ( isset( $counts[ $c['severity'] ] ) ) {
-				$counts[ $c['severity'] ]++;
+				++$counts[ $c['severity'] ];
 			}
 		}
 
@@ -135,13 +139,15 @@ class Hatch_Diagnostic {
 	private static function check_wp_version(): array {
 		$wp = (string) get_bloginfo( 'version' );
 		if ( version_compare( $wp, '6.4', '>=' ) ) {
-			return self::pass( 'wp_version', __( 'WordPress version', 'hatch' ), sprintf( __( 'WordPress %s — supported.', 'hatch' ), $wp ) );
+			/* translators: %s: WordPress version number. */
+			return self::pass( 'wp_version', __( 'WordPress version', 'hatch-bridge' ), sprintf( __( 'WordPress %s - supported.', 'hatch-bridge' ), $wp ) );
 		}
 		return self::fail(
 			'wp_version',
-			__( 'WordPress version', 'hatch' ),
-			sprintf( __( 'WordPress %s is below the minimum supported version 6.4.', 'hatch' ), $wp ),
-			__( 'Update WordPress from Dashboard → Updates.', 'hatch' ),
+			__( 'WordPress version', 'hatch-bridge' ),
+			/* translators: %s: WordPress version number. */
+			sprintf( __( 'WordPress %s is below the minimum supported version 6.4.', 'hatch-bridge' ), $wp ),
+			__( 'Update WordPress from Dashboard → Updates.', 'hatch-bridge' ),
 			admin_url( 'update-core.php' )
 		);
 	}
@@ -153,32 +159,34 @@ class Hatch_Diagnostic {
 	 */
 	private static function check_php_version(): array {
 		if ( version_compare( PHP_VERSION, '7.4', '>=' ) ) {
-			return self::pass( 'php_version', __( 'PHP version', 'hatch' ), sprintf( __( 'PHP %s — supported.', 'hatch' ), PHP_VERSION ) );
+			/* translators: %s: PHP version number. */
+			return self::pass( 'php_version', __( 'PHP version', 'hatch-bridge' ), sprintf( __( 'PHP %s - supported.', 'hatch-bridge' ), PHP_VERSION ) );
 		}
 		return self::fail(
 			'php_version',
-			__( 'PHP version', 'hatch' ),
-			sprintf( __( 'PHP %s is below the minimum supported version 7.4.', 'hatch' ), PHP_VERSION ),
-			__( 'Ask your host to upgrade PHP. Most modern hosts support PHP 8.2+.', 'hatch' ),
+			__( 'PHP version', 'hatch-bridge' ),
+			/* translators: %s: PHP version number. */
+			sprintf( __( 'PHP %s is below the minimum supported version 7.4.', 'hatch-bridge' ), PHP_VERSION ),
+			__( 'Ask your host to upgrade PHP. Most modern hosts support PHP 8.2+.', 'hatch-bridge' ),
 			''
 		);
 	}
 
 	/**
-	 * Permalinks must NOT be Plain — pretty permalinks are required for REST routing.
+	 * Permalinks must NOT be Plain - pretty permalinks are required for REST routing.
 	 *
 	 * @return array
 	 */
 	private static function check_permalinks(): array {
 		$structure = (string) get_option( 'permalink_structure', '' );
 		if ( '' !== $structure ) {
-			return self::pass( 'permalinks', __( 'Pretty permalinks', 'hatch' ), __( 'Permalinks are configured.', 'hatch' ) );
+			return self::pass( 'permalinks', __( 'Pretty permalinks', 'hatch-bridge' ), __( 'Permalinks are configured.', 'hatch-bridge' ) );
 		}
 		return self::fail(
 			'permalinks',
-			__( 'Pretty permalinks', 'hatch' ),
-			__( 'Plain permalinks are enabled. REST API routes will not work consistently.', 'hatch' ),
-			__( 'Go to Settings → Permalinks and pick any structure other than Plain. "Post name" is recommended.', 'hatch' ),
+			__( 'Pretty permalinks', 'hatch-bridge' ),
+			__( 'Plain permalinks are enabled. REST API routes will not work consistently.', 'hatch-bridge' ),
+			__( 'Go to Settings → Permalinks and pick any structure other than Plain. "Post name" is recommended.', 'hatch-bridge' ),
 			admin_url( 'options-permalink.php' )
 		);
 	}
@@ -191,19 +199,19 @@ class Hatch_Diagnostic {
 	private static function check_https(): array {
 		$home = home_url();
 		if ( 0 === strpos( $home, 'https://' ) ) {
-			return self::pass( 'https', __( 'HTTPS', 'hatch' ), __( 'Site is served over HTTPS.', 'hatch' ) );
+			return self::pass( 'https', __( 'HTTPS', 'hatch-bridge' ), __( 'Site is served over HTTPS.', 'hatch-bridge' ) );
 		}
 		return self::warn(
 			'https',
-			__( 'HTTPS', 'hatch' ),
-			__( 'Site is not on HTTPS. Headless frontends will refuse to authenticate against an http:// API.', 'hatch' ),
-			__( 'Enable HTTPS on your hosting (free with Cloudflare or Let\'s Encrypt). Then update Settings → General → WordPress Address.', 'hatch' ),
+			__( 'HTTPS', 'hatch-bridge' ),
+			__( 'Site is not on HTTPS. Headless frontends will refuse to authenticate against an http:// API.', 'hatch-bridge' ),
+			__( 'Enable HTTPS on your hosting (free with Cloudflare or Let\'s Encrypt). Then update Settings → General → WordPress Address.', 'hatch-bridge' ),
 			admin_url( 'options-general.php' )
 		);
 	}
 
 	/**
-	 * REST API reachable — fetch /wp-json/wp/v2/types unauthenticated.
+	 * REST API reachable - fetch /wp-json/wp/v2/types unauthenticated.
 	 *
 	 * @return array
 	 */
@@ -211,69 +219,79 @@ class Hatch_Diagnostic {
 		$url = rest_url( 'wp/v2/types' );
 
 		// First, run the request in-process via rest_do_request(). This is the
-		// correct way to verify REST routing works — it exercises the same
+		// correct way to verify REST routing works - it exercises the same
 		// dispatcher real requests use, but skips the HTTP roundtrip entirely.
 		// That matters in any environment where home_url() isn't reachable from
 		// PHP itself: Docker port mappings (e.g. localhost:8810 → :80 inside
 		// the container), reverse proxies, Cloudflare with origin pulls
 		// disabled, hosts that block loopback HTTP, etc. If the dispatcher
-		// returns a sane response, the REST API is healthy by definition —
+		// returns a sane response, the REST API is healthy by definition -
 		// no need to also prove the network round-trips to ourselves.
 		$internal = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/types' ) );
-		if ( ! is_wp_error( $internal ) && (int) $internal->get_status() < 500 ) {
+		if ( (int) $internal->get_status() < 500 ) {
 			return self::pass(
 				'rest_reachable',
-				__( 'REST API reachable', 'hatch' ),
-				sprintf( __( 'GET %s dispatched in-process with HTTP %d. REST routing works.', 'hatch' ), $url, (int) $internal->get_status() )
+				__( 'REST API reachable', 'hatch-bridge' ),
+				/* translators: 1: request URL, 2: HTTP status code. */
+				sprintf( __( 'GET %1$s dispatched in-process with HTTP %2$d. REST routing works.', 'hatch-bridge' ), $url, (int) $internal->get_status() )
 			);
 		}
 
 		// Fallback: external HTTP probe. Only useful for catching exotic
 		// configurations where the dispatcher is healthy but the public
 		// /wp-json/ path is blocked by .htaccess / firewall rules. Treat a
-		// connection failure here as a WARNING, not a blocker — the in-process
+		// connection failure here as a WARNING, not a blocker - the in-process
 		// dispatch already proved the API itself works.
-		$res = wp_remote_get( $url, array( 'timeout' => 5, 'redirection' => 1, 'sslverify' => false ) );
+		$res = wp_remote_get(
+			$url,
+			array(
+				'timeout'     => 5,
+				'redirection' => 1,
+			)
+		);
 
 		if ( is_wp_error( $res ) ) {
 			return self::warn(
 				'rest_reachable',
-				__( 'REST API reachable', 'hatch' ),
-				sprintf( __( 'In-process REST dispatch works, but external probe to %s failed — %s. This is harmless on local rigs (Docker, loopback) but in production it may mean a firewall or reverse-proxy rule is blocking /wp-json/.', 'hatch' ), $url, $res->get_error_message() ),
-				__( 'On a live site, verify /wp-json/wp/v2/types loads in a browser. If it doesn\'t, check your firewall / .htaccess / nginx config.', 'hatch' ),
+				__( 'REST API reachable', 'hatch-bridge' ),
+				/* translators: 1: URL probed, 2: error message. */
+				sprintf( __( 'In-process REST dispatch works, but external probe to %1$s failed - %2$s. This is harmless on local rigs (Docker, loopback) but in production it may mean a firewall or reverse-proxy rule is blocking /wp-json/.', 'hatch-bridge' ), $url, $res->get_error_message() ),
+				__( 'On a live site, verify /wp-json/wp/v2/types loads in a browser. If it doesn\'t, check your firewall / .htaccess / nginx config.', 'hatch-bridge' ),
 				''
 			);
 		}
 
 		$code = (int) wp_remote_retrieve_response_code( $res );
 		if ( 200 === $code || 401 === $code ) {
-			// 401 means it's working — just gated (which is what we want).
+			// 401 means it's working - just gated (which is what we want).
 			return self::pass(
 				'rest_reachable',
-				__( 'REST API reachable', 'hatch' ),
-				sprintf( __( 'GET %s responded with %d. REST routing works.', 'hatch' ), $url, $code )
+				__( 'REST API reachable', 'hatch-bridge' ),
+				/* translators: 1: request URL, 2: HTTP status code. */
+				sprintf( __( 'GET %1$s responded with %2$d. REST routing works.', 'hatch-bridge' ), $url, $code )
 			);
 		}
 		if ( 404 === $code ) {
 			return self::fail(
 				'rest_reachable',
-				__( 'REST API reachable', 'hatch' ),
-				__( 'REST API returns 404. A plugin or .htaccess rule is blocking /wp-json/.', 'hatch' ),
-				__( 'Suspect plugins: Disable REST API, WP-OAuth, Disable JSON API. Or check .htaccess for Deny rules.', 'hatch' ),
+				__( 'REST API reachable', 'hatch-bridge' ),
+				__( 'REST API returns 404. A plugin or .htaccess rule is blocking /wp-json/.', 'hatch-bridge' ),
+				__( 'Suspect plugins: Disable REST API, WP-OAuth, Disable JSON API. Or check .htaccess for Deny rules.', 'hatch-bridge' ),
 				admin_url( 'plugins.php' )
 			);
 		}
 		return self::warn(
 			'rest_reachable',
-			__( 'REST API reachable', 'hatch' ),
-			sprintf( __( 'REST API responded with HTTP %d (expected 200 or 401).', 'hatch' ), $code ),
-			__( 'Verify your hosting provider isn\'t injecting an error page on /wp-json/.', 'hatch' ),
+			__( 'REST API reachable', 'hatch-bridge' ),
+			/* translators: %d: HTTP status code. */
+			sprintf( __( 'REST API responded with HTTP %d (expected 200 or 401).', 'hatch-bridge' ), $code ),
+			__( 'Verify your hosting provider isn\'t injecting an error page on /wp-json/.', 'hatch-bridge' ),
 			''
 		);
 	}
 
 	/**
-	 * REST API authentication path works — try /wp/v2/users/me with current cookie.
+	 * REST API authentication path works - try /wp/v2/users/me with current cookie.
 	 *
 	 * @return array
 	 */
@@ -281,22 +299,22 @@ class Hatch_Diagnostic {
 		if ( ! is_user_logged_in() ) {
 			return self::warn(
 				'rest_auth',
-				__( 'REST authentication', 'hatch' ),
-				__( 'Run this check while logged in to verify authenticated REST works.', 'hatch' ),
-				__( 'No action needed if you reached this page from wp-admin.', 'hatch' ),
+				__( 'REST authentication', 'hatch-bridge' ),
+				__( 'Run this check while logged in to verify authenticated REST works.', 'hatch-bridge' ),
+				__( 'No action needed if you reached this page from wp-admin.', 'hatch-bridge' ),
 				''
 			);
 		}
 		$res = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/users/me' ) );
 		if ( $res && ! $res->is_error() ) {
-			return self::pass( 'rest_auth', __( 'REST authentication', 'hatch' ), __( 'Authenticated REST returns the current user.', 'hatch' ) );
+			return self::pass( 'rest_auth', __( 'REST authentication', 'hatch-bridge' ), __( 'Authenticated REST returns the current user.', 'hatch-bridge' ) );
 		}
 		return self::fail(
 			'rest_auth',
-			__( 'REST authentication', 'hatch' ),
-			__( 'Internal REST authentication failed for the current user.', 'hatch' ),
-			__( 'A security plugin may be blocking the /wp/v2/users/me endpoint. Try Hatch → Security and toggle "Block unauthenticated REST API" OFF temporarily to diagnose.', 'hatch' ),
-			admin_url( 'tools.php?page=hatch&tab=security' )
+			__( 'REST authentication', 'hatch-bridge' ),
+			__( 'Internal REST authentication failed for the current user.', 'hatch-bridge' ),
+			__( 'A security plugin may be blocking the /wp/v2/users/me endpoint. Try Hatch → Security and toggle "Block unauthenticated REST API" OFF temporarily to diagnose.', 'hatch-bridge' ),
+			admin_url( 'admin.php?page=hatch#security' )
 		);
 	}
 
@@ -307,38 +325,38 @@ class Hatch_Diagnostic {
 	 */
 	private static function check_app_passwords_available(): array {
 		// WP's wp_is_application_passwords_available() is gated by is_ssl() in
-		// admin context — that flag is misleading on http:// rigs where APs
+		// admin context - that flag is misleading on http:// rigs where APs
 		// genuinely work (Hatch installs a runtime REST-only override in
 		// Hatch_Security::enable_app_passwords_for_rest_basic_auth). Check the
 		// real signals instead: (a) WP_Application_Passwords class exists,
 		// (b) APs are not hard-disabled by constant, (c) the runtime override
-		// is loaded OR HTTPS is on. The strongest signal — and the one that
-		// matters in practice — is whether the current user can already pull
+		// is loaded OR HTTPS is on. The strongest signal - and the one that
+		// matters in practice - is whether the current user can already pull
 		// an AP-authenticated REST response. If yes, APs work.
 		if ( ! class_exists( 'WP_Application_Passwords' ) ) {
 			return self::fail(
 				'app_passwords',
-				__( 'Application Passwords', 'hatch' ),
-				__( 'WP_Application_Passwords is missing. This WordPress is too old or has APs disabled in core.', 'hatch' ),
-				__( 'Upgrade to WordPress 5.6 or later.', 'hatch' ),
+				__( 'Application Passwords', 'hatch-bridge' ),
+				__( 'WP_Application_Passwords is missing. This WordPress is too old or has APs disabled in core.', 'hatch-bridge' ),
+				__( 'Upgrade to WordPress 5.6 or later.', 'hatch-bridge' ),
 				''
 			);
 		}
 		if ( defined( 'WP_APPLICATION_PASSWORDS_AVAILABLE' ) && ! WP_APPLICATION_PASSWORDS_AVAILABLE ) {
 			return self::fail(
 				'app_passwords',
-				__( 'Application Passwords', 'hatch' ),
-				__( 'Application Passwords are explicitly disabled via WP_APPLICATION_PASSWORDS_AVAILABLE.', 'hatch' ),
-				__( 'Remove the define( "WP_APPLICATION_PASSWORDS_AVAILABLE", false ) from wp-config.php.', 'hatch' ),
+				__( 'Application Passwords', 'hatch-bridge' ),
+				__( 'Application Passwords are explicitly disabled via WP_APPLICATION_PASSWORDS_AVAILABLE.', 'hatch-bridge' ),
+				__( 'Remove the define( "WP_APPLICATION_PASSWORDS_AVAILABLE", false ) from wp-config.php.', 'hatch-bridge' ),
 				''
 			);
 		}
 
-		$wp_says_available  = function_exists( 'wp_is_application_passwords_available' ) && wp_is_application_passwords_available();
-		$hatch_override_on  = has_filter( 'wp_is_application_passwords_available', array( Hatch_Security::instance(), 'enable_app_passwords_for_rest_basic_auth' ) );
+		$wp_says_available = function_exists( 'wp_is_application_passwords_available' ) && wp_is_application_passwords_available();
+		$hatch_override_on = has_filter( 'wp_is_application_passwords_available', array( Hatch_Security::instance(), 'enable_app_passwords_for_rest_basic_auth' ) );
 
 		if ( $wp_says_available ) {
-			return self::pass( 'app_passwords', __( 'Application Passwords', 'hatch' ), __( 'Application Passwords are enabled.', 'hatch' ) );
+			return self::pass( 'app_passwords', __( 'Application Passwords', 'hatch-bridge' ), __( 'Application Passwords are enabled.', 'hatch-bridge' ) );
 		}
 
 		if ( $hatch_override_on ) {
@@ -348,16 +366,16 @@ class Hatch_Diagnostic {
 			// caller that matters.
 			return self::pass(
 				'app_passwords',
-				__( 'Application Passwords', 'hatch' ),
-				__( 'Application Passwords are gated by HTTPS for browsers but enabled for the REST API by Hatch. Headless frontend auth works.', 'hatch' )
+				__( 'Application Passwords', 'hatch-bridge' ),
+				__( 'Application Passwords are gated by HTTPS for browsers but enabled for the REST API by Hatch. Headless frontend auth works.', 'hatch-bridge' )
 			);
 		}
 
 		return self::fail(
 			'app_passwords',
-			__( 'Application Passwords', 'hatch' ),
-			__( 'Application Passwords are disabled or unavailable.', 'hatch' ),
-			__( 'Enable HTTPS, or define( "WP_APPLICATION_PASSWORDS_AVAILABLE", true ) in wp-config.php — or remove a plugin that disabled them.', 'hatch' ),
+			__( 'Application Passwords', 'hatch-bridge' ),
+			__( 'Application Passwords are disabled or unavailable.', 'hatch-bridge' ),
+			__( 'Enable HTTPS, or define( "WP_APPLICATION_PASSWORDS_AVAILABLE", true ) in wp-config.php - or remove a plugin that disabled them.', 'hatch-bridge' ),
 			''
 		);
 	}
@@ -370,10 +388,10 @@ class Hatch_Diagnostic {
 	private static function check_active_security_plugins(): array {
 		$problematic = array(
 			'wp-rest-api-controller/wp-rest-api-controller.php' => 'WP REST API Controller',
-			'disable-json-api/disable-json-api.php'              => 'Disable JSON API',
-			'disable-wp-rest-api/disable-wp-rest-api.php'        => 'Disable WP REST API',
+			'disable-json-api/disable-json-api.php'       => 'Disable JSON API',
+			'disable-wp-rest-api/disable-wp-rest-api.php' => 'Disable WP REST API',
 		);
-		$active = array();
+		$active      = array();
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
@@ -383,13 +401,14 @@ class Hatch_Diagnostic {
 			}
 		}
 		if ( empty( $active ) ) {
-			return self::pass( 'security_plugins', __( 'No REST blockers', 'hatch' ), __( 'No known REST-blocking plugins active.', 'hatch' ) );
+			return self::pass( 'security_plugins', __( 'No REST blockers', 'hatch-bridge' ), __( 'No known REST-blocking plugins active.', 'hatch-bridge' ) );
 		}
 		return self::fail(
 			'security_plugins',
-			__( 'No REST blockers', 'hatch' ),
-			sprintf( __( 'These plugins block REST API by default: %s', 'hatch' ), implode( ', ', $active ) ),
-			__( 'Deactivate the listed plugin, or configure it to allow Hatch\'s namespace.', 'hatch' ),
+			__( 'No REST blockers', 'hatch-bridge' ),
+			/* translators: %s: comma-separated plugin names. */
+			sprintf( __( 'These plugins block REST API by default: %s', 'hatch-bridge' ), implode( ', ', $active ) ),
+			__( 'Deactivate the listed plugin, or configure it to allow Hatch\'s namespace.', 'hatch-bridge' ),
 			admin_url( 'plugins.php' )
 		);
 	}
@@ -400,14 +419,14 @@ class Hatch_Diagnostic {
 	 * @return array
 	 */
 	private static function check_caching_plugins_safe(): array {
-		// We just warn if any aggressive cache is active — let user verify their config.
+		// We just warn if any aggressive cache is active - let user verify their config.
 		$cache_plugins = array(
-			'wp-rocket/wp-rocket.php'                  => 'WP Rocket',
-			'w3-total-cache/w3-total-cache.php'        => 'W3 Total Cache',
-			'litespeed-cache/litespeed-cache.php'      => 'LiteSpeed Cache',
-			'wp-super-cache/wp-cache.php'              => 'WP Super Cache',
+			'wp-rocket/wp-rocket.php'             => 'WP Rocket',
+			'w3-total-cache/w3-total-cache.php'   => 'W3 Total Cache',
+			'litespeed-cache/litespeed-cache.php' => 'LiteSpeed Cache',
+			'wp-super-cache/wp-cache.php'         => 'WP Super Cache',
 		);
-		$active = array();
+		$active        = array();
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
@@ -417,32 +436,15 @@ class Hatch_Diagnostic {
 			}
 		}
 		if ( empty( $active ) ) {
-			return self::pass( 'caching', __( 'No conflicting cache plugins', 'hatch' ), __( 'No aggressive page-cache plugins detected.', 'hatch' ) );
+			return self::pass( 'caching', __( 'No conflicting cache plugins', 'hatch-bridge' ), __( 'No aggressive page-cache plugins detected.', 'hatch-bridge' ) );
 		}
 		return self::warn(
 			'caching',
-			__( 'Cache plugin detected', 'hatch' ),
-			sprintf( __( '%s is active. Verify it does NOT cache /wp-json/* responses.', 'hatch' ), implode( ', ', $active ) ),
-			__( 'In your cache plugin, add /wp-json/* to the URL exclusion list.', 'hatch' ),
+			__( 'Cache plugin detected', 'hatch-bridge' ),
+			/* translators: %s: comma-separated plugin names. */
+			sprintf( __( '%s is active. Verify it does NOT cache /wp-json/* responses.', 'hatch-bridge' ), implode( ', ', $active ) ),
+			__( 'In your cache plugin, add /wp-json/* to the URL exclusion list.', 'hatch-bridge' ),
 			admin_url( 'plugins.php' )
-		);
-	}
-
-	/**
-	 * Headless frontend will preflight from a different origin → CORS.
-	 *
-	 * Hatch doesn't add CORS headers itself (intentional — admin should control this).
-	 * This check is informational.
-	 *
-	 * @return array
-	 */
-	private static function check_cors_headers(): array {
-		return self::warn(
-			'cors',
-			__( 'CORS configuration', 'hatch' ),
-			__( 'Frontend on a different domain will need CORS allowed.', 'hatch' ),
-			__( 'Add your frontend origin to Settings → Hatch → Connection → Allowed Origins (coming v0.5). For now, configure CORS in your reverse proxy.', 'hatch' ),
-			''
 		);
 	}
 
@@ -455,22 +457,22 @@ class Hatch_Diagnostic {
 		$endpoint = (string) get_option( 'hatch_revalidate_endpoint', '' );
 		$secret   = (string) get_option( 'hatch_webhook_secret', '' );
 		if ( '' !== $endpoint && '' !== $secret ) {
-			return self::pass( 'webhook', __( 'Revalidation webhook', 'hatch' ), __( 'Webhook URL and secret are configured.', 'hatch' ) );
+			return self::pass( 'webhook', __( 'Revalidation webhook', 'hatch-bridge' ), __( 'Webhook URL and secret are configured.', 'hatch-bridge' ) );
 		}
 		if ( '' === $endpoint ) {
 			return self::warn(
 				'webhook',
-				__( 'Revalidation webhook (optional)', 'hatch' ),
-				__( 'No webhook URL set. With SSR + 60s edge cache (Hatch default), this is fine — new posts go live automatically. Set a URL only if you want sub-60s freshness.', 'hatch' ),
-				__( 'Optional. Set on the Connector tab if you want immediate cache purge on publish.', 'hatch' ),
-				admin_url( 'tools.php?page=hatch&tab=connector' )
+				__( 'Revalidation webhook (optional)', 'hatch-bridge' ),
+				__( 'No webhook URL set. With SSR + 60s edge cache (Hatch default), this is fine - new posts go live automatically. Set a URL only if you want sub-60s freshness.', 'hatch-bridge' ),
+				__( 'Optional. Set on the Connector tab if you want immediate cache purge on publish.', 'hatch-bridge' ),
+				admin_url( 'admin.php?page=hatch#connection' )
 			);
 		}
 		return self::fail(
 			'webhook',
-			__( 'Revalidation webhook', 'hatch' ),
-			__( 'Webhook secret is missing — internal state corrupted.', 'hatch' ),
-			__( 'Deactivate and re-activate Hatch to regenerate the secret.', 'hatch' ),
+			__( 'Revalidation webhook', 'hatch-bridge' ),
+			__( 'Webhook secret is missing - internal state corrupted.', 'hatch-bridge' ),
+			__( 'Deactivate and re-activate Hatch to regenerate the secret.', 'hatch-bridge' ),
 			admin_url( 'plugins.php' )
 		);
 	}
@@ -482,18 +484,20 @@ class Hatch_Diagnostic {
 	 */
 	private static function check_acf_rest_exposed(): array {
 		if ( ! Hatch_Detector::has_custom_fields() ) {
-			return self::pass( 'acf_rest', __( 'Custom fields (n/a)', 'hatch' ), __( 'No custom-fields plugin detected — nothing to expose.', 'hatch' ) );
+			return self::pass( 'acf_rest', __( 'Custom fields (n/a)', 'hatch-bridge' ), __( 'No custom-fields plugin detected - nothing to expose.', 'hatch-bridge' ) );
 		}
 		$status = Hatch_Acf_Bridge::get_field_group_status();
 		if ( $status['hidden'] < 1 ) {
-			return self::pass( 'acf_rest', __( 'Custom fields in REST', 'hatch' ), sprintf( __( 'All %d field groups exposed.', 'hatch' ), (int) $status['total_groups'] ) );
+			/* translators: %d: number of field groups. */
+			return self::pass( 'acf_rest', __( 'Custom fields in REST', 'hatch-bridge' ), sprintf( __( 'All %d field groups exposed.', 'hatch-bridge' ), (int) $status['total_groups'] ) );
 		}
 		return self::warn(
 			'acf_rest',
-			__( 'Custom fields in REST', 'hatch' ),
-			sprintf( __( '%d field group(s) hidden from REST API.', 'hatch' ), (int) $status['hidden'] ),
-			__( 'Enable "Show in REST API" on each field group. See Hatch → Health tab.', 'hatch' ),
-			admin_url( 'tools.php?page=hatch&tab=health' )
+			__( 'Custom fields in REST', 'hatch-bridge' ),
+			/* translators: %d: number of field groups. */
+			sprintf( __( '%d field group(s) hidden from REST API.', 'hatch-bridge' ), (int) $status['hidden'] ),
+			__( 'Enable "Show in REST API" on each field group. See Hatch → Health tab.', 'hatch-bridge' ),
+			admin_url( 'admin.php?page=hatch#status' )
 		);
 	}
 
@@ -505,10 +509,11 @@ class Hatch_Diagnostic {
 	private static function check_cpts_rest_exposed(): array {
 		$status = Hatch_Cpt_Scanner::scan();
 		if ( $status['total_custom'] < 1 ) {
-			return self::pass( 'cpt_rest', __( 'Custom post types (n/a)', 'hatch' ), __( 'No custom post types registered.', 'hatch' ) );
+			return self::pass( 'cpt_rest', __( 'Custom post types (n/a)', 'hatch-bridge' ), __( 'No custom post types registered.', 'hatch-bridge' ) );
 		}
 		if ( $status['hidden'] < 1 ) {
-			return self::pass( 'cpt_rest', __( 'CPTs in REST', 'hatch' ), sprintf( __( 'All %d CPTs are REST-accessible.', 'hatch' ), (int) $status['total_custom'] ) );
+			/* translators: %d: number of custom post types. */
+			return self::pass( 'cpt_rest', __( 'CPTs in REST', 'hatch-bridge' ), sprintf( __( 'All %d CPTs are REST-accessible.', 'hatch-bridge' ), (int) $status['total_custom'] ) );
 		}
 		$names = array();
 		foreach ( $status['hidden_types'] as $t ) {
@@ -516,10 +521,11 @@ class Hatch_Diagnostic {
 		}
 		return self::fail(
 			'cpt_rest',
-			__( 'CPTs in REST', 'hatch' ),
-			sprintf( __( 'CPTs missing show_in_rest: %s', 'hatch' ), implode( ', ', $names ) ),
-			__( 'Add `show_in_rest => true` in register_post_type() args. Open Health tab for details.', 'hatch' ),
-			admin_url( 'tools.php?page=hatch&tab=health' )
+			__( 'CPTs in REST', 'hatch-bridge' ),
+			/* translators: %s: comma-separated post type names. */
+			sprintf( __( 'CPTs missing show_in_rest: %s', 'hatch-bridge' ), implode( ', ', $names ) ),
+			__( 'Add `show_in_rest => true` in register_post_type() args. Open Health tab for details.', 'hatch-bridge' ),
+			admin_url( 'admin.php?page=hatch#status' )
 		);
 	}
 

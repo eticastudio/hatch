@@ -1,10 +1,11 @@
 /**
- * Status tab — read-only diagnostic, design-system aligned.
+ * Status tab - read-only diagnostic, design-system aligned.
  *
  * Every section uses the shared primitives (HxCard / HxHead / HxGL / HxRow).
  * Rows compose label + value badge so the visual rhythm matches every other
- * settings tab. No bespoke padding, no ad-hoc colours.
+ * settings tab.
  */
+import { __ } from '@wordpress/i18n';
 import { HxCard, HxBadge, HxHead, HxGL } from '../components.jsx';
 
 const ICON = {
@@ -12,9 +13,9 @@ const ICON = {
 };
 
 function Value({ v, type }) {
-	if (type === 'on')   return <HxBadge color="green">on</HxBadge>;
-	if (type === 'off')  return <HxBadge color="neutral">off</HxBadge>;
-	if (type === 'set')  return <HxBadge color="blue">set</HxBadge>;
+	if (type === 'on')   return <HxBadge color="green">{ __( 'On', 'hatch-bridge' ) }</HxBadge>;
+	if (type === 'off')  return <HxBadge color="neutral">{ __( 'Off', 'hatch-bridge' ) }</HxBadge>;
+	if (type === 'set')  return <HxBadge color="blue">{ __( 'Set', 'hatch-bridge' ) }</HxBadge>;
 	if (type === 'warn') return <HxBadge color="yellow">{v}</HxBadge>;
 	if (type === 'num') {
 		return (
@@ -28,8 +29,8 @@ function Value({ v, type }) {
 		<span style={{
 			fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace',
 			fontSize: 12, color: 'var(--hx-muted)', wordBreak: 'break-all',
-			maxWidth: 360, textAlign: 'right',
-		}}>{v || '—'}</span>
+			maxWidth: 360, textAlign: 'end',
+		}}>{v || __( 'Not set', 'hatch-bridge' )}</span>
 	);
 }
 
@@ -42,8 +43,8 @@ export default function Status({ state }) {
 				<HxHead
 					iconChildren={ICON.pulse}
 					iconColor="#2563eb"
-					title="Diagnostic"
-					desc="Read-only snapshot of every flag, credential, and cron Hatch is currently using. The one place to answer “where does this come from?” without leaving the dashboard."
+					title={ __( 'Diagnostic', 'hatch-bridge' ) }
+						desc={ __( 'A read-only list of the flags, credentials and scheduled tasks Hatch is using right now. Use it to see where a setting comes from.', 'hatch-bridge' ) }
 				/>
 
 				{sections.map((sec) => {
@@ -81,7 +82,7 @@ export default function Status({ state }) {
 
 				{sections.length === 0 && (
 					<div className="hx-desc" style={{ color: 'var(--hx-subtle)', padding: '24px 0', textAlign: 'center' }}>
-						No diagnostic data available yet. Run setup to populate.
+						{ __( 'No diagnostic data yet. Finish setup to fill this in.', 'hatch-bridge' ) }
 					</div>
 				)}
 			</HxCard>

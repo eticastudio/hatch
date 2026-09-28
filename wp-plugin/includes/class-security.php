@@ -2,7 +2,8 @@
 /**
  * Security hardening for headless WordPress.
  *
- * Each measure is opt-out via wp-admin settings (defaults: ON).
+ * Every measure is opt-in: each one is OFF until the site owner switches it on
+ * in the Hatch Security tab. An option that is already stored keeps its value.
  *
  * @package Hatch
  */
@@ -35,20 +36,20 @@ class Hatch_Security {
 	 * Wire up filters.
 	 */
 	private function __construct() {
-		if ( get_option( 'hatch_security_harden_rest', 1 ) ) {
-			// v0.50.10 — switched from rest_authentication_errors (which fires
-			// BEFORE WP's lazy auth chain — the $current_user global gets
+		if ( get_option( 'hatch_security_harden_rest', 0 ) ) {
+			// v0.50.10 - switched from rest_authentication_errors (which fires
+			// BEFORE WP's lazy auth chain - the $current_user global gets
 			// cached as the empty user before our check even runs) to
 			// rest_pre_dispatch (which fires AFTER auth resolution, so
 			// is_user_logged_in() reflects valid App Password credentials).
 			add_filter( 'rest_pre_dispatch', array( $this, 'block_rest_unauthenticated_dispatch' ), 5, 3 );
 			add_filter( 'rest_endpoints', array( $this, 'block_users_endpoint' ) );
 			add_filter( 'rest_pre_dispatch', array( $this, 'block_users_list_for_anon' ), 10, 3 );
-			// v0.50.10 — WP refuses to validate Application Passwords on non-HTTPS
+			// v0.50.10 - WP refuses to validate Application Passwords on non-HTTPS
 			// sites by default. That's correct for unknown HTTP visitors but
 			// breaks every reverse-proxy / Docker / RunCloud setup where WP
 			// terminates as HTTP behind the proxy. Enable App Passwords for
-			// REST requests that carry a Basic auth header — the auth itself
+			// REST requests that carry a Basic auth header - the auth itself
 			// is the security control (random unauthenticated visitors are
 			// still blocked by is_user_logged_in() below).
 			add_filter( 'wp_is_application_passwords_available', array( $this, 'enable_app_passwords_for_rest_basic_auth' ), 99 );
@@ -56,7 +57,7 @@ class Hatch_Security {
 			remove_action( 'wp_head', 'rest_output_link_wp_head', 10 );
 			remove_action( 'template_redirect', 'rest_output_link_header', 11 );
 		}
-		if ( get_option( 'hatch_security_disable_xmlrpc', 1 ) ) {
+		if ( get_option( 'hatch_security_disable_xmlrpc', 0 ) ) {
 			add_filter( 'xmlrpc_enabled', '__return_false' );
 			add_filter( 'wp_headers', array( $this, 'remove_xmlrpc_pingback_header' ) );
 			// 403 the endpoint itself so scanners get a hard reject, matching the
@@ -64,26 +65,28 @@ class Hatch_Security {
 			// accepts the POST and responds with a method-list message.
 			add_action( 'init', array( $this, 'block_xmlrpc_endpoint' ), 1 );
 		}
-		if ( get_option( 'hatch_security_block_user_enum', 1 ) ) {
+		if ( get_option( 'hatch_security_block_user_enum', 0 ) ) {
 			add_action( 'init', array( $this, 'block_user_enumeration' ) );
 			// Also block the REST users endpoint independently so the claim holds
 			// even when the REST lock is off (the lock is a separate toggle).
 			add_filter( 'rest_endpoints', array( $this, 'remove_users_endpoint' ) );
 		}
-		// Force CMS subdomain to noindex/nofollow always (this is a headless backend, must never appear in search)
-		if ( get_option( 'hatch_security_force_noindex', 1 ) ) {
+		// Optional: tell search engines not to index this WordPress install. Meant
+		// for a CMS that only feeds a separate frontend; off by default so
+		// activating Hatch never removes a live site from search results.
+		if ( get_option( 'hatch_security_force_noindex', 0 ) ) {
 			add_action( 'wp_head', array( $this, 'force_noindex_meta' ), 1 );
 			add_filter( 'wp_robots', array( $this, 'force_noindex_robots' ) );
 			// Emit `Disallow: /` in robots.txt so crawlers honor it before they
 			// even fetch HTML. Matches the admin label promise.
-			add_filter( 'robots_txt', array( $this, 'force_disallow_robots_txt' ), 10, 2 );
+			add_filter( 'robots_txt', array( $this, 'force_disallow_robots_txt' ), 10, 1 );
 		}
 	}
 
 	/**
 	 * Output `<meta name="robots" content="noindex, nofollow"/>` site-wide.
 	 *
-	 * The CMS subdomain is internal infrastructure — must never appear in search engines.
+	 * The CMS subdomain is internal infrastructure - must never appear in search engines.
 	 * RankMath / Yoast users may already do this; we enforce it as a safety net.
 	 */
 	public function force_noindex_meta(): void {
@@ -106,28 +109,17 @@ class Hatch_Security {
 	}
 
 	/**
-	 * Block REST API for non-authenticated users — EXCEPT explicit public routes.
+	 * Block REST API for non-authenticated users, except explicit public routes.
 	 *
-	 * Hatch frontends authenticate with Application Passwords for /wp/v2/*.
-	 * BUT several Hatch routes are public-by-design (comments, form submits,
-	 * WC Store, heartbeat) — those must bypass this filter or the visitor-facing
-	 * features break. Bug found in production v0.32: comments endpoint returned
-	 * 401 to unauthenticated browsers even though its permission_callback was
-	 * `__return_true`, because this filter ran first.
+	 * Runs on rest_pre_dispatch (priority 5, before the route handler). By this
+	 * point WordPress has fully resolved authentication, so is_user_logged_in()
+	 * reflects a valid Application Password, cookie or any other method.
 	 *
-	 * @param mixed $result Existing auth result, may be WP_Error.
-	 * @return mixed
-	 */
-	public function block_rest_unauthenticated( $result ) {
-		// v0.50.10 — kept for back-compat; new hook path is below
-		// (block_rest_unauthenticated_dispatch on rest_pre_dispatch).
-		return $result;
-	}
-
-	/**
-	 * v0.50.10 — runs on rest_pre_dispatch (priority 5, BEFORE route handler
-	 * fires). By this point WP has fully resolved auth — `is_user_logged_in()`
-	 * reflects valid Application Password, cookie, or any other auth method.
+	 * Hatch frontends authenticate with Application Passwords for /wp/v2/*, but
+	 * several Hatch routes are public by design (comments, form submits,
+	 * WooCommerce store reads); those bypass this filter, otherwise the
+	 * visitor-facing features would answer 401 even though their own
+	 * permission_callback is open.
 	 *
 	 * @param mixed            $result   null (or pre-existing response)
 	 * @param WP_REST_Server   $server   the REST server
@@ -143,21 +135,28 @@ class Hatch_Security {
 			return $result;
 		}
 		// Allow Hatch public routes (designed for anonymous visitors).
-		$route = $request instanceof WP_REST_Request ? (string) $request->get_route() : '';
-		$method = $request instanceof WP_REST_Request ? (string) $request->get_method() : 'GET';
-		// OPTIONS = CORS preflight — always allow.
+		$route  = (string) $request->get_route();
+		$method = (string) $request->get_method();
+		// OPTIONS = CORS preflight - always allow.
 		if ( 'OPTIONS' === strtoupper( $method ) ) {
 			return $result;
 		}
 		// Hatch public routes (more reliable than path-string scan on REQUEST_URI).
-		// Every route here ONLY exposes already-public data — published posts,
+		// Every route here ONLY exposes already-public data - published posts,
 		// rendered SEO meta, public menus, etc. Adding routes here keeps the
 		// REST-lock toggle safe to flip on without 404'ing the Astro frontend.
 		$public_patterns = array(
 			'#^/hatch/v1/comments$#',
-			'#^/hatch/v1/forms/[^/]+/embed$#',
-			'#^/hatch/v1/forms/\d+/submit$#',
-			'#^/hatch/v1/forms/submit$#',
+			// Headless auth, storefront and order lookup. Each handler does its
+			// own key, nonce or rate-limit check, and the frontend calls them
+			// signed out.
+			'#^/hatch/v1/auth/[a-z_\-]+$#',
+			'#^/hatch/v1/store(/.+)?$#',
+			'#^/hatch/v1/order(/.+)?$#',
+			'#^/hatch/v1/design$#',
+			'#^/hatch/v1/integrations$#',
+			'#^/hatch/v1/forms$#',
+			'#^/hatch/v1/forms/[a-z_]+/\d+(/submit)?$#',
 			'#^/hatch/v1/menus(/.+)?$#',
 			'#^/hatch/v1/features$#',
 			'#^/hatch/v1/seo-head$#',
@@ -165,104 +164,68 @@ class Hatch_Security {
 			'#^/hatch/v1/redirects$#',
 			'#^/hatch/v1/code-snippets$#',
 			'#^/hatch/v1/seo-meta$#',
-			// Universal post/page/CPT resolver — `route_content_by_slug` only
+			// Universal post/page/CPT resolver - `route_content_by_slug` only
 			// returns post_status=publish. The Astro frontend hits this for
 			// every render; without it in the allowlist, REST-lock=ON 404s
 			// every page on the headless site.
 			'#^/hatch/v1/content$#',
-			// Posts block list — published-only content with filter args.
+			// Posts block list - published-only content with filter args.
 			'#^/hatch/v1/content/list$#',
 			// Block tree (used by per-block Astro components). The handler
 			// enforces context=edit auth internally; context=view is public.
 			'#^/hatch/v1/post/\d+/blocks$#',
 		);
 		foreach ( $public_patterns as $re ) {
-			if ( preg_match( $re, $route ) ) return $result;
+			if ( preg_match( $re, $route ) ) {
+				return $result;
+			}
 		}
 		return new WP_Error(
 			'hatch_rest_not_logged_in',
-			__( 'REST API restricted to authenticated users.', 'hatch' ),
+			__( 'REST API restricted to authenticated users.', 'hatch-bridge' ),
 			array( 'status' => 401 )
 		);
 	}
 
 	/**
-	 * Is the current REST request hitting a route that's meant to be public?
-	 * Reads the request URI directly — runs before route dispatch so we can't
-	 * inspect the registered route at this point.
+	 * Selective override for wp_is_application_passwords_available.
 	 *
-	 * @return bool
-	 */
-	/**
-	 * v0.50.10 — selective override for wp_is_application_passwords_available.
+	 * WordPress turns Application Passwords off on plain HTTP because Basic
+	 * authentication would send the password in clear text. Hatch keeps that
+	 * rule: it never enables them over a real network connection without TLS.
 	 *
 	 * Behaviour:
-	 *   - HTTPS already-true case: passthrough (no change).
-	 *   - REST request + Basic auth header present: return true so WP processes
-	 *     the credentials. The Basic auth itself is the security control —
-	 *     wrong credentials still fail, no auth still fails.
-	 *   - Everything else: passthrough.
-	 *
-	 * Why this is safe: enabling the check doesn't grant access. It just lets
-	 * WP TRY to validate. Invalid passwords still return WP_Error, which we
-	 * then 401 in block_rest_unauthenticated_dispatch.
+	 *   - Already available (HTTPS, or a "local" environment): passthrough.
+	 *   - Not HTTPS, environment type "local" or "development", REST request
+	 *     carrying a Basic auth header: return true, so a local Docker or
+	 *     wp-env site behind an HTTP-only address still authenticates.
+	 *   - Everything else: passthrough. A site behind a TLS-terminating proxy
+	 *     that PHP cannot see should tell WordPress about it (set
+	 *     $_SERVER['HTTPS'] from X-Forwarded-Proto in wp-config.php) instead
+	 *     of relying on this filter.
 	 *
 	 * @param bool $is_available WP's default (false on non-HTTPS).
 	 * @return bool
 	 */
 	public function enable_app_passwords_for_rest_basic_auth( $is_available ): bool {
-		if ( $is_available ) {
-			return $is_available;
+		if ( $is_available || is_ssl() || ! in_array( wp_get_environment_type(), array( 'local', 'development' ), true ) ) {
+			return (bool) $is_available;
 		}
 		$is_rest = ( defined( 'REST_REQUEST' ) && REST_REQUEST )
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			|| ( isset( $_SERVER['REQUEST_URI'] ) && false !== strpos( (string) $_SERVER['REQUEST_URI'], '/wp-json/' ) );
+			|| false !== strpos( Hatch_Request::request_uri(), '/wp-json/' );
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$has_basic_auth = ! empty( $_SERVER['PHP_AUTH_USER'] ) && ! empty( $_SERVER['PHP_AUTH_PW'] );
-		return ( $is_rest && $has_basic_auth ) ? true : $is_available;
-	}
-
-	private function is_public_hatch_route(): bool {
-		$uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
-		if ( '' === $uri ) {
-			return false;
-		}
-		// Strip query string and the /wp-json (or rest_url_prefix) prefix.
-		$path = (string) parse_url( $uri, PHP_URL_PATH );
-		$rest_prefix = '/' . rest_get_url_prefix() . '/';
-		$pos = strpos( $path, $rest_prefix );
-		if ( false === $pos ) {
-			return false;
-		}
-		$route = '/' . ltrim( substr( $path, $pos + strlen( $rest_prefix ) ), '/' );
-
-		$public_patterns = array(
-			// Comments — read and submit are public.
-			'#^/hatch/v1/comments(/.*)?$#',
-			// Form submissions (with + without form id) — Turnstile-protected.
-			'#^/hatch/v1/forms/\d+/submit$#',
-			'#^/hatch/v1/forms/submit$#',
-			// Agent heartbeat — HMAC-signed, no WP user.
-			'#^/hatch/v1/agent/heartbeat$#',
-			// WooCommerce store routes — public by design.
-			'#^/hatch/v1/store/#',
-		);
-		foreach ( $public_patterns as $pattern ) {
-			if ( preg_match( $pattern, $route ) ) {
-				return true;
-			}
-		}
-		return (bool) apply_filters( 'hatch/is_public_rest_route', false, $route );
+		return $is_rest && $has_basic_auth;
 	}
 
 	/**
-	 * Allow ALL user endpoints to remain registered — removing them breaks
+	 * Allow ALL user endpoints to remain registered - removing them breaks
 	 * the WP admin Users page (it loads the list via REST) AND breaks _embed
 	 * author payloads on posts. Instead, anonymous requests to the LIST are
 	 * blocked via rest_pre_dispatch (enum protection) while authenticated
 	 * admins go through normally.
 	 *
-	 * v0.46 — Was removing /wp/v2/users entirely → admin Users page showed
+	 * v0.46 - Was removing /wp/v2/users entirely → admin Users page showed
 	 * empty list / spinner forever. Switched to a runtime auth check.
 	 *
 	 * @param array $endpoints Existing REST endpoints.
@@ -295,7 +258,7 @@ class Hatch_Security {
 		if ( '/wp/v2/users' === $route && 'GET' === $request->get_method() ) {
 			return new WP_Error(
 				'hatch_users_list_protected',
-				__( 'User listing requires authentication.', 'hatch' ),
+				__( 'User listing requires authentication.', 'hatch-bridge' ),
 				array( 'status' => 401 )
 			);
 		}
@@ -336,7 +299,7 @@ class Hatch_Security {
 		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
 			return;
 		}
-		$req_uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+		$req_uri = Hatch_Request::request_uri();
 		if ( '' !== $req_uri ) {
 			$path = (string) wp_parse_url( $req_uri, PHP_URL_PATH );
 			if ( false !== strpos( $path, '/wp-json/' ) ) {
@@ -363,7 +326,9 @@ class Hatch_Security {
 	 */
 	public function remove_users_endpoint( array $endpoints ): array {
 		foreach ( array( '/wp/v2/users', '/wp/v2/users/(?P<id>[\d]+)' ) as $route ) {
-			if ( isset( $endpoints[ $route ] ) ) unset( $endpoints[ $route ] );
+			if ( isset( $endpoints[ $route ] ) ) {
+				unset( $endpoints[ $route ] );
+			}
 		}
 		return $endpoints;
 	}
@@ -376,11 +341,15 @@ class Hatch_Security {
 	 * endpoint return 403 to anyone, matching the admin label.
 	 */
 	public function block_xmlrpc_endpoint(): void {
-		$req = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '';
-		if ( '' === $req ) return;
+		$req = Hatch_Request::request_uri();
+		if ( '' === $req ) {
+			return;
+		}
 		$path = wp_parse_url( $req, PHP_URL_PATH );
-		if ( ! is_string( $path ) ) return;
-		// Match `/xmlrpc.php` exactly (case-insensitive) — not anything that
+		if ( ! is_string( $path ) ) {
+			return;
+		}
+		// Match `/xmlrpc.php` exactly (case-insensitive) - not anything that
 		// happens to contain the string as a substring.
 		if ( preg_match( '#^/xmlrpc\.php/?$#i', $path ) ) {
 			status_header( 403 );
@@ -394,10 +363,9 @@ class Hatch_Security {
 	 * is on, matching the admin label ("Disallow robots.txt").
 	 *
 	 * @param string $output Existing robots.txt body.
-	 * @param int    $public 1 when site is public, 0 when "Discourage" is set.
 	 * @return string
 	 */
-	public function force_disallow_robots_txt( string $output, $public ): string {
+	public function force_disallow_robots_txt( string $output ): string {
 		// If WP is already discouraging (search-engine-visibility off), let WP's
 		// default Disallow stand. Otherwise replace any User-agent: * block.
 		$replacement = "User-agent: *\nDisallow: /\n";

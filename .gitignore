@@ -67,3 +67,6 @@ test/test-results/
 *.orig
 *.tmp
 *.log
+
+# Composer dev tools (phpcs, phpstan, phpunit)
+/vendor/

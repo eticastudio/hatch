@@ -39,7 +39,7 @@
 	--hatch-bg-4:         #d6dae2;
 
 	--hatch-fg-muted:     #444a55;
-	--hatch-fg-subtle:    #6f7682;
+	--hatch-fg-subtle:    #5d6470;
 
 	--hatch-border:        #e3e6eb;
 	--hatch-border-strong: #cdd2da;
@@ -57,7 +57,7 @@
 	--hatch-bg-4:       #2a2f3c;
 
 	--hatch-fg-muted:   #a8aeba;
-	--hatch-fg-subtle:  #6b727f;
+	--hatch-fg-subtle:  #8b92a0;
 
 	--hatch-border:        #232733;
 	--hatch-border-strong: #353b4a;
@@ -135,7 +135,14 @@
 }
 
 [data-hatch-theme="docs"] .hatch-docs-nav {
-	display: inline-flex;
+	/* Unlayered rules beat Tailwind's `hidden lg:inline-flex`, so the breakpoint
+	   lives here: the inline nav shows from 1024px, the drawer below. */
+	display: none;
+}
+@media (min-width: 1024px) {
+	[data-hatch-theme="docs"] .hatch-docs-nav { display: inline-flex; }
+}
+[data-hatch-theme="docs"] .hatch-docs-nav {
 	align-items: center;
 	gap: 4px;
 	font-size: 13.5px;

@@ -189,7 +189,7 @@ Advanced: **component mapping** — parse blocks server-side, render Astro compo
 
 ## License
 
-MIT — same as Hatch.
+GPL-2.0-or-later, same as Hatch.
 
 ---
 

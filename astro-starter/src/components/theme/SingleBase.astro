@@ -59,7 +59,7 @@ const showSidebar = flags.sidebarSide !== 'none' && toc.length > 0;
       {post.category && (
         <>
           <span class="text-hatch-fg-subtle">{flags.breadcrumbSep}</span>
-          <a href={`/blog/category/${post.category.slug}`} class="hover:text-hatch-fg transition-colors">{post.category.name}</a>
+          <a href={`/blog/category/${post.categorySlug}`} class="hover:text-hatch-fg transition-colors">{post.category}</a>
         </>
       )}
       <span class="text-hatch-fg-subtle">{flags.breadcrumbSep}</span>
@@ -69,7 +69,7 @@ const showSidebar = flags.sidebarSide !== 'none' && toc.length > 0;
 
   <header class="max-w-3xl mb-10">
     {post.category && (
-      <a href={`/blog/category/${post.category.slug}`} class="inline-block text-[11px] uppercase tracking-wider font-medium text-hatch-primary mb-4 hover:underline">{post.category.name}</a>
+      <a href={`/blog/category/${post.categorySlug}`} class="inline-block text-[11px] uppercase tracking-wider font-medium text-hatch-primary mb-4 hover:underline">{post.category}</a>
     )}
     <h1 class="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight leading-[1.1]" style="font-family: var(--hatch-font-heading);">{post.title}</h1>
     <div class="mt-6 flex items-center flex-wrap gap-x-4 gap-y-2 text-[13.5px] text-hatch-fg-muted">

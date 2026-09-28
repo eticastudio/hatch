@@ -1,25 +1,36 @@
-import { HxCard, HxHead, HxRow, HxToggle, HxBadge, HxInp, HxIcon, HxGL, ibg } from '../components.jsx';
+import { createInterpolateElement } from '@wordpress/element';
+import { __, _n, sprintf } from '@wordpress/i18n';
+import { HxCard, HxHead, HxRow, HxToggle, HxBadge, HxInp, HxGL, HxField } from '../components.jsx';
 
-// v0.50.31 — WP Core Sync card.
-// Uses the SAME global components as Design / Performance / Security:
+// WP Core Sync card.
+// Uses the same shared components as Design / Performance / Security:
 //   HxCard + HxHead → card chrome
 //   HxGL            → section group labels
 //   HxRow           → key/value rows (consistent padding, divider, alignment)
 //   HxBadge         → status pills
-// No bespoke <div style={...}> grids — visual consistency across tabs.
-function ManageLink({ href, label = 'Manage' }) {
+const codeStyle = {
+	fontFamily: 'ui-monospace, monospace',
+	fontSize: 12.5,
+	padding: '2px 6px',
+	background: 'var(--hx-surface)',
+	borderRadius: 4,
+	color: 'var(--hx-fg)',
+};
+
+function ManageLink({ href, label }) {
 	return (
 		<a href={href} target="_blank" rel="noopener noreferrer"
 			className="hx-help"
-			style={{ fontWeight: 500, color: 'var(--hx-primary)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-			{label} →
+			style={{ fontWeight: 500, color: 'var(--hx-link)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+			{label || __( 'Manage', 'hatch-bridge' )} →
 		</a>
 	);
 }
-function MenuSelect({ value, options, onChange }) {
+function MenuSelect({ value, options, onChange, ariaLabel }) {
 	return (
 		<select
 			value={value || 0}
+			aria-label={ariaLabel}
 			onChange={(e) => onChange(Number(e.target.value))}
 			style={{
 				fontSize: 13, padding: '6px 10px',
@@ -28,7 +39,7 @@ function MenuSelect({ value, options, onChange }) {
 				fontFamily: 'inherit', minWidth: 200,
 			}}
 		>
-			<option value="0">— None —</option>
+			<option value="0">{ __( 'None', 'hatch-bridge' ) }</option>
 			{options.map((mn) => (
 				<option key={mn.id} value={mn.id}>{mn.name} ({mn.count})</option>
 			))}
@@ -40,122 +51,155 @@ function CoreSync({ data, content, setSetting, onDirty, guardTurnstile }) {
 	const { site, permalink, homepage, menus, all_menus, discussion, reading, privacy, post_types, taxonomies, languages, roles, authors } = data;
 	const assignedCount = menus.filter(m => m.assigned_id > 0).length;
 	const chipStyle = { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', border: '1px solid var(--hx-border)', borderRadius: 999, background: 'var(--hx-surface)', fontSize: 12 };
+	const userTotal = roles.reduce((s, r) => s + r.count, 0);
 
 	return (
 		<HxCard>
 			<HxHead
 				iconChildren={<><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></>}
 				iconColor="#3b82f6"
-				title="WordPress Core Sync"
-				desc="Single status view of every WP-owned setting Hatch syncs to the headless frontend. Inline controls where Hatch can edit; deep-links where WordPress owns the canonical UI."
+				title={ __( 'WordPress Core Sync', 'hatch-bridge' ) }
+				desc={ __( 'The WordPress settings your frontend depends on. Hatch can change some of them here. For the rest, a link opens the WordPress screen where you change them.', 'hatch-bridge' ) }
 			/>
 
-			{/* ─── SITE IDENTITY ──────────────────────────────────── */}
-			<HxGL>Site identity</HxGL>
+			{/* Site identity */}
+			<HxGL>{ __( 'Site identity', 'hatch-bridge' ) }</HxGL>
 			<HxRow
-				label={site.title || '—'}
-				desc={`${site.tagline || 'No tagline'} · ${site.url} · ${site.language}`}
+				label={site.title || __( 'Untitled site', 'hatch-bridge' )}
+				desc={[ site.tagline || __( 'No tagline', 'hatch-bridge' ), site.url, site.language ].join( ' · ' )}
 			>
-				<ManageLink href={site.customizer_url} label="Customizer" />
+				<ManageLink href={site.customizer_url} label={ __( 'Customizer', 'hatch-bridge' ) } />
 			</HxRow>
 			<HxRow
-				label="Logo & Favicon"
-				desc="Set in Customizer → Site Identity. Hatch frontend reads both."
+				label={ __( 'Logo & Favicon', 'hatch-bridge' ) }
+				desc={ __( 'Set in the Customizer under Site Identity. Your frontend uses both.', 'hatch-bridge' ) }
 				last
 			>
 				<div style={{ display: 'flex', gap: 6 }}>
-					<HxBadge color={site.logo_url ? 'green' : 'neutral'}>{site.logo_url ? 'Logo ✓' : 'No logo'}</HxBadge>
-					<HxBadge color={site.favicon_url ? 'green' : 'neutral'}>{site.favicon_url ? 'Favicon ✓' : 'No favicon'}</HxBadge>
+					<HxBadge color={site.logo_url ? 'green' : 'neutral'}>{site.logo_url ? __( 'Logo set', 'hatch-bridge' ) : __( 'No logo', 'hatch-bridge' )}</HxBadge>
+					<HxBadge color={site.favicon_url ? 'green' : 'neutral'}>{site.favicon_url ? __( 'Favicon set', 'hatch-bridge' ) : __( 'No favicon', 'hatch-bridge' )}</HxBadge>
 				</div>
 			</HxRow>
 
-			{/* ─── URL STRUCTURE ──────────────────────────────────── */}
-			<HxGL>URL structure</HxGL>
+			{/* URL structure */}
+			<HxGL>{ __( 'URL structure', 'hatch-bridge' ) }</HxGL>
 			<HxRow
-				label="Post URL format"
+				label={ __( 'Post URL format', 'hatch-bridge' ) }
 				desc={permalink.pretty
-					? <>Frontend routing works. Posts will live at <code style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12.5, padding: '2px 6px', background: 'var(--hx-surface)', borderRadius: 4, color: 'var(--hx-fg)' }}>{permalink.example}</code></>
-					: <>WordPress is using the default <code style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12.5, padding: '2px 6px', background: 'var(--hx-surface)', borderRadius: 4, color: 'var(--hx-warning)' }}>?p=123</code> format. This breaks Hatch's frontend routing — switch to any structured format.</>}
+					? createInterpolateElement(
+						/* translators: %s: example post URL path. The <code> tags must stay. */
+						sprintf( __( 'Your frontend can route posts. Post URLs look like <code>%s</code>.', 'hatch-bridge' ), permalink.example ),
+						{ code: <code style={codeStyle} /> }
+					)
+					: createInterpolateElement(
+						__( 'WordPress is using the default <code>?p=123</code> format. Hatch cannot route posts with it. Switch to any other permalink structure.', 'hatch-bridge' ),
+						{ code: <code style={{ ...codeStyle, color: 'var(--hx-warning)' }} /> }
+					)}
 				last
 			>
 				<div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-					<HxBadge color={permalink.pretty ? 'green' : 'yellow'}>{permalink.pretty ? 'Clean URLs ✓' : 'Needs fixing'}</HxBadge>
+					<HxBadge color={permalink.pretty ? 'green' : 'yellow'}>{permalink.pretty ? __( 'Clean URLs', 'hatch-bridge' ) : __( 'Needs fixing', 'hatch-bridge' )}</HxBadge>
 					<ManageLink href={permalink.admin_url} />
 				</div>
 			</HxRow>
 
-			{/* ─── HOMEPAGE & READING ──────────────────────────────────── */}
-			<HxGL>Homepage & reading</HxGL>
+			{/* Homepage and reading */}
+			<HxGL>{ __( 'Homepage & reading', 'hatch-bridge' ) }</HxGL>
 			<HxRow
-				label="Homepage"
-				desc={homepage.mode === 'page' ? `Showing: ${homepage.static_title || `Page #${homepage.static_id}`}` : `Latest posts feed · ${reading.posts_per_page} posts per page`}
+				label={ __( 'Homepage', 'hatch-bridge' ) }
+				desc={homepage.mode === 'page'
+					/* translators: %s: title of the static homepage. */
+					? sprintf( __( 'Showing: %s', 'hatch-bridge' ), homepage.static_title || sprintf(
+						/* translators: %d: page ID. */
+						__( 'Page #%d', 'hatch-bridge' ), homepage.static_id ) )
+					: sprintf(
+						/* translators: %d: number of posts shown per page. */
+						_n( 'Latest posts, %d post per page', 'Latest posts, %d posts per page', reading.posts_per_page, 'hatch-bridge' ),
+						reading.posts_per_page
+					)}
 			>
 				<div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-					<HxBadge color={homepage.mode === 'page' ? 'green' : 'neutral'}>{homepage.mode === 'page' ? 'Static page' : 'Latest posts'}</HxBadge>
+					<HxBadge color={homepage.mode === 'page' ? 'green' : 'neutral'}>{homepage.mode === 'page' ? __( 'Static page', 'hatch-bridge' ) : __( 'Latest posts', 'hatch-bridge' )}</HxBadge>
 					<ManageLink href={homepage.admin_url} />
 				</div>
 			</HxRow>
 			<HxRow
-				label="Search engines visibility"
-				desc={reading.blog_public ? 'Site is crawlable by search engines.' : 'WP is asking crawlers to skip this site. Headless or not, this hides you from Google.'}
+				label={ __( 'Search engine visibility', 'hatch-bridge' ) }
+				desc={reading.blog_public
+					? __( 'WordPress allows search engines to index this site.', 'hatch-bridge' )
+					: __( 'WordPress is asking search engines to skip this site. That can keep your frontend out of search results too.', 'hatch-bridge' )}
 				last
 			>
 				<div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-					<HxBadge color={reading.blog_public ? 'green' : 'yellow'}>{reading.blog_public ? 'Public ✓' : 'Discouraged'}</HxBadge>
+					<HxBadge color={reading.blog_public ? 'green' : 'yellow'}>{reading.blog_public ? __( 'Public', 'hatch-bridge' ) : __( 'Discouraged', 'hatch-bridge' )}</HxBadge>
 					<ManageLink href={reading.admin_url} />
 				</div>
 			</HxRow>
 
-			{/* ─── MENU LOCATIONS (with inline picker) ──────────────────────────────────── */}
+			{/* Menu locations, with an inline picker */}
 			<HxGL>
-				Menu locations · <HxBadge color={assignedCount === menus.length && menus.length > 0 ? 'green' : 'yellow'}>{assignedCount}/{menus.length || 0} assigned</HxBadge>
+				{ __( 'Menu locations', 'hatch-bridge' ) } · <HxBadge color={assignedCount === menus.length && menus.length > 0 ? 'green' : 'yellow'}>{
+					/* translators: 1: number of menu locations with a menu assigned, 2: total number of menu locations. */
+					sprintf( __( '%1$d/%2$d assigned', 'hatch-bridge' ), assignedCount, menus.length || 0 )
+				}</HxBadge>
 			</HxGL>
 			{menus.length === 0 && (
-				<HxRow label="No locations registered" desc="Activate Hatch's companion theme to expose Primary + Footer + Mobile menu locations." last />
+				<HxRow label={ __( 'No locations registered', 'hatch-bridge' ) } desc={ __( 'Activate the Hatch companion theme to add Primary, Footer and Mobile menu locations.', 'hatch-bridge' ) } last />
 			)}
 			{menus.map((m, i) => (
 				<HxRow
 					key={m.loc}
 					label={m.label}
-					desc={m.assigned ? `Assigned: ${m.assigned}${m.count > 0 ? ` (${m.count} items)` : ''}` : 'Pick a WP menu from the dropdown →'}
+					desc={m.assigned
+						? ( m.count > 0
+							/* translators: 1: menu name, 2: number of items in the menu. */
+							? sprintf( _n( 'Assigned: %1$s (%2$d item)', 'Assigned: %1$s (%2$d items)', m.count, 'hatch-bridge' ), m.assigned, m.count )
+							/* translators: %s: menu name. */
+							: sprintf( __( 'Assigned: %s', 'hatch-bridge' ), m.assigned ) )
+						: __( 'Choose a menu from the list.', 'hatch-bridge' )}
 					last={i === menus.length - 1 && all_menus.length > 0}
 				>
 					<MenuSelect
 						value={m.assigned_id}
 						options={all_menus}
+						/* translators: %s: menu location name. */
+						ariaLabel={ sprintf( __( 'Menu for %s', 'hatch-bridge' ), m.label ) }
 						onChange={(v) => { setSetting(`core.menu_location.${m.loc}`, v); onDirty(); }}
 					/>
 				</HxRow>
 			))}
 			{all_menus.length === 0 && menus.length > 0 && (
 				<HxRow
-					label="No WP menus exist yet"
-					desc="Create one in WP Appearance → Menus, then come back here to assign it."
+					label={ __( 'No menus exist yet', 'hatch-bridge' ) }
+					desc={ __( 'Create one under Appearance, Menus in WordPress, then come back here to assign it.', 'hatch-bridge' ) }
 					last
 				>
-					<ManageLink href="/wp-admin/nav-menus.php" label="Create menu" />
+					<ManageLink href="nav-menus.php" label={ __( 'Create menu', 'hatch-bridge' ) } />
 				</HxRow>
 			)}
 
-			{/* ─── DISCUSSION / COMMENTS ──────────────────────────────────── */}
+			{/* Discussion and comments */}
 			<HxGL>
-				Discussion · <HxBadge color={discussion.pending_count > 0 ? 'yellow' : 'neutral'}>{discussion.approved_count} approved · {discussion.pending_count} pending</HxBadge>
+				{ __( 'Discussion', 'hatch-bridge' ) } · <HxBadge color={discussion.pending_count > 0 ? 'yellow' : 'neutral'}>{
+					/* translators: 1: number of approved comments, 2: number of comments waiting for approval. */
+					sprintf( __( '%1$d approved, %2$d pending', 'hatch-bridge' ), discussion.approved_count, discussion.pending_count )
+				}</HxBadge>
 			</HxGL>
 			<HxRow
-				label="Show comments on posts"
-				desc="Renders a comments section below every post on your Astro frontend. Moderation still runs through WordPress."
+				label={ __( 'Show comments on posts', 'hatch-bridge' ) }
+				desc={ __( 'Shows a comments section below every post on your frontend. Moderation still happens in WordPress.', 'hatch-bridge' ) }
 			>
 				<HxToggle on={!!content.comments_enabled} onChange={(v) => { setSetting('content.comments_enabled', v); onDirty(); }} />
 			</HxRow>
 			<HxRow
-				label="Block comment spam"
-				desc="Invisible Turnstile challenge before any comment posts. Stops 99% of spam without bothering humans."
+				label={ __( 'Block comment spam', 'hatch-bridge' ) }
+				desc={ __( 'Runs a Cloudflare Turnstile check before a comment is posted from your frontend. Needs Turnstile keys, which you enter below.', 'hatch-bridge' ) }
 			>
 				<HxToggle on={!!content.comments_turnstile} onChange={guardTurnstile('content.comments_turnstile')} />
 			</HxRow>
 			<HxRow
-				label="Close comments on new posts"
-				desc="New posts start with comments off. Per-post override still works. Existing posts unchanged."
+				label={ __( 'Close comments on new posts', 'hatch-bridge' ) }
+				desc={ __( 'New posts start with comments turned off. You can still change it on each post. Existing posts are not changed.', 'hatch-bridge' ) }
 			>
 				<HxToggle
 					on={discussion.default_comment_status !== 'open'}
@@ -163,35 +207,41 @@ function CoreSync({ data, content, setSetting, onDirty, guardTurnstile }) {
 				/>
 			</HxRow>
 			<HxRow
-				label="WP comment defaults (read-only)"
-				desc={`${discussion.comment_moderation ? 'Manual moderation enabled' : 'Auto-approve after first comment'} · ${discussion.comment_registration ? 'login required' : 'anonymous comments OK'}`}
+				label={ __( 'WordPress comment defaults (read-only)', 'hatch-bridge' ) }
+				desc={[
+					discussion.comment_moderation ? __( 'Every comment waits for approval', 'hatch-bridge' ) : __( 'Comments are not held for approval', 'hatch-bridge' ),
+					discussion.comment_registration ? __( 'Sign-in required to comment', 'hatch-bridge' ) : __( 'Visitors can comment without an account', 'hatch-bridge' ),
+				].join( ' · ' )}
 				last
 			>
 				<ManageLink href={discussion.admin_url} />
 			</HxRow>
 
-			{/* ─── CONTENT TYPES ──────────────────────────────────── */}
-			<HxGL>Content types · <HxBadge color="neutral">{post_types.length}</HxBadge></HxGL>
+			{/* Content types */}
+			<HxGL>{ __( 'Content types', 'hatch-bridge' ) } · <HxBadge color="neutral">{post_types.length}</HxBadge></HxGL>
 			<HxRow
-				label="Public post types exposed via REST"
-				desc="Headless frontend can fetch + render any of these. CPTs hook in automatically via show_in_rest=true."
+				label={ __( 'Public post types in the REST API', 'hatch-bridge' ) }
+				desc={ __( 'Your frontend can fetch and show any of these. Custom post types appear here when they are registered with show_in_rest set to true.', 'hatch-bridge' ) }
 				last
 			>
 				<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end', maxWidth: 460 }}>
 					{post_types.map((p) => (
 						<span key={p.slug} style={chipStyle}>
 							<strong style={{ color: 'var(--hx-fg)' }}>{p.label}</strong>
-							<span style={{ color: 'var(--hx-subtle)' }}>{p.count}{!p.builtin && ' · CPT'}</span>
+							<span style={{ color: 'var(--hx-subtle)' }}>{p.builtin
+								? p.count
+								/* translators: %d: number of published items in a custom post type. */
+								: sprintf( __( '%d · custom', 'hatch-bridge' ), p.count )}</span>
 						</span>
 					))}
 				</div>
 			</HxRow>
 
-			{/* ─── TAXONOMIES ──────────────────────────────────── */}
-			<HxGL>Taxonomies · <HxBadge color="neutral">{taxonomies.length}</HxBadge></HxGL>
+			{/* Taxonomies */}
+			<HxGL>{ __( 'Taxonomies', 'hatch-bridge' ) } · <HxBadge color="neutral">{taxonomies.length}</HxBadge></HxGL>
 			<HxRow
-				label="Public taxonomies"
-				desc="Categories, tags, and any custom taxonomies registered with show_in_rest."
+				label={ __( 'Public taxonomies', 'hatch-bridge' ) }
+				desc={ __( 'Categories, tags and any custom taxonomy registered with show_in_rest set to true.', 'hatch-bridge' ) }
 				last
 			>
 				<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end', maxWidth: 460 }}>
@@ -204,11 +254,14 @@ function CoreSync({ data, content, setSetting, onDirty, guardTurnstile }) {
 				</div>
 			</HxRow>
 
-			{/* ─── USERS & ROLES ──────────────────────────────────── */}
-			<HxGL>Users & roles · <HxBadge color="neutral">{roles.reduce((s, r) => s + r.count, 0)} users</HxBadge></HxGL>
+			{/* Users and roles */}
+			<HxGL>{ __( 'Users & roles', 'hatch-bridge' ) } · <HxBadge color="neutral">{
+				/* translators: %d: number of users. */
+				sprintf( _n( '%d user', '%d users', userTotal, 'hatch-bridge' ), userTotal )
+			}</HxBadge></HxGL>
 			<HxRow
-				label="Role breakdown"
-				desc="Hatch maps WP roles 1:1 — they drive author archives, membership gating, and admin capabilities on the frontend."
+				label={ __( 'Role breakdown', 'hatch-bridge' ) }
+				desc={ __( 'Users grouped by their WordPress role.', 'hatch-bridge' ) }
 			>
 				<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end', maxWidth: 460 }}>
 					{roles.filter(r => r.count > 0).map(r => (
@@ -220,50 +273,67 @@ function CoreSync({ data, content, setSetting, onDirty, guardTurnstile }) {
 				</div>
 			</HxRow>
 			<HxRow
-				label="Authors (with published posts)"
+				label={ __( 'Authors (with published posts)', 'hatch-bridge' ) }
 				desc={authors && authors.total > 0
-					? `${authors.total} author${authors.total === 1 ? '' : 's'} active · ${authors.with_bio}/${authors.total} have a bio set. Bios + avatars sync to /blog/author/<slug> pages on the Astro frontend.`
-					: 'No published authors yet. The first user to publish a post becomes an author archive automatically.'}
+					? sprintf(
+						/* translators: 1: number of authors, 2: number of authors who have a bio. */
+						_n( '%1$d author, %2$d with a bio. Bios and avatars appear on the author pages of your frontend.', '%1$d authors, %2$d with a bio. Bios and avatars appear on the author pages of your frontend.', authors.total, 'hatch-bridge' ),
+						authors.total,
+						authors.with_bio
+					)
+					: __( 'No authors yet. Anyone who publishes a post will show up here.', 'hatch-bridge' )}
 				last
 			>
 				<div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 460 }}>
 					{authors && authors.list.slice(0, 4).map((a) => (
-						<a key={a.id} href={a.profile_url} target="_blank" rel="noopener noreferrer" style={{ ...chipStyle, textDecoration: 'none', color: 'var(--hx-fg)' }} title={`Edit ${a.name}'s profile`}>
+						<a key={a.id} href={a.profile_url} target="_blank" rel="noopener noreferrer" style={{ ...chipStyle, textDecoration: 'none', color: 'var(--hx-fg)' }}
+							/* translators: %s: author display name. */
+							title={ sprintf( __( 'Edit profile for %s', 'hatch-bridge' ), a.name ) }>
 							<strong>{a.name}</strong>
 							<span style={{ color: 'var(--hx-subtle)' }}>{a.post_count}</span>
-							{!a.has_bio && <HxBadge color="yellow">no bio</HxBadge>}
+							{!a.has_bio && <HxBadge color="yellow">{ __( 'No bio', 'hatch-bridge' ) }</HxBadge>}
 						</a>
 					))}
 					{authors && authors.total > 4 && (
-						<span style={{ ...chipStyle, color: 'var(--hx-subtle)' }}>+{authors.total - 4} more</span>
+						<span style={{ ...chipStyle, color: 'var(--hx-subtle)' }}>{
+							/* translators: %d: number of authors not shown. */
+							sprintf( __( '+%d more', 'hatch-bridge' ), authors.total - 4 )
+						}</span>
 					)}
-					<ManageLink href={(authors && authors.profile_url) || '/wp-admin/profile.php'} label="My profile" />
+					<ManageLink href={(authors && authors.profile_url) || 'profile.php'} label={ __( 'My profile', 'hatch-bridge' ) } />
 				</div>
 			</HxRow>
 
-			{/* ─── PRIVACY ──────────────────────────────────── */}
-			<HxGL>Privacy</HxGL>
+			{/* Privacy */}
+			<HxGL>{ __( 'Privacy', 'hatch-bridge' ) }</HxGL>
 			<HxRow
-				label="Privacy policy page"
-				desc={privacy.page_id ? `Currently set: ${privacy.page_title}` : 'Required for GDPR. Set in WP Settings → Privacy.'}
+				label={ __( 'Privacy policy page', 'hatch-bridge' ) }
+				desc={privacy.page_id
+					/* translators: %s: title of the privacy policy page. */
+					? sprintf( __( 'Current page: %s', 'hatch-bridge' ), privacy.page_title )
+					: __( 'Choose your privacy policy page in WordPress under Settings, Privacy.', 'hatch-bridge' )}
 				last
 			>
 				<div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-					<HxBadge color={privacy.page_id ? 'green' : 'yellow'}>{privacy.page_id ? 'Set ✓' : 'Not set'}</HxBadge>
+					<HxBadge color={privacy.page_id ? 'green' : 'yellow'}>{privacy.page_id ? __( 'Set', 'hatch-bridge' ) : __( 'Not set', 'hatch-bridge' )}</HxBadge>
 					<ManageLink href={privacy.admin_url} />
 				</div>
 			</HxRow>
 
-			{/* ─── LANGUAGES ──────────────────────────────────── */}
-			<HxGL>Languages</HxGL>
+			{/* Languages */}
+			<HxGL>{ __( 'Languages', 'hatch-bridge' ) }</HxGL>
 			<HxRow
-				label={languages.length > 0 ? 'Multilingual site' : 'Single-language site'}
+				label={languages.length > 0 ? __( 'Multilingual site', 'hatch-bridge' ) : __( 'Single-language site', 'hatch-bridge' )}
 				desc={languages.length > 0
-					? `Locales: ${languages.map(l => l.code).join(', ')}. Hatch auto-bridges to the active multilingual plugin.`
-					: 'Install Polylang or WPML to enable multilingual; Hatch auto-detects.'}
+					/* translators: %s: comma-separated list of language codes. */
+					? sprintf( __( 'Languages found: %s.', 'hatch-bridge' ), languages.map(l => l.code).join(', ') )
+					: __( 'Hatch lists languages here when Polylang or WPML is installed.', 'hatch-bridge' )}
 				last
 			>
-				<HxBadge color={languages.length > 0 ? 'green' : 'neutral'}>{languages.length > 0 ? `${languages.length} locales` : 'Single'}</HxBadge>
+				<HxBadge color={languages.length > 0 ? 'green' : 'neutral'}>{languages.length > 0
+					/* translators: %d: number of languages. */
+					? sprintf( _n( '%d language', '%d languages', languages.length, 'hatch-bridge' ), languages.length )
+					: __( 'Single', 'hatch-bridge' )}</HxBadge>
 			</HxRow>
 		</HxCard>
 	);
@@ -272,18 +342,15 @@ function CoreSync({ data, content, setSetting, onDirty, guardTurnstile }) {
 export default function Content({ state, onDirty, setSetting }) {
 	const snippets = state.snippets || {};
 	const content  = state.content  || {};
-	const menus    = state.menus    || [];
-	const forms    = state.forms    || { detected: false, plugin: null, count: 0 };
 	const ts       = state.turnstile || {};
 	const coreSync = state.coreSync || null;
 
-	const onToggle = (path) => (v) => { setSetting(path, v); onDirty(); };
-	const onText   = (path) => (e) => { setSetting(path, e.target.value); onDirty(); };
+	const onText = (path) => (e) => { setSetting(path, e.target.value); onDirty(); };
 
-	// Turnstile gating — a user toggling Turnstile ON without keys is meaningless
-	// (the frontend widget never renders, the server side never verifies). Instead
-	// of letting the save succeed and break silently, refuse the flip, scroll to
-	// the key inputs, and flash the section so it's obvious where to go next.
+	// Turnstile gating: turning Turnstile on without keys does nothing useful
+	// (the frontend widget never renders and the server never verifies). Refuse
+	// the flip, scroll to the key inputs, and flash the section so it is obvious
+	// where to go next.
 	const hasKeys = !!(ts.site_key && ts.secret_key);
 	const guardTurnstile = (path) => (v) => {
 		if (v && !hasKeys) {
@@ -306,42 +373,32 @@ export default function Content({ state, onDirty, setSetting }) {
 	return (
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-			{/* v0.50.31 — WP Core Sync sits at the top — single status view
-			    of every WP-owned setting Hatch syncs (site identity, perms,
-			    homepage, menus w/ inline picker, comments toggles, post
-			    types, taxonomies, roles, privacy, languages). Comments now
-			    live INSIDE this card (was a separate card above). */}
+			{/* WP Core Sync sits at the top: one status view of every
+			    WordPress-owned setting Hatch syncs. The comment toggles live
+			    inside its Discussion section, next to WordPress's own comment
+			    settings. */}
 			<CoreSync
 				data={coreSync}
 				content={content}
 				setSetting={setSetting}
 				onDirty={onDirty}
 				guardTurnstile={guardTurnstile}
-				hasTurnstileKeys={hasKeys}
 			/>
 
-			{/* v0.50.31 — Standalone Comments card REMOVED. Toggles moved
-			    INSIDE the Core Sync card (Discussion section) where they
-			    sit alongside WP's native comment settings → one mental
-			    model instead of split UI. */}
-
-
-
-			{/* v0.50.31 — Third-party keys & services. Two integrations, that's
-			    it. We intentionally do NOT ship direct GA4 / Plausible / Pixel
-			    fields — managing those inside GTM is the right pattern (one
-			    container, all tags). User explicitly asked for GTM only. */}
+			{/* Third-party keys and services. Google Tag Manager only: GA4,
+			    Plausible and Pixel are managed as tags inside the GTM
+			    container, so there are no separate fields for them. */}
 			<HxCard>
 				<HxHead
 					iconChildren={<><circle cx="12" cy="12" r="3" /><path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24" /></>}
 					iconColor="#0d9488"
-					title="Third-party keys & services"
-					desc="Keys that other tabs consume. Saved once here, used everywhere."
+					title={ __( 'Third-party keys & services', 'hatch-bridge' ) }
+					desc={ __( 'Keys that other tabs use. Enter them once here.', 'hatch-bridge' ) }
 				/>
 
-				<HxGL>Google Tag Manager (analytics)</HxGL>
+				<HxGL>{ __( 'Google Tag Manager (analytics)', 'hatch-bridge' ) }</HxGL>
 				<div style={{ paddingTop: 4, paddingBottom: 14, borderBottom: '1px solid var(--hx-border)' }}>
-					<div className="hx-help" style={{ fontWeight: 600, color: 'var(--hx-muted)', marginBottom: 6 }}>Container ID</div>
+					<HxField label={ __( 'Container ID', 'hatch-bridge' ) } help={ __( 'Added to every page on your frontend. Add GA4, Meta Pixel or any other tag inside your GTM container. Hatch connects to Google Tag Manager only.', 'hatch-bridge' ) }>
 					<HxInp
 						placeholder="GTM-XXXXXXX"
 						mono
@@ -351,33 +408,29 @@ export default function Content({ state, onDirty, setSetting }) {
 						autoComplete="off"
 						spellCheck="false"
 					/>
-					<div className="hx-help" style={{ color: 'var(--hx-subtle)', marginTop: 6 }}>
-						Auto-injected into every frontend page (head + body noscript). Add GA4, Pixel, Plausible, or any other tag inside your GTM container — Hatch ships only GTM by design.
-					</div>
+					</HxField>
 				</div>
 
-				<HxGL>Cloudflare Turnstile (spam protection)</HxGL>
-				<div id="hatch-turnstile-keys" style={{ paddingTop: 4, padding: 12, margin: '-12px', borderRadius: 10, transition: 'box-shadow .25s var(--hx-ease), background .25s var(--hx-ease)' }}>
+				<HxGL>{ __( 'Cloudflare Turnstile (spam protection)', 'hatch-bridge' ) }</HxGL>
+				<div id="hatch-turnstile-keys" style={{ padding: 12, margin: '-12px', borderRadius: 10, transition: 'box-shadow .25s var(--hx-ease), background .25s var(--hx-ease)' }}>
 					<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
 						<div className="hx-help" style={{ color: 'var(--hx-subtle)' }}>
-							One key pair, used wherever spam protection is enabled (comments today; form submissions / login when those surfaces opt in).
+							{ __( 'One key pair is shared by every place Turnstile is turned on: frontend comments, the WordPress login and the WordPress comment form.', 'hatch-bridge' ) }
 						</div>
-						<HxBadge color={(ts.site_key && ts.secret_key) ? 'green' : 'yellow'}>
-							{(ts.site_key && ts.secret_key) ? 'Configured' : 'Keys missing'}
+						<HxBadge color={hasKeys ? 'green' : 'yellow'}>
+							{hasKeys ? __( 'Configured', 'hatch-bridge' ) : __( 'Keys missing', 'hatch-bridge' )}
 						</HxBadge>
 					</div>
 					<div className="hx-grid-cols-2">
-						<div>
-							<div className="hx-help" style={{ fontWeight: 600, color: 'var(--hx-subtle)', marginBottom: 6 }}>Site key</div>
+						<HxField label={ __( 'Site key', 'hatch-bridge' ) }>
 							<HxInp placeholder="0x4AAAA..." mono value={ts.site_key || ''} onChange={onText('turnstile.site_key')} autoComplete="off" />
-						</div>
-						<div>
-							<div className="hx-help" style={{ fontWeight: 600, color: 'var(--hx-subtle)', marginBottom: 6 }}>Secret key</div>
+						</HxField>
+						<HxField label={ __( 'Secret key', 'hatch-bridge' ) }>
 							<HxInp placeholder="0x4AAAA..." type="password" value={ts.secret_key || ''} onChange={onText('turnstile.secret_key')} autoComplete="off" />
-						</div>
+						</HxField>
 					</div>
 					<div className="hx-help" style={{ color: 'var(--hx-subtle)', marginTop: 8 }}>
-						Get keys free from <a href="https://dash.cloudflare.com/?to=/:account/turnstile" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--hx-primary)' }}>Cloudflare dashboard ↗</a>.
+						<a href="https://dash.cloudflare.com/?to=/:account/turnstile" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--hx-link)' }}>{ __( 'Get keys in the Cloudflare dashboard', 'hatch-bridge' ) } ↗</a>
 					</div>
 				</div>
 			</HxCard>

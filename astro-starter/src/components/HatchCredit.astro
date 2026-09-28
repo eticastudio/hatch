@@ -1,21 +1,29 @@
 ---
 /**
- * "Built by Hatch" footer credit. Renders only when the
- * built_by_hatch feature flag is on.
+ * "Built with Hatch" footer credit. Renders only when the site owner turns on
+ * the built_by_hatch feature (off by default). It is plain text unless the owner
+ * also sets PUBLIC_HATCH_CREDIT_URL, so no external link ships by default.
  */
 interface Props {
   show: boolean;
 }
 const { show } = Astro.props;
+const creditUrl = String(import.meta.env.PUBLIC_HATCH_CREDIT_URL || '').trim();
+const safeUrl = /^https:\/\//i.test(creditUrl) ? creditUrl : '';
 ---
 {show && (
-  <a
-    href="https://hatch.adityaarsharma.com"
-    target="_blank"
-    rel="noopener noreferrer"
-    class="inline-flex items-center gap-1.5 text-[12px] text-hatch-fg-subtle hover:text-hatch-fg transition-colors group"
-  >
-    <span aria-hidden="true" class="group-hover:animate-bounce inline-block">🐣</span>
-    <span>Built by <span class="text-hatch-fg-muted font-medium group-hover:text-hatch-fg group-hover:underline">Hatch</span></span>
-  </a>
+  safeUrl ? (
+    <a
+      href={safeUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex items-center gap-1.5 text-[12px] text-hatch-fg-subtle hover:text-hatch-fg transition-colors"
+    >
+      <span>Built with <span class="text-hatch-fg-muted font-medium">Hatch</span></span>
+    </a>
+  ) : (
+    <span class="inline-flex items-center gap-1.5 text-[12px] text-hatch-fg-subtle">
+      Built with <span class="text-hatch-fg-muted font-medium">Hatch</span>
+    </span>
+  )
 )}

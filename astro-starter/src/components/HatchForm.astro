@@ -26,13 +26,21 @@
  *    when the user leaves required fields empty, and paints inline
  *    `[data-hatch-field-error]` messages that mirror checkout.astro.
  */
+import { getFeatures } from '@/lib/features';
 
+// Turnstile is opt-in: the widget only renders when the site owner has enabled it
+// in the plugin and saved a site key. Otherwise forms behave exactly as before.
+const features = await getFeatures();
+const ts = features.integrations?.turnstile;
+const tsKey = ts && ts.enabled && ts.site_key ? String(ts.site_key) : '';
 ---
 
+<div id="hatch-form-config" data-turnstile-key={tsKey} hidden></div>
 <script is:inline>
   (function () {
     if (window.__hatchFormHydrated) return;
     window.__hatchFormHydrated = true;
+    const tsKey = (document.getElementById('hatch-form-config') || { dataset: {} }).dataset.turnstileKey || '';
 
     // v0.8: schema + submit both go through the Astro-origin proxy at
     // /api/hatch-form/{provider}/{id}[/submit]. Keeps the browser on
@@ -164,6 +172,8 @@
         id, name: f.name,
         placeholder: f.placeholder || null,
         required: f.required || null,
+        // A field defined without a label still needs an accessible name.
+        'aria-label': f.label ? null : (f.placeholder || f.name),
         class: 'hatch-form__input',
       };
 
@@ -282,24 +292,35 @@
         novalidate: '',
         'data-provider': provider,
         'data-form-id': id,
-        // v0.51 (#208): do NOT emit `data-hatch-form` here. hatch-blocks.js
-        // has a legacy selector [data-hatch-form] that re-hydrates any matching
-        // element via the removed /wp-json/hatch/v1/forms/{id}/embed endpoint,
-        // clobbering this native form with a "Failed to fetch" error.
+        // Do NOT emit `data-hatch-form` here: a legacy selector in hatch-blocks.js
+        // re-hydrates any matching element and would replace this native form with
+        // an error. Schema and submit go through /hatch/v1/forms/{provider}/{id}.
         'data-hatch-form-hydrated': '1',
       });
 
       if (schema.title) {
-        form.append(el('h3', { class: 'hatch-form__title' }, schema.title));
+        form.append(el('h2', { class: 'hatch-form__title' }, schema.title));
       }
       for (const f of (schema.fields || [])) {
         form.append(renderField(f));
       }
+      // Honeypot: hidden from people and assistive tech, filled in by bots.
+      // The WordPress side treats any value here as spam.
+      form.append(el('div', { 'aria-hidden': 'true', style: 'position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden' },
+        el('input', { type: 'text', name: 'hatch_hp', tabindex: '-1', autocomplete: 'off', value: '' })));
       const submitBtn = el('button', {
         type: 'submit',
         class: 'hatch-form__submit hatch-btn hatch-btn--primary',
       }, schema.i18n?.submit_label || schema.submit?.button_text || 'Submit');
       const status = el('div', { class: 'hatch-form__status', 'aria-live': 'polite' });
+      let tsWidget = null;
+      if (tsKey) {
+        const tsBox = el('div', { class: 'hatch-form__turnstile' });
+        form.append(tsBox);
+        loadTurnstile().then((ts) => {
+          if (ts) tsWidget = { api: ts, id: ts.render(tsBox, { sitekey: tsKey, theme: 'auto' }) };
+        }).catch(() => { /* widget unavailable: the form still submits without a token */ });
+      }
       form.append(el('div', { class: 'hatch-form__actions' }, submitBtn));
       form.append(status);
 
@@ -325,11 +346,12 @@
         const originalText = submitBtn.textContent;
         submitBtn.textContent = schema.i18n?.sending || 'Sending';
 
+        const tsToken = tsWidget ? (tsWidget.api.getResponse(tsWidget.id) || '') : '';
         try {
           const res = await fetch(schema.submit.url, {
             method: schema.submit.method || 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({ fields: values }),
+            body: JSON.stringify(tsToken ? { fields: values, turnstile_token: tsToken, 'cf-turnstile-response': tsToken } : { fields: values }),
             credentials: 'omit',
           });
           const data = await res.json().catch(() => ({}));
@@ -356,6 +378,7 @@
           status.classList.add('hatch-form__status--error');
           status.textContent = schema.i18n?.error_msg || 'Something went wrong.';
         } finally {
+          if (tsWidget) { try { tsWidget.api.reset(tsWidget.id); } catch (e) { /* ignore */ } }
           submitBtn.disabled = false;
           submitBtn.textContent = originalText;
         }
@@ -465,6 +488,26 @@
         }
       }, { capture: true });
     }
+
+    // Loads Turnstile once, on demand. Resolves null when the script cannot load.
+    let tsPromise = null;
+    function loadTurnstile() {
+      if (window.turnstile) return Promise.resolve(window.turnstile);
+      if (!tsPromise) {
+        tsPromise = new Promise((resolve) => {
+          const s = document.createElement('script');
+          s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+          s.async = true;
+          s.onload = () => resolve(window.turnstile || null);
+          s.onerror = () => resolve(null);
+          document.head.appendChild(s);
+        });
+      }
+      return tsPromise;
+    }
+
+    // Lets public/hatch-blocks.js hand a block-editor form over once it knows the provider.
+    window.hatchHydrateForm = hydrate;
 
     function boot() {
       const mounts = document.querySelectorAll('[data-hatch-form-id][data-hatch-form-provider]');

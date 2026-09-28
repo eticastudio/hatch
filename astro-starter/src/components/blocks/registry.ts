@@ -11,6 +11,8 @@
  * is purely an upgrade path for performance / DX / design-system consistency.
  */
 
+import type { AstroComponentFactory } from 'astro/runtime/server/index.js';
+
 // Core text blocks
 import Paragraph    from './core/Paragraph.astro';
 import Heading      from './core/Heading.astro';
@@ -52,7 +54,7 @@ import HatchContent from '../hatch-blocks/HatchContent.astro';
 /**
  * The registry. Keys are exact WordPress block names.
  */
-const REGISTRY: Record<string, unknown> = {
+const REGISTRY: Record<string, AstroComponentFactory> = {
 	// Text
 	'core/paragraph':    Paragraph,
 	'core/heading':      Heading,
@@ -103,7 +105,7 @@ const REGISTRY: Record<string, unknown> = {
  *   2. Embed namespace check (any "core-embed/*" or "core/embed-*" → Embed)
  *   3. null (caller renders innerHTML fallback)
  */
-export function resolveBlock( name: string ): unknown | null {
+export function resolveBlock( name: string ): AstroComponentFactory | null {
 	if ( REGISTRY[ name ] ) {
 		return REGISTRY[ name ];
 	}
@@ -121,6 +123,6 @@ export function resolveBlock( name: string ): unknown | null {
  *   import MyHero from '~/components/MyHero.astro';
  *   registerBlock('acme/hero', MyHero);
  */
-export function registerBlock( name: string, component: unknown ): void {
+export function registerBlock( name: string, component: AstroComponentFactory ): void {
 	REGISTRY[ name ] = component;
 }

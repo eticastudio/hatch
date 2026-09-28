@@ -29,4 +29,4 @@ Then activate it in **Appearance → Themes**.
 The plugin's Hatch Connector tab stores the frontend URL in
 `hatch_frontend_url`. The theme reads that option and uses it as the redirect
 target. If you switch hosts (Cloudflare → Vercel), the theme picks up the new
-URL automatically — no theme edits needed.
+URL automatically - no theme edits needed.

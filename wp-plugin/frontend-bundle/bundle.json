@@ -1,0 +1,17 @@
+{
+  "version": "0.7.6.1",
+  "main_module": "entry.mjs",
+  "compatibility_date": "2025-09-01",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets_config": {
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  },
+  "placeholders": {
+    "wp_api_url": "https://hatch-wp-api.invalid/wp-json/wp/v2",
+    "site_url": "https://hatch-site.invalid",
+    "wp_origin": "https://hatch-wp-origin.invalid"
+  }
+}

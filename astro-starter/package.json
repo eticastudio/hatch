@@ -8,7 +8,6 @@
     "start": "astro dev",
     "build": "astro build",
     "build:cf": "HATCH_TARGET=cf astro build",
-    "build:vercel": "HATCH_TARGET=vercel astro build",
     "build:node": "HATCH_TARGET=node astro build",
     "preview": "astro preview",
     "astro": "astro",
@@ -20,7 +19,6 @@
     "@astrojs/node": "^11.1.1",
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.3",
-    "@astrojs/vercel": "^11.0.5",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/lora": "^5.2.8",
     "@tailwindcss/vite": "^4.3.3",
@@ -31,12 +29,12 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^5.6.0"
   },
-  "license": "AGPL-3.0-or-later",
+  "license": "GPL-2.0-or-later",
   "author": "Aditya Sharma",
-  "homepage": "https://github.com/adityaarsharma/hatch",
+  "homepage": "https://github.com/eticastudio/hatch",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/adityaarsharma/hatch.git",
+    "url": "git+https://github.com/eticastudio/hatch.git",
     "directory": "astro-starter"
   },
   "keywords": [

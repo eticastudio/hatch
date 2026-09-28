@@ -4,7 +4,7 @@
  * v0.5.8. Cloudflare Worker subfolder SEO rewriter.
  *
  * When a headless deploy is bound to a subfolder (e.g. site.com/blog)
- * via the Cloudflare Worker installed by Hatch_Onboarding_Cloudflare,
+ * via the Cloudflare Worker installed by Hatch_Deploy_Controller,
  * WordPress still generates permalinks, sitemap entries, and canonical
  * URLs that point at its own origin (the CMS-edit host). Search engines
  * would then either 404 (if the edit host is intranet-only) or split
@@ -15,7 +15,7 @@
  * `https://<money_domain><subpath>/...` which is the URL the Worker
  * actually serves.
  *
- * State source: same option Hatch_Onboarding_Cloudflare persists to
+ * State source: same option Hatch_Deploy_Controller persists to
  * (`hatch_cf_worker_state`). If `money_domain` or `subpath` is missing,
  * no hooks register. On uninstall / disconnect the option is cleared
  * and the site returns to normal permalinks with zero code change.
@@ -44,12 +44,12 @@ class Hatch_Cf_Seo {
 		if ( ! self::is_deployed() ) {
 			return;
 		}
-		add_filter( 'post_link',              array( __CLASS__, 'rewrite_permalink' ), 10, 2 );
-		add_filter( 'page_link',              array( __CLASS__, 'rewrite_permalink' ), 10, 2 );
-		add_filter( 'post_type_link',         array( __CLASS__, 'rewrite_permalink' ), 10, 2 );
-		add_filter( 'the_generator',          '__return_empty_string' );
-		add_filter( 'wp_sitemaps_posts_entry', array( __CLASS__, 'rewrite_sitemap_entry' ), 10, 2 );
-		add_action( 'robots_txt',              array( __CLASS__, 'append_subfolder_allow' ), 20, 2 );
+		add_filter( 'post_link', array( __CLASS__, 'rewrite_permalink' ), 10, 1 );
+		add_filter( 'page_link', array( __CLASS__, 'rewrite_permalink' ), 10, 1 );
+		add_filter( 'post_type_link', array( __CLASS__, 'rewrite_permalink' ), 10, 1 );
+		add_filter( 'the_generator', '__return_empty_string' );
+		add_filter( 'wp_sitemaps_posts_entry', array( __CLASS__, 'rewrite_sitemap_entry' ), 10, 1 );
+		add_filter( 'robots_txt', array( __CLASS__, 'append_subfolder_allow' ), 20, 1 );
 	}
 
 	/**
@@ -78,10 +78,9 @@ class Hatch_Cf_Seo {
 	 *    invalidation on option update, which is more surface than value.
 	 *
 	 * @param string $url          Full permalink WordPress generated.
-	 * @param mixed  $post_or_id   Unused. Signature required by filters.
 	 * @return string Rewritten URL, or original if state is missing.
 	 */
-	public static function rewrite_permalink( $url, $post_or_id = null ): string {
+	public static function rewrite_permalink( $url ): string {
 		$state = get_option( self::OPTION_STATE );
 		if ( empty( $state['money_domain'] ) || empty( $state['subpath'] ) ) {
 			return (string) $url;
@@ -95,10 +94,9 @@ class Hatch_Cf_Seo {
 	 * Same rewrite, sitemap-entry shape. WP passes an array with `loc` at minimum.
 	 *
 	 * @param array  $entry Sitemap entry (has `loc` key at least).
-	 * @param object $post  Post object (unused).
 	 * @return array Entry with `loc` swapped to the Worker-facing URL.
 	 */
-	public static function rewrite_sitemap_entry( $entry, $post ): array {
+	public static function rewrite_sitemap_entry( $entry ): array {
 		if ( ! empty( $entry['loc'] ) ) {
 			$entry['loc'] = self::rewrite_permalink( $entry['loc'] );
 		}
@@ -112,10 +110,9 @@ class Hatch_Cf_Seo {
 	 * per-request; no persistence).
 	 *
 	 * @param string $output Robots.txt body WP has assembled so far.
-	 * @param mixed  $public Whether the site is public (unused).
 	 * @return string Extended body.
 	 */
-	public static function append_subfolder_allow( $output, $public ): string {
+	public static function append_subfolder_allow( $output ): string {
 		$state = get_option( self::OPTION_STATE );
 		if ( ! empty( $state['subpath'] ) ) {
 			$output .= "\nAllow: " . rtrim( (string) $state['subpath'], '/' ) . "/\n";

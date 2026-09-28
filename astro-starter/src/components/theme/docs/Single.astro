@@ -31,14 +31,14 @@ const gridCols = !showSidebar
 ---
 <div class={`mx-auto px-5 sm:px-8 grid gap-x-10 gap-y-8 ${gridCols}`} style="max-width: var(--hatch-max-width, 1160px);">
   {showSidebar && sidebarSide === 'left' && (
-    <DocsSidebar activeCategorySlug={post.category?.slug || null} />
+    <DocsSidebar activeCategorySlug={post.categorySlug || null} />
   )}
 
   <article class="py-8 sm:py-12 min-w-0">
     {flags.showBreadcrumb && (
       <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[12px] text-hatch-fg-subtle mb-5 flex-wrap">
         <a href="/blog" class="hover:text-hatch-fg transition-colors">Docs</a>
-        {post.category && <><span>{flags.breadcrumbSep}</span><a href={`/blog/category/${post.category.slug}`} class="hover:text-hatch-fg transition-colors">{post.category.name}</a></>}
+        {post.category && <><span>{flags.breadcrumbSep}</span><a href={`/blog/category/${post.categorySlug}`} class="hover:text-hatch-fg transition-colors">{post.category}</a></>}
         <span>{flags.breadcrumbSep}</span>
         <span class="text-hatch-fg truncate">{post.title}</span>
       </nav>
@@ -103,6 +103,6 @@ const gridCols = !showSidebar
   </article>
 
   {showSidebar && sidebarSide === 'right' && (
-    <DocsSidebar activeCategorySlug={post.category?.slug || null} />
+    <DocsSidebar activeCategorySlug={post.categorySlug || null} />
   )}
 </div>

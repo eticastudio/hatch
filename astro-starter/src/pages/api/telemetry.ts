@@ -5,10 +5,9 @@
  * `features.perf.telemetry` is on. POST body is a small JSON blob:
  *   { site, ttfb, lcp, dcl, ts }
  *
- * Today: logs to console (visible in `astro dev` and worker logs).
- * Tomorrow (v0.51): forwards to the Hatch broker so the WP admin can show
- * per-deploy regression alerts. Endpoint stays the same; only the sink
- * destination changes. No PII, no IP, no cookies.
+ * Logs to the Worker console on this site's own origin only. Nothing is
+ * forwarded to any external service. Off by default: the beacon is emitted only
+ * when the site owner turns on `perf.telemetry`. No PII, no IP, no cookies.
  *
  * Security: rate-limit handled by middleware (token bucket on path /api).
  * Body capped at 1KB to prevent log spam.

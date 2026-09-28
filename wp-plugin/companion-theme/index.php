@@ -1,10 +1,10 @@
 <?php
 /**
- * Hatch Companion — fallback splash when no frontend URL is configured AND
+ * Hatch Companion - fallback splash when no frontend URL is configured AND
  * for any non-logged-in browser hit that escaped the redirect logic.
  *
  * Visual goals (v0.24+): match the Hatch brand. Big confident type. Two
- * primary CTAs — "Visit live site" (when frontend URL is set) goes to the
+ * primary CTAs - "Visit live site" (when frontend URL is set) goes to the
  * Astro frontend. WordPress admin moves to a secondary link below.
  *
  * @package Hatch_Companion
@@ -12,18 +12,16 @@
 
 defined( 'ABSPATH' ) || exit;
 
-$front = function_exists( 'hatch_companion_frontend_url' ) ? hatch_companion_frontend_url() : '';
-$site_name = get_bloginfo( 'name' );
-$tagline   = get_bloginfo( 'description' );
+$hatch_front     = function_exists( 'hatch_companion_frontend_url' ) ? hatch_companion_frontend_url() : '';
+$hatch_site_name = get_bloginfo( 'name' );
+$hatch_tagline   = get_bloginfo( 'description' );
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="robots" content="noindex, follow">
-	<title><?php echo esc_html( $site_name ); ?> — Headless mode</title>
-	<link rel="preconnect" href="https://rsms.me">
-	<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+	<title><?php echo esc_html( $hatch_site_name ); ?> - Headless mode</title>
 	<?php wp_head(); ?>
 	<style>
 		:root {
@@ -42,7 +40,7 @@ $tagline   = get_bloginfo( 'description' );
 		*, *:before, *:after { box-sizing: border-box; }
 		html, body { margin:0; padding:0; }
 		body {
-			font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+			font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 			background: var(--bg); color: var(--fg);
 			-webkit-font-smoothing: antialiased;
 			font-feature-settings: "ss01","cv11","cv02";
@@ -101,36 +99,29 @@ $tagline   = get_bloginfo( 'description' );
 			margin-top: 14px;
 			word-break: break-all;
 		}
-		.foot {
-			margin-top: 28px; padding-top: 20px;
-			border-top: 1px solid var(--border);
-			font-size: 12.5px; color: var(--fg-subtle);
-		}
-		.foot a { color: var(--fg-muted); text-decoration: none; }
-		.foot a:hover { color: var(--fg); }
 	</style>
 </head>
 <body>
 	<main class="wrap">
 		<div class="brand" aria-hidden="true">🐣</div>
-		<span class="pill"><span class="dot"></span> Headless mode · powered by Hatch</span>
-		<h1><?php echo esc_html( $site_name ); ?></h1>
-		<?php if ( $tagline ): ?>
-			<p class="tag"><?php echo esc_html( $tagline ); ?></p>
-		<?php else: ?>
+		<span class="pill"><span class="dot"></span> Headless mode</span>
+		<h1><?php echo esc_html( $hatch_site_name ); ?></h1>
+		<?php if ( $hatch_tagline ) : ?>
+			<p class="tag"><?php echo esc_html( $hatch_tagline ); ?></p>
+		<?php else : ?>
 			<p class="tag">The live site lives on a fast, edge-rendered frontend. This URL is the headless WordPress backend.</p>
 		<?php endif; ?>
 
 		<div class="cta-row">
-			<?php if ( $front ): ?>
-				<a class="btn primary" href="<?php echo esc_url( $front ); ?>">
+			<?php if ( $hatch_front ) : ?>
+				<a class="btn primary" href="<?php echo esc_url( $hatch_front ); ?>">
 					Visit live site →
 				</a>
 				<a class="btn ghost" href="<?php echo esc_url( admin_url() ); ?>">
 					WordPress admin
 				</a>
-			<?php else: ?>
-				<a class="btn primary" href="<?php echo esc_url( admin_url( 'tools.php?page=hatch' ) ); ?>">
+			<?php else : ?>
+				<a class="btn primary" href="<?php echo esc_url( admin_url( 'admin.php?page=hatch' ) ); ?>">
 					Set up Hatch →
 				</a>
 				<a class="btn ghost" href="<?php echo esc_url( admin_url() ); ?>">
@@ -139,15 +130,9 @@ $tagline   = get_bloginfo( 'description' );
 			<?php endif; ?>
 		</div>
 
-		<?php if ( $front ): ?>
-			<div class="urlchip"><?php echo esc_html( preg_replace( '#^https?://#', '', $front ) ); ?></div>
+		<?php if ( $hatch_front ) : ?>
+			<div class="urlchip"><?php echo esc_html( preg_replace( '#^https?://#', '', $hatch_front ) ); ?></div>
 		<?php endif; ?>
-
-		<div class="foot">
-			Want the same? Hatch is open-source on
-			<a href="https://github.com/adityaarsharma/hatch" target="_blank" rel="noopener noreferrer">GitHub</a>
-			· <a href="https://hatch.adityaarsharma.com" target="_blank" rel="noopener noreferrer">hatch.adityaarsharma.com</a>
-		</div>
 	</main>
 	<?php wp_footer(); ?>
 </body>

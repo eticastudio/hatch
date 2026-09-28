@@ -53,6 +53,12 @@ const optimized2x = features && width
   ? imgSrc(features, src, { ...opts, w: width * retina, h: height ? height * retina : undefined })
   : optimized;
 
+// If the image proxy is unreachable (stale deploy, offline worker), retry once
+// with the original URL so a dead proxy never leaves a broken-image icon.
+const onerror = optimized !== src
+  ? `this.onerror=null;this.removeAttribute('srcset');this.src=${JSON.stringify(src)}`
+  : undefined;
+
 const srcset = width && optimized !== optimized2x ? `${optimized} 1x, ${optimized2x} ${retina}x` : undefined;
 ---
 
@@ -67,4 +73,5 @@ const srcset = width && optimized !== optimized2x ? `${optimized} 1x, ${optimize
   decoding={decoding}
   class={className}
   style={style}
+  onerror={onerror}
 />

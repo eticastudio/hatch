@@ -53,7 +53,7 @@ class Hatch_Revalidate {
 		// Debounced per-request via a static flag so a batch REST write that
 		// touches ten options only fires one webhook.
 		add_action( 'updated_option', array( $this, 'on_option_change' ), 10, 3 );
-		add_action( 'added_option', array( $this, 'on_option_added' ), 10, 2 );
+		add_action( 'added_option', array( $this, 'on_option_added' ), 10, 1 );
 		add_action( 'shutdown', array( $this, 'maybe_flush_option_change' ), 20 );
 	}
 
@@ -69,11 +69,11 @@ class Hatch_Revalidate {
 	 * name is one we own; the flush happens once on shutdown.
 	 *
 	 * @param string $option Option name.
-	 * @param mixed  $old    Old value.
-	 * @param mixed  $new    New value.
+	 * @param mixed  $old_value Old value.
+	 * @param mixed  $new_value New value.
 	 * @return void
 	 */
-	public function on_option_change( $option, $old, $new ): void {
+	public function on_option_change( $option, $old_value, $new_value ): void {
 		if ( ! is_string( $option ) || 0 !== strpos( $option, 'hatch_' ) ) {
 			return;
 		}
@@ -83,7 +83,7 @@ class Hatch_Revalidate {
 		if ( 'hatch_design_last_saved' === $option || 'hatch_last_revalidate_at' === $option ) {
 			return;
 		}
-		if ( $old === $new ) {
+		if ( $old_value === $new_value ) {
 			return;
 		}
 		$this->option_dirty = true;
@@ -95,10 +95,9 @@ class Hatch_Revalidate {
 	 * Called when a new hatch_* option is first added.
 	 *
 	 * @param string $option Option name.
-	 * @param mixed  $value  Value.
 	 * @return void
 	 */
-	public function on_option_added( $option, $value ): void {
+	public function on_option_added( $option ): void {
 		if ( ! is_string( $option ) || 0 !== strpos( $option, 'hatch_' ) ) {
 			return;
 		}
@@ -119,10 +118,12 @@ class Hatch_Revalidate {
 			return;
 		}
 		$this->option_dirty = false;
-		$this->fire( array(
-			'event' => 'options_updated',
-			'tag'   => 'all',
-		) );
+		$this->fire(
+			array(
+				'event' => 'options_updated',
+				'tag'   => 'all',
+			)
+		);
 	}
 
 	/**
@@ -195,13 +196,15 @@ class Hatch_Revalidate {
 		if ( ! $this->should_fire( (string) $post->post_type ) ) {
 			return;
 		}
-		$this->fire( array(
-			'event'   => $update ? 'post_updated' : 'post_created',
-			'post_id' => $post_id,
-			'slug'    => $post->post_name,
-			'type'    => $post->post_type,
-			'tag'     => 'posts',
-		) );
+		$this->fire(
+			array(
+				'event'   => $update ? 'post_updated' : 'post_created',
+				'post_id' => $post_id,
+				'slug'    => $post->post_name,
+				'type'    => $post->post_type,
+				'tag'     => 'posts',
+			)
+		);
 	}
 
 	/**
@@ -218,13 +221,15 @@ class Hatch_Revalidate {
 		if ( ! $this->should_fire( (string) $post->post_type ) ) {
 			return;
 		}
-		$this->fire( array(
-			'event'   => 'post_deleted',
-			'post_id' => $post_id,
-			'slug'    => $post->post_name,
-			'type'    => $post->post_type,
-			'tag'     => 'posts',
-		) );
+		$this->fire(
+			array(
+				'event'   => 'post_deleted',
+				'post_id' => $post_id,
+				'slug'    => $post->post_name,
+				'type'    => $post->post_type,
+				'tag'     => 'posts',
+			)
+		);
 	}
 
 	/**
@@ -246,14 +251,104 @@ class Hatch_Revalidate {
 			return;
 		}
 		if ( 'publish' === $old_status && 'publish' !== $new_status ) {
-			$this->fire( array(
-				'event'   => 'post_unpublished',
-				'post_id' => $post->ID,
-				'slug'    => $post->post_name,
-				'type'    => $post->post_type,
-				'tag'     => 'posts',
-			) );
+			$this->fire(
+				array(
+					'event'   => 'post_unpublished',
+					'post_id' => $post->ID,
+					'slug'    => $post->post_name,
+					'type'    => $post->post_type,
+					'tag'     => 'posts',
+				)
+			);
 		}
+	}
+
+	/**
+	 * Is this host a name that only ever points at the local machine?
+	 *
+	 * @param string $host Host from wp_parse_url(), any case.
+	 * @return bool
+	 */
+	private static function is_local_host( string $host ): bool {
+		$host = strtolower( trim( $host, '[]' ) );
+		if ( '' === $host ) {
+			return false;
+		}
+		if ( in_array( $host, array( 'localhost', '127.0.0.1', '::1' ), true ) ) {
+			return true;
+		}
+		return '.test' === substr( $host, -5 ) || '.localhost' === substr( $host, -10 );
+	}
+
+	/**
+	 * Is this a webhook URL Hatch is willing to call?
+	 *
+	 * The URL must be https. Plain http is accepted only for localhost,
+	 * *.test and *.localhost hosts, and only while WordPress reports a
+	 * "local" or "development" environment type, so a production site never
+	 * sends the webhook secret over an unencrypted connection.
+	 *
+	 * @param string $url Candidate endpoint.
+	 * @return bool
+	 */
+	public static function endpoint_allowed( string $url ): bool {
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) || empty( $parts['scheme'] ) || empty( $parts['host'] ) ) {
+			return false;
+		}
+		$scheme = strtolower( (string) $parts['scheme'] );
+		if ( 'https' === $scheme ) {
+			return true;
+		}
+		return 'http' === $scheme
+			&& self::is_local_host( (string) $parts['host'] )
+			&& in_array( wp_get_environment_type(), array( 'local', 'development' ), true );
+	}
+
+	/**
+	 * Send a request to the configured webhook with WordPress's SSRF-safe HTTP API.
+	 *
+	 * Uses wp_safe_remote_request(), which refuses private and loopback
+	 * addresses and non-standard ports. When the endpoint is a local-environment
+	 * host that check is relaxed for that one host and port and nothing else.
+	 *
+	 * @param string              $method HTTP method.
+	 * @param string              $url    Endpoint, already saved by the site owner.
+	 * @param array<string,mixed> $args   wp_remote_request() arguments.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	public static function safe_request( string $method, string $url, array $args ) {
+		if ( ! self::endpoint_allowed( $url ) ) {
+			return new WP_Error(
+				'hatch_endpoint_not_allowed',
+				__( 'The revalidate webhook URL must use https.', 'hatch-bridge' )
+			);
+		}
+		$host     = (string) wp_parse_url( $url, PHP_URL_HOST );
+		$port     = (int) wp_parse_url( $url, PHP_URL_PORT );
+		$is_local = self::is_local_host( $host );
+		$external = null;
+		$ports    = null;
+		if ( $is_local ) {
+			$external = static function ( $is_external, $candidate ) use ( $host ) {
+				return strtolower( (string) $candidate ) === strtolower( $host ) ? true : $is_external;
+			};
+			$ports    = static function ( $allowed ) use ( $port ) {
+				if ( $port > 0 ) {
+					$allowed[] = $port;
+				}
+				return $allowed;
+			};
+			add_filter( 'http_request_host_is_external', $external, 10, 2 );
+			add_filter( 'http_allowed_safe_ports', $ports );
+		}
+		$args['method'] = strtoupper( $method );
+		$response       = wp_safe_remote_request( $url, $args );
+		if ( $is_local ) {
+			remove_filter( 'http_request_host_is_external', $external, 10 );
+			remove_filter( 'http_allowed_safe_ports', $ports );
+		}
+		return $response;
 	}
 
 	/**
@@ -269,30 +364,27 @@ class Hatch_Revalidate {
 		if ( empty( $endpoint ) || empty( $secret ) ) {
 			return;
 		}
-		if ( ! filter_var( $endpoint, FILTER_VALIDATE_URL ) ) {
+		if ( ! self::endpoint_allowed( $endpoint ) ) {
 			return;
 		}
 
-		// v0.50.15 — fire as GET. The Astro endpoint accepts both methods but
-		// GET bypasses Astro's checkOrigin guard (`security.checkOrigin: true`
-		// in astro.config.mjs) which 403s any POST without a matching Origin
-		// header — and `wp_remote_post` doesn't send one. The secret travels
-		// in the query string, payload is encoded into hint params for the
-		// per-host purge hooks we'll add later.
-		$payload_hint = array(
-			'event' => isset( $payload['event'] ) ? (string) $payload['event'] : '',
-			'tag'   => isset( $payload['tag'] )   ? (string) $payload['tag']   : '',
-		);
-		$qs = wp_parse_url( $endpoint, PHP_URL_QUERY );
+		// Fired as GET: the Astro endpoint accepts both methods, and a GET is
+		// not blocked by Astro's checkOrigin guard, which rejects any POST that
+		// has no matching Origin header. The secret is sent in a request
+		// header only; a secret in the URL would end up in access logs.
 		$url = add_query_arg(
-			array_merge( array( 'secret' => rawurlencode( $secret ) ), $payload_hint ),
+			array(
+				'event' => isset( $payload['event'] ) ? (string) $payload['event'] : '',
+				'tag'   => isset( $payload['tag'] ) ? (string) $payload['tag'] : '',
+			),
 			$endpoint
 		);
-		// v0.50.31 — Record timestamp so Status tab can show
+		// v0.50.31 - Record timestamp so Status tab can show
 		// "Last frontend revalidation: 2 minutes ago".
 		update_option( 'hatch_last_revalidate_at', time(), false );
 
-		wp_remote_get(
+		self::safe_request(
+			'GET',
 			$url,
 			array(
 				'blocking' => false,
@@ -306,7 +398,7 @@ class Hatch_Revalidate {
 	}
 
 	/**
-	 * Manual trigger — used by `hatch/revalidate` ability (V0.2.1) and admin
+	 * Manual trigger - used by `hatch/revalidate` ability (V0.2.1) and admin
 	 * "Test connection" button.
 	 *
 	 * @param string $reason Optional reason string.
@@ -318,11 +410,13 @@ class Hatch_Revalidate {
 		if ( empty( $endpoint ) || empty( $secret ) ) {
 			return false;
 		}
-		self::instance()->fire( array(
-			'event'  => 'manual_revalidate',
-			'reason' => sanitize_text_field( $reason ),
-			'tag'    => 'all',
-		) );
+		self::instance()->fire(
+			array(
+				'event'  => 'manual_revalidate',
+				'reason' => sanitize_text_field( $reason ),
+				'tag'    => 'all',
+			)
+		);
 		return true;
 	}
 }

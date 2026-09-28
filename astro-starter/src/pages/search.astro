@@ -34,10 +34,11 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
           name="q"
           value={query}
           placeholder="Search posts…"
+          aria-label="Search posts"
           autofocus
-          class="flex-1 px-4 py-2.5 rounded-md border border-hatch-border bg-hatch-bg text-[14.5px] focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none"
+          class="flex-1 px-4 py-2.5 rounded-md border border-hatch-border bg-hatch-bg text-[14.5px] focus:border-hatch-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hatch-primary"
         />
-        <button type="submit" class="px-6 py-2.5 rounded-md bg-hatch-primary text-white text-[13.5px] font-medium hover:opacity-90 transition-opacity">
+        <button type="submit" class="px-6 py-2.5 rounded-md bg-hatch-primary text-hatch-primary-fg text-[13.5px] font-medium hover:opacity-90 transition-opacity">
           Search
         </button>
       </form>
@@ -58,7 +59,7 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
       </div>
     ) : (
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-7 gap-y-12">
-        {posts.map((post) => <PostCard post={post} />)}
+        {posts.map((post) => <PostCard post={post} headingLevel={2} />)}
       </div>
     )}
 

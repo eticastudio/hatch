@@ -1,10 +1,13 @@
-import { useState, useEffect } from '@wordpress/element';
+import { useState, useEffect, createInterpolateElement } from '@wordpress/element';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import { HxCard, HxHead, HxBadge, HxGL, ibg } from '../components.jsx';
+
+const MONO = 'ui-monospace,SFMono-Regular,Menlo,monospace';
 
 /**
  * Live probe for the Hatch WooCommerce bridge. Hits /hatch/v1/store/products
- * (public read-only route) to render product count + a "View sample" link that
- * jumps to the Astro frontend `/product/<slug>` page for the first product.
+ * (public read-only route) to render product count + a "View on frontend" link
+ * that jumps to the Astro frontend `/product/<slug>` page for the first product.
  *
  * @since 0.7.4
  */
@@ -15,12 +18,20 @@ function useWooProbe(enabled) {
 		const boot = typeof window !== 'undefined' ? window.hatchBoot : null;
 		const restUrl = boot?.restUrl;
 		const nonce = boot?.nonce;
-		if (!restUrl) { setState((s) => ({ ...s, err: 'restUrl missing' })); return; }
+		if (!restUrl) {
+			setState((s) => ({ ...s, err: __('The REST address is missing from this page.', 'hatch-bridge') }));
+			return;
+		}
 		setState((s) => ({ ...s, loading: true }));
 		fetch(`${restUrl}store/products?per_page=1`, {
 			headers: nonce ? { 'X-WP-Nonce': nonce } : {},
 		})
-			.then((r) => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+			.then((r) => (r.ok
+				? r.json()
+				: Promise.reject(new Error(
+					/* translators: %d: HTTP status code, for example 500. */
+					sprintf(__('The request failed with status %d.', 'hatch-bridge'), r.status)
+				))))
 			.then((data) => {
 				const first = Array.isArray(data?.products) && data.products[0] ? data.products[0] : null;
 				setState({ loading: false, total: Number(data?.total || 0), sample: first, err: null });
@@ -31,19 +42,19 @@ function useWooProbe(enabled) {
 }
 
 /**
- * Plugin Bridge — 2-col grid of category cards. Compact by default, click to
- * unfold. Each card shows category label + status pill. Unfolded reveals
- * plugin roster (with StatusDot + tooltip of what each plugin ships) plus
- * chip list of REST abilities Hatch exposes when the bridge is active.
+ * Plugin Bridge: grid of category cards. Compact by default, click to unfold.
+ * Each card shows the category label and a status pill. Unfolded, it lists the
+ * supported plugins (with a status dot) and the endpoints Hatch uses when the
+ * bridge is active.
  *
- * @since 0.7.3 — full rewrite from stacked HxRow layout.
+ * @since 0.7.3
  */
 
 function StatusDot({ state }) {
 	const fill = state === 'active' ? 'var(--hx-success)' : state === 'installed' ? 'var(--hx-info)' : 'transparent';
 	const stroke = state === 'off' ? 'var(--hx-border)' : fill;
 	return (
-		<svg width="9" height="9" viewBox="0 0 10 10" style={{ flexShrink: 0 }}>
+		<svg width="9" height="9" viewBox="0 0 10 10" style={{ flexShrink: 0 }} aria-hidden="true">
 			<circle cx="5" cy="5" r="4" fill={fill} stroke={stroke} strokeWidth="1.5" />
 		</svg>
 	);
@@ -51,7 +62,7 @@ function StatusDot({ state }) {
 
 function Chevron({ open }) {
 	return (
-		<svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+		<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"
 			style={{ transition: 'transform .15s ease', transform: open ? 'rotate(90deg)' : 'none' }}>
 			<path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
 		</svg>
@@ -140,71 +151,78 @@ const ICONS = {
 	),
 };
 
+/**
+ * Lower-case, letters and digits only. Compares a plugin label here with the
+ * provider name the PHP detector reports ("RankMath" vs "Rank Math").
+ */
+const norm = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+// `bridgeFeature` is the `feature` name used by hatch_react_plugin_bridge() in
+// dashboard.php. It is a technical key and stays untranslated.
 const CATS = [
 	{
 		id: 'seo',
-		label: 'SEO',
-		outcome: 'Meta tags, schema, sitemap, and canonical URLs flow to Astro from your SEO plugin.',
+		label: __('SEO', 'hatch-bridge'),
+		bridgeFeature: 'SEO + Sitemap',
+		outcome: __('Meta tags, schema and sitemap data from your SEO plugin reach the Astro frontend.', 'hatch-bridge'),
 		exposes: [
 			'/hatch/v1/seo-head?url={url}',
 			'/hatch/v1/seo-meta',
-			'/hatch/v1/schema?post_id={id}',
+			'/hatch/v1/schema?url={url}',
 			'/hatch/v1/menus/{location}',
 			'/llms.txt (RankReady)',
 			'/.well-known/mcp.json (RankReady)',
 		],
-		fieldFromFeatures: (ig) => ig?.seo?.detected?.slug || (ig?.rankready?.active ? 'rankready' : null),
+		fieldFromFeatures: (ig) => ig?.seo?.detected?.slug || (ig?.plugins?.rankready ? 'rankready' : null),
 		plugins: [
-			{ slug: 'rankmath',      label: 'Rank Math',      priority: 1, ships: 'Meta, schema, sitemap, breadcrumbs, redirects (Pro).' },
-			{ slug: 'rankmath_pro',  label: 'Rank Math Pro',  priority: 1, ships: 'Adds AI content, tracking, watchlist.' },
-			{ slug: 'yoast',         label: 'Yoast SEO',      priority: 2, ships: 'Meta, schema, sitemap, breadcrumbs.' },
-			{ slug: 'yoast_premium', label: 'Yoast Premium',  priority: 2, ships: 'Adds redirects, content insights.' },
-			{ slug: 'rankready',     label: 'RankReady (AI)', priority: 3, ships: 'AI layer: llms.txt + /.well-known/mcp.json + per-post AI summary + FAQ JSON-LD.' },
+			{ slug: 'rankmath',      label: 'Rank Math',      priority: 1, note: __('Hatch reads its meta and schema data.', 'hatch-bridge') },
+			{ slug: 'rankmath_pro',  label: 'Rank Math Pro',  priority: 1, note: __('Paid edition of Rank Math.', 'hatch-bridge') },
+			{ slug: 'yoast',         label: 'Yoast SEO',      priority: 2, note: __('Hatch reads its meta and schema data.', 'hatch-bridge') },
+			{ slug: 'yoast_premium', label: 'Yoast Premium',  priority: 2, note: __('Paid edition of Yoast SEO.', 'hatch-bridge') },
+			{ slug: 'rankready',     label: 'RankReady',      priority: 3, note: __('Adds /llms.txt and /.well-known/mcp.json, plus an AI summary and FAQ schema for posts.', 'hatch-bridge') },
 		],
 	},
 	{
 		id: 'forms',
-		label: 'Forms',
-		outcome: 'Astro renders native <HatchForm> from schema; POSTs back through WordPress. Zero plugin CSS or JS ships.',
+		label: __('Forms', 'hatch-bridge'),
+		bridgeFeature: 'Forms',
+		outcome: __('Astro draws its own form from the form schema and submits through WordPress. No plugin CSS or JS is sent to the frontend.', 'hatch-bridge'),
 		exposes: [
 			'/hatch/v1/forms',
 			'/hatch/v1/forms/{provider}/{id}',
 			'/hatch/v1/forms/{provider}/{id}/submit',
-			'shortcode auto-rewrite ([fluentform] etc)',
 		],
 		fieldFromFeatures: (ig) => ig?.forms?.detected?.slug,
 		plugins: [
-			{ slug: 'wpforms_pro',   label: 'WPForms Pro',    priority: 1, ships: 'Full REST, conditional logic, payments.' },
-			{ slug: 'wpforms',       label: 'WPForms Lite',   priority: 1, ships: 'Free — contact forms via REST.' },
-			{ slug: 'fluent_forms',  label: 'Fluent Forms',   priority: 2, ships: 'Own REST, conditional logic, integrations.' },
-			{ slug: 'gravity_forms', label: 'Gravity Forms',  priority: 3, ships: 'Own /gf/v2/ REST.' },
-			{ slug: 'cf7',           label: 'Contact Form 7', priority: 4, ships: 'No native REST — server-render only.' },
+			{ slug: 'wpforms_pro',   label: 'WPForms Pro',    priority: 1, note: __('Paid edition of WPForms.', 'hatch-bridge') },
+			{ slug: 'wpforms',       label: 'WPForms Lite',   priority: 1, note: __('Free edition of WPForms.', 'hatch-bridge') },
+			{ slug: 'fluent_forms',  label: 'Fluent Forms',   priority: 2, note: __('Hatch reads its form schema.', 'hatch-bridge') },
+			{ slug: 'gravity_forms', label: 'Gravity Forms',  priority: 3, note: __('Hatch reads its form schema.', 'hatch-bridge') },
+			{ slug: 'cf7',           label: 'Contact Form 7', priority: 4, note: __('Hatch reads its form schema.', 'hatch-bridge') },
 		],
 	},
 	{
 		id: 'redirects',
-		label: 'Redirects',
-		outcome: 'Astro enforces 301/302 rules at the edge, pulled from the plugin.',
+		label: __('Redirects', 'hatch-bridge'),
+		bridgeFeature: 'Redirects',
+		outcome: __('Astro applies the redirect rules from your plugin before it serves a page.', 'hatch-bridge'),
 		exposes: [
 			'/hatch/v1/redirects',
-			'301 / 302 rule list',
-			'regex source patterns',
-			'enforced by Astro middleware.ts',
 		],
-		fieldFromFeatures: (ig) => ig?.redirects,
+		fieldFromFeatures: (ig) => (ig?.plugins?.redirection ? 'redirection' : null),
 		plugins: [
-			{ slug: 'redirection',    label: 'Redirection',                 priority: 1, ships: 'Free — unlimited 301/302 rules with logs.' },
-			{ slug: 'rankmath',       label: 'Rank Math (redirects)',       priority: 2, ships: 'If Rank Math\'s redirects module is active.' },
-			{ slug: 'yoast_premium',  label: 'Yoast Premium (redirects)',   priority: 3, ships: 'Bundled with Yoast Premium.' },
+			{ slug: 'redirection',    label: 'Redirection',                 priority: 1, note: __('Hatch reads its redirect rules.', 'hatch-bridge') },
+			{ slug: 'rankmath',       label: 'Rank Math (redirects)',       priority: 2, note: __('Used when the redirects module in Rank Math is active.', 'hatch-bridge') },
+			{ slug: 'yoast_premium',  label: 'Yoast Premium (redirects)',   priority: 3, note: __('Used when Yoast Premium is active.', 'hatch-bridge') },
 		],
 	},
 	{
 		id: 'woocommerce',
-		label: 'E-commerce',
-		outcome: 'Products, categories, cart, and checkout exposed over REST. Astro renders /product/<slug> live.',
-		// Full endpoint list — Hatch's own /hatch/v1/store/* (nonce-friendly,
-		// no consumer-key handshake needed for reads) PLUS the native
-		// /wc/v3/* endpoints so devs know both are available.
+		label: __('E-commerce', 'hatch-bridge'),
+		bridgeFeature: 'eCommerce',
+		outcome: __('Products, categories, cart and checkout are available over REST. Astro draws each product page from live data.', 'hatch-bridge'),
+		// Hatch's own /hatch/v1/store/* routes (no consumer-key handshake needed
+		// for reads) plus the native /wc/v3/* and Store API routes.
 		exposes: [
 			'/hatch/v1/store/products',
 			'/hatch/v1/store/products/{id}',
@@ -217,100 +235,137 @@ const CATS = [
 			'/wc/store/v1/cart',
 			'/wc/store/v1/checkout',
 		],
-		fieldFromFeatures: (ig) => (ig?.woocommerce || ig?.plugins?.woocommerce) ? 'woocommerce' : 'none',
+		fieldFromFeatures: (ig) => ((ig?.woocommerce || ig?.plugins?.woocommerce) ? 'woocommerce' : null),
 		hasLiveProbe: true,
 		plugins: [
-			{ slug: 'woocommerce', label: 'WooCommerce', priority: 1, ships: 'Own /wc/v3/ REST for products, orders, customers, coupons; Store API for cart + checkout.' },
+			{ slug: 'woocommerce', label: 'WooCommerce', priority: 1, note: __('Provides the /wc/v3 and Store API routes listed above.', 'hatch-bridge') },
 		],
 	},
 	{
 		id: 'smtp',
-		label: 'Email delivery (SMTP)',
-		outcome: 'Server-side only. Astro form submissions trigger wp_mail() through your SMTP transport. No REST needed on the frontend.',
+		label: __('Email delivery (SMTP)', 'hatch-bridge'),
+		outcome: __('Server side only. Email sent from WordPress, including Astro form submissions, goes through your SMTP plugin. Nothing is exposed over REST.', 'hatch-bridge'),
 		exposes: [
-			'wp_mail() transport (server-side)',
-			'delivery log (admin only)',
-			'failure retry (admin only)',
-			'no frontend REST by design',
+			'wp_mail()',
 		],
-		fieldFromFeatures: (ig) => ig?.smtp?.detected?.slug || ig?.smtp,
+		fieldFromFeatures: (ig) => (ig?.plugins?.fluent_smtp ? 'fluent_smtp' : null),
 		plugins: [
-			{ slug: 'fluent_smtp',  label: 'FluentSMTP',   priority: 1, ships: 'Free. Ties into Gmail, SES, Postmark, SendGrid, Brevo, generic SMTP. Log + retry.' },
-			{ slug: 'wp_mail_smtp', label: 'WP Mail SMTP', priority: 2, ships: 'Same transports + white-label. Free tier covers most needs.' },
-			{ slug: 'post_smtp',    label: 'Post SMTP',    priority: 3, ships: 'OAuth for Gmail/Outlook, mobile push alerts on failure.' },
-			{ slug: 'easy_wp_smtp', label: 'Easy WP SMTP', priority: 4, ships: 'Minimal config, generic SMTP transport.' },
+			{ slug: 'fluent_smtp',  label: 'FluentSMTP',   priority: 1, note: __('Sends WordPress email through an SMTP or API provider.', 'hatch-bridge') },
+			{ slug: 'wp_mail_smtp', label: 'WP Mail SMTP', priority: 2, note: __('Sends WordPress email through an SMTP or API provider.', 'hatch-bridge') },
+			{ slug: 'post_smtp',    label: 'Post SMTP',    priority: 3, note: __('Sends WordPress email through an SMTP or API provider.', 'hatch-bridge') },
+			{ slug: 'easy_wp_smtp', label: 'Easy WP SMTP', priority: 4, note: __('Sends WordPress email through an SMTP or API provider.', 'hatch-bridge') },
 		],
 	},
 	{
 		id: 'custom_fields',
-		label: 'Custom Fields',
-		outcome: 'Custom field values ride on WP core REST when the group has Show-in-REST enabled. Astro reads them at page render.',
+		label: __('Custom Fields', 'hatch-bridge'),
+		bridgeFeature: 'Custom Fields',
+		outcome: __('Custom field values travel with WordPress core REST when the field group is set to show in REST. Astro reads them when it draws a page.', 'hatch-bridge'),
 		exposes: [
-			'/wp/v2/{post_type}?acf_format=standard',
-			'/wp/v2/{post_type}/{id} (fields on .acf)',
-			'/hatch/v1/acf-status (admin diagnostic)',
-			'repeaters + flexible content supported',
+			'/wp/v2/{post_type}',
+			'/wp/v2/{post_type}/{id}',
+			'/hatch/v1/acf-status',
 		],
-		fieldFromFeatures: (ig) => ig?.custom_fields,
+		fieldFromFeatures: (ig) => (ig?.plugins?.acf ? 'acf' : null),
 		plugins: [
-			{ slug: 'acf_pro',   label: 'ACF Pro',              priority: 1, ships: 'All field types + repeaters + flexible content.' },
-			{ slug: 'acf',       label: 'ACF (free)',           priority: 2, ships: 'Core field types + basic layouts.' },
-			{ slug: 'secure_cf', label: 'Secure Custom Fields', priority: 3, ships: 'WP.org fork — same shape.' },
-			{ slug: 'meta_box',  label: 'Meta Box',             priority: 4, ships: 'Rival field builder.' },
-			{ slug: 'pods',      label: 'Pods',                 priority: 5, ships: 'Also handles CPTs.' },
+			{ slug: 'acf_pro',   label: 'ACF Pro',              priority: 1, note: __('Paid edition of Advanced Custom Fields.', 'hatch-bridge') },
+			{ slug: 'acf',       label: 'ACF (free)',           priority: 2, note: __('Advanced Custom Fields from WordPress.org.', 'hatch-bridge') },
+			{ slug: 'secure_cf', label: 'Secure Custom Fields', priority: 3, note: __('WordPress.org fork of Advanced Custom Fields.', 'hatch-bridge') },
+			{ slug: 'meta_box',  label: 'Meta Box',             priority: 4, note: __('Custom field builder.', 'hatch-bridge') },
+			{ slug: 'pods',      label: 'Pods',                 priority: 5, note: __('Custom field and post type builder.', 'hatch-bridge') },
 		],
 	},
 	{
 		id: 'cpt_manager',
-		label: 'Custom Post Types',
-		outcome: 'Registered CPTs auto-picked up by Astro via WP core REST plus Hatch content router. Zero extra config.',
+		label: __('Custom Post Types', 'hatch-bridge'),
+		outcome: __('Custom post types that show in the REST API reach Astro through WordPress core REST and the Hatch content routes.', 'hatch-bridge'),
 		exposes: [
 			'/wp/v2/{cpt}',
-			'/hatch/v1/content?slug={slug} (universal resolver)',
+			'/hatch/v1/content?slug={slug}',
 			'/hatch/v1/content/list?post_type={cpt}',
-			'/hatch/v1/cpt-health (admin diagnostic)',
+			'/hatch/v1/cpt-health',
 		],
-		fieldFromFeatures: (ig) => ig?.cpt_manager,
+		fieldFromFeatures: () => null,
 		plugins: [
-			{ slug: 'cpt_ui',     label: 'Custom Post Type UI', priority: 1, ships: 'Simple CPT + taxonomy registration.' },
-			{ slug: 'jet_engine', label: 'JetEngine',           priority: 2, ships: 'Crocoblock — heavy but full-featured.' },
-			{ slug: 'pods',       label: 'Pods',                priority: 3, ships: 'Also handles custom fields.' },
+			{ slug: 'cpt_ui',     label: 'Custom Post Type UI', priority: 1, note: __('Registers post types and taxonomies.', 'hatch-bridge') },
+			{ slug: 'jet_engine', label: 'JetEngine',           priority: 2, note: __('Registers post types, taxonomies and fields.', 'hatch-bridge') },
+			{ slug: 'pods',       label: 'Pods',                priority: 3, note: __('Custom field and post type builder.', 'hatch-bridge') },
 		],
 	},
 	{
 		id: 'membership',
-		label: 'Memberships',
-		outcome: 'Membership tiers detected now; per-post gating enforcement on Astro lands in v0.6.',
-		exposes: ['Tier list', 'Member status', 'Content gating (v0.6)'],
+		label: __('Memberships', 'hatch-bridge'),
+		bridgeFeature: 'Memberships',
+		outcome: __('Membership plugins are detected. Hatch does not enforce content gating on the frontend yet.', 'hatch-bridge'),
+		exposes: ['/hatch/v1/membership/check'],
 		comingSoon: true,
-		fieldFromFeatures: (ig) => ig?.membership,
+		fieldFromFeatures: () => null,
 		plugins: [
-			{ slug: 'memberpress',      label: 'MemberPress',          priority: 1, ships: 'Full membership + course + drip.' },
-			{ slug: 'restrict_content', label: 'Restrict Content Pro', priority: 2, ships: 'Restrict Content Pro.' },
-			{ slug: 'paid_memberships', label: 'Paid Memberships Pro', priority: 3, ships: 'Free tier available.' },
+			{ slug: 'memberpress',      label: 'MemberPress',          priority: 1, note: __('Membership plugin.', 'hatch-bridge') },
+			{ slug: 'restrict_content', label: 'Restrict Content Pro', priority: 2, note: __('Membership plugin.', 'hatch-bridge') },
+			{ slug: 'paid_memberships', label: 'Paid Memberships Pro', priority: 3, note: __('Membership plugin.', 'hatch-bridge') },
 		],
 	},
 ];
 
 /**
+ * Work out whether a category is on and which plugin provides it. The
+ * /features payload only names a few plugins, so the list PHP puts in boot
+ * state (`state.pluginBridge`) fills in the rest.
+ *
+ * @return {{slug: (string|null), label: (string|null)}|null}
+ */
+function detectCategory(cat, ig, bridgeRows, cpts) {
+	const slug = cat.fieldFromFeatures(ig);
+	if (typeof slug === 'string' && slug) {
+		const known = cat.plugins.find((p) => p.slug === slug);
+		return { slug, label: known ? known.label : slug };
+	}
+	if (cat.id === 'cpt_manager') {
+		return cpts.length > 0
+			? {
+				slug: null,
+				label: sprintf(
+					/* translators: %d: number of custom post types registered on this site. */
+					_n('%d custom post type', '%d custom post types', cpts.length, 'hatch-bridge'),
+					cpts.length
+				),
+			}
+			: null;
+	}
+	const row = bridgeRows.find((r) => r && r.feature === cat.bridgeFeature && r.detected);
+	return row ? { slug: null, label: row.providerName || row.n || null } : null;
+}
+
+/**
  * Category card. Parallel-designed on the shared primitives: HxCard as the
  * shell, HxHead for the icon-box + title + status action, HxGL for the
  * sub-section labels inside the reveal panel. The whole card is the accordion
- * trigger. Icon container follows the HxHead spec (38 x 38, radius 10, ibg()
- * tint) instead of the earlier bespoke 32 x 32 primary-mix box.
+ * trigger.
  */
-function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
+function CategoryCard({ cat, detected, plugMap, frontendUrl }) {
 	const [open, setOpen] = useState(false);
-	const activePlugin = isOn ? cat.plugins.find((p) => p.slug === active) : null;
-	const activeLabel = activePlugin?.label || (isOn ? active : null);
-	const probe = useWooProbe(cat.hasLiveProbe && open && isOn);
+	const isOn = !!detected;
+	const active = detected?.slug || null;
+	const activeLabel = detected?.label || null;
+	const probe = useWooProbe(!!cat.hasLiveProbe && open && isOn);
 	const toggle = () => setOpen((s) => !s);
+	const monoStyle = { fontFamily: MONO };
+
+	// When PHP reports a provider by name only, highlight the first roster entry
+	// whose label starts with that name.
+	const nameMatchIdx = !active && activeLabel
+		? cat.plugins.findIndex((p) => norm(p.label).startsWith(norm(activeLabel)))
+		: -1;
 
 	const statusColor = cat.comingSoon ? 'yellow' : (isOn ? 'green' : 'neutral');
-	const statusText  = cat.comingSoon ? 'Coming soon' : (isOn ? 'Active' : 'Not detected');
+	const statusText  = cat.comingSoon ? __('Coming soon', 'hatch-bridge') : (isOn ? __('Active', 'hatch-bridge') : __('Not detected', 'hatch-bridge'));
 	const statusTitle = cat.comingSoon
-		? 'Detection works; frontend rendering ships in a later release'
-		: (isOn ? `Bridging via ${activeLabel}` : 'Install a supported plugin to enable this bridge');
+		? __('Detection works. Frontend support is not available yet.', 'hatch-bridge')
+		: (isOn
+			/* translators: %s: name of the plugin that provides this bridge. */
+			? sprintf(__('Bridging through %s', 'hatch-bridge'), activeLabel || cat.label)
+			: __('Install a supported plugin to enable this bridge.', 'hatch-bridge'));
 
 	// HxHead action slot: status badge + chevron. The whole card is the
 	// accordion trigger so the chevron is visual, not a separate control.
@@ -325,11 +380,12 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 		</div>
 	);
 
-	// Icon colour drives HxHead's ibg() tint. Green when on, muted when off.
-	// Coming-soon amber only when the category itself is coming soon.
+	// Icon colour drives HxHead's ibg() tint, which needs a hex value. Green when
+	// on, muted when off, amber for a category that is coming soon.
 	const iconColor = cat.comingSoon ? '#d97706' : (isOn ? '#16a34a' : 'var(--hx-muted)');
-	const desc = isOn
-		? `via ${activeLabel}. ${cat.outcome}`
+	const desc = isOn && activeLabel
+		/* translators: 1: plugin name, 2: sentence describing what the bridge does. */
+		? sprintf(__('Through %1$s. %2$s', 'hatch-bridge'), activeLabel, cat.outcome)
 		: cat.outcome;
 
 	return (
@@ -345,7 +401,7 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 					border: 0,
 					padding: 22,
 					cursor: 'pointer',
-					textAlign: 'left',
+					textAlign: 'start',
 					fontFamily: 'inherit',
 					color: 'var(--hx-fg)',
 				}}
@@ -372,7 +428,7 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 					}}
 				>
 					<div>
-						<HxGL>Exposes as REST</HxGL>
+						<HxGL>{__('Endpoints and hooks', 'hatch-bridge')}</HxGL>
 						<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
 							{cat.exposes.map((chip) => (
 								<HxBadge key={chip} color="mono">{chip}</HxBadge>
@@ -381,17 +437,20 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 					</div>
 
 					<div>
-						<HxGL>Supported plugins</HxGL>
+						<HxGL>{__('Supported plugins', 'hatch-bridge')}</HxGL>
 						<div style={{ display: 'flex', flexDirection: 'column', marginTop: 4 }}>
 							{cat.plugins.map((p, idx) => {
-								const installed = !!plugMap[p.slug];
-								const isActivePlugin = installed && p.slug === active;
-								const state = isActivePlugin ? 'active' : installed ? 'installed' : 'off';
+								const installed = !!plugMap[p.slug] || p.slug === active;
+								const isActivePlugin = (!!active && p.slug === active) || idx === nameMatchIdx;
+								const dotState = isActivePlugin ? 'active' : installed ? 'installed' : 'off';
 								const last = idx === cat.plugins.length - 1;
 								return (
 									<div
 										key={p.slug}
-										title={p.ships + (installed ? '' : '  ·  Not installed.')}
+										title={installed || isActivePlugin
+											? p.note
+											/* translators: %s: short description of a plugin. */
+											: sprintf(__('%s Not installed.', 'hatch-bridge'), p.note)}
 										style={{
 											display: 'flex',
 											alignItems: 'center',
@@ -403,7 +462,7 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 										}}
 									>
 										<div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
-											<StatusDot state={state} />
+											<StatusDot state={dotState} />
 											<span
 												className="hx-label"
 												style={{
@@ -418,10 +477,15 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 											</span>
 										</div>
 										<div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-											{isActivePlugin && <HxBadge color="green">Active</HxBadge>}
-											{!isActivePlugin && installed && <HxBadge color="blue">Installed</HxBadge>}
+											{isActivePlugin && <HxBadge color="green">{__('Active', 'hatch-bridge')}</HxBadge>}
+											{!isActivePlugin && installed && <HxBadge color="blue">{__('Installed', 'hatch-bridge')}</HxBadge>}
 											{p.priority && (
-												<span style={{ fontSize: 11, color: 'var(--hx-subtle)' }}>#{p.priority}</span>
+												<span
+													title={__('Detection order. Lower numbers are checked first.', 'hatch-bridge')}
+													style={{ fontSize: 11, color: 'var(--hx-subtle)' }}
+												>
+													{`#${p.priority}`}
+												</span>
 											)}
 										</div>
 									</div>
@@ -443,7 +507,7 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 								lineHeight: 1.5,
 							}}
 						>
-							Install any plugin above to enable this bridge. Hatch auto-detects on activation.
+							{__('Install and activate any plugin above and Hatch detects it automatically.', 'hatch-bridge')}
 						</div>
 					)}
 
@@ -462,20 +526,36 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 								gap: 6,
 							}}
 						>
-							<HxGL>Live probe</HxGL>
+							<HxGL>{__('Live check', 'hatch-bridge')}</HxGL>
 							{probe.loading && (
-								<div>Fetching from <code style={{ fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace' }}>/hatch/v1/store/products?per_page=1</code>...</div>
+								<div>
+									{createInterpolateElement(
+										__('Fetching from <code>/hatch/v1/store/products?per_page=1</code>...', 'hatch-bridge'),
+										{ code: <code style={monoStyle} /> }
+									)}
+								</div>
 							)}
-							{probe.err && <div style={{ color: 'var(--hx-danger)' }}>Probe failed: {probe.err}</div>}
+							{probe.err && (
+								<div style={{ color: 'var(--hx-danger)' }}>
+									{
+										/* translators: %s: error message. */
+										sprintf(__('The check failed. %s', 'hatch-bridge'), probe.err)
+									}
+								</div>
+							)}
 							{probe.total !== null && !probe.loading && (
 								<>
 									<div>
-										<strong>{probe.total}</strong> published product{probe.total === 1 ? '' : 's'} exposed to Astro.
+										{sprintf(
+											/* translators: %d: number of published products. */
+											_n('%d published product is available to Astro.', '%d published products are available to Astro.', probe.total, 'hatch-bridge'),
+											probe.total
+										)}
 									</div>
 									{probe.sample && (
 										<div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-											<span style={{ color: 'var(--hx-muted)' }}>Sample:</span>
-											<code style={{ fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace' }}>{probe.sample.slug}</code>
+											<span style={{ color: 'var(--hx-muted)' }}>{__('Sample:', 'hatch-bridge')}</span>
+											<code style={monoStyle}>{probe.sample.slug}</code>
 											{frontendUrl && (
 												<a
 													href={`${frontendUrl.replace(/\/$/, '')}/product/${probe.sample.slug}`}
@@ -484,14 +564,14 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 													onClick={(e) => e.stopPropagation()}
 													style={{ color: 'var(--hx-info)', fontWeight: 500 }}
 												>
-													View on frontend
+													{__('View on frontend', 'hatch-bridge')}
 												</a>
 											)}
 										</div>
 									)}
 									{probe.total === 0 && (
 										<div style={{ color: 'var(--hx-muted)' }}>
-											No published products yet. Add one in WooCommerce, then Products.
+											{__('No published products yet. Add one in WooCommerce under Products.', 'hatch-bridge')}
 										</div>
 									)}
 								</>
@@ -505,11 +585,11 @@ function CategoryCard({ cat, active, isOn, plugMap, frontendUrl }) {
 }
 
 /**
- * Master toggle: narrow the Gutenberg inserter to the 36 core blocks Hatch
- * styles end-to-end (CSS in every theme via the shared base layer). Ships
- * default OFF. Existing content is never touched; only the inserter surface
- * for NEW blocks shrinks. Backed by the `hatch_blocks_disable_unsupported`
- * option via `blocks.disable_unsupported` in the settings map.
+ * Master toggle: narrow the Gutenberg inserter to the core blocks Hatch styles
+ * in the Astro frontend. Ships default OFF. Existing content is never touched;
+ * only the inserter list for NEW blocks shrinks. Backed by the
+ * `hatch_blocks_disable_unsupported` option via `blocks.disable_unsupported`
+ * in the settings map.
  *
  * @since 0.7.5
  */
@@ -534,50 +614,75 @@ function SupportedBlocksToggle({ initialOn, count, list }) {
 			},
 			body: JSON.stringify({ 'blocks.disable_unsupported': !!next }),
 		})
-			.then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+			.then((r) => (r.ok
+				? r.json()
+				: Promise.reject(new Error(
+					/* translators: %d: HTTP status code, for example 500. */
+					sprintf(__('The request failed with status %d.', 'hatch-bridge'), r.status)
+				))))
 			.then(() => { setOn(!!next); })
 			.catch((e) => setErr(String(e.message || e)))
 			.finally(() => setSaving(false));
 	};
 
-	const total = Array.isArray(list) ? list.length : (count || 36);
+	const hasList = Array.isArray(list) && list.length > 0;
+	const total = hasList ? list.length : count;
 
 	return (
 		<HxCard>
 			<div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
 				<div style={{ minWidth: 0, flex: 1 }}>
 					<div style={{ fontSize: 15, fontWeight: 600, color: 'var(--hx-fg)', marginBottom: 4 }}>
-						Supported Gutenberg blocks
+						{__('Supported Gutenberg blocks', 'hatch-bridge')}
 					</div>
 					<div style={{ fontSize: 12, color: 'var(--hx-muted)', lineHeight: 1.5, marginBottom: 8 }}>
-						When on, only the {total} core blocks Hatch styles end-to-end across every theme are pickable in the inserter. Existing content stays intact.
+						{sprintf(
+							/* translators: %d: number of core blocks Hatch styles for the frontend. */
+							_n(
+								'When on, the block inserter offers only the %d core block that Hatch styles for the frontend. Existing content stays as it is.',
+								'When on, the block inserter offers only the %d core blocks that Hatch styles for the frontend. Existing content stays as it is.',
+								total,
+								'hatch-bridge'
+							),
+							total
+						)}
 					</div>
 					{err && (
-						<div style={{ fontSize: 11, color: 'var(--hx-danger)', marginBottom: 8 }}>Save failed: {err}</div>
+						<div style={{ fontSize: 11, color: 'var(--hx-danger)', marginBottom: 8 }}>
+							{
+								/* translators: %s: error message. */
+								sprintf(__('Save failed. %s', 'hatch-bridge'), err)
+							}
+						</div>
 					)}
-					<button
-						type="button"
-						onClick={() => setExpanded((v) => !v)}
-						style={{
-							background: 'none',
-							border: 'none',
-							padding: 0,
-							cursor: 'pointer',
-							color: 'var(--hx-muted)',
-							fontSize: 11,
-							textDecoration: 'underline',
-						}}
-					>
-						{expanded ? 'Hide' : 'Show'} the {total} supported block slugs
-					</button>
-					{expanded && Array.isArray(list) && list.length > 0 && (
+					{hasList && (
+						<button
+							type="button"
+							onClick={() => setExpanded((v) => !v)}
+							aria-expanded={expanded}
+							style={{
+								background: 'none',
+								border: 'none',
+								padding: 0,
+								cursor: 'pointer',
+								color: 'var(--hx-muted)',
+								fontSize: 11,
+								textDecoration: 'underline',
+							}}
+						>
+							{expanded
+								? __('Hide the list of supported blocks', 'hatch-bridge')
+								: __('Show the list of supported blocks', 'hatch-bridge')}
+						</button>
+					)}
+					{expanded && hasList && (
 						<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
 							{list.map((slug) => (
 								<span key={slug} style={{
 									padding: '2px 8px',
 									borderRadius: 4,
 									border: '1px solid var(--hx-border)',
-									fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace',
+									fontFamily: MONO,
 									fontSize: 11,
 									color: 'var(--hx-muted)',
 								}}>{slug}</span>
@@ -587,14 +692,14 @@ function SupportedBlocksToggle({ initialOn, count, list }) {
 				</div>
 				<label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.6 : 1 }}>
 					<span style={{ fontSize: 12, color: 'var(--hx-muted)' }}>
-						{on ? 'On' : 'Off'}
+						{on ? __('On', 'hatch-bridge') : __('Off', 'hatch-bridge')}
 					</span>
 					<input
 						type="checkbox"
 						checked={on}
 						disabled={saving}
 						onChange={(e) => save(e.target.checked)}
-						aria-label="Disable unsupported blocks in the editor"
+						aria-label={__('Limit the block inserter to supported blocks', 'hatch-bridge')}
 					/>
 				</label>
 			</div>
@@ -603,9 +708,9 @@ function SupportedBlocksToggle({ initialOn, count, list }) {
 }
 
 export default function PluginBridge({ state }) {
-	// Boot state doesn't carry integrations/plugins — fetch the /features
-	// endpoint once on mount so the cards can render real "Active" / "Not
-	// detected" pills without duplicating detection code on the JS side.
+	// Boot state carries the PHP plugin list (`pluginBridge`) but not the
+	// integrations detail, so fetch /features once on mount for the "Active" and
+	// "Not detected" pills.
 	const [fetched, setFetched] = useState(null);
 	useEffect(() => {
 		const boot = typeof window !== 'undefined' ? window.hatchBoot : null;
@@ -613,22 +718,20 @@ export default function PluginBridge({ state }) {
 		fetch(`${boot.restUrl}features`, {
 			headers: boot.nonce ? { 'X-WP-Nonce': boot.nonce } : {},
 		})
-			.then((r) => r.ok ? r.json() : null)
+			.then((r) => (r.ok ? r.json() : null))
 			.then((data) => { if (data) setFetched(data); })
 			.catch(() => {});
 	}, []);
-	const ig = (fetched?.integrations) || state?.integrations || {};
-	// Merge in a synthetic `plugins` map from the /features detected slugs
-	// so the plugin-row `installed` chips light up correctly.
-	const plugMap = ig?.plugins || {
-		woocommerce: !!fetched?.integrations?.woocommerce,
-	};
-	// Astro frontend origin — used to build "View on frontend" deep-links.
+	const ig = fetched?.integrations || state?.integrations || {};
+	// Plugin detection map from /features so the plugin-row "Installed" chips light up.
+	const plugMap = ig?.plugins || {};
+	const bridgeRows = Array.isArray(state?.pluginBridge) ? state.pluginBridge : [];
+	const cpts = Array.isArray(fetched?.cpts) ? fetched.cpts : [];
+	// Astro frontend origin, used to build "View on frontend" links.
 	const frontendUrl = state?.connection?.frontendUrl || '';
-	const activeCount = CATS.filter((c) => {
-		const a = c.fieldFromFeatures(ig);
-		return a && a !== 'none' && a !== false;
-	}).length;
+
+	const detections = CATS.map((c) => detectCategory(c, ig, bridgeRows, cpts));
+	const activeCount = detections.filter(Boolean).length;
 
 	const blocksState = state?.blocks || {};
 	const supportedList = Array.isArray(blocksState.supported_list) ? blocksState.supported_list : [];
@@ -648,10 +751,10 @@ export default function PluginBridge({ state }) {
 				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
 					<div style={{ minWidth: 0, flex: 1 }}>
 						<div style={{ fontSize: 16, fontWeight: 600, color: 'var(--hx-fg)', marginBottom: 4 }}>
-							Plugin Bridge
+							{__('Plugin Bridge', 'hatch-bridge')}
 						</div>
 						<div style={{ fontSize: 13, color: 'var(--hx-muted)', lineHeight: 1.5 }}>
-							Every WordPress plugin Hatch knows how to talk to. Install a supported plugin — Hatch detects it and exposes its data to Astro.
+							{__('These are the plugins Hatch can read from. Install one and Hatch detects it and passes its data to your Astro frontend.', 'hatch-bridge')}
 						</div>
 					</div>
 					<span style={{
@@ -660,13 +763,18 @@ export default function PluginBridge({ state }) {
 						gap: 6,
 						padding: '4px 10px',
 						borderRadius: 999,
-						background: 'rgba(16,185,129,0.10)',
-						border: '1px solid rgba(16,185,129,0.30)',
-						color: '#047857',
+						background: 'var(--hx-success-subtle)',
+						border: '1px solid var(--hx-success)',
+						color: 'var(--hx-success)',
 						fontSize: 12,
 						fontWeight: 600,
 					}}>
-						{activeCount} / {CATS.length} bridges active
+						{sprintf(
+							/* translators: 1: number of active bridges, 2: total number of bridges. */
+							__('%1$d of %2$d bridges active', 'hatch-bridge'),
+							activeCount,
+							CATS.length
+						)}
 					</span>
 				</div>
 			</HxCard>
@@ -677,101 +785,16 @@ export default function PluginBridge({ state }) {
 				gap: 12,
 				marginTop: 16,
 			}}>
-				{CATS.map((cat) => {
-					const active = cat.fieldFromFeatures(ig) || 'none';
-					const isOn = active && active !== 'none' && active !== false;
-					return (
-						<CategoryCard
-							key={cat.id}
-							cat={cat}
-							active={active}
-							isOn={isOn}
-							plugMap={plugMap}
-							frontendUrl={frontendUrl}
-						/>
-					);
-				})}
+				{CATS.map((cat, i) => (
+					<CategoryCard
+						key={cat.id}
+						cat={cat}
+						detected={detections[i]}
+						plugMap={plugMap}
+						frontendUrl={frontendUrl}
+					/>
+				))}
 			</div>
-
-			<HxCard style={{ marginTop: 16 }}>
-				<div style={{ fontSize: 14, fontWeight: 600, color: 'var(--hx-fg)', marginBottom: 4 }}>
-					Gutenberg blocks styled per-theme
-				</div>
-				<div style={{ fontSize: 12, color: 'var(--hx-muted)', marginBottom: 12, lineHeight: 1.5 }}>
-					46 core WordPress blocks get per-theme visual signatures. Writers use the standard editor; Hatch paints each block distinctively per Blog / Tech / Docs.
-				</div>
-				<div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-					{[
-						{ group: 'Writing',     items: ['paragraph','heading','list','list-item','quote','pullquote','code','preformatted','verse'] },
-						{ group: 'Media',       items: ['image','gallery','video','audio','cover','embed'] },
-						{ group: 'Structure',   items: ['columns','column','group','separator','spacer','table','details'] },
-						{ group: 'Interactive', items: ['button','buttons'] },
-						{ group: 'Utility',     items: ['html','file'] },
-						{ group: 'Query loop',  items: ['query','post-template','post-title','post-excerpt','post-date','post-featured-image','post-terms','post-author','post-content','query-title','query-pagination','query-pagination-next','query-pagination-previous','query-pagination-numbers','query-no-results'] },
-						{ group: 'Widget',      items: ['latest-posts','categories','tag-cloud','rss','search'] },
-					].map((g) => (
-						<div key={g.group}>
-							<div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--hx-muted)', marginBottom: 6 }}>
-								{g.group} ({g.items.length})
-							</div>
-							<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-								{g.items.map((b) => (
-									<span key={b} style={{
-										padding: '2px 8px',
-										borderRadius: 4,
-										border: '1px solid var(--hx-border)',
-										fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace',
-										fontSize: 11,
-										color: 'var(--hx-muted)',
-									}}>core/{b}</span>
-								))}
-							</div>
-						</div>
-					))}
-				</div>
-			</HxCard>
-
-			<HxCard style={{ marginTop: 16 }}>
-				<div style={{ fontSize: 14, fontWeight: 600, color: 'var(--hx-fg)', marginBottom: 4 }}>
-					Coming soon
-				</div>
-				<div style={{ fontSize: 12, color: 'var(--hx-muted)', marginBottom: 12 }}>
-					These integrations detect in WordPress today. Frontend rendering ships in future releases.
-				</div>
-				<div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-					{[
-						{ label: 'Per-post membership gate',       ver: 'Coming soon', desc: 'Detects MemberPress/RCP/PMP; frontend enforcement lands next release.' },
-						{ label: 'Multilingual (Polylang / WPML)', ver: 'Coming soon', desc: 'Detected via Hatch_Detector; language switcher UI ships next release.' },
-						{ label: 'Stripe card checkout',           ver: 'Coming soon', desc: 'Stripe iframe already renders on checkout; PaymentIntent bridge ships next release.' },
-						{ label: 'PayPal Smart Buttons',           ver: 'Coming soon', desc: 'PayPal REST integration ships alongside Stripe next release.' },
-						{ label: 'Contact Form 7 auto-render',     ver: 'Coming soon', desc: 'CF7 has no native REST; use WPForms or Fluent Forms today, CF7 shim ships later.' },
-					].map((r) => (
-						<div key={r.label} style={{
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'space-between',
-							gap: 12,
-							padding: '8px 12px',
-							border: '1px solid var(--hx-border)',
-							borderRadius: 6,
-						}}>
-							<div style={{ minWidth: 0, flex: 1 }}>
-								<div style={{ fontSize: 13, fontWeight: 500, color: 'var(--hx-fg)' }}>{r.label}</div>
-								<div style={{ fontSize: 11, color: 'var(--hx-muted)', marginTop: 2 }}>{r.desc}</div>
-							</div>
-							<span style={{
-								fontSize: 11,
-								fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace',
-								color: 'var(--hx-muted)',
-								padding: '2px 8px',
-								borderRadius: 4,
-								border: '1px solid var(--hx-border)',
-								flexShrink: 0,
-							}}>{r.ver}</span>
-						</div>
-					))}
-				</div>
-			</HxCard>
 		</>
 	);
 }
