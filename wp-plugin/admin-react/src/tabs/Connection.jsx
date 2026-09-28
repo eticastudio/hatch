@@ -9,6 +9,7 @@
  * heartbeat, companion theme and preflight. Two actions are real admin-post
  * forms (probe the heartbeat, install the companion theme), each with its own
  * nonce from setup.nonces. The cache refresh is POST /hatch/v1/revalidate.
+ * Disconnect is POST /hatch/v1/deploy/disconnect, behind a confirm step.
  */
 import { useState, useEffect, useCallback } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
@@ -71,6 +72,7 @@ export default function Connection({ state }) {
 	const [data, setData] = useState({ phase: 'loading', error: '', status: null });
 	const [openPreflight, setOpenPreflight] = useState(false);
 	const [refresh, setRefresh] = useState({ phase: 'idle', error: '' });
+	const [disc, setDisc] = useState({ phase: 'idle', message: '', error: '' });
 	const [installResult] = useState(companionResult);
 
 	const load = useCallback(async () => {
@@ -95,6 +97,16 @@ export default function Connection({ state }) {
 		}
 	};
 
+	const disconnect = async () => {
+		setDisc({ phase: 'running', message: '', error: '' });
+		try {
+			const res = await hxFetch('deploy/disconnect', { method: 'POST' });
+			setDisc({ phase: 'done', message: (res && res.message) || '', error: '' });
+		} catch (e) {
+			setDisc({ phase: 'error', message: '', error: hxErrorNode(e) });
+		}
+	};
+
 	if (data.phase === 'loading') {
 		return (
 			<HxCard>
@@ -111,6 +123,17 @@ export default function Connection({ state }) {
 			>
 				{data.error}
 			</HxNotice>
+		);
+	}
+
+	if (disc.phase === 'done') {
+		return (
+			<HxCard>
+				<HxNotice tone="success" title={__('Disconnected', 'hatch-bridge')}>{disc.message}</HxNotice>
+				<div style={{ marginTop: 18 }}>
+					<HxBtn variant="brand" href={setupUrl}>{__('Set up Hatch', 'hatch-bridge')}</HxBtn>
+				</div>
+			</HxCard>
 		);
 	}
 
@@ -223,7 +246,31 @@ export default function Connection({ state }) {
 								{refresh.phase === 'running' ? __('Refreshing', 'hatch-bridge') : __('Refresh frontend cache', 'hatch-bridge')}
 							</HxBtn>
 							<HxBtn variant="ghost" href={setupUrl}>{__('Deploy again or change the domain', 'hatch-bridge')}</HxBtn>
+							{disc.phase === 'idle' || disc.phase === 'error' ? (
+								<HxBtn variant="ghost" onClick={() => setDisc({ phase: 'confirm', message: '', error: '' })}>{__('Disconnect', 'hatch-bridge')}</HxBtn>
+							) : null}
 						</div>
+
+						{(disc.phase === 'confirm' || disc.phase === 'running') && (
+							<HxNotice tone="warning" title={__('Disconnect this site from the frontend?', 'hatch-bridge')} style={{ marginTop: 14 }}>
+								<p style={{ margin: '0 0 12px' }}>
+									{__('The frontend loses read access, the Hatch Reader user and its application passwords are removed, and your earlier theme is put back. The frontend stays online at Cloudflare until you delete it there.', 'hatch-bridge')}
+								</p>
+								<span style={{ display: 'inline-flex', gap: 8, flexWrap: 'wrap' }}>
+									<HxBtn variant="brand" size="sm" onClick={disconnect} disabled={disc.phase === 'running'}>
+										{disc.phase === 'running' ? __('Disconnecting', 'hatch-bridge') : __('Disconnect', 'hatch-bridge')}
+									</HxBtn>
+									<HxBtn variant="ghost" size="sm" onClick={() => setDisc({ phase: 'idle', message: '', error: '' })} disabled={disc.phase === 'running'}>
+										{__('Cancel', 'hatch-bridge')}
+									</HxBtn>
+								</span>
+							</HxNotice>
+						)}
+						{disc.phase === 'error' && (
+							<HxNotice tone="error" title={__('Could not disconnect', 'hatch-bridge')} style={{ marginTop: 14 }}>
+								{disc.error}
+							</HxNotice>
+						)}
 					</>
 				) : (
 					<HxBtn variant="brand" href={setupUrl}>{__('Set up Hatch', 'hatch-bridge')}</HxBtn>
