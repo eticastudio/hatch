@@ -72,12 +72,28 @@ class Hatch_Forms_Bridge {
 		update_option( 'hatch_forms_submissions_schema', '0.52.0', false );
 	}
 
+	/**
+	 * Address of the visitor who sent the current request.
+	 *
+	 * Behind Cloudflare every request arrives from an edge address, so the raw
+	 * peer would store the same meaningless value for everyone. Hatch_Auth
+	 * resolves the real client only when the owner trusts Cloudflare and the
+	 * peer is a Cloudflare edge, so a caller cannot choose what gets stored.
+	 *
+	 * @return string IP address, or an empty string when none is known.
+	 */
+	private static function visitor_ip(): string {
+		$ip = class_exists( 'Hatch_Auth' ) ? Hatch_Auth::client_ip() : Hatch_Request::server( 'REMOTE_ADDR' );
+		return '0.0.0.0' === $ip ? '' : $ip;
+	}
+
 	private static function persist_submission( string $provider, int $form_id, array $fields ): int {
 		global $wpdb;
 		$table = $wpdb->prefix . 'hatch_form_submissions';
-		$ip    = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$ip    = self::visitor_ip();
 		$ua    = isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 254 ) : '';
-		$ok    = $wpdb->insert(
+		// Insert into the plugin's own submissions table, which has no WordPress API.
+		$ok = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned custom table.
 			$table,
 			array(
 				'provider'   => $provider,
@@ -120,7 +136,7 @@ class Hatch_Forms_Bridge {
 		global $wpdb;
 		$table  = $wpdb->prefix . 'hatch_form_submissions';
 		$cutoff = wp_date( 'Y-m-d H:i:s', time() - $days * DAY_IN_SECONDS );
-		$wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE created_at < %s", $cutoff ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is built from the core prefix.
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE created_at < %s', $table, $cutoff ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Retention prune of the plugin\'s own table; the identifier goes through the %i placeholder (WordPress 6.2+).
 	}
 
 	private function __construct() {}
@@ -134,7 +150,7 @@ class Hatch_Forms_Bridge {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( __CLASS__, 'list_forms' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 			)
 		);
 
@@ -144,7 +160,7 @@ class Hatch_Forms_Bridge {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( __CLASS__, 'get_schema' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 				'args'                => array(
 					'provider' => array( 'sanitize_callback' => 'sanitize_key' ),
 					'id'       => array( 'sanitize_callback' => 'absint' ),
@@ -158,7 +174,7 @@ class Hatch_Forms_Bridge {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( __CLASS__, 'submit_form' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_submit' ),
 				'args'                => array(
 					'provider' => array( 'sanitize_callback' => 'sanitize_key' ),
 					'id'       => array( 'sanitize_callback' => 'absint' ),
@@ -580,7 +596,7 @@ class Hatch_Forms_Bridge {
 		if ( $max_attempts > 0 && $attempts >= $max_attempts ) {
 			return new WP_Error(
 				'hatch_rate_limited',
-				__( 'Too many submissions. Please wait a few minutes and try again.', 'hatch-bridge' ),
+				__( 'Too many submissions. Please wait a few minutes and try again.', 'hatch-connect' ),
 				array( 'status' => 429 )
 			);
 		}
@@ -595,7 +611,7 @@ class Hatch_Forms_Bridge {
 		if ( $max_bytes > 0 && strlen( (string) $req->get_body() ) > $max_bytes ) {
 			return new WP_Error(
 				'hatch_form_too_large',
-				__( 'This submission is too large.', 'hatch-bridge' ),
+				__( 'This submission is too large.', 'hatch-connect' ),
 				array( 'status' => 413 )
 			);
 		}
@@ -613,7 +629,7 @@ class Hatch_Forms_Bridge {
 		if ( count( $fields ) > 200 ) {
 			return new WP_Error(
 				'hatch_form_too_large',
-				__( 'This submission is too large.', 'hatch-bridge' ),
+				__( 'This submission is too large.', 'hatch-connect' ),
 				array( 'status' => 413 )
 			);
 		}
@@ -683,11 +699,6 @@ class Hatch_Forms_Bridge {
 		// the new class is missing. Both replay the same pipeline.
 		if ( class_exists( '\FluentForm\App\Services\Form\SubmissionHandlerService' ) ) {
 			try {
-				// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- Public headless form endpoint: there is no browser session to bind a nonce to; abuse is limited by the per-address rate limit in submit_form() and by the form plugin's own honeypot and spam checks.
-				$_POST['data']    = http_build_query( $fields );
-				$_POST['form_id'] = $id;
-				$_REQUEST         = array_merge( (array) $_REQUEST, $_POST );
-				// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended
 				$service = new \FluentForm\App\Services\Form\SubmissionHandlerService();
 				$result  = $service->handleSubmission( $fields, $id );
 				$msg     = 'Thanks for submitting.';
@@ -719,7 +730,7 @@ class Hatch_Forms_Bridge {
 			} catch ( \Throwable $e ) {
 				return new WP_Error(
 					'hatch_fluent_handler_failed',
-					__( 'Fluent Forms could not process this submission.', 'hatch-bridge' ),
+					__( 'Fluent Forms could not process this submission.', 'hatch-connect' ),
 					array( 'status' => 503 )
 				);
 			}
@@ -728,11 +739,6 @@ class Hatch_Forms_Bridge {
 		if ( class_exists( '\FluentForm\App\Services\Submission\SubmissionService' )
 			&& method_exists( '\FluentForm\App\Services\Submission\SubmissionService', 'submit' ) ) {
 			try {
-				// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- Public headless form endpoint: there is no browser session to bind a nonce to; abuse is limited by the per-address rate limit in submit_form() and by the form plugin's own honeypot and spam checks.
-				$_POST['data']    = http_build_query( $fields );
-				$_POST['form_id'] = $id;
-				$_REQUEST         = array_merge( (array) $_REQUEST, $_POST );
-				// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended
 				$service = new \FluentForm\App\Services\Submission\SubmissionService();
 				$result  = $service->submit();
 				return new WP_REST_Response(
@@ -746,7 +752,7 @@ class Hatch_Forms_Bridge {
 			} catch ( \Throwable $e ) {
 				return new WP_Error(
 					'hatch_fluent_service_failed',
-					__( 'Fluent Forms could not process this submission.', 'hatch-bridge' ),
+					__( 'Fluent Forms could not process this submission.', 'hatch-connect' ),
 					array( 'status' => 503 )
 				);
 			}
@@ -779,23 +785,96 @@ class Hatch_Forms_Bridge {
 		);
 	}
 
+	/**
+	 * Pull one field value out of a headless payload.
+	 *
+	 * Accepts the key shapes the schema route advertises: the bare field id,
+	 * or the WPForms-style name `wpforms[fields][ID]`.
+	 *
+	 * @param array $fields Payload fields.
+	 * @param int   $fid    WPForms field id.
+	 * @return mixed|null Raw value, or null when absent.
+	 */
+	private static function wpforms_payload_value( array $fields, int $fid ) {
+		foreach ( array( (string) $fid, 'wpforms[fields][' . $fid . ']' ) as $key ) {
+			if ( array_key_exists( $key, $fields ) ) {
+				return $fields[ $key ];
+			}
+		}
+		if ( isset( $fields['wpforms']['fields'][ $fid ] ) ) {
+			return $fields['wpforms']['fields'][ $fid ];
+		}
+		return null;
+	}
+
 	private static function submit_wpforms_real( int $id, array $fields ) {
 		if ( ! function_exists( 'wpforms' ) ) {
 			return new WP_Error( 'hatch_wpforms_missing', 'WPForms not active', array( 'status' => 503 ) );
 		}
 		$form = wpforms()->form->get( $id );
-		if ( ! $form ) {
+		if ( ! $form || 'publish' !== $form->post_status ) {
 			return new WP_Error( 'hatch_form_not_found', 'Form not found', array( 'status' => 404 ) );
 		}
 		$form_data = wpforms_decode( $form->post_content );
-		$entry_id  = 0;
+		$defs      = isset( $form_data['fields'] ) && is_array( $form_data['fields'] ) ? $form_data['fields'] : array();
+
+		// Only fields the form defines are accepted, each cleaned for its type, and
+		// required fields must be present. Unknown keys are dropped, never stored.
+		$clean  = array();
+		$errors = array();
+		foreach ( $defs as $def ) {
+			if ( ! is_array( $def ) || ! isset( $def['id'] ) ) {
+				continue;
+			}
+			$fid  = (int) $def['id'];
+			$type = isset( $def['type'] ) ? (string) $def['type'] : 'text';
+			if ( in_array( $type, array( 'html', 'divider', 'pagebreak', 'content', 'file-upload', 'signature', 'payment-single', 'payment-multiple', 'payment-checkbox', 'payment-dropdown', 'payment-select', 'payment-total', 'payment-credit-card', 'stripe-credit-card' ), true ) ) {
+				continue;
+			}
+			$raw = self::wpforms_payload_value( $fields, $fid );
+			if ( is_array( $raw ) ) {
+				$value = implode( "\n", array_map( 'sanitize_text_field', array_filter( $raw, 'is_scalar' ) ) );
+			} elseif ( is_scalar( $raw ) ) {
+				$value = 'email' === $type ? sanitize_email( (string) $raw ) : sanitize_textarea_field( (string) $raw );
+			} else {
+				$value = '';
+			}
+			$value = substr( $value, 0, 5000 );
+			if ( 'email' === $type && '' !== $value && ! is_email( $value ) ) {
+				$errors[ 'wpforms[fields][' . $fid . ']' ] = array( 'email' => __( 'Enter a valid email address.', 'hatch-connect' ) );
+				continue;
+			}
+			if ( '' === $value ) {
+				if ( ! empty( $def['required'] ) ) {
+					$errors[ 'wpforms[fields][' . $fid . ']' ] = array( 'required' => __( 'This field is required.', 'hatch-connect' ) );
+				}
+				continue;
+			}
+			$clean[ $fid ] = array(
+				'name'  => isset( $def['label'] ) ? sanitize_text_field( (string) $def['label'] ) : '',
+				'value' => $value,
+				'id'    => $fid,
+				'type'  => $type,
+			);
+		}
+		if ( ! empty( $errors ) || empty( $clean ) ) {
+			return new WP_REST_Response(
+				array(
+					'ok'     => false,
+					'errors' => $errors,
+				),
+				422
+			);
+		}
+
+		$entry_id = 0;
 		if ( isset( wpforms()->entry ) ) {
 			$entry_id = (int) wpforms()->entry->add(
 				array(
 					'form_id'    => $id,
 					'user_id'    => get_current_user_id(),
-					'fields'     => wp_json_encode( $fields ),
-					'ip_address' => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
+					'fields'     => wp_json_encode( $clean ),
+					'ip_address' => self::visitor_ip(),
 					'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 254 ) : '',
 					'date'       => current_time( 'mysql' ),
 					'status'     => '',
@@ -805,7 +884,7 @@ class Hatch_Forms_Bridge {
 				)
 			);
 		}
-		do_action( 'wpforms_process_complete', $fields, array(), $id, $form_data ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPForms action, fired so its own listeners run.
+		do_action( 'wpforms_process_complete', $clean, array( 'fields' => $clean ), $form_data, $entry_id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPForms action, fired so its own listeners run.
 		return new WP_REST_Response(
 			array(
 				'ok'      => true,

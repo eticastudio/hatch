@@ -84,7 +84,7 @@ final class Hatch_Frontend_Bundle {
 			return $modules;
 		}
 		if ( ! isset( $modules[ $meta['main_module'] ] ) ) {
-			return new WP_Error( 'hatch_bundle_invalid', __( 'The bundled frontend is incomplete: its entry module is missing.', 'hatch-bridge' ) );
+			return new WP_Error( 'hatch_bundle_invalid', __( 'The bundled frontend is incomplete: its entry module is missing.', 'hatch-connect' ) );
 		}
 		$manifest = $this->get_manifest();
 		if ( is_wp_error( $manifest ) ) {
@@ -104,15 +104,15 @@ final class Hatch_Frontend_Bundle {
 		}
 		$file = $this->dir . 'bundle.json';
 		if ( ! is_readable( $file ) ) {
-			return new WP_Error( 'hatch_bundle_missing', __( 'The bundled frontend is missing from this copy of the plugin. Reinstall the plugin from WordPress.org.', 'hatch-bridge' ) );
+			return new WP_Error( 'hatch_bundle_missing', __( 'The bundled frontend is missing from this copy of the plugin. Reinstall the plugin from WordPress.org.', 'hatch-connect' ) );
 		}
 		$raw  = file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local plugin file, not a remote URL.
 		$data = is_string( $raw ) ? json_decode( $raw, true ) : null;
 		if ( ! is_array( $data ) || empty( $data['main_module'] ) || empty( $data['compatibility_date'] ) ) {
-			return new WP_Error( 'hatch_bundle_invalid', __( 'The bundled frontend metadata is unreadable. Reinstall the plugin from WordPress.org.', 'hatch-bridge' ) );
+			return new WP_Error( 'hatch_bundle_invalid', __( 'The bundled frontend metadata is unreadable. Reinstall the plugin from WordPress.org.', 'hatch-connect' ) );
 		}
 		if ( ! self::is_safe_relative_path( (string) $data['main_module'] ) ) {
-			return new WP_Error( 'hatch_bundle_invalid', __( 'The bundled frontend metadata is invalid.', 'hatch-bridge' ) );
+			return new WP_Error( 'hatch_bundle_invalid', __( 'The bundled frontend metadata is invalid.', 'hatch-connect' ) );
 		}
 		$flags = array();
 		if ( isset( $data['compatibility_flags'] ) && is_array( $data['compatibility_flags'] ) ) {
@@ -128,6 +128,11 @@ final class Hatch_Frontend_Bundle {
 				if ( isset( $data['assets_config'][ $key ] ) && is_string( $data['assets_config'][ $key ] ) ) {
 					$config[ $key ] = $data['assets_config'][ $key ];
 				}
+			}
+			// Cache rules for the static files. Cloudflare reads them from the upload
+			// settings, the same way Wrangler sends a _headers file, so no such file ships.
+			if ( isset( $data['assets_config']['_headers'] ) && is_string( $data['assets_config']['_headers'] ) && strlen( $data['assets_config']['_headers'] ) <= 4096 ) {
+				$config['_headers'] = $data['assets_config']['_headers'];
 			}
 		}
 		$placeholders = array();
@@ -176,7 +181,7 @@ final class Hatch_Frontend_Bundle {
 		foreach ( $files as $name => $file ) {
 			$content = file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local plugin file, not a remote URL.
 			if ( false === $content ) {
-				return new WP_Error( 'hatch_bundle_unreadable', __( 'A bundled frontend file could not be read.', 'hatch-bridge' ) );
+				return new WP_Error( 'hatch_bundle_unreadable', __( 'A bundled frontend file could not be read.', 'hatch-connect' ) );
 			}
 			$is_wasm = 'wasm' === strtolower( self::extension_of( $name ) );
 			if ( ! $is_wasm && ! empty( $search ) ) {
@@ -229,14 +234,14 @@ final class Hatch_Frontend_Bundle {
 			}
 			$content = file_get_contents( $entry['file'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local plugin file, not a remote URL.
 			if ( false === $content ) {
-				return new WP_Error( 'hatch_bundle_unreadable', __( 'A bundled frontend file could not be read.', 'hatch-bridge' ) );
+				return new WP_Error( 'hatch_bundle_unreadable', __( 'A bundled frontend file could not be read.', 'hatch-connect' ) );
 			}
 			return array(
 				'content' => self::encode( $content ),
 				'type'    => $entry['type'],
 			);
 		}
-		return new WP_Error( 'hatch_bundle_unknown_asset', __( 'Cloudflare asked for a file that is not part of the bundled frontend.', 'hatch-bridge' ) );
+		return new WP_Error( 'hatch_bundle_unknown_asset', __( 'Cloudflare asked for a file that is not part of the bundled frontend.', 'hatch-connect' ) );
 	}
 
 	/**
@@ -253,13 +258,13 @@ final class Hatch_Frontend_Bundle {
 			return $files;
 		}
 		if ( empty( $files ) ) {
-			return new WP_Error( 'hatch_bundle_invalid', __( 'The bundled frontend has no static files. Reinstall the plugin from WordPress.org.', 'hatch-bridge' ) );
+			return new WP_Error( 'hatch_bundle_invalid', __( 'The bundled frontend has no static files. Reinstall the plugin from WordPress.org.', 'hatch-connect' ) );
 		}
 		$manifest = array();
 		foreach ( $files as $relative => $file ) {
 			$content = file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local plugin file, not a remote URL.
 			if ( false === $content ) {
-				return new WP_Error( 'hatch_bundle_unreadable', __( 'A bundled frontend file could not be read.', 'hatch-bridge' ) );
+				return new WP_Error( 'hatch_bundle_unreadable', __( 'A bundled frontend file could not be read.', 'hatch-connect' ) );
 			}
 			$extension = self::extension_of( $relative );
 			// Content hash defined by the Cloudflare static assets API: first 32 hex characters of sha256(base64(content) + extension).
@@ -287,7 +292,7 @@ final class Hatch_Frontend_Bundle {
 		}
 		foreach ( array_keys( $files ) as $name ) {
 			if ( ! in_array( strtolower( self::extension_of( $name ) ), array( 'mjs', 'js', 'wasm' ), true ) ) {
-				return new WP_Error( 'hatch_bundle_invalid', __( 'The bundled frontend contains an unexpected file type.', 'hatch-bridge' ) );
+				return new WP_Error( 'hatch_bundle_invalid', __( 'The bundled frontend contains an unexpected file type.', 'hatch-connect' ) );
 			}
 		}
 		return $files;
@@ -301,7 +306,7 @@ final class Hatch_Frontend_Bundle {
 	 */
 	private function scan( string $root ) {
 		if ( ! is_dir( $root ) ) {
-			return new WP_Error( 'hatch_bundle_missing', __( 'The bundled frontend is missing from this copy of the plugin. Reinstall the plugin from WordPress.org.', 'hatch-bridge' ) );
+			return new WP_Error( 'hatch_bundle_missing', __( 'The bundled frontend is missing from this copy of the plugin. Reinstall the plugin from WordPress.org.', 'hatch-connect' ) );
 		}
 		$root  = untrailingslashit( $root );
 		$found = array();
@@ -316,11 +321,11 @@ final class Hatch_Frontend_Bundle {
 			}
 			$relative = ltrim( str_replace( '\\', '/', substr( $file->getPathname(), strlen( $root ) ) ), '/' );
 			if ( ! self::is_safe_relative_path( $relative ) ) {
-				return new WP_Error( 'hatch_bundle_invalid', __( 'The bundled frontend contains an unexpected file name.', 'hatch-bridge' ) );
+				return new WP_Error( 'hatch_bundle_invalid', __( 'The bundled frontend contains an unexpected file name.', 'hatch-connect' ) );
 			}
 			$bytes += (int) $file->getSize();
 			if ( count( $found ) >= self::MAX_FILES || $bytes > self::MAX_BYTES ) {
-				return new WP_Error( 'hatch_bundle_invalid', __( 'The bundled frontend is larger than expected.', 'hatch-bridge' ) );
+				return new WP_Error( 'hatch_bundle_invalid', __( 'The bundled frontend is larger than expected.', 'hatch-connect' ) );
 			}
 			$found[ $relative ] = $file->getPathname();
 		}

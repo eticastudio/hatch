@@ -11,13 +11,20 @@
  * literal paths over rest-parameter catch-alls.
  */
 import PageLayout from '@/layouts/PageLayout.astro';
+import DocsShell from '@/components/theme/DocsShell.astro';
 import HatchImage from '@/components/HatchImage.astro';
 import HatchForm from '@/components/HatchForm.astro';
 import { getPageBySlug, getContentBySlug } from '@/lib/hatch';
 import { getFeatures, rewriteContentImages } from '@/lib/features';
+import { FALL_THROUGH_KEY, wooRouteForPath } from '@/lib/woo';
 
 const { slug } = Astro.params;
-const slugStr = Array.isArray(slug) ? slug.join('/') : (slug || '');
+// A store route (/shop, /cart, ...) that is not available hands over its slug
+// through locals and is rendered here like any other WordPress page.
+const handedOver = (Astro.locals as Record<string, unknown>)[FALL_THROUGH_KEY];
+const slugStr = typeof handedOver === 'string' && handedOver
+  ? handedOver
+  : (Array.isArray(slug) ? slug.join('/') : (slug || ''));
 
 if (!slugStr) {
   return Astro.redirect('/');
@@ -31,6 +38,14 @@ const [pageOrigin, features] = await Promise.all([
   getPageBySlug(slugStr),
   getFeatures(),
 ]);
+
+// A WooCommerce page whose real slug differs from the built-in route
+// (translated or renamed pages, e.g. /warenkorb) is served by the matching
+// store route. Never reached for a literal /shop or /cart, which have their own routes.
+const storeRoute = typeof handedOver === 'string' ? null : wooRouteForPath(features, slugStr);
+if (storeRoute) {
+  return Astro.rewrite(storeRoute);
+}
 
 const page = pageOrigin ?? await (async () => {
   const cpt = await getContentBySlug(slugStr);
@@ -84,6 +99,7 @@ const articleMaxWStyle = 'max-width: var(--hatch-max-width, 1160px);';
   {/* Article container matches posts + homepage at --hatch-max-width. The
       inner .hatch-prose fills 100% of the article so wide hero images and
       multi-column page layouts still render edge-to-edge inside the cap. */}
+  <DocsShell features={features}>
   <article class="mx-auto px-5 sm:px-8 pt-12 pb-16" style={articleMaxWStyle}>
     {page.featuredImage && (
       <div class="aspect-[2/1] rounded-xl overflow-hidden mb-10 bg-hatch-bg-3">
@@ -104,6 +120,7 @@ const articleMaxWStyle = 'max-width: var(--hatch-max-width, 1160px);';
         fills the article width (~1160px). Posts keep the cap for reading. */}
     <div class="hatch-prose" style="max-width: 100%;" set:html={rewriteContentImages(page.content, features)}></div>
   </article>
+  </DocsShell>
   {/* v0.51: hydrates any [fluentform]/[wpforms]/[gravityform]/[contact-form-7]
       shortcode that the Forms Bridge rewrote into <div class="hatch-form-mount">.
       No-op when the page has no form mounts. Fixes #208 (.ff-btn on /contact). */}

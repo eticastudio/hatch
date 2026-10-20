@@ -192,14 +192,17 @@ Tab switch re-mounts via `key={tab}` so the animation re-fires.
 
 ## 8. Setup Wizard
 
-3-step modal triggered from "Change host" + footer link.
-1. **Preflight** — 6 visual checks (REST, Application Password, webhook,
-   permalinks, HTTPS, custom domain).
-2. **Theme** — 2-column grid with SVG mini-previews.
-3. **Deploy** — Cloudflare / Vercel / VPS / Local options with details panel.
+Single screen, three numbered step cards (`StepCard`), reachable from "Run
+the setup guide again" in the Connection tab. One provider: Cloudflare.
+1. **Step 1, Connect Cloudflare**: paste an API token, Check token.
+2. **Step 2, Choose where it will live**: pick a Cloudflare account, then
+   a free `workers.dev` address or a custom domain.
+3. **Step 3, Review and deploy**: what changes, a required consent tick,
+   Deploy to Cloudflare.
 
-Footer has Back / Continue (or Cancel / Launch site ↗ on last step). Progress
-strip = 3 pill segments at top, filled in orange as you go.
+A "Before you start" card precedes Step 1. Completed steps stay on the page
+with a done marker (no back navigation needed). Full flow, every state and
+every error recovery: `docs/SETUP-FLOW.md` in the main repo.
 
 ---
 
@@ -208,7 +211,7 @@ strip = 3 pill segments at top, filled in orange as you go.
 Amber alert: `#fff7ed` bg, `#fed7aa` border, 10px radius, `12px 14px` padding.
 Triangle warning icon + bold heading + supporting text + ghost "Enable →"
 button. Used when a setting combination produces a known suboptimal state
-(e.g. GTM configured + Partytown off → "Run GTM in a background worker").
+(e.g. a frontend URL saved but no deploy target connected).
 
 These trigger conditionally based on saved state. Never fire on every paint.
 

@@ -1,0 +1,137 @@
+---
+/**
+ * Account and Cart entry points for a WooCommerce store.
+ *
+ * Renders nothing unless the WordPress plugin reports WooCommerce as active,
+ * so a site without a store never shows store UI. Links use the real page
+ * paths WooCommerce is configured with (translated slugs work).
+ *
+ *   variant="bar"    two icon buttons for the desktop header, placed before Search
+ *   variant="drawer" full-width rows (icon + label) for the mobile menu
+ *
+ * The cart count is filled in by scripts/site-header.js from the same-origin
+ * Store API proxy. It stays hidden until the cart has items.
+ */
+import type { HatchFeatures } from '../lib/features';
+import { isWooActive, wooPath } from '../lib/woo';
+
+interface Props {
+  features: HatchFeatures;
+  currentPath: string;
+  variant?: 'bar' | 'drawer';
+}
+
+const { features, currentPath, variant = 'bar' } = Astro.props;
+const active = isWooActive(features);
+const accountHref = active ? wooPath(features, 'myaccount') : '';
+const cartHref = active ? wooPath(features, 'cart') : '';
+
+const norm = (p: string): string => {
+  let out = p;
+  try {
+    out = decodeURIComponent(p);
+  } catch {
+    /* keep the raw path */
+  }
+  return out.replace(/\/+$/, '') || '/';
+};
+const here = norm(currentPath);
+const isHere = (href: string): boolean => {
+  const target = norm(href);
+  return here === target || here.startsWith(target + '/');
+};
+---
+
+{active && variant === 'bar' && (
+  <div class="hatch-store-icons hidden lg:inline-flex">
+    <a href={accountHref} class="hatch-store-icon" aria-label="Account" title="Account" aria-current={isHere(accountHref) ? 'page' : undefined} data-hatch-auth-link>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    </a>
+    <a href={cartHref} class="hatch-store-icon" aria-label="Cart" title="Cart" aria-current={isHere(cartHref) ? 'page' : undefined} data-hatch-cart-link>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+      <span class="hatch-store-badge" data-hatch-cart-count hidden aria-hidden="true"></span>
+    </a>
+  </div>
+)}
+
+{active && variant === 'drawer' && (
+  <>
+    <a href={accountHref} class="hatch-store-row" aria-current={isHere(accountHref) ? 'page' : undefined} data-hatch-auth-link>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span>Account</span>
+    </a>
+    <a href={cartHref} class="hatch-store-row" aria-current={isHere(cartHref) ? 'page' : undefined} data-hatch-cart-link>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+      <span>Cart</span>
+      <span class="hatch-store-badge hatch-store-badge--inline" data-hatch-cart-count hidden aria-hidden="true"></span>
+    </a>
+  </>
+)}
+
+<style>
+  .hatch-store-icons {
+    align-items: center;
+    gap: 2px;
+    margin-inline-start: 10px;
+  }
+  .hatch-store-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    color: var(--hatch-fg-muted);
+    transition: color 140ms ease, background-color 140ms ease;
+  }
+  .hatch-store-icon:hover,
+  .hatch-store-icon[aria-current="page"] {
+    color: var(--hatch-fg);
+    background: var(--hatch-bg-2, transparent);
+  }
+  .hatch-store-icon:focus-visible,
+  .hatch-store-row:focus-visible {
+    outline: 2px solid var(--hatch-primary, currentColor);
+    outline-offset: 2px;
+  }
+  .hatch-store-badge {
+    position: absolute;
+    inset-block-start: 1px;
+    inset-inline-end: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 9999px;
+    background: var(--hatch-primary);
+    color: var(--hatch-primary-fg, #fff);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .hatch-store-badge[hidden] { display: none; }
+  .hatch-store-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--hatch-fg-muted);
+    transition: color 140ms ease, background-color 140ms ease;
+  }
+  .hatch-store-row:hover,
+  .hatch-store-row[aria-current="page"] {
+    color: var(--hatch-fg);
+    background: var(--hatch-bg-2, transparent);
+  }
+  .hatch-store-badge--inline {
+    position: static;
+    margin-inline-start: auto;
+  }
+</style>

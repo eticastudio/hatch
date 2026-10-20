@@ -46,12 +46,7 @@ class Hatch_Rest_Api {
 		add_action( 'rank_math/redirection/updated', array( self::class, 'invalidate_redirects_cache' ) );
 		add_action( 'rank_math/redirection/deleted', array( self::class, 'invalidate_redirects_cache' ) );
 		add_action( 'update_option_rank_math_redirections', array( self::class, 'invalidate_redirects_cache' ) );
-		// v0.3.2 - Permissive CORS for /hatch/v1/* (the Astro browser runtime
-		// hits these directly). Priority 5 so we run before WP's defaults.
-		// Backlog #159 - duplicate CORS handler removed. All CORS logic now
-		// lives in hatch.php `hatch_cors_headers` (priority 15) with a real
-		// origin allowlist. Emitting a second Access-Control-Allow-Origin
-		// header here caused browsers to reject the response.
+		// CORS for /hatch/v1/* lives in hatch.php (hatch_cors_headers), with an origin allowlist.
 	}
 
 	/**
@@ -189,7 +184,7 @@ class Hatch_Rest_Api {
 				// page). External SSR clients (CF Worker) hit this endpoint with
 				// Basic Auth which doesn't set is_user_logged_in(); requiring auth
 				// silently broke the site header menu. Return true - no PII exposed.
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 			)
 		);
 
@@ -199,7 +194,7 @@ class Hatch_Rest_Api {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'route_menu_items' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 				'args'                => array(
 					'location' => array(
 						'required'          => true,
@@ -225,7 +220,7 @@ class Hatch_Rest_Api {
 				// meant a stale Astro .env App Password silently 404'd every
 				// page on the headless frontend with no admin-side warning.
 				// v0.1.4 - making it public eliminates that entire failure mode.
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 				'args'                => array(
 					'slug' => array(
 						'required'          => true,
@@ -243,7 +238,7 @@ class Hatch_Rest_Api {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'route_content_list' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 				'args'                => array(
 					'post_type' => array(
 						'default'           => 'post',
@@ -286,7 +281,7 @@ class Hatch_Rest_Api {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'route_code_snippets' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 			)
 		);
 
@@ -299,7 +294,7 @@ class Hatch_Rest_Api {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'route_seo_meta' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 			)
 		);
 	}
@@ -380,43 +375,6 @@ class Hatch_Rest_Api {
 	}
 
 	/**
-	 * GET /hatch/v1/code-snippets - public read.
-	 *
-	 * Returns the raw head/body_start/body_end HTML alongside the analytics
-	 * IDs. The frontend builds the actual GA4/GTM/Plausible/Pixel snippets
-	 * from the IDs so injection patterns can evolve without WP changes.
-	 *
-	 * v0.50.31 - Universal slug→content resolver across all PUBLIC post types
-	 * with show_in_rest=true. Walks the public+rest types, queries each one
-	 * for a matching slug, returns the first hit normalised into the same
-	 * shape `getPageBySlug` / `getPostBySlug` emit. Used by [...slug].astro.
-	 *
-	 * Returns: { id, slug, type, rest_base, title, content, excerpt,
-	 *            featured_media_url, modified, link } | { found:false }
-	 */
-	/**
-	 * v0.3.2 - Posts block backend. Returns published items only, optionally
-	 * filtered by taxonomy/term/author. Safe for public consumption.
-	 */
-	/**
-	 * v0.3.2 - Emit permissive CORS headers on all Hatch v1 REST responses.
-	 * The Astro frontend fetches /hatch/v1/* directly from the browser, so
-	 * the response must always carry Access-Control-Allow-Origin. Hooked on
-	 * rest_pre_serve_request which runs even when WP's own CORS handler
-	 * wouldn't fire (e.g. simple GET without Origin echo).
-	 */
-	/**
-	 * Backlog #159 - retained as a no-op shim for any legacy caller that
-	 * still references Hatch_Rest_Api::send_cors_for_hatch. All CORS
-	 * emission is now centralised in hatch.php `hatch_cors_headers`, which
-	 * uses an explicit origin allowlist instead of reflecting HTTP_ORIGIN.
-	 */
-	public static function send_cors_for_hatch( $served, $result, WP_REST_Request $request, $server ) {
-		unset( $result, $request, $server );
-		return $served;
-	}
-
-	/**
 	 * Should this post's body be withheld from the caller?
 	 *
 	 * True for a password-protected post the visitor has not unlocked, unless
@@ -430,6 +388,13 @@ class Hatch_Rest_Api {
 		return post_password_required( $post ) && ! current_user_can( 'edit_post', $post->ID );
 	}
 
+	/**
+	 * GET /hatch/v1/content/list - published items only, optionally filtered by
+	 * taxonomy, term and author. Public: it never returns a non-published post.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
 	public function route_content_list( WP_REST_Request $request ) {
 		$pt_param   = $request->get_param( 'post_type' );
 		$per_page   = (int) $request->get_param( 'per_page' );
@@ -444,7 +409,7 @@ class Hatch_Rest_Api {
 		if ( ! $pt || empty( $pt->public ) || empty( $pt->show_in_rest ) ) {
 			$post_type = 'post';
 		}
-		$args = array(
+		$args    = array(
 			'post_type'      => $post_type,
 			'posts_per_page' => max( 1, min( 24, $per_page > 0 ? $per_page : 6 ) ),
 			'post_status'    => 'publish',
@@ -452,11 +417,12 @@ class Hatch_Rest_Api {
 			'order'          => is_string( $order_raw ) && 'asc' === strtolower( $order_raw ) ? 'ASC' : 'DESC',
 			'no_found_rows'  => true,
 		);
-		$tax  = is_string( $tax_raw ) ? sanitize_key( $tax_raw ) : '';
-		$term = is_string( $term_raw ) ? sanitize_title( $term_raw ) : '';
+		$tax     = is_string( $tax_raw ) ? sanitize_key( $tax_raw ) : '';
+		$term    = is_string( $term_raw ) ? sanitize_title( $term_raw ) : '';
 		$tax_obj = $tax ? get_taxonomy( $tax ) : false;
 		if ( $tax && $term && $tax_obj && ! empty( $tax_obj->public ) && ! empty( $tax_obj->show_in_rest ) ) {
-			$args['tax_query'] = array(
+			// Only a public taxonomy that is exposed to REST can be filtered, and the query is capped at 24 posts.
+			$args['tax_query'] = array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Bounded by the checks above.
 				array(
 					'taxonomy' => $tax,
 					'field'    => 'slug',
@@ -519,6 +485,14 @@ class Hatch_Rest_Api {
 		);
 	}
 
+	/**
+	 * GET /hatch/v1/content?slug=X - universal slug resolver across every public
+	 * post type with show_in_rest. Returns the first published match in the same
+	 * shape the Astro catch-all route expects, or { found: false }.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
 	public function route_content_by_slug( WP_REST_Request $request ) {
 		$slug = sanitize_title( (string) $request->get_param( 'slug' ) );
 		if ( '' === $slug ) {
@@ -668,26 +642,24 @@ class Hatch_Rest_Api {
 	}
 
 	/**
+	 * GET /hatch/v1/code-snippets - public read. Only the Google Tag Manager
+	 * container id, which every visitor receives in the page anyway. No raw
+	 * HTML or script is ever stored or served, so the frontend has nothing
+	 * to inject but a tag it builds itself from a validated id.
+	 *
 	 * @return WP_REST_Response
 	 */
 	public function route_code_snippets(): WP_REST_Response {
-		$opt = (array) get_option( 'hatch_code_snippets', array() );
-		$g   = static function ( $k ) use ( $opt ) {
-			return isset( $opt[ $k ] ) ? (string) $opt[ $k ] : '';
-		};
+		$opt    = (array) get_option( 'hatch_code_snippets', array() );
+		$gtm_id = isset( $opt['gtm_id'] ) ? strtoupper( trim( (string) $opt['gtm_id'] ) ) : '';
+		if ( 1 !== preg_match( '/^GTM-[A-Z0-9]{4,12}$/', $gtm_id ) ) {
+			$gtm_id = '';
+		}
 		return new WP_REST_Response(
-			array(
-				// v0.50.31 - GA4 / Plausible / Pixel removed. Hatch ships only
-				// GTM by design; add other tags inside your GTM container.
-				'head'       => $g( 'head' ),
-				'body_start' => $g( 'body_start' ),
-				'body_end'   => $g( 'body_end' ),
-				'gtm_id'     => $g( 'gtm_id' ),
-			),
+			array( 'gtm_id' => $gtm_id ),
 			200,
 			array(
-				// Short cache - snippets are looked up per request but Astro
-				// can hold the response for ~60s without losing freshness.
+				// Short cache - the frontend can hold the response for ~60s without losing freshness.
 				'Cache-Control' => 'public, max-age=60, stale-while-revalidate=300',
 			)
 		);
@@ -732,7 +704,7 @@ class Hatch_Rest_Api {
 		$report = Hatch_Detector::report();
 		$data   = array(
 			'hatch_version' => HATCH_VERSION,
-			'wp_version'    => get_bloginfo( 'version' ),
+			'wp_version'    => current_user_can( 'manage_options' ) ? get_bloginfo( 'version' ) : '',
 			'site_name'     => get_bloginfo( 'name' ),
 			'site_url'      => home_url(),
 			'detected'      => $report,
@@ -802,14 +774,14 @@ class Hatch_Rest_Api {
 			global $wpdb;
 			// Table name composed from $wpdb->prefix only - never user input.
 			$table = $wpdb->prefix . 'rank_math_redirections';
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read of another plugin's table; the result is cached in a transient below.
 			$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table;
 			if ( $table_exists ) {
 				// The table name is an identifier, so it goes through the %i placeholder (WordPress 6.2+).
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read of another plugin's table; the result is cached in a transient below.
 				$rows = $wpdb->get_results( $wpdb->prepare( "SELECT sources, url_to, header_code FROM %i WHERE status = 'active' LIMIT 5000", $table ) );
 				foreach ( (array) $rows as $row ) {
-					$sources = maybe_unserialize( $row->sources );
+					$sources = is_serialized( $row->sources ) ? unserialize( $row->sources, array( 'allowed_classes' => false ) ) : $row->sources; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- RankMath stores this column serialized; no classes are allowed.
 					foreach ( (array) $sources as $src ) {
 						$out[] = array(
 							'from'   => isset( $src['pattern'] ) ? sanitize_text_field( (string) $src['pattern'] ) : '',
@@ -888,7 +860,7 @@ class Hatch_Rest_Api {
 		if ( ! $fired ) {
 			return new WP_Error(
 				'hatch_revalidate_not_configured',
-				esc_html__( 'Revalidation endpoint or webhook secret not configured.', 'hatch-bridge' ),
+				esc_html__( 'Revalidation endpoint or webhook secret not configured.', 'hatch-connect' ),
 				array( 'status' => 400 )
 			);
 		}

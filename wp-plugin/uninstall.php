@@ -12,11 +12,9 @@
  *   - Cloudflare deploy state (worker state, last deploy, deploy provider and project options),
  *     connection and heartbeat state, hosting model, legacy agent and SSH options
  *   - every hatch_* transient, every scheduled Hatch cron event and the Hatch block in uploads/.htaccess
- *   - Application Passwords created by Hatch, the read-only Hatch Reader user the deployed
- *     frontend logs in as (only when Hatch created it) and its hatch_reader role
- *   - the companion theme is switched off: the theme that was active before the first deploy
- *     is restored (option hatch_previous_stylesheet), or the newest default theme when it is gone,
- *     but only if the companion theme is still the active one
+ *   - the user name and encrypted application password the deployed frontend uses
+ *   - the optional URL rewriter mu-plugin (hatch-url-rewrite.php) is deleted, but only a copy
+ *     Hatch wrote (marker header or a known earlier release); a file anyone else wrote is kept
  *
  * Removed only when the administrator ticked "Remove all data on uninstall"
  * (option hatch_uninstall_remove_all_data = 1) before deleting the plugin:
@@ -55,35 +53,24 @@ function hatch_uninstall_current_site() {
 		wp_clear_scheduled_hook( $hook );
 	}
 
-	// Uninstall runs without the plugin loaded, so bring in the two classes that own these two jobs.
-	if ( ! class_exists( 'Hatch_Companion_Theme_Installer' ) ) {
-		require_once __DIR__ . '/includes/class-companion-theme-installer.php';
-	}
-	if ( ! class_exists( 'Hatch_App_Password_Helper' ) ) {
-		require_once __DIR__ . '/includes/class-app-password-helper.php';
+	if ( ! class_exists( 'Hatch_Mu_Plugin' ) ) {
+		require_once __DIR__ . '/includes/class-mu-plugin.php';
 	}
 
-	// Give the site its own theme back, before the companion theme is left without a plugin behind it.
-	Hatch_Companion_Theme_Installer::restore_previous_theme();
+	// Hatch no longer touches themes. Drop the marker an earlier build stored so nothing is left behind.
+	delete_option( 'hatch_previous_stylesheet' );
 
-	// Remove the read-only frontend user, its passwords and its role.
-	Hatch_App_Password_Helper::revoke_reader_access();
+	// The frontend's WordPress credential: Hatch only ever kept the encrypted password and the user name.
+	// The application password itself lives in the user's profile, where its owner revokes it.
+	delete_option( 'hatch_enc_token_wpfrontend' );
+	delete_option( 'hatch_wp_frontend_user' );
 
-	// Application Passwords created by Hatch.
-	if ( class_exists( 'WP_Application_Passwords' ) ) {
-		$user_ids = get_users( array( 'fields' => 'ID' ) );
-		foreach ( $user_ids as $user_id ) {
-			$passwords = WP_Application_Passwords::get_user_application_passwords( (int) $user_id );
-			if ( ! is_array( $passwords ) ) {
-				continue;
-			}
-			foreach ( $passwords as $password ) {
-				if ( isset( $password['name'], $password['uuid'] ) && 0 === strpos( (string) $password['name'], 'Hatch' ) ) {
-					WP_Application_Passwords::delete_application_password( (int) $user_id, $password['uuid'] );
-				}
-			}
-		}
-	}
+	// Earlier versions added a "Hatch Reader" role and settings. The role goes; any user that had it
+	// keeps existing (without a role) for the site owner to delete.
+	remove_role( 'hatch_reader' );
+	delete_option( 'hatch_reader_user_id' );
+	delete_option( 'hatch_app_pwd_retention_days' );
+	delete_option( 'hatch_legacy_reader_cleaned' );
 
 	// The Hatch block in uploads/.htaccess.
 	$hatch_uploads = wp_get_upload_dir();
@@ -103,7 +90,7 @@ function hatch_uninstall_current_site() {
 		'hatch_cf_worker_state',
 		'hatch_deploy_last',
 		'hatch_previous_stylesheet',
-		'hatch_reader_user_id',
+		'hatch_mu_issue',
 		'hatch_deployed_frontend_version',
 		'hatch_htaccess_hash',
 		'hatch_deploy_provider',
@@ -193,3 +180,6 @@ if ( is_multisite() ) {
 } else {
 	hatch_uninstall_current_site();
 }
+
+// Files that live outside the plugin folder go last, after every site has been cleaned up: the mu-plugin helper.
+Hatch_Mu_Plugin::remove_for_uninstall();

@@ -17,6 +17,9 @@
  */
 import type { HatchFeatures } from '../lib/features';
 import type { HatchMenuItem } from '../lib/hatch';
+import { siteName as resolveSiteName } from '../lib/site';
+import StoreIcons from './StoreIcons.astro';
+import { isStoreIconLink } from '../lib/woo';
 
 interface Props {
   features: HatchFeatures;
@@ -24,7 +27,7 @@ interface Props {
 }
 
 const { features, menuItems = [] } = Astro.props;
-const siteName = features.site.name || 'Hatch';
+const siteName = resolveSiteName(features.site);
 const logoUrl  = (features.site.logo_url || '').trim();
 
 const headerCfg = features.aesthetic.header;
@@ -61,31 +64,14 @@ if ((features.home.posts_page_id ?? 0) > 0 && features.home.posts_page_slug) {
 }
 
 const navItems = topItems.length > 0
-  ? topItems.map((item) => ({ href: item.url, label: item.title, target: item.target }))
+  ? topItems
+      .filter((item) => !isStoreIconLink(features, item.url))
+      .map((item) => ({ href: item.url, label: item.title, target: item.target }))
   : fallbackNav;
 
 const currentPath = Astro.url.pathname;
 const isActive = (href: string) =>
   href === '/' ? currentPath === '/' : currentPath.startsWith(href);
-
-// Auth UI visibility scope. Login/Account links belong on Woo surfaces
-// only. Blog, home, and content routes stay guest-first so a first-time
-// reader is never gated. Register + Login pages themselves count as Woo
-// surfaces so the entry link stays visible during the sign-in flow.
-const WOO_PATH_EXACT = new Set([
-  '/cart', '/cart/',
-  '/checkout', '/checkout/',
-  '/account', '/account/',
-  '/shop', '/shop/',
-  '/login', '/login/',
-  '/register', '/register/',
-  '/order-summary', '/order-summary/',
-]);
-const WOO_PATH_PREFIX = ['/shop/', '/product/', '/cart/', '/checkout/', '/account/', '/order-summary/'];
-const showAuth = WOO_PATH_EXACT.has(currentPath)
-  || WOO_PATH_PREFIX.some((p) => currentPath.startsWith(p));
-const accountHref = `/account`;
-const authLabel = 'Account';
 
 const theme = (features.theme || 'blog').toLowerCase();
 
@@ -115,19 +101,14 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
         {showLogo && <img src={logoUrl} alt={siteName} class="h-8 w-auto max-w-[220px] inline-block align-middle" loading="eager" />}
         {showText && <span>{siteName}</span>}
       </a>
-      {(navItems.length > 0 || showAuth) && (
+      {navItems.length > 0 && (
         <nav class="hatch-blog-navrow hidden lg:flex" aria-label="Primary">
           {navItems.map((item) => (
             <a href={item.href} target={item.target || undefined} class:list={[isActive(item.href) ? 'is-active' : '']}>{item.label}</a>
           ))}
-          {showAuth && (
-            <a href="/cart" class:list={[isActive('/cart') ? 'is-active' : '']}>Cart</a>
-          )}
-          {showAuth && (
-            <a href={accountHref} data-hatch-auth-link class:list={[isActive(accountHref) ? 'is-active' : '']}>{authLabel}</a>
-          )}
         </nav>
       )}
+      <StoreIcons features={features} currentPath={currentPath} />
       <form role="search" method="get" action="/search" class="hatch-header-search hidden lg:flex" aria-label="Site search">
         <label class="hatch-header-search__label" for="hatch-header-search-input"><span class="sr-only">Search</span></label>
         <input id="hatch-header-search-input" type="search" name="q" placeholder="Search" autocomplete="off" />
@@ -154,13 +135,8 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
         {navItems.map((item) => (
           <a href={item.href} target={item.target || undefined} class:list={[isActive(item.href) ? 'is-active' : '']}>{item.label}</a>
         ))}
-        {showAuth && (
-          <a href="/cart" class:list={[isActive('/cart') ? 'is-active' : '']}>Cart</a>
-        )}
-        {showAuth && (
-          <a href={accountHref} data-hatch-auth-link class:list={[isActive(accountHref) ? 'is-active' : '']}>{authLabel}</a>
-        )}
       </nav>
+      <StoreIcons features={features} currentPath={currentPath} />
       <form role="search" method="get" action="/search" class="hatch-header-search hidden lg:flex" aria-label="Site search">
         <input type="search" name="q" placeholder="Search" autocomplete="off" aria-label="Search" />
       </form>
@@ -186,13 +162,8 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
         {navItems.map((item) => (
           <a href={item.href} target={item.target || undefined} class:list={[isActive(item.href) ? 'is-active' : '']}>{item.label}</a>
         ))}
-        {showAuth && (
-          <a href="/cart" class:list={[isActive('/cart') ? 'is-active' : '']}>Cart</a>
-        )}
-        {showAuth && (
-          <a href={accountHref} data-hatch-auth-link class:list={[isActive(accountHref) ? 'is-active' : '']}>{authLabel}</a>
-        )}
       </nav>
+      <StoreIcons features={features} currentPath={currentPath} />
       <form role="search" method="get" action="/search" class="hatch-header-search hidden lg:flex" aria-label="Site search">
         <input type="search" name="q" placeholder="Search" autocomplete="off" aria-label="Search" />
       </form>
@@ -214,13 +185,15 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
   <button
     id="hatch-color-mode-btn"
     type="button"
-    aria-label="Toggle color mode"
-    title="Toggle color mode"
+    data-hatch-color-toggle
+    aria-label="Dark mode"
+    aria-pressed="false"
+    title="Switch to dark mode"
     class="hatch-color-mode-toggle"
     style="position: fixed; top: 14px; right: 14px; z-index: 60; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid var(--hatch-border); background: var(--hatch-bg); color: var(--hatch-fg-muted); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); cursor: pointer; transition: color 140ms ease, border-color 140ms ease;"
   >
     <svg class="hatch-cm-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-    <svg class="hatch-cm-moon hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    <svg class="hatch-cm-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
   </button>
 )}
 
@@ -237,20 +210,7 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
         {item.label}
       </a>
     ))}
-    {showAuth && (
-      <a href="/cart"
-         class:list={['px-3 py-3 rounded-md text-[14px] font-medium transition-colors',
-                      isActive('/cart') ? 'text-hatch-fg bg-hatch-bg-3' : 'text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2']}>
-        Cart
-      </a>
-    )}
-    {showAuth && (
-      <a href={accountHref} data-hatch-auth-link
-         class:list={['px-3 py-3 rounded-md text-[14px] font-medium transition-colors',
-                      isActive(accountHref) ? 'text-hatch-fg bg-hatch-bg-3' : 'text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2']}>
-        {authLabel}
-      </a>
-    )}
+    <StoreIcons features={features} currentPath={currentPath} variant="drawer" />
   </nav>
 </div>
 
@@ -291,127 +251,6 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
   }
 </style>
 
-<script is:inline>
-  (function () {
-    var btn = document.querySelector('.hatch-hamburger');
-    var drawer = document.getElementById('hatch-mobile-drawer');
-    if (!btn || !drawer) return;
-    function close() {
-      btn.classList.remove('is-open');
-      drawer.classList.remove('is-open');
-      btn.setAttribute('aria-expanded', 'false');
-      btn.setAttribute('aria-label', 'Open menu');
-      document.body.classList.remove('hatch-drawer-open');
-    }
-    function toggle() {
-      var open = !drawer.classList.contains('is-open');
-      if (open) {
-        btn.classList.add('is-open');
-        drawer.classList.add('is-open');
-        btn.setAttribute('aria-expanded', 'true');
-        btn.setAttribute('aria-label', 'Close menu');
-        document.body.classList.add('hatch-drawer-open');
-      } else {
-        close();
-      }
-    }
-    btn.addEventListener('click', toggle);
-    drawer.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', close); });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
-    var mq = window.matchMedia('(min-width: 1024px)');
-    (mq.addEventListener ? mq.addEventListener('change', close) : mq.addListener(close));
-  })();
-</script>
-
-<script is:inline>
-  (function () {
-    var btn = document.getElementById('hatch-color-mode-btn');
-    if (btn) {
-      var sun = btn.querySelector('.hatch-cm-sun');
-      var moon = btn.querySelector('.hatch-cm-moon');
-      var apply = function (m) {
-        document.documentElement.setAttribute('data-hatch-mode', m);
-        try { localStorage.setItem('hatch-color-mode', m); } catch (e) {}
-        if (sun && moon) {
-          // v0.5.5 — Show the icon of the mode you'll get by clicking.
-          // Dark mode → sun icon (click → light). Light mode → moon icon (click → dark).
-          if (m === 'dark') { moon.classList.add('hidden'); sun.classList.remove('hidden'); }
-          else              { sun.classList.add('hidden'); moon.classList.remove('hidden'); }
-        }
-      };
-      try {
-        var saved = localStorage.getItem('hatch-color-mode');
-        if (saved) apply(saved);
-        else {
-          var cur = document.documentElement.getAttribute('data-hatch-mode') || 'auto';
-          if (cur === 'auto') {
-            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            apply(prefersDark ? 'dark' : 'light');
-          }
-        }
-      } catch (e) {}
-      btn.addEventListener('click', function () {
-        var now = document.documentElement.getAttribute('data-hatch-mode') === 'dark' ? 'light' : 'dark';
-        apply(now);
-      });
-    }
-
-    /* Cart badge: finds every Cart-link in the header, injects a live
-       count pill next to the label, and keeps it in sync with the Woo
-       Store API cart. The [data-hatch-cart-count] hook is also written
-       by the product-page Add-to-Cart script for instant local updates
-       without a round-trip. */
-    (function initCartBadge() {
-      var cartLinks = Array.prototype.filter.call(
-        document.querySelectorAll('a'),
-        function (a) {
-          var href = (a.getAttribute('href') || '').toLowerCase();
-          return /^\/cart\/?($|\?)/.test(href) || /\/cart\/?$/.test(href);
-        }
-      );
-      if (!cartLinks.length) return;
-      cartLinks.forEach(function (a) {
-        if (a.querySelector('[data-hatch-cart-count]')) return;
-        var pill = document.createElement('span');
-        pill.setAttribute('data-hatch-cart-count', '');
-        pill.className = 'hatch-cart-badge';
-        pill.setAttribute('aria-label', 'Items in cart');
-        pill.hidden = true;
-        a.appendChild(document.createTextNode(' '));
-        a.appendChild(pill);
-      });
-      var paint = function (n) {
-        var visible = Number.isFinite(n) && n > 0;
-        document.querySelectorAll('[data-hatch-cart-count]').forEach(function (el) {
-          el.textContent = String(visible ? n : '');
-          el.hidden = !visible;
-        });
-      };
-      /* Same-origin proxy path (see astro-starter/src/pages/api/wc-store).
-         Direct /wp-json/... would hit Astro's origin on dev, not WP's. */
-      var refresh = function () {
-        fetch('/api/wc-store/cart', { credentials: 'include', headers: { Accept: 'application/json' } })
-          .then(function (r) { return r.ok ? r.json() : null; })
-          .then(function (d) {
-            if (!d || !Array.isArray(d.items)) return;
-            paint(d.items.reduce(function (n, it) { return n + (it.quantity || 0); }, 0));
-          })
-          .catch(function () {});
-      };
-      refresh();
-      window.addEventListener('hatch:cart:changed', refresh);
-    })();
-
-    var hide = document.querySelector('.hatch-header-hide-on-scroll');
-    if (hide) {
-      var lastY = window.scrollY;
-      hide.style.transition = 'transform .22s ease';
-      addEventListener('scroll', function () {
-        var y = window.scrollY;
-        if (y > 80 && y > lastY) hide.style.transform = 'translateY(-100%)';
-        else                     hide.style.transform = 'translateY(0)';
-        lastY = y;
-      }, { passive: true });
-    }
-  })();
+<script>
+  import '../scripts/site-header.js';
 </script>

@@ -157,3 +157,17 @@ export function searchUrl(query?: string): string {
   if (!query) return '/search/';
   return `/search/?q=${encodeURIComponent(query)}`;
 }
+
+/**
+ * Accept a post-login redirect only when it is a path on this same site.
+ * Anything else (another host, a protocol-relative "//host", "javascript:",
+ * a backslash trick) falls back to the given default, so a crafted
+ * ?redirect_to= link can never send a signed-in visitor off the site.
+ */
+export function safeRedirectPath(raw: string | null | undefined, fallback = '/account'): string {
+  const value = (raw ?? '').trim();
+  if (!value.startsWith('/') || value.startsWith('//') || value.includes('\\') || /[\u0000-\u001f]/.test(value)) {
+    return fallback;
+  }
+  return value;
+}

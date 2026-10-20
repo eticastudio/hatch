@@ -100,26 +100,27 @@ class Hatch_Block_Serializer {
 		$post    = get_post( $id );
 
 		if ( ! $post instanceof WP_Post ) {
-			return new WP_Error( 'hatch_block_not_found', __( 'Post not found.', 'hatch-bridge' ), array( 'status' => 404 ) );
+			return new WP_Error( 'hatch_block_not_found', __( 'Post not found.', 'hatch-connect' ), array( 'status' => 404 ) );
 		}
 
 		$public_statuses = array( 'publish' );
 		if ( 'edit' === $context ) {
 			// Edit context = require auth + cap.
 			if ( ! is_user_logged_in() ) {
-				return new WP_Error( 'hatch_block_auth_required', __( 'Authentication required.', 'hatch-bridge' ), array( 'status' => 401 ) );
+				return new WP_Error( 'hatch_block_auth_required', __( 'Authentication required.', 'hatch-connect' ), array( 'status' => 401 ) );
 			}
 			return current_user_can( 'edit_post', $id );
 		}
 
-		// View context = post must be public.
-		if ( ! in_array( $post->post_status, $public_statuses, true ) ) {
-			return new WP_Error( 'hatch_block_not_public', __( 'Post is not public.', 'hatch-bridge' ), array( 'status' => 403 ) );
+		// View context = post must be public, and of a public post type: private
+		// types such as stored form submissions also use the publish status.
+		if ( ! in_array( $post->post_status, $public_statuses, true ) || ! is_post_type_viewable( $post->post_type ) ) {
+			return new WP_Error( 'hatch_block_not_public', __( 'Post is not public.', 'hatch-connect' ), array( 'status' => 403 ) );
 		}
 		// A password-protected post's blocks are its body: keep them from
 		// anyone who has not unlocked the post or cannot edit it.
 		if ( Hatch_Rest_Api::is_body_withheld( $post ) ) {
-			return new WP_Error( 'hatch_block_password_protected', __( 'This post is password protected.', 'hatch-bridge' ), array( 'status' => 403 ) );
+			return new WP_Error( 'hatch_block_password_protected', __( 'This post is password protected.', 'hatch-connect' ), array( 'status' => 403 ) );
 		}
 		return true;
 	}
@@ -134,7 +135,7 @@ class Hatch_Block_Serializer {
 		$id   = (int) $request['id'];
 		$post = get_post( $id );
 		if ( ! $post instanceof WP_Post ) {
-			return new WP_Error( 'hatch_block_not_found', __( 'Post not found.', 'hatch-bridge' ), array( 'status' => 404 ) );
+			return new WP_Error( 'hatch_block_not_found', __( 'Post not found.', 'hatch-connect' ), array( 'status' => 404 ) );
 		}
 
 		$raw  = (string) $post->post_content;

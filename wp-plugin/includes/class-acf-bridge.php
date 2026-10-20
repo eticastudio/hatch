@@ -57,12 +57,11 @@ class Hatch_Acf_Bridge {
 		if ( ! Hatch_Detector::has_custom_fields() ) {
 			return;
 		}
-		add_action( 'admin_notices', array( $this, 'maybe_show_admin_notice' ) );
-		add_action( 'admin_init', array( $this, 'maybe_dismiss_notice' ) );
 
 		// Bust cache when ACF or Meta Box save field groups.
 		add_action( 'acf/update_field_group', array( __CLASS__, 'flush_cache' ) );
-		add_action( 'rwmb_meta_boxes', array( __CLASS__, 'flush_cache' ) );
+		// rwmb_meta_boxes is a FILTER: the callback must hand the value back untouched.
+		add_filter( 'rwmb_meta_boxes', array( __CLASS__, 'flush_cache_passthrough' ) );
 	}
 
 	/**
@@ -244,143 +243,17 @@ class Hatch_Acf_Bridge {
 	}
 
 	/**
-	 * Bulk-expose every ACF / SCF field group to REST (sets `show_in_rest = true`
-	 * on each). The default ACF UI buries this on every group's settings page
-	 * one-by-one - headless setups need it on by default. v0.30+.
+	 * Filter callback: flush the scan cache and return the filtered value unchanged.
 	 *
-	 * Works for: ACF, ACF Pro, Secure Custom Fields (same API).
-	 * Meta Box and Pods require their own native UIs - surfaced in the admin notice.
-	 *
-	 * @return array{ok:bool, updated:int, total:int, message:string}
+	 * @param mixed $value Value being filtered (Meta Box registrations).
+	 * @return mixed
 	 */
-	public static function expose_all_to_rest(): array {
-		if ( ! function_exists( 'acf_get_field_groups' ) || ! function_exists( 'acf_update_field_group' ) ) {
-			return array(
-				'ok'      => false,
-				'updated' => 0,
-				'total'   => 0,
-				'message' => __( 'ACF / SCF not active.', 'hatch-bridge' ),
-			);
-		}
-
-		$groups = acf_get_field_groups();
-		if ( ! is_array( $groups ) ) {
-			return array(
-				'ok'      => false,
-				'updated' => 0,
-				'total'   => 0,
-				'message' => __( 'No field groups found.', 'hatch-bridge' ),
-			);
-		}
-
-		$updated = 0;
-		foreach ( $groups as $group ) {
-			if ( empty( $group['show_in_rest'] ) ) {
-				$group['show_in_rest'] = 1;
-				acf_update_field_group( $group );
-				++$updated;
-			}
-		}
-
+	public static function flush_cache_passthrough( $value ) {
 		self::flush_cache();
-
-		return array(
-			'ok'      => true,
-			'updated' => $updated,
-			'total'   => count( $groups ),
-			'message' => sprintf(
-				/* translators: 1: number of groups updated, 2: total groups */
-				_n( '%1$d of %2$d ACF group exposed to REST.', '%1$d of %2$d ACF groups exposed to REST.', $updated, 'hatch-bridge' ),
-				$updated,
-				count( $groups )
-			),
-		);
+		return $value;
 	}
 
-	/**
-	 * Should we show the admin notice?
-	 *
-	 * @return void
-	 */
-	public function maybe_show_admin_notice(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-		if ( get_transient( self::DISMISS_KEY ) ) {
-			return;
-		}
 
-		// Don't show on the Hatch settings page - that page has its own health panel.
-		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( $screen && false !== strpos( (string) $screen->id, 'hatch' ) ) {
-			return;
-		}
-
-		$status = self::get_field_group_status();
-		if ( $status['hidden'] < 1 ) {
-			return;
-		}
-
-		$dismiss_url = wp_nonce_url(
-			add_query_arg( 'hatch_dismiss_acf_notice', '1' ),
-			'hatch_dismiss_acf_notice'
-		);
-
-		$plugin_label = self::plugin_label( $status['plugin'] );
-		?>
-		<div class="notice notice-warning is-dismissible">
-			<p>
-				<strong><?php esc_html_e( 'Hatch - Headless WordPress', 'hatch-bridge' ); ?>:</strong>
-				<?php
-				printf(
-					/* translators: 1: number of hidden field groups, 2: plugin label */
-					esc_html(
-						/* translators: 1: number of hidden field groups, 2: plugin label. */
-						_n(
-							'%1$d %2$s field group is hidden from the REST API. Your headless frontend cannot read these fields.',
-							'%1$d %2$s field groups are hidden from the REST API. Your headless frontend cannot read these fields.',
-							(int) $status['hidden'],
-							'hatch-bridge'
-						)
-					),
-					(int) $status['hidden'],
-					esc_html( $plugin_label )
-				);
-				?>
-				<a href="<?php echo esc_url( admin_url( 'admin.php?page=hatch#status' ) ); ?>">
-					<?php esc_html_e( 'Open Hatch health panel →', 'hatch-bridge' ); ?>
-				</a>
-				&nbsp;|&nbsp;
-				<a href="<?php echo esc_url( $dismiss_url ); ?>">
-					<?php esc_html_e( 'Dismiss for 7 days', 'hatch-bridge' ); ?>
-				</a>
-			</p>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Handle dismiss click - verify nonce and store transient for 7 days.
-	 *
-	 * @return void
-	 */
-	public function maybe_dismiss_notice(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce checked below.
-		if ( empty( $_GET['hatch_dismiss_acf_notice'] ) ) {
-			return;
-		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['_wpnonce'] ) ) : '';
-		if ( ! wp_verify_nonce( $nonce, 'hatch_dismiss_acf_notice' ) ) {
-			return;
-		}
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-		set_transient( self::DISMISS_KEY, 1, 7 * DAY_IN_SECONDS );
-		wp_safe_redirect( remove_query_arg( array( 'hatch_dismiss_acf_notice', '_wpnonce' ) ) );
-		exit;
-	}
 
 	/**
 	 * Human-readable plugin label.

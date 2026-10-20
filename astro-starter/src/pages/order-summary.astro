@@ -17,6 +17,14 @@
  * @since 0.7.7
  */
 import PageLayout from '@/layouts/PageLayout.astro';
+import { getFeatures as getWooGateFeatures } from '@/lib/features';
+import { isWooActive, fallThroughToPage } from '@/lib/woo';
+
+// Store routes exist only while WooCommerce is active. Otherwise the same
+// path is served by the normal WordPress page lookup (or a themed 404).
+if (!isWooActive(await getWooGateFeatures())) {
+  return fallThroughToPage(Astro, 'order-summary');
+}
 
 const url = new URL(Astro.request.url);
 const id = url.searchParams.get('id') || '';
@@ -73,7 +81,7 @@ const key = url.searchParams.get('key') || '';
   </div>
 </PageLayout>
 
-<script is:inline>
+<script is:inline data-astro-rerun>
   (function () {
     const root = document.querySelector('.hatch-order');
     if (!root) return;

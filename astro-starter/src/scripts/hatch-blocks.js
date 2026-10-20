@@ -192,12 +192,10 @@
 			showMeta:    el.getAttribute('data-show-meta')    || '1',
 		};
 		const url = `${ wpBase }/wp-json/hatch/v1/content/list?${ params }`;
-		console.log('[hatch] fetching posts:', url);
 		fetch(url)
-			.then((r) => { console.log('[hatch] posts response:', r.status); return r.ok ? r.json() : Promise.reject(`HTTP ${ r.status }`); })
+			.then((r) => (r.ok ? r.json() : Promise.reject(`HTTP ${ r.status }`)))
 			.then((data) => {
 				const list = Array.isArray(data) ? data : (data.items || []);
-				console.log('[hatch] posts rendered:', list.length);
 				if (list.length === 0) {
 					el.innerHTML = '<p style="color:var(--hatch-muted);grid-column:1/-1">No posts found.</p>';
 					return;

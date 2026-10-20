@@ -28,11 +28,26 @@ class Hatch_Media_Rewriter {
 
 	const ROUTE = '/hatch-media/';
 
+	/**
+	 * True while a REST request in the editing context is being handled.
+	 *
+	 * The block editor reads media URLs from "context=edit" responses and writes
+	 * them into post content. If those were rewritten, the frontend address would
+	 * be saved into the database and would break when the frontend moves.
+	 *
+	 * @var bool
+	 */
+	private static $editing_request = false;
+
 	public static function init(): void {
 		// Only hook in if the proxy URL is set. Cheap early-out.
 		if ( ! self::is_enabled() ) {
 			return;
 		}
+
+		// Never rewrite what the editor reads (see $editing_request).
+		add_filter( 'rest_request_before_callbacks', array( __CLASS__, 'begin_request' ), 1, 3 );
+		add_filter( 'rest_request_after_callbacks', array( __CLASS__, 'end_request' ), 99, 1 );
 
 		// Content + excerpts (HTML output).
 		add_filter( 'the_content', array( __CLASS__, 'rewrite_html' ), 99 );
@@ -50,6 +65,43 @@ class Hatch_Media_Rewriter {
 		add_filter( 'wp_calculate_image_srcset', array( __CLASS__, 'rewrite_srcset' ), 99 );
 	}
 
+	/**
+	 * Note whether the REST request about to run is an editing-context read.
+	 *
+	 * @param mixed           $response Response so far; passed through.
+	 * @param array           $handler  Route handler; unused.
+	 * @param WP_REST_Request $request  The request.
+	 * @return mixed
+	 */
+	public static function begin_request( $response, $handler, $request ) {
+		unset( $handler );
+		self::$editing_request = $request instanceof WP_REST_Request && 'edit' === $request->get_param( 'context' );
+		return $response;
+	}
+
+	/**
+	 * Clear the editing-context flag once the handler has run.
+	 *
+	 * @param mixed $response Response; passed through.
+	 * @return mixed
+	 */
+	public static function end_request( $response ) {
+		self::$editing_request = false;
+		return $response;
+	}
+
+	/**
+	 * Should media URLs be rewritten for the current request?
+	 *
+	 * Not in wp-admin screens or admin-ajax (the media library must keep working
+	 * when the frontend is down), and not for editing-context REST reads.
+	 *
+	 * @return bool
+	 */
+	private static function should_rewrite(): bool {
+		return ! self::$editing_request && ! is_admin();
+	}
+
 	public static function is_enabled(): bool {
 		return '' !== self::frontend_base();
 	}
@@ -61,11 +113,12 @@ class Hatch_Media_Rewriter {
 		// proxy blank produced un-rewritten URLs, and setups that had a stale
 		// proxy URL produced 404s (e.g. test-frontend.example.com hangover
 		// from a fixture). Explicit non-empty override still wins.
-		$explicit = untrailingslashit( (string) get_option( 'hatch_image_proxy_url', '' ) );
+		// esc_url_raw() so only a clean http(s) URL is ever written into page output.
+		$explicit = untrailingslashit( esc_url_raw( (string) get_option( 'hatch_image_proxy_url', '' ), array( 'http', 'https' ) ) );
 		if ( '' !== $explicit ) {
 			return $explicit;
 		}
-		return untrailingslashit( (string) get_option( 'hatch_frontend_url', '' ) );
+		return untrailingslashit( esc_url_raw( (string) get_option( 'hatch_frontend_url', '' ), array( 'http', 'https' ) ) );
 	}
 
 	/**
@@ -82,7 +135,7 @@ class Hatch_Media_Rewriter {
 		}
 
 		$frontend = self::frontend_base();
-		if ( '' === $frontend ) {
+		if ( '' === $frontend || ! self::should_rewrite() ) {
 			return $content;
 		}
 

@@ -15,6 +15,8 @@
 import ShareRow from '../ShareRow.astro';
 import DocsSidebar from '../../DocsSidebar.astro';
 import HatchImage from '../../HatchImage.astro';
+import Breadcrumb from '../Breadcrumb.astro';
+import PostMeta from '../PostMeta.astro';
 
 interface Props {
   post: any; features: any; toc: any[]; related: any[]; adjacent: any;
@@ -36,23 +38,18 @@ const gridCols = !showSidebar
 
   <article class="py-8 sm:py-12 min-w-0">
     {flags.showBreadcrumb && (
-      <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[12px] text-hatch-fg-subtle mb-5 flex-wrap">
-        <a href="/blog" class="hover:text-hatch-fg transition-colors">Docs</a>
-        {post.category && <><span>{flags.breadcrumbSep}</span><a href={`/blog/category/${post.categorySlug}`} class="hover:text-hatch-fg transition-colors">{post.category}</a></>}
-        <span>{flags.breadcrumbSep}</span>
-        <span class="text-hatch-fg truncate">{post.title}</span>
-      </nav>
+      <Breadcrumb sep={flags.breadcrumbSep} class="!mb-5" items={[
+        { label: 'Blog', href: '/blog' },
+        ...(post.category ? [{ label: post.category, href: `/blog/category/${post.categorySlug}` }] : []),
+        { label: post.title },
+      ]} />
     )}
 
     <header class="mb-8">
       <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight leading-[1.15]" style="font-family: var(--hatch-font-heading);">{post.title}</h1>
-      <div class="mt-3 flex items-center flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-hatch-fg-muted">
-        {post.author && <a href={`/blog/author/${post.author.slug}`} class="hover:text-hatch-fg transition-colors">{post.author.name}</a>}
-        <span class="text-hatch-fg-subtle">·</span>
-        <time datetime={post.publishedAt}>{dateLabel}</time>
-        {flags.showReadingTime && <><span class="text-hatch-fg-subtle">·</span><span>{flags.readingTimeText(post.readMinutes)}</span></>}
-      </div>
-      {flags.showUpdated && updatedLabel && <p class="mt-2 text-[12px] text-hatch-fg-subtle">Updated {updatedLabel}</p>}
+      <PostMeta variant="docs" author={post.author} publishedAt={post.publishedAt} dateLabel={dateLabel}
+        readingTime={flags.showReadingTime ? flags.readingTimeText(post.readMinutes) : ''} categories={post.categories} avatarClass="rounded-full" />
+      {flags.showUpdated && updatedLabel && <p class="mt-2 text-[12px] text-hatch-fg-muted">Updated {updatedLabel}</p>}
     </header>
 
     {flags.showHeroImage && (

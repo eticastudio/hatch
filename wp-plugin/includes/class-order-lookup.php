@@ -104,7 +104,7 @@ class Hatch_Order_Lookup {
 			array(
 				'methods'             => 'GET',
 				'callback'            => array( __CLASS__, 'get_order' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_submit' ),
 				'args'                => array(
 					'id'  => array(
 						'required'          => true,
@@ -121,7 +121,7 @@ class Hatch_Order_Lookup {
 
 	public static function get_order( WP_REST_Request $req ) {
 		if ( ! function_exists( 'wc_get_order' ) ) {
-			return new WP_Error( 'hatch_woo_missing', esc_html__( 'WooCommerce not active', 'hatch-bridge' ), array( 'status' => 500 ) );
+			return new WP_Error( 'hatch_woo_missing', esc_html__( 'WooCommerce not active', 'hatch-connect' ), array( 'status' => 500 ) );
 		}
 
 		// Rate-limit BEFORE any DB work so an abuser cannot cheaply enumerate
@@ -130,7 +130,7 @@ class Hatch_Order_Lookup {
 		if ( self::is_rate_limited( $ip ) ) {
 			return new WP_Error(
 				'hatch_rate_limited',
-				esc_html__( 'Too many requests. Try again in a minute.', 'hatch-bridge' ),
+				esc_html__( 'Too many requests. Try again in a minute.', 'hatch-connect' ),
 				array( 'status' => 429 )
 			);
 		}
@@ -138,13 +138,13 @@ class Hatch_Order_Lookup {
 		$id  = (int) $req->get_param( 'id' );
 		$key = (string) $req->get_param( 'key' );
 		if ( $id <= 0 || '' === $key ) {
-			return new WP_Error( 'hatch_bad_request', esc_html__( 'Missing id or key', 'hatch-bridge' ), array( 'status' => 400 ) );
+			return new WP_Error( 'hatch_bad_request', esc_html__( 'Missing id or key', 'hatch-connect' ), array( 'status' => 400 ) );
 		}
 
 		if ( self::order_locked( $id ) ) {
 			return new WP_Error(
 				'hatch_rate_limited',
-				esc_html__( 'Too many requests. Try again in a few minutes.', 'hatch-bridge' ),
+				esc_html__( 'Too many requests. Try again in a few minutes.', 'hatch-connect' ),
 				array( 'status' => 429 )
 			);
 		}
@@ -155,7 +155,7 @@ class Hatch_Order_Lookup {
 		// hash_equals runs when order exists so the branch stays timing-safe.
 		if ( ! $order || ! hash_equals( (string) $order->get_order_key(), $key ) ) {
 			self::note_failed_key( $id );
-			return new WP_Error( 'hatch_not_found', esc_html__( 'Order not found', 'hatch-bridge' ), array( 'status' => 404 ) );
+			return new WP_Error( 'hatch_not_found', esc_html__( 'Order not found', 'hatch-connect' ), array( 'status' => 404 ) );
 		}
 
 		$items = array();

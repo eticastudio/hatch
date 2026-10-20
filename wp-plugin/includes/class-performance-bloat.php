@@ -234,9 +234,20 @@ class Hatch_Performance_Bloat {
 					if ( isset( $endpoints[ $route ] ) && is_array( $endpoints[ $route ] ) ) {
 						foreach ( $endpoints[ $route ] as $i => $ep ) {
 							if ( isset( $ep['methods'] ) && ( 'GET' === $ep['methods'] || ( is_array( $ep['methods'] ) && ! empty( $ep['methods']['GET'] ) ) ) ) {
-								// Wrap the existing permission callback so anonymous GETs are denied.
-								$endpoints[ $route ][ $i ]['permission_callback'] = static function () {
-									return is_user_logged_in();
+								// Wrap the existing permission callback: anonymous GETs are denied
+								// and everyone else still has to pass core's own check. Replacing it
+								// outright would let any signed-in user, a subscriber included, read
+								// another user's email and capabilities with context=edit.
+								$original = isset( $ep['permission_callback'] ) ? $ep['permission_callback'] : null;
+								$endpoints[ $route ][ $i ]['permission_callback'] = static function ( $request = null ) use ( $original ) {
+									if ( ! is_user_logged_in() ) {
+										return new WP_Error(
+											'rest_forbidden',
+											__( 'Sorry, you are not allowed to do that.', 'hatch-connect' ),
+											array( 'status' => rest_authorization_required_code() )
+										);
+									}
+									return is_callable( $original ) ? call_user_func( $original, $request ) : true;
 								};
 							}
 						}
@@ -282,7 +293,8 @@ class Hatch_Performance_Bloat {
 				$a,
 				static function () use ( $target ) {
 					if ( $target ) {
-						wp_safe_redirect( $target, 301 );
+						// The target is the frontend address the owner saved. wp_safe_redirect() would drop it for the admin screen, because the frontend is a different host.
+						wp_redirect( $target, 301, 'Hatch' ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- Owner-saved frontend URL, not request input.
 					} else {
 						status_header( 410 );
 						header( 'Content-Type: text/plain; charset=utf-8' );

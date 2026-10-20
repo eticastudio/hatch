@@ -53,14 +53,29 @@ class Hatch_Cf_Seo {
 	}
 
 	/**
+	 * The saved deploy state, but only while Hatch still manages the frontend.
+	 *
+	 * Disconnect removes the "deployed_at" marker and keeps the rest of the state, so a
+	 * disconnected site must stop rewriting permalinks, sitemaps and robots.txt.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private static function managed_state(): array {
+		$state = get_option( self::OPTION_STATE );
+		if ( ! is_array( $state ) || empty( $state['deployed_at'] ) ) {
+			return array();
+		}
+		return $state;
+	}
+
+	/**
 	 * Deploy is "valid" when both the frontend host (money_domain) and the
 	 * mount point (subpath) are present. Missing either means the wizard
 	 * either never finished or was reset. Fail closed: leave permalinks alone.
 	 */
 	public static function is_deployed(): bool {
-		$state = get_option( self::OPTION_STATE );
-		return is_array( $state )
-			&& ! empty( $state['money_domain'] )
+		$state = self::managed_state();
+		return ! empty( $state['money_domain'] )
 			&& ! empty( $state['subpath'] );
 	}
 
@@ -81,7 +96,7 @@ class Hatch_Cf_Seo {
 	 * @return string Rewritten URL, or original if state is missing.
 	 */
 	public static function rewrite_permalink( $url ): string {
-		$state = get_option( self::OPTION_STATE );
+		$state = self::managed_state();
 		if ( empty( $state['money_domain'] ) || empty( $state['subpath'] ) ) {
 			return (string) $url;
 		}
@@ -113,7 +128,7 @@ class Hatch_Cf_Seo {
 	 * @return string Extended body.
 	 */
 	public static function append_subfolder_allow( $output ): string {
-		$state = get_option( self::OPTION_STATE );
+		$state = self::managed_state();
 		if ( ! empty( $state['subpath'] ) ) {
 			$output .= "\nAllow: " . rtrim( (string) $state['subpath'], '/' ) . "/\n";
 		}

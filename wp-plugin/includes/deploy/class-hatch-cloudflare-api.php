@@ -164,7 +164,7 @@ final class Hatch_Cloudflare_Api {
 	 */
 	private function send( string $url, array $request, string $bearer ) {
 		if ( '' === $bearer ) {
-			return new WP_Error( 'hatch_cf_no_token', __( 'A Cloudflare API token is required.', 'hatch-bridge' ) );
+			return new WP_Error( 'hatch_cf_no_token', __( 'A Cloudflare API token is required.', 'hatch-connect' ) );
 		}
 		$request['headers']['Authorization'] = 'Bearer ' . $bearer;
 
@@ -175,7 +175,7 @@ final class Hatch_Cloudflare_Api {
 				'hatch_cf_unreachable',
 				sprintf(
 					/* translators: %s: network error text from the HTTP transport. */
-					__( 'Could not reach Cloudflare: %s', 'hatch-bridge' ),
+					__( 'Could not reach Cloudflare: %s', 'hatch-connect' ),
 					wp_strip_all_tags( $response->get_error_message() )
 				),
 				array( 'status' => 502 )
@@ -201,7 +201,7 @@ final class Hatch_Cloudflare_Api {
 		if ( $status >= 300 && $status < 400 ) {
 			return new WP_Error(
 				'hatch_cf_redirect',
-				__( 'Cloudflare answered with a redirect, which Hatch does not follow because it would forward your API token. Check the API address filter.', 'hatch-bridge' ),
+				__( 'Cloudflare answered with a redirect. Hatch does not follow it, because that would send your token to another address. Nothing was changed. If you see this again, ask your host or developer whether the Hatch Cloudflare API address was changed on this site.', 'hatch-connect' ),
 				$data
 			);
 		}
@@ -218,11 +218,11 @@ final class Hatch_Cloudflare_Api {
 							'Cloudflare is rate limiting this token. Wait %d second and try again.',
 							'Cloudflare is rate limiting this token. Wait %d seconds and try again.',
 							$retry,
-							'hatch-bridge'
+							'hatch-connect'
 						),
 						$retry
 					)
-					: __( 'Cloudflare is rate limiting this token. Wait a minute and try again.', 'hatch-bridge' ),
+					: __( 'Cloudflare is rate limiting this token. Wait a minute and try again.', 'hatch-connect' ),
 				$data
 			);
 		}
@@ -232,7 +232,7 @@ final class Hatch_Cloudflare_Api {
 				'hatch_cf_unavailable',
 				sprintf(
 					/* translators: %d: HTTP status code. */
-					__( 'Cloudflare is having trouble right now (HTTP %d). Nothing was changed on your account. Try again in a few minutes.', 'hatch-bridge' ),
+					__( 'Cloudflare is having trouble right now (HTTP %d). Nothing was changed on your account. Try again in a few minutes.', 'hatch-connect' ),
 					$status
 				),
 				$data
@@ -242,7 +242,7 @@ final class Hatch_Cloudflare_Api {
 		if ( 401 === $status ) {
 			return new WP_Error(
 				'hatch_cf_auth',
-				__( 'Cloudflare rejected the API token. Check that it was copied in full and has not been revoked or expired.', 'hatch-bridge' ),
+				__( 'Cloudflare rejected the API token. Check that it was copied in full and has not been revoked or expired.', 'hatch-connect' ),
 				$data
 			);
 		}
@@ -253,10 +253,10 @@ final class Hatch_Cloudflare_Api {
 				'' !== $cf_text
 					? sprintf(
 						/* translators: %s: message returned by Cloudflare. */
-						__( 'The API token does not have permission for this step. Cloudflare said: %s', 'hatch-bridge' ),
+						__( 'The API token does not have permission for this step. Cloudflare said: %s', 'hatch-connect' ),
 						$cf_text
 					)
-					: __( 'The API token does not have permission for this step. Add the missing permission and try again.', 'hatch-bridge' ),
+					: __( 'The API token does not have permission for this step. Add the missing permission and try again.', 'hatch-connect' ),
 				$data
 			);
 		}
@@ -267,13 +267,13 @@ final class Hatch_Cloudflare_Api {
 				'' !== $cf_text
 					? sprintf(
 						/* translators: 1: HTTP status code, 2: message returned by Cloudflare. */
-						__( 'Cloudflare rejected the request (HTTP %1$d): %2$s', 'hatch-bridge' ),
+						__( 'Cloudflare rejected the request (HTTP %1$d): %2$s', 'hatch-connect' ),
 						$status,
 						$cf_text
 					)
 					: sprintf(
 						/* translators: %d: HTTP status code. */
-						__( 'Cloudflare rejected the request (HTTP %d).', 'hatch-bridge' ),
+						__( 'Cloudflare rejected the request (HTTP %d).', 'hatch-connect' ),
 						$status
 					),
 				$data
@@ -284,7 +284,7 @@ final class Hatch_Cloudflare_Api {
 		if ( ! $is_env ) {
 			return new WP_Error(
 				'hatch_cf_bad_response',
-				__( 'Cloudflare returned a reply Hatch could not read, so nothing was marked as deployed. A proxy or firewall on this server may be rewriting outbound traffic.', 'hatch-bridge' ),
+				__( 'Cloudflare returned a reply Hatch could not read, so nothing was marked as deployed. A proxy or firewall on this server may be rewriting outbound traffic.', 'hatch-connect' ),
 				$data
 			);
 		}
@@ -295,10 +295,10 @@ final class Hatch_Cloudflare_Api {
 				'' !== $cf_text
 					? sprintf(
 						/* translators: %s: message returned by Cloudflare. */
-						__( 'Cloudflare reported a failure: %s', 'hatch-bridge' ),
+						__( 'Cloudflare reported a failure: %s', 'hatch-connect' ),
 						$cf_text
 					)
-					: __( 'Cloudflare reported a failure without a reason.', 'hatch-bridge' ),
+					: __( 'Cloudflare reported a failure without a reason.', 'hatch-connect' ),
 				$data
 			);
 		}

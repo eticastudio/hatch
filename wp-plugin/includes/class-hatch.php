@@ -35,7 +35,8 @@ final class Hatch {
 	 * Constructor - wire up all subsystems.
 	 */
 	private function __construct() {
-		// Companion-plugin layer.
+		// Plugin layer.
+		add_action( 'admin_init', array( __CLASS__, 'drop_legacy_reader_settings' ) );
 		Hatch_Security::instance();
 		Hatch_Rest_Api::instance();
 		Hatch_Revalidate::instance();
@@ -52,7 +53,6 @@ final class Hatch {
 
 		// V0.2 hardening (must wire on frontend too - filters site URLs etc.).
 		Hatch_Login_Hardening::instance();
-		Hatch_App_Password_Helper::instance();
 
 		// Root-domain check.
 		Hatch_Domain_Check::instance();
@@ -176,5 +176,23 @@ final class Hatch {
 			wp_clear_scheduled_hook( $hook );
 		}
 		flush_rewrite_rules();
+	}
+
+	/**
+	 * One-time cleanup for sites upgrading from a version that created the
+	 * Hatch Reader user. Nothing reads these settings any more. The user and
+	 * role are left alone: a frontend deployed before 1.0.2 still signs in as
+	 * that user until its next Redeploy, and the site owner deletes it.
+	 *
+	 * @return void
+	 */
+	public static function drop_legacy_reader_settings(): void {
+		if ( get_option( 'hatch_legacy_reader_cleaned' ) ) {
+			return;
+		}
+		wp_clear_scheduled_hook( 'hatch_prune_app_pwds_cron' );
+		delete_option( 'hatch_app_pwd_retention_days' );
+		delete_option( 'hatch_reader_user_id' );
+		update_option( 'hatch_legacy_reader_cleaned', 1, false );
 	}
 }

@@ -11,6 +11,7 @@
 import { createRoot, useState, useMemo, useEffect, useCallback, useRef } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { HxIcon, hxFetch } from './components.jsx';
+import { IC } from './icons';
 import Connection from './tabs/Connection.jsx';
 import Design from './tabs/Design.jsx';
 import Content from './tabs/Content.jsx';
@@ -44,13 +45,13 @@ function applyTheme(next) {
 applyTheme(resolveTheme());
 
 const TABS = [
-	{ id: 'connection',  label: () => __( 'Connection', 'hatch-bridge' ),  Component: Connection },
-	{ id: 'design',      label: () => __( 'Design', 'hatch-bridge' ),      Component: Design },
-	{ id: 'content',     label: () => __( 'Content', 'hatch-bridge' ),     Component: Content },
-	{ id: 'bridge',      label: () => __( 'Plugins', 'hatch-bridge' ),     Component: PluginBridge },
-	{ id: 'performance', label: () => __( 'Performance', 'hatch-bridge' ), Component: Performance },
-	{ id: 'security',    label: () => __( 'Security', 'hatch-bridge' ),    Component: Security },
-	{ id: 'status',      label: () => __( 'Status', 'hatch-bridge' ),      Component: Status },
+	{ id: 'connection',  label: () => __( 'Connection', 'hatch-connect' ),  Component: Connection },
+	{ id: 'design',      label: () => __( 'Design', 'hatch-connect' ),      Component: Design },
+	{ id: 'content',     label: () => __( 'Content', 'hatch-connect' ),     Component: Content },
+	{ id: 'bridge',      label: () => __( 'Plugins', 'hatch-connect' ),     Component: PluginBridge },
+	{ id: 'performance', label: () => __( 'Performance', 'hatch-connect' ), Component: Performance },
+	{ id: 'security',    label: () => __( 'Security', 'hatch-connect' ),    Component: Security },
+	{ id: 'status',      label: () => __( 'Status', 'hatch-connect' ),      Component: Status },
 ];
 
 function App() {
@@ -75,6 +76,15 @@ function App() {
 
 	const [state, setState] = useState(initialState);
 	const [pending, setPending] = useState({});
+	/* The last values the server confirmed. A change that puts a setting back
+	   to its saved value is not a change, and Discard returns to these. */
+	const baseline = useRef({
+		...initialState,
+		core: {
+			default_comment_status: initialState.coreSync?.discussion?.default_comment_status,
+			...(initialState.core || {}),
+		},
+	});
 	const [phase, setPhase] = useState('idle'); // idle | saving | saved | error
 	const [lastSaved, setLastSaved] = useState(null);
 	const [saveError, setSaveError] = useState('');
@@ -112,10 +122,27 @@ function App() {
 	const setupUrl = boot.setupUrl || 'admin.php?page=hatch-setup';
 	const openWizard = () => { window.location.href = setupUrl; };
 
+	/* Tabs that need a look get the amber dot (DESIGN-SYSTEM.md section 4).
+	   Security: the one-switch hardening is still off. */
+	const attention = {
+		security: !(state.security && state.security.fortress_mode),
+	};
+
 	const dirtyCount = useMemo(() => Object.keys(pending).length, [pending]);
 
 	const setSetting = useCallback((path, value) => {
-		setPending((p) => ({ ...p, [path]: value }));
+		const saved = path.split('.').reduce((node, key) => (node == null ? undefined : node[key]), baseline.current);
+		setPending((p) => {
+			const next = { ...p };
+			/* A switch never saved before reads as off, so off is not a change. */
+			const same = typeof value === 'boolean' ? Boolean(saved) === value : JSON.stringify(saved) === JSON.stringify(value);
+			if (same) {
+				delete next[path];
+			} else {
+				next[path] = value;
+			}
+			return next;
+		});
 		setState((s) => {
 			const next = structuredClone(s);
 			const keys = path.split('.');
@@ -137,6 +164,17 @@ function App() {
 		setSaveError('');
 		try {
 			await hxFetch('options', { method: 'POST', body: JSON.stringify(pending) });
+			const confirmed = structuredClone(baseline.current);
+			Object.keys(pending).forEach((path) => {
+				const keys = path.split('.');
+				let cursor = confirmed;
+				for (let i = 0; i < keys.length - 1; i++) {
+					cursor[keys[i]] = cursor[keys[i]] || {};
+					cursor = cursor[keys[i]];
+				}
+				cursor[keys[keys.length - 1]] = pending[path];
+			});
+			baseline.current = confirmed;
 			setPending({});
 			setPhase('saved');
 			setLastSaved(new Date());
@@ -149,9 +187,9 @@ function App() {
 
 	const discard = useCallback(() => {
 		setPending({});
-		setState(initialState);
+		setState(baseline.current);
 		setPhase('idle');
-	}, [initialState]);
+	}, []);
 
 	// Cmd+S or Ctrl+S saves.
 	useEffect(() => {
@@ -165,12 +203,24 @@ function App() {
 		return () => window.removeEventListener('keydown', h);
 	}, [dirtyCount, phase, save]);
 
+	const saveHint = /Mac|iPhone|iPad/.test((navigator.platform || '') + (navigator.userAgent || '')) ? '\u2318S' : 'Ctrl S';
+
 	const fmtSaved = (d) => {
 		if (!d) return null;
 		const m = Math.round((Date.now() - d.getTime()) / 60000);
 		/* translators: %d: number of minutes. */
-		return m < 1 ? __( 'just now', 'hatch-bridge' ) : sprintf( _n( '%d minute ago', '%d minutes ago', m, 'hatch-bridge' ), m );
+		return m < 1 ? __( 'just now', 'hatch-connect' ) : sprintf( _n( '%d minute ago', '%d minutes ago', m, 'hatch-connect' ), m );
 	};
+
+	/* On a narrow screen the strip scrolls sideways: keep the active tab visible. */
+	useEffect(() => {
+		const el = tabRefs.current[tab];
+		const strip = el && el.parentElement;
+		if (!el || !strip || strip.scrollWidth <= strip.clientWidth) return;
+		const target = el.offsetLeft - (strip.clientWidth - el.offsetWidth) / 2;
+		const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		strip.scrollTo({ left: Math.max(0, target), behavior: reduce ? 'auto' : 'smooth' });
+	}, [tab]);
 
 	const Current = TABS.find((t) => t.id === tab)?.Component || Connection;
 	const onTabKey = (e) => {
@@ -190,10 +240,10 @@ function App() {
 			{/* Header */}
 			<div style={{ textAlign: 'center', padding: '32px 16px 0' }}>
 				<h1 style={{ fontSize: 24, fontWeight: 600, color: 'var(--hx-fg)', lineHeight: 1.2, margin: 0, padding: 0 }}>
-					{ __( 'Hatch', 'hatch-bridge' ) }
+					{ __( 'Hatch', 'hatch-connect' ) }
 				</h1>
 				<p style={{ fontSize: 14, color: 'var(--hx-subtle)', margin: '6px 0 0' }}>
-					{ __( 'Connect this WordPress site to a fast frontend on Cloudflare.', 'hatch-bridge' ) }
+					{ __( 'Connect this WordPress site to a fast frontend on Cloudflare.', 'hatch-connect' ) }
 				</p>
 
 				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
@@ -206,25 +256,16 @@ function App() {
 							color: 'var(--hx-subtle)',
 						}}
 					>
-						{ /* translators: %s: plugin version number, for example 1.0.0. */ sprintf( __( 'Version %s', 'hatch-bridge' ), boot.version || '' ) }
+						{ /* translators: %s: plugin version number, for example 1.0.0. */ sprintf( __( 'Version %s', 'hatch-connect' ), boot.version || '' ) }
 					</span>
 					<button
 						type="button"
 						className="hx-theme-toggle"
 						onClick={toggleTheme}
-						aria-label={ theme === 'dark' ? __( 'Switch to the light theme', 'hatch-bridge' ) : __( 'Switch to the dark theme', 'hatch-bridge' ) }
-						title={ theme === 'dark' ? __( 'Light theme', 'hatch-bridge' ) : __( 'Dark theme', 'hatch-bridge' ) }
+						aria-label={ theme === 'dark' ? __( 'Switch to the light theme', 'hatch-connect' ) : __( 'Switch to the dark theme', 'hatch-connect' ) }
+						title={ theme === 'dark' ? __( 'Light theme', 'hatch-connect' ) : __( 'Dark theme', 'hatch-connect' ) }
 					>
-						{theme === 'dark' ? (
-							<HxIcon size={14} sw={2}>
-								<circle cx="12" cy="12" r="4" />
-								<path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-							</HxIcon>
-						) : (
-							<HxIcon size={14} sw={2}>
-								<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-							</HxIcon>
-						)}
+						<HxIcon size={14} sw={2}>{theme === 'dark' ? IC.sun : IC.moon}</HxIcon>
 					</button>
 				</div>
 			</div>
@@ -235,16 +276,16 @@ function App() {
 					className="hx-tabstrip"
 					style={{
 						display: 'inline-flex',
+						position: 'relative',
 						maxWidth: '100%',
 						overflowX: 'auto',
 						background: 'var(--hx-surface-2)',
 						borderRadius: 999,
 						padding: 4,
 						gap: 2,
-						border: '1px solid var(--hx-border)',
 					}}
 					role="tablist"
-					aria-label={ __( 'Hatch settings', 'hatch-bridge' ) }
+					aria-label={ __( 'Hatch settings', 'hatch-connect' ) }
 					onKeyDown={onTabKey}
 				>
 					{TABS.map(({ id, label }) => {
@@ -261,20 +302,28 @@ function App() {
 								tabIndex={active ? 0 : -1}
 								onClick={() => setTab(id)}
 								style={{
+									position: 'relative',
 									padding: '8px 16px',
 									borderRadius: 999,
-									border: 'none',
+									border: '1.5px solid transparent',
+									boxShadow: active ? 'var(--hx-shadow-1)' : 'none',
 									background: active ? 'var(--hx-surface)' : 'transparent',
 									color: active ? 'var(--hx-fg)' : 'var(--hx-subtle)',
 									fontWeight: active ? 600 : 500,
 									fontSize: 13,
 									cursor: 'pointer',
 									fontFamily: 'inherit',
-									boxShadow: active ? '0 1px 4px rgba(0,0,0,.1), 0 0 0 0.5px rgba(0,0,0,.06)' : 'none',
+									transition: 'background .2s var(--hx-ease), box-shadow .2s var(--hx-ease), color .2s var(--hx-ease)',
 									whiteSpace: 'nowrap',
 								}}
 							>
 								{label()}
+								{attention[id] && !active && (
+									<>
+										<span className="hx-tab-dot" aria-hidden="true" />
+										<span className="screen-reader-text">{ __( 'Needs attention', 'hatch-connect' ) }</span>
+									</>
+								)}
 							</button>
 						);
 					})}
@@ -282,7 +331,7 @@ function App() {
 			</div>
 
 			{/* ── Tab content ──────────────────────────────────────────── */}
-			<div style={{ maxWidth: 760, margin: '24px auto 0', padding: '0 16px' }}>
+			<div style={{ maxWidth: 792, margin: '24px auto 0', padding: '0 16px' }}>
 				<div
 					key={tab}
 					className="hatch-tab-enter"
@@ -312,18 +361,18 @@ function App() {
 					gap: 12,
 				}}
 			>
-				<a href={setupUrl} className="hatch-foot-link">{ __( 'Open the setup screen', 'hatch-bridge' ) }</a>
+				<a href={setupUrl} className="hatch-foot-link">{ __( 'Run the setup guide again', 'hatch-connect' ) }</a>
 				<span style={{ fontSize: 12, color: 'var(--hx-subtle)' }}>
-					{ lastSaved ? /* translators: %s: how long ago, for example "2 minutes ago". */ sprintf( __( 'Saved %s', 'hatch-bridge' ), fmtSaved( lastSaved ) ) : '' }
+					{ lastSaved ? /* translators: %s: how long ago, for example "2 minutes ago". */ sprintf( __( 'Saved %s', 'hatch-connect' ), fmtSaved( lastSaved ) ) : '' }
 				</span>
 			</div>
 
-			{/* Floating save bar */}
+			{/* Floating save bar: dark pill, 24px up, bottom-centre (DESIGN-SYSTEM.md section 1). */}
 			{(dirtyCount > 0 || phase !== 'idle') && (
 				<div
 					className="hatch-save-bar"
 					role="region"
-					aria-label={ __( 'Unsaved changes', 'hatch-bridge' ) }
+					aria-label={ __( 'Unsaved changes', 'hatch-connect' ) }
 					style={{
 						position: 'fixed',
 						bottom: 24,
@@ -331,53 +380,48 @@ function App() {
 						transform: 'translateX(-50%)',
 						zIndex: 200,
 						maxWidth: 'calc(100vw - 24px)',
-						borderRadius: 12,
-						boxShadow: '0 8px 32px rgba(0,0,0,.16), 0 2px 8px rgba(0,0,0,.1)',
+						borderRadius: 999,
+						boxShadow: 'var(--hx-shadow-bar)',
 						display: 'flex',
 						alignItems: 'center',
 						justifyContent: 'center',
 						flexWrap: 'wrap',
-						gap: 12,
-						background: '#18181b',
-						border: '1px solid rgba(255,255,255,.08)',
-						padding: '12px 16px',
+						gap: '8px 12px',
+						background: phase === 'saved' ? 'var(--hx-success-soft)' : 'var(--hx-bar)',
+						color: phase === 'saved' ? 'var(--hx-fg)' : 'var(--hx-bar-fg)',
+						border: `1px solid ${phase === 'saved' ? 'var(--hx-success-edge)' : 'var(--hx-bar-line)'}`,
+						padding: '8px 10px 8px 20px',
+						transition: 'background .2s var(--hx-ease), border-color .2s var(--hx-ease)',
 					}}
 				>
 					{phase === 'saved' && (
-						<span role="status" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500, color: '#ffffff' }}>
-							<HxIcon size={16} color="#22c55e" sw={2.5}>
-								<polyline points="20 6 9 17 4 12" />
-							</HxIcon>
-							{ __( 'Saved.', 'hatch-bridge' ) }
+						<span role="status" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, paddingInlineEnd: 10 }}>
+							<HxIcon size={16} color="var(--hx-success)" sw={2.5}>{IC.check}</HxIcon>
+							{ __( 'Saved.', 'hatch-connect' ) }
 						</span>
 					)}
 					{phase === 'saving' && (
-						<span role="status" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500, color: '#ffffff' }}>
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'hxSpin 0.8s linear infinite' }}>
-								<path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity="0.2" />
-								<path d="M21 12a9 9 0 01-9 9" />
-							</svg>
-							{ __( 'Saving...', 'hatch-bridge' ) }
+						<span role="status" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500, paddingInlineEnd: 10 }}>
+							<HxIcon size={16} sw={2} style={{ animation: 'hxSpin 0.8s linear infinite' }}>{IC.loaderCircle}</HxIcon>
+							{ __( 'Saving...', 'hatch-connect' ) }
 						</span>
 					)}
 					{phase === 'error' && (
-						<span role="alert" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500, color: '#ffffff', flexWrap: 'wrap' }}>
-							<HxIcon size={16} color="#f87171" sw={2.5}>
-								<line x1="18" y1="6" x2="6" y2="18" />
-								<line x1="6" y1="6" x2="18" y2="18" />
-							</HxIcon>
-							{ saveError || __( 'Your changes were not saved.', 'hatch-bridge' ) }
-							<button type="button" onClick={save} className="hatch-sb-retry">{ __( 'Try again', 'hatch-bridge' ) }</button>
+						<span role="alert" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500, flexWrap: 'wrap' }}>
+							<HxIcon size={16} color="var(--hx-danger)" sw={2.5}>{IC.circleAlert}</HxIcon>
+							{ saveError || __( 'Your changes were not saved.', 'hatch-connect' ) }
+							<button type="button" onClick={save} className="hatch-sb-retry">{ __( 'Try again', 'hatch-connect' ) }</button>
 						</span>
 					)}
 					{phase === 'idle' && dirtyCount > 0 && (
 						<>
-							<span style={{ fontSize: 13, color: '#ffffff', fontWeight: 500 }}>
-								{ /* translators: %d: number of unsaved changes. */ sprintf( _n( '%d unsaved change', '%d unsaved changes', dirtyCount, 'hatch-bridge' ), dirtyCount ) }
+							<span style={{ fontSize: 13, fontWeight: 500 }}>
+								{ /* translators: %d: number of unsaved changes. */ sprintf( _n( '%d unsaved change', '%d unsaved changes', dirtyCount, 'hatch-connect' ), dirtyCount ) }
 							</span>
+							<kbd className="hatch-sb-kbd" aria-hidden="true">{saveHint}</kbd>
 							<div style={{ display: 'flex', gap: 6 }}>
-								<button type="button" onClick={discard} className="hatch-sb-discard">{ __( 'Discard', 'hatch-bridge' ) }</button>
-								<button type="button" onClick={save} className="hatch-sb-save">{ __( 'Save changes', 'hatch-bridge' ) }</button>
+								<button type="button" onClick={discard} className="hatch-sb-discard">{ __( 'Discard', 'hatch-connect' ) }</button>
+								<button type="button" onClick={save} className="hatch-sb-save" aria-keyshortcuts="Control+S Meta+S">{ __( 'Save changes', 'hatch-connect' ) }</button>
 							</div>
 						</>
 					)}

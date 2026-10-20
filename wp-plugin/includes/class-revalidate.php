@@ -65,6 +65,51 @@ class Hatch_Revalidate {
 	private $option_dirty = false;
 
 	/**
+	 * Is this a hatch_* option that records state rather than site content?
+	 *
+	 * These change without any visible change to the frontend: the 15 minute
+	 * heartbeat result, the connection probe, deploy and credential state. If
+	 * they marked a request dirty, the site would send a purge-everything
+	 * webhook to the frontend on every heartbeat and defeat its edge cache.
+	 *
+	 * @param string $option Option name.
+	 * @return bool
+	 */
+	public static function is_bookkeeping_option( string $option ): bool {
+		$exact = array(
+			'hatch_design_last_saved',
+			'hatch_last_revalidate_at',
+			'hatch_connected',
+			'hatch_disconnect_note',
+			'hatch_last_webhook_ack',
+			'hatch_last_webhook_ack_status',
+			'hatch_cf_worker_state',
+			'hatch_webhook_secret',
+			'hatch_revalidate_secret',
+			'hatch_jwt_secret',
+			'hatch_htaccess_hash',
+			'hatch_mu_issue',
+			'hatch_wp_frontend_user',
+			'hatch_enc_token_wpfrontend',
+			'hatch_deployed_frontend_version',
+			'hatch_first_run_redirected',
+			'hatch_setup_wizard_completed',
+			'hatch_forms_submissions_schema',
+			'hatch_detected_host',
+			'hatch_previous_stylesheet',
+		);
+		if ( in_array( $option, $exact, true ) ) {
+			return true;
+		}
+		foreach ( array( 'hatch_heartbeat_', 'hatch_enc_token_', 'hatch_deploy_' ) as $prefix ) {
+			if ( 0 === strpos( $option, $prefix ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Called on every option update. Marks the request dirty if the option
 	 * name is one we own; the flush happens once on shutdown.
 	 *
@@ -80,7 +125,7 @@ class Hatch_Revalidate {
 		// Skip our own bookkeeping keys to prevent recursive updated_option
 		// cascades (this handler writes hatch_design_last_saved and Hatch_
 		// Revalidate::fire writes hatch_last_revalidate_at).
-		if ( 'hatch_design_last_saved' === $option || 'hatch_last_revalidate_at' === $option ) {
+		if ( self::is_bookkeeping_option( $option ) ) {
 			return;
 		}
 		if ( $old_value === $new_value ) {
@@ -101,7 +146,7 @@ class Hatch_Revalidate {
 		if ( ! is_string( $option ) || 0 !== strpos( $option, 'hatch_' ) ) {
 			return;
 		}
-		if ( 'hatch_design_last_saved' === $option || 'hatch_last_revalidate_at' === $option ) {
+		if ( self::is_bookkeeping_option( $option ) ) {
 			return;
 		}
 		$this->option_dirty = true;
@@ -321,7 +366,7 @@ class Hatch_Revalidate {
 		if ( ! self::endpoint_allowed( $url ) ) {
 			return new WP_Error(
 				'hatch_endpoint_not_allowed',
-				__( 'The revalidate webhook URL must use https.', 'hatch-bridge' )
+				__( 'The revalidate webhook URL must use https.', 'hatch-connect' )
 			);
 		}
 		$host     = (string) wp_parse_url( $url, PHP_URL_HOST );

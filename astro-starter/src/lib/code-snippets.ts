@@ -1,34 +1,38 @@
 /**
- * Code Injection — head / body-start / body-end snippets for the Astro
- * frontend. Reads from /hatch/v1/code-snippets (public endpoint).
+ * Analytics and verification tags for the Astro frontend. Reads the Google Tag
+ * Manager container id from /hatch/v1/code-snippets and the search-engine
+ * verification tags from /hatch/v1/seo-meta.
  *
- * v0.50.31 — GA4, Plausible, Meta Pixel builders DELETED per the "Hatch
- * ships only Google Tag Manager" rule. Users who want other tags add them
- * inside their GTM container; users who need raw HTML inject via the WPCode
- * plugin (auto-detected by Plugin Bridge). One way to do it, no zombie
- * surface area.
- *
- * Head/body_start/body_end fields remain ONLY for SEO-plugin verification
- * meta and raw HTML pasted by WP-side plugins (not by Hatch admin UI).
+ * The markup is built here from validated values only. The frontend never
+ * renders raw HTML or script text that arrives from WordPress, so a stored
+ * value can never become executable code on the page.
  */
 
 import { WP_API_URL } from 'astro:env/server';
 const WP_API = WP_API_URL;
 
 interface RawSnippets {
-  head?: string;
-  body_start?: string;
-  body_end?: string;
   gtm_id?: string;
 }
 
 export interface CodeSnippets {
   head: string;
   bodyStart: string;
-  bodyEnd: string;
 }
 
-const EMPTY: CodeSnippets = { head: '', bodyStart: '', bodyEnd: '' };
+const EMPTY: CodeSnippets = { head: '', bodyStart: '' };
+
+/** A Google Tag Manager container id, e.g. GTM-ABC123. Anything else is dropped. */
+const GTM_ID = /^GTM-[A-Z0-9]{4,12}$/;
+const META_NAME = /^[a-z0-9:._-]{1,64}$/i;
+
+function escapeAttr(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
 
 async function fetchSnippets(): Promise<RawSnippets> {
   if (!WP_API) return {};
@@ -47,7 +51,7 @@ async function fetchSnippets(): Promise<RawSnippets> {
 
 /** Google Tag Manager — the ONLY analytics integration Hatch ships. */
 function buildGtmHead(id: string): string {
-  if (!id) return '';
+  if (!GTM_ID.test(id)) return '';
   return `<!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -57,7 +61,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 }
 
 function buildGtmBodyStart(id: string): string {
-  if (!id) return '';
+  if (!GTM_ID.test(id)) return '';
   return `<!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${id}"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>`;
@@ -81,9 +85,10 @@ function buildVerificationMeta(items: SeoMeta['verification']): string {
   return items
     .map((v) => {
       const name = PROVIDER_NAME[v.provider] || v.provider;
-      const content = String(v.content).replace(/"/g, '&quot;');
-      return `<meta name="${name}" content="${content}" />`;
+      if (!META_NAME.test(name)) return '';
+      return `<meta name="${escapeAttr(name)}" content="${escapeAttr(String(v.content))}" />`;
     })
+    .filter(Boolean)
     .join('\n');
 }
 
@@ -103,21 +108,17 @@ async function fetchSeoMeta(): Promise<SeoMeta> {
 }
 
 /**
- * Build all three slots. Called once per request from PageLayout.
+ * Build the head and body-start slots. Called once per request from PageLayout.
  *
- * @returns { head, bodyStart, bodyEnd } — raw HTML strings ready for set:html.
+ * @returns { head, bodyStart } - markup assembled here from validated values.
  */
 export async function getCodeSnippets(): Promise<CodeSnippets> {
   const [raw, seoMeta] = await Promise.all([fetchSnippets(), fetchSeoMeta()]);
   if (!raw && !seoMeta) return EMPTY;
 
-  const gtmHead    = buildGtmHead(raw.gtm_id || '');
-  const gtmBody    = buildGtmBodyStart(raw.gtm_id || '');
-  const verifyMeta = buildVerificationMeta(seoMeta?.verification);
+  const gtmId      = String(raw.gtm_id || '').trim().toUpperCase();
+  const head       = [buildVerificationMeta(seoMeta?.verification), buildGtmHead(gtmId)].filter(Boolean).join('\n');
+  const bodyStart  = buildGtmBodyStart(gtmId);
 
-  const head      = [verifyMeta, gtmHead, raw.head || ''].filter(Boolean).join('\n');
-  const bodyStart = [gtmBody, raw.body_start || ''].filter(Boolean).join('\n');
-  const bodyEnd   = (raw.body_end || '').trim();
-
-  return { head, bodyStart, bodyEnd };
+  return { head, bodyStart };
 }

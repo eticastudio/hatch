@@ -1,4 +1,5 @@
-import { HxCard, HxHead, HxRow, HxToggle, HxBtn, HxIcon, HxBadge, HxField, HxNativeInput, Chip } from '../components.jsx';
+import { HxDisclosure, HxCard, HxHead, HxRow, HxToggle, HxBtn, HxIcon, HxBadge, HxField, HxInp, Chip } from '../components.jsx';
+import { IC } from '../icons';
 import { useState, useMemo } from 'react';
 import { __, sprintf } from '@wordpress/i18n';
 
@@ -31,38 +32,38 @@ const FORTRESS_KEYS = [
 const getFortressChips = () => [
 	{
 		key: 'block_xmlrpc',
-		label: __( 'XML-RPC blocked', 'hatch-bridge' ),
-		title: __( '/xmlrpc.php returns 403. Apps that still use XML-RPC will stop working.', 'hatch-bridge' ),
+		label: __( 'Old remote access closed', 'hatch-connect' ),
+		title: __( 'Blocks XML-RPC, an old WordPress feature that attackers like to try. Apps that still use it will stop working.', 'hatch-connect' ),
 	},
 	{
 		key: 'disable_rest_users',
-		label: __( 'Usernames hidden from REST', 'hatch-bridge' ),
-		title: __( 'The /wp/v2/users REST route is closed to signed-out visitors, so usernames are not listed.', 'hatch-bridge' ),
+		label: __( 'Usernames hidden', 'hatch-connect' ),
+		title: __( 'Signed-out visitors can no longer get a list of your usernames.', 'hatch-connect' ),
 	},
 	{
 		key: 'disable_file_edit',
-		label: __( 'Editors and updates locked', 'hatch-bridge' ),
-		title: __( 'Turns off the theme and plugin file editors and blocks installing or updating plugins and themes from wp-admin.', 'hatch-bridge' ),
+		label: __( 'Code editors and updates locked', 'hatch-connect' ),
+		title: __( 'Turns off the theme and plugin code editors, and blocks installing or updating plugins and themes from the dashboard.', 'hatch-connect' ),
 	},
 	{
 		key: 'app_password_only',
-		label: __( 'Application Password for writes', 'hatch-bridge' ),
-		title: __( 'Creating, changing or deleting content through the REST API needs an Application Password. Hatch\'s own routes use their own checks.', 'hatch-bridge' ),
+		label: __( 'Changes need an Application Password', 'hatch-connect' ),
+		title: __( 'Apps that create, change or delete content must sign in with an Application Password (a separate password made for one app). Editing in the WordPress dashboard keeps working. Hatch has its own checks.', 'hatch-connect' ),
 	},
 	{
 		key: 'headers',
-		label: __( 'Security headers', 'hatch-bridge' ),
-		title: __( 'Sends HSTS (on HTTPS), X-Frame-Options, nosniff, Referrer-Policy and Permissions-Policy on WordPress pages and the login page.', 'hatch-bridge' ),
+		label: __( 'Security headers', 'hatch-connect' ),
+		title: __( 'Adds extra safety instructions that browsers follow on your WordPress pages and login page, such as forcing https and blocking other sites from framing your pages.', 'hatch-connect' ),
 	},
 	{
 		key: 'hide_wp_version',
-		label: __( 'WordPress version hidden', 'hatch-bridge' ),
-		title: __( 'Removes the generator tag and the ?ver= query string from CSS and JavaScript links.', 'hatch-bridge' ),
+		label: __( 'WordPress version hidden', 'hatch-connect' ),
+		title: __( 'Stops WordPress from telling the world which version you run, so attackers cannot target known weaknesses.', 'hatch-connect' ),
 	},
 	{
 		key: 'disable_directory_browsing',
-		label: __( 'Directory listings off', 'hatch-bridge' ),
-		title: __( 'Requests for a bare uploads folder return 403. On Apache, Options -Indexes is also added to the uploads .htaccess.', 'hatch-bridge' ),
+		label: __( 'Folder listings off', 'hatch-connect' ),
+		title: __( 'Visitors cannot browse the list of files in your uploads folder.', 'hatch-connect' ),
 	},
 ];
 
@@ -71,7 +72,6 @@ export default function Security({ state, onDirty, setSetting }) {
 	const ts  = state.turnstile || {};
 	const fortressChips = useMemo( () => getFortressChips(), [] );
 	const hasTsKeys = !!(ts.site_key && ts.secret_key);
-	const [advancedOpen, setAdvancedOpen] = useState(false);
 
 	const fortressOn = !!sec.fortress_mode;
 	const anyAdvancedDivergent = useMemo(
@@ -107,18 +107,6 @@ export default function Security({ state, onDirty, setSetting }) {
 
 	const setup     = state.setup || {};
 
-	const inp = {
-		height: 36,
-		padding: '0 10px',
-		borderRadius: 8,
-		border: '1px solid var(--hx-border-2)',
-		fontSize: 13,
-		outline: 'none',
-		fontFamily: 'inherit',
-		color: 'var(--hx-fg)',
-		background: 'var(--hx-surface)',
-		boxSizing: 'border-box',
-	};
 
 	return (
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -130,23 +118,20 @@ export default function Security({ state, onDirty, setSetting }) {
 			    pill primitive. */}
 			<HxCard>
 				<HxHead
-					iconChildren={<>
-						<path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3z" />
-						<path d="M9 12l2 2 4-4" />
-					</>}
-					iconColor={fortressOn ? '#16a34a' : 'var(--hx-muted)'}
-					title={ __( 'Fortress Mode', 'hatch-bridge' ) }
-						desc={ __( 'One switch turns on every protection listed below. Visitors only use your frontend, so XML-RPC and the user list can be closed to the public.', 'hatch-bridge' ) }
+					iconChildren={IC.shieldCheck}
+					iconColor={fortressOn ? '#16a34a' : '#737373'}
+					title={ __( 'Fortress Mode', 'hatch-connect' ) }
+						desc={ __( 'One switch turns on every protection below. Your visitors use the frontend, so WordPress can close the doors it no longer needs.', 'hatch-connect' ) }
 					mb={16}
 					action={
 						<div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
 							<HxBadge color={fortressOn ? 'green' : 'neutral'}>
-								{fortressOn ? __( 'Active', 'hatch-bridge' ) : __( 'Off', 'hatch-bridge' )}
+								{fortressOn ? __( 'Active', 'hatch-connect' ) : __( 'Off', 'hatch-connect' )}
 							</HxBadge>
 							{anyAdvancedDivergent && (
-								<HxBadge color="yellow">{ __( 'Advanced overrides', 'hatch-bridge' ) }</HxBadge>
+								<HxBadge color="yellow">{ __( 'Custom choices', 'hatch-connect' ) }</HxBadge>
 							)}
-							<HxToggle on={fortressOn} onChange={toggleFortress} ariaLabel={ __( 'Enable Fortress Mode', 'hatch-bridge' ) } />
+							<HxToggle on={fortressOn} onChange={toggleFortress} ariaLabel={ __( 'Enable Fortress Mode', 'hatch-connect' ) } />
 						</div>
 					}
 				/>
@@ -156,14 +141,14 @@ export default function Security({ state, onDirty, setSetting }) {
 				    and every other picker in the admin. */}
 				<div
 					role="list"
-					aria-label={ __( 'Fortress protections', 'hatch-bridge' ) }
+					aria-label={ __( 'Fortress protections', 'hatch-connect' ) }
 					style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}
 				>
 					{fortressChips.map((chip) => {
 						const on = fortressOn && !!sec['fortress_' + chip.key];
 						return (
 							<span key={chip.key} role="listitem" title={chip.title}>
-								<Chip label={chip.label} active={on} onClick={() => {}} />
+								<Chip label={chip.label} active={on} readOnly />
 							</span>
 						);
 					})}
@@ -172,27 +157,8 @@ export default function Security({ state, onDirty, setSetting }) {
 				{/* Advanced collapsible: per-feature HxRow list. Matches every
 				    other setting-row in the admin. */}
 				<div style={{ marginTop: 16, borderTop: '1px solid var(--hx-border)', paddingTop: 14 }}>
-					<button
-						type="button"
-						onClick={() => setAdvancedOpen((v) => !v)}
-						aria-expanded={advancedOpen}
-						aria-controls="hatch-fortress-advanced"
-						style={{
-							background: 'transparent', border: 'none', padding: 0,
-							cursor: 'pointer', color: 'var(--hx-muted)',
-							fontSize: 12.5, fontWeight: 600, fontFamily: 'inherit',
-							display: 'inline-flex', alignItems: 'center', gap: 6,
-							outline: 'none',
-						}}
-					>
-						<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transform: advancedOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform var(--hx-ease, 200ms ease)' }}>
-							<polyline points="9 18 15 12 9 6" />
-						</svg>
-						{ __( 'Advanced (per-feature toggles)', 'hatch-bridge' ) }
-						</button>
-					{advancedOpen && (
-						<div id="hatch-fortress-advanced" style={{ marginTop: 6 }}>
-							{fortressChips.map((chip, i) => (
+					<HxDisclosure label={ __( 'Choose protections one by one', 'hatch-connect' ) }>
+						{fortressChips.map((chip, i) => (
 								<HxRow
 									key={chip.key}
 									label={chip.label}
@@ -205,60 +171,39 @@ export default function Security({ state, onDirty, setSetting }) {
 									/>
 								</HxRow>
 							))}
-						</div>
-					)}
+					</HxDisclosure>
 				</div>
 			</HxCard>
 
 			{/* REST API hardening: tight, scannable */}
 			<HxCard>
-				<div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 20 }} data-hatch-card-head="attack-surface">
-					<div
-						aria-hidden="true"
-						style={{
-							flex: '0 0 auto',
-							width: 44,
-							height: 44,
-							borderRadius: 12,
-							display: 'grid',
-							placeItems: 'center',
-							background: 'color-mix(in oklab, #2563eb 12%, var(--hx-surface-2, var(--hx-surface)))',
-							color: 'var(--hx-info)',
-							boxShadow: 'inset 0 0 0 1px var(--hx-border)',
-						}}
-					>
-						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-							<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-						</svg>
-					</div>
-					<div style={{ flex: 1, paddingTop: 1 }}>
-						<div className="hx-title" style={{ color: 'var(--hx-fg)' }}>{ __( 'WordPress attack surface', 'hatch-bridge' ) }</div>
-						<div className="hx-byline" style={{ color: 'var(--hx-subtle)', marginTop: 3 }}>
-							{ __( 'Close endpoints that WordPress opens by default and a headless site does not need.', 'hatch-bridge' ) }
-						</div>
-					</div>
-				</div>
+				<HxHead
+					iconChildren={IC.shield}
+					iconColor="#2563eb"
+					title={ __( 'WordPress doors to close', 'hatch-connect' ) }
+					desc={ __( 'Close the access points WordPress opens by default that your site does not need.', 'hatch-connect' ) }
+				/>
 				<HxRow
-					label={ __( 'Lock the REST API', 'hatch-bridge' ) }
-					desc={ __( 'Signed-out requests to /wp-json/ return 401, except a short list of public Hatch routes your frontend needs. Requests that sign in with an Application Password still work.', 'hatch-bridge' ) }
+					label={ __( 'Lock the WordPress data feed', 'hatch-connect' ) }
+					desc={ __( 'Signed-out visitors cannot read your WordPress data directly. A short list of routes your frontend needs stays open, and apps that sign in with an Application Password still work.', 'hatch-connect' ) }
 				>
 					<HxToggle on={!!sec.block_rest} onChange={onToggle('security.block_rest')} />
 				</HxRow>
 				<HxRow
-					label={ __( 'Block XML-RPC', 'hatch-bridge' ) }
-					desc={ __( '/xmlrpc.php returns 403. Attackers often use it to try many passwords in a single request.', 'hatch-bridge' ) }
+					label={ __( 'Close the old remote access (XML-RPC)', 'hatch-connect' ) }
+					desc={ __( 'Attackers often use it to try many passwords in one request. Most sites do not need it.', 'hatch-connect' ) }
 				>
 					<HxToggle on={!!sec.disable_xmlrpc} onChange={onToggle('security.disable_xmlrpc')} />
 				</HxRow>
 				<HxRow
-					label={ __( 'Hide usernames', 'hatch-bridge' ) }
-					desc={ __( 'Author URLs such as /?author=1 return 404 and /wp-json/wp/v2/users returns 401 for signed-out visitors. This makes it harder to find valid usernames.', 'hatch-bridge' ) }
+					label={ __( 'Hide usernames', 'hatch-connect' ) }
+					desc={ __( 'Hides your usernames from signed-out visitors, which makes it harder to guess a login.', 'hatch-connect' ) }
 				>
 					<HxToggle on={!!sec.block_enum} onChange={onToggle('security.block_enum')} />
 				</HxRow>
 				<HxRow
-					label={ __( 'Keep this site out of search results', 'hatch-bridge' ) }
-					desc={ __( 'Adds a noindex tag to WordPress pages and a Disallow rule to robots.txt, so only your frontend is indexed.', 'hatch-bridge' ) }
+					label={ __( 'Keep this site out of search results', 'hatch-connect' ) }
+					desc={ __( 'Asks search engines to skip your WordPress address, so only your frontend shows up in search.', 'hatch-connect' ) }
 					last
 				>
 					<HxToggle on={!!sec.noindex_cms} onChange={onToggle('security.noindex_cms')} />
@@ -267,29 +212,22 @@ export default function Security({ state, onDirty, setSetting }) {
 
 			{/* Role guard */}
 			<HxCard>
-				<div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-					<HxHead
-						iconChildren={<>
-							<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-							<circle cx="9" cy="7" r="4" />
-							<path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
-						</>}
-						iconColor="#8b5cf6"
-						title={ __( 'Restrict wp-admin access', 'hatch-bridge' ) }
-						desc={ __( 'People whose role is not on the list are sent to the frontend when they sign in. Subscribers and customers never see the dashboard.', 'hatch-bridge' ) }
-						mb={0}
-					/>
-					<HxToggle on={!!sec.role_guard} onChange={onToggle('security.role_guard')} ariaLabel={ __( 'Restrict wp-admin access', 'hatch-bridge' ) } />
-				</div>
+				<HxHead
+					iconChildren={IC.users}
+					iconColor="#8b5cf6"
+					title={ __( 'Keep some people out of the dashboard', 'hatch-connect' ) }
+					desc={ __( 'People whose role is not on the list are sent to the frontend when they sign in. Subscribers and customers never see the WordPress dashboard.', 'hatch-connect' ) }
+					mb={0}
+					nowrap
+					action={<HxToggle on={!!sec.role_guard} onChange={onToggle('security.role_guard')} ariaLabel={ __( 'Keep some people out of the dashboard', 'hatch-connect' ) } />}
+				/>
 				{sec.role_guard && (
 					<div style={{ paddingTop: 14, borderTop: '1px solid var(--hx-border)', marginTop: 16 }}>
-						<HxField label={ __( 'Roles allowed in wp-admin', 'hatch-bridge' ) } help={ __( 'Comma-separated role slugs. Administrators are always allowed, so you cannot lock yourself out.', 'hatch-bridge' ) }>
-							<HxNativeInput
-								type="text"
+						<HxField label={ __( 'Roles allowed in wp-admin', 'hatch-connect' ) } help={ __( 'Roles separated by commas, for example editor, author. Administrators are always allowed, so you cannot lock yourself out.', 'hatch-connect' ) }>
+							<HxInp
 								value={sec.allowed_roles || 'administrator, editor, author'}
 								onChange={onText('security.allowed_roles')}
-								style={{ ...inp, width: '100%' }}
-							/>
+								/>
 						</HxField>
 					</div>
 				)}
@@ -298,31 +236,29 @@ export default function Security({ state, onDirty, setSetting }) {
 			{/* Brute-force lockout */}
 			<HxCard>
 				<HxHead
-					iconChildren={<>
-						<rect x="5" y="2" width="14" height="20" rx="2" />
-						<line x1="12" y1="18" x2="12.01" y2="18" />
-					</>}
+					iconChildren={IC.shieldBan}
 					iconColor="#ef4444"
-					title={ __( 'Brute-force lockout', 'hatch-bridge' ) }
-					desc={ __( 'Blocks logins from an IP address after too many failed attempts. The defaults stop bots and rarely affect real users.', 'hatch-bridge' ) }
+					title={ __( 'Lock out repeated wrong passwords', 'hatch-connect' ) }
+					desc={ __( 'Blocks a visitor after too many failed sign-ins. The defaults stop bots and rarely bother real people.', 'hatch-connect' ) }
 				/>
 				<div className="hx-grid-cols-2" style={{ gap: 14 }}>
-					<HxField label={ __( 'Failed attempts before lockout', 'hatch-bridge' ) } help={ __( 'Between 3 and 20. Raise it if your team often mistypes passwords.', 'hatch-bridge' ) }>
-						<HxNativeInput
+					<HxField label={ __( 'Failed attempts before lockout', 'hatch-connect' ) } help={ __( 'Choose 3 to 20. Raise it if your team often mistypes passwords.', 'hatch-connect' ) }>
+						<HxInp
 							type="number"
-							min="3" max="20"
+							min="3"
+							max="20"
 							value={sec.bf_threshold || 5}
 							onChange={onText('security.bf_threshold')}
-							style={{ ...inp, width: '100%' }}
-						/>
+							/>
 					</HxField>
-					<HxField label={ __( 'Lockout window (minutes)', 'hatch-bridge' ) } help={ __( 'Between 5 and 240. An IP stays blocked for this long after its last failed attempt.', 'hatch-bridge' ) }>
-						<HxNativeInput
+					<HxField label={ __( 'Lockout window (minutes)', 'hatch-connect' ) } help={ __( 'Choose 5 to 240 minutes. A blocked visitor can try again after this long.', 'hatch-connect' ) }>
+						<HxInp
 							type="number"
-							min="5" max="240" value={sec.bf_window || 60}
+							min="5"
+							max="240"
+							value={sec.bf_window || 60}
 							onChange={onText('security.bf_window')}
-							style={{ ...inp, width: '100%' }}
-						/>
+							/>
 					</HxField>
 				</div>
 			</HxCard>
@@ -332,18 +268,15 @@ export default function Security({ state, onDirty, setSetting }) {
 			    Each toggle is gated on keys being present. */}
 			<HxCard>
 				<HxHead
-					iconChildren={<>
-						<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-						<circle cx="12" cy="11" r="2" />
-					</>}
+					iconChildren={IC.bot}
 					iconColor="#0d9488"
-					title={ __( 'Bot & spam protection', 'hatch-bridge' ) }
-					desc={ __( 'Cloudflare Turnstile is a CAPTCHA alternative that usually needs no puzzle. Enter your keys once in the Content tab, then choose where to use it below.', 'hatch-bridge' ) }
-					action={<HxBadge color={hasTsKeys ? 'green' : 'yellow'}>{hasTsKeys ? __( 'Keys saved', 'hatch-bridge' ) : __( 'Keys missing', 'hatch-bridge' )}</HxBadge>}
+					title={ __( 'Bot and spam protection', 'hatch-connect' ) }
+					desc={ __( 'Cloudflare Turnstile checks that a visitor is human, usually without a puzzle. Enter your keys once in the Content tab, then choose where to use it below.', 'hatch-connect' ) }
+					action={<HxBadge color={hasTsKeys ? 'green' : 'yellow'}>{hasTsKeys ? __( 'Keys saved', 'hatch-connect' ) : __( 'Keys missing', 'hatch-connect' )}</HxBadge>}
 				/>
 				<HxRow
-					label={ __( 'Protect wp-login.php', 'hatch-bridge' ) }
-					desc={ __( 'Adds a Turnstile check to the WordPress login form, so automated login attempts are stopped before passwords are checked.', 'hatch-bridge' ) }
+					label={ __( 'Protect the WordPress sign-in page', 'hatch-connect' ) }
+					desc={ __( 'Adds a Turnstile check to the sign-in form, so bots are stopped before any password is tried.', 'hatch-connect' ) }
 				>
 					<HxToggle
 						on={!!sec.turnstile_login && hasTsKeys}
@@ -354,8 +287,8 @@ export default function Security({ state, onDirty, setSetting }) {
 					/>
 				</HxRow>
 				<HxRow
-					label={ __( 'Protect the WordPress comment form', 'hatch-bridge' ) }
-					desc={ __( 'Adds a Turnstile check to the comment form built into WordPress. Most headless sites leave this off because comments are posted from the frontend, which is protected in the Content tab.', 'hatch-bridge' ) }
+					label={ __( 'Protect the WordPress comment form', 'hatch-connect' ) }
+					desc={ __( 'Adds a Turnstile check to the comment form built into WordPress. Most sites leave this off because comments are posted from the frontend, which you protect in the Content tab.', 'hatch-connect' ) }
 					last
 				>
 					<HxToggle
@@ -367,54 +300,52 @@ export default function Security({ state, onDirty, setSetting }) {
 					/>
 				</HxRow>
 				<div className="hx-help" style={{ paddingTop: 10, color: 'var(--hx-subtle)', display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }}>
-						<a href="https://dash.cloudflare.com/?to=/:account/turnstile" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--hx-link)' }}>{ __( 'Get keys in the Cloudflare dashboard', 'hatch-bridge' ) } ↗</a>
-						<a href="?page=hatch#content" style={{ color: 'var(--hx-link)' }}>{ __( 'Enter keys in Content, Third-party keys', 'hatch-bridge' ) }</a>
+						<a href="https://dash.cloudflare.com/?to=/:account/turnstile" target="_blank" rel="noopener noreferrer" className="hx-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{ __( 'Get your keys in Cloudflare', 'hatch-connect' ) }<HxIcon size={12}>{IC.externalLink}</HxIcon></a>
+						<a href="?page=hatch#content" className="hx-link">{ __( 'Enter keys in Content, Third-party keys', 'hatch-connect' ) }</a>
 					</div>
 			</HxCard>
 
 			{/* Server-side hardening: file edits, headers, 2FA */}
 			<HxCard>
 				<HxHead
-					iconChildren={<>
-						<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-					</>}
-					iconColor="#0a0a0a"
-					title={ __( 'Server-side hardening', 'hatch-bridge' ) }
-					desc={ __( 'Extra protections that run on the WordPress server. Visitors do not see them.', 'hatch-bridge' ) }
+					iconChildren={IC.shieldCheck}
+					iconColor="#737373"
+					title={ __( 'Extra protection on your server', 'hatch-connect' ) }
+					desc={ __( 'These run on your WordPress server. Visitors do not see them.', 'hatch-connect' ) }
 				/>
 				<HxRow
-					label={ __( 'Lock file editors', 'hatch-bridge' ) }
-					desc={ __( 'Turns off the theme and plugin file editors and removes the unfiltered HTML permission, so raw script tags in posts are filtered out.', 'hatch-bridge' ) }
+					label={ __( 'Lock the code editors', 'hatch-connect' ) }
+					desc={ __( 'Turns off the theme and plugin code editors, and filters raw script code out of posts.', 'hatch-connect' ) }
 				>
 					<HxToggle on={!!sec.disallow_file_edit} onChange={onToggle('security.disallow_file_edit')} />
 				</HxRow>
 				<HxRow
-					label={ __( 'Security headers', 'hatch-bridge' ) }
-					desc={ __( 'Sends HSTS (on HTTPS), X-Frame-Options, Referrer-Policy, nosniff and Permissions-Policy on WordPress pages. On Apache it also stops PHP files in /uploads/ from running.', 'hatch-bridge' ) }
+					label={ __( 'Security headers', 'hatch-connect' ) }
+					desc={ __( 'Adds extra safety instructions that browsers follow on your WordPress pages. On Apache servers it also stops program files in your uploads folder from running.', 'hatch-connect' ) }
 				>
 					<HxToggle on={!!sec.send_headers} onChange={onToggle('security.send_headers')} />
 				</HxRow>
 				<HxRow
-					label={ __( 'Remind admins to use 2FA', 'hatch-bridge' ) }
+					label={ __( 'Remind admins to use two-factor sign-in', 'hatch-connect' ) }
 					desc={
 						!sec.twofa_provider
-							? __( 'Needs a supported two-factor plugin first, such as WP 2FA or Two-Factor.', 'hatch-bridge' )
+							? __( 'Needs a two-factor plugin first, such as WP 2FA or Two-Factor.', 'hatch-connect' )
 							: !sec.twofa_user_configured
 								/* translators: %s: name of the installed two-factor plugin. */
-								? sprintf( __( '%s is installed. Set up two-factor for your own account first.', 'hatch-bridge' ), sec.twofa_provider )
+								? sprintf( __( '%s is installed. Set up two-factor for your own account first, then turn this on.', 'hatch-connect' ), sec.twofa_provider )
 								/* translators: %s: name of the active two-factor plugin. */
-								: sprintf( __( '%s is active. Turn this on to show a reminder to Administrators who have not set up two-factor. Nothing is blocked.', 'hatch-bridge' ), sec.twofa_provider )
+								: sprintf( __( '%s is active. Turn this on to remind administrators who have not set up two-factor. Nothing is blocked.', 'hatch-connect' ), sec.twofa_provider )
 					}
 					last
 				>
 					{!sec.twofa_provider && (
-						<span title={ [ __( 'Supported plugins (install any one):', 'hatch-bridge' ), '• WP 2FA', '• Two-Factor', '• miniOrange 2FA', '• Wordfence 2FA', '• Solid Security' ].join( '\n' ) } style={{ cursor: 'help' }}>
-							<HxBadge color="neutral">{ __( 'No provider', 'hatch-bridge' ) }</HxBadge>
+						<span title={ [ __( 'Supported plugins (install any one):', 'hatch-connect' ), '• WP 2FA', '• Two-Factor', '• miniOrange 2FA', '• Wordfence 2FA', '• Solid Security' ].join( '\n' ) } style={{ cursor: 'help' }}>
+							<HxBadge color="neutral">{ __( 'No provider', 'hatch-connect' ) }</HxBadge>
 						</span>
 					)}
 					{sec.twofa_provider && !sec.twofa_user_configured && (
 						<HxBtn href={sec.twofa_settings_url || '#'} variant="ghost">
-							{ __( 'Set up', 'hatch-bridge' ) }
+							{ __( 'Set up', 'hatch-connect' ) }
 						</HxBtn>
 					)}
 					{sec.twofa_provider && sec.twofa_user_configured && (
@@ -426,33 +357,29 @@ export default function Security({ state, onDirty, setSetting }) {
 			{/* Application password: explain it and point to WordPress's own screen. */}
 			<HxCard>
 				<HxHead
-					iconChildren={<><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" /></>}
+					iconChildren={IC.keyRound}
 					iconColor="#6366f1"
-					title={ __( 'Application password', 'hatch-bridge' ) }
-					desc={ __( 'When you deploy, Hatch creates a WordPress application password named "Hatch (Cloudflare deploy)" so your Cloudflare-hosted frontend can read this site. To replace it, deploy again from the Connection tab: Hatch creates a new one and removes the old one. To revoke it right away, use your profile page. The frontend will stop working until you deploy again.', 'hatch-bridge' ) }
+					title={ __( 'Application password', 'hatch-connect' ) }
+					desc={ __( 'When you deploy, Hatch makes an application password named "Hatch (Cloudflare deploy)" (a separate password for one job) so your frontend can read this site. To replace it, deploy again from the Connection tab. To remove it right now, use your profile page. The frontend stops working until you deploy again.', 'hatch-connect' ) }
 					mb={16}
 				/>
 				<HxBtn href={setup.disclosure && setup.disclosure.appPasswordsUrl ? setup.disclosure.appPasswordsUrl : '#'} variant="ghost">
-					{ __( 'Open application passwords', 'hatch-bridge' ) }
+					{ __( 'Open my application passwords', 'hatch-connect' ) }
 				</HxBtn>
 			</HxCard>
 
 			{/* Uninstall behaviour: danger card. The toggle sits next to the
 			    title, like the Role guard card. */}
 			<HxCard status="danger">
-				<div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-					<HxHead
-						iconChildren={<>
-							<polyline points="3 6 5 6 21 6" />
-							<path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 0V4a1 1 0 011-1h2a1 1 0 011 1v2" />
-						</>}
-						iconColor="#b91c1c"
-						title={ __( 'Remove all data on uninstall', 'hatch-bridge' ) }
-						desc={ __( 'By default, deleting the plugin keeps your settings so a reinstall picks up where you left off. Turn this on to delete every Hatch option, including the deploy token, when the plugin is deleted. This cannot be undone.', 'hatch-bridge' ) }
-						mb={0}
-					/>
-					<HxToggle on={!!sec.remove_on_uninstall} onChange={onToggle('security.remove_on_uninstall')} ariaLabel={ __( 'Remove all data on uninstall', 'hatch-bridge' ) } />
-				</div>
+				<HxHead
+					iconChildren={IC.trash2}
+					iconColor="#b91c1c"
+					title={ __( 'Remove all data on uninstall', 'hatch-connect' ) }
+					desc={ __( 'Normally, deleting the plugin keeps your settings so a reinstall picks up where you left off. Turn this on to erase every Hatch setting, including the saved Cloudflare token, when you delete the plugin. This cannot be undone.', 'hatch-connect' ) }
+					mb={0}
+					nowrap
+					action={<HxToggle on={!!sec.remove_on_uninstall} onChange={onToggle('security.remove_on_uninstall')} ariaLabel={ __( 'Remove all data on uninstall', 'hatch-connect' ) } />}
+				/>
 			</HxCard>
 		</div>
 	);

@@ -54,12 +54,12 @@ class Hatch_Options_Rest {
 	 */
 	private static function message( bool $pinged, bool $rejected ): string {
 		if ( $pinged ) {
-			return __( 'Edge cache refresh signal sent. Live content within seconds.', 'hatch-bridge' );
+			return __( 'Edge cache refresh signal sent. Live content within seconds.', 'hatch-connect' );
 		}
 		if ( $rejected ) {
-			return __( 'The revalidate webhook URL must use https, so nothing was sent. Content still propagates within the 60 second cache lifetime.', 'hatch-bridge' );
+			return __( 'The revalidate webhook URL must use https, so nothing was sent. Content still propagates within the 60 second cache lifetime.', 'hatch-connect' );
 		}
-		return __( 'No revalidate webhook configured. Content still propagates within the 60 second cache lifetime.', 'hatch-bridge' );
+		return __( 'No revalidate webhook configured. Content still propagates within the 60 second cache lifetime.', 'hatch-connect' );
 	}
 
 	/**

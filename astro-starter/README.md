@@ -1,6 +1,6 @@
 # Hatch Astro Starter
 
-The headless frontend for [Hatch](https://github.com/adityaarsharma/hatch). Astro 4+, Tailwind, ready to deploy.
+The headless frontend for [Hatch](https://github.com/eticastudio/hatch). Astro 7, Tailwind CSS 4, TypeScript.
 
 ---
 
@@ -8,59 +8,35 @@ The headless frontend for [Hatch](https://github.com/adityaarsharma/hatch). Astr
 
 A minimal Astro project that:
 
-- Fetches posts/pages from your Hatch-powered WordPress via REST
-- Reads feature flags from `/wp-json/hatch/v1/features` (TOC, share sidebar, breadcrumb, etc.)
-- Renders Hatch Gutenberg blocks (Section / Container / Heading / Paragraph / Button / Image / Hero / Custom Code) as static HTML
-- Receives revalidation webhooks from WordPress when posts change
+- Fetches posts, pages and products from your Hatch-powered WordPress over REST
+- Reads menus, SEO meta, design tokens and feature flags from the `hatch/v1` REST namespace
+- Renders WordPress Gutenberg blocks as static or server-rendered HTML
+- Ships three starter designs (Editorial, Terminal, Docs), each with light and dark mode
+- Receives revalidation webhooks from WordPress when content changes
 
-You deploy this to **Cloudflare Pages** (recommended), Vercel, Netlify, or your own VPS. WordPress + Hatch lives elsewhere.
+## Deploy
+
+**You do not deploy this by hand.** The Hatch plugin deploys it for you, straight into your own Cloudflare account, as a Cloudflare Worker, with no Hatch account and no third-party deploy service. Open **Hatch** in wp-admin and follow the setup guide; see the main repo's [README](../README.md#quick-start-site-owners) and [docs/SETUP-FLOW.md](../docs/SETUP-FLOW.md).
+
+This starter builds for Cloudflare Workers (`@astrojs/cloudflare`) by default. A Node build target (`@astrojs/node`) also exists for running it yourself on any Node host. There is no Vercel or Netlify adapter installed, so those platforms are not supported targets for this starter.
 
 ---
 
-## Quick start — local dev
+## Quick start, local dev
 
 ```bash
 # 1. Copy the env template
 cp .env.example .env
 
-# 2. Edit .env with the values from Tools → Hatch → Connector in your wp-admin
-#    HATCH_WP_URL=https://cms.yoursite.com
-#    WORDPRESS_USER=admin
-#    WORDPRESS_APP_PASSWORD=abcd efgh ijkl mnop ...
-#    HATCH_WEBHOOK_SECRET=...
+# 2. Fill in .env with a WordPress REST URL and an Application Password
+#    (Tools, Hatch on your local or test WordPress site)
 
 # 3. Install + run
 npm install
 npm run dev
 
-# → Open http://localhost:4321
+# Open http://localhost:4321
 ```
-
----
-
-## Deploy
-
-The full Cloudflare Pages guide is at [`docs/hosting/cloudflare-pages.md`](../docs/hosting/cloudflare-pages.md) in the main repo.
-
-### TL;DR for Cloudflare Pages
-
-1. Fork the [Hatch repo](https://github.com/adityaarsharma/hatch) on GitHub
-2. Cloudflare → Pages → Connect to Git → pick your fork
-3. Build settings:
-   - **Framework:** Astro
-   - **Build command:** `npm install && npm run build`
-   - **Build output:** `dist`
-   - **Root directory:** `astro-starter` ← important
-4. Add 4 environment variables from your Hatch Connector tab
-5. Save and Deploy
-
-Full walkthrough: [docs/hosting/cloudflare-pages.md](../docs/hosting/cloudflare-pages.md).
-
-### Other hosts
-
-- **Vercel:** Set root directory to `astro-starter`, framework Astro, same env vars
-- **Netlify:** Same — base directory `astro-starter`
-- **Your VPS:** `npm run build` then serve `dist/` with nginx, or run as Node SSR with `npm start`
 
 ---
 
@@ -68,27 +44,30 @@ Full walkthrough: [docs/hosting/cloudflare-pages.md](../docs/hosting/cloudflare-
 
 ```
 astro-starter/
-├── astro.config.mjs           Astro configuration (Tailwind, integrations)
-├── package.json
+├── astro.config.mjs       Astro config, Cloudflare adapter by default, Node via HATCH_TARGET=node
+├── wrangler.toml           Cloudflare Workers config (worker name hatch-frontend)
 ├── .env.example
 ├── src/
 │   ├── pages/
-│   │   ├── index.astro        Homepage — pulls latest posts
-│   │   ├── blog/index.astro   Blog index — list view
-│   │   ├── blog/[slug].astro  Single post — dynamic route
-│   │   └── blog/api/
-│   │       └── revalidate.ts  Webhook receiver — purges cache on POST
+│   │   ├── index.astro             Homepage
+│   │   ├── blog/, product/, category/, tag/, author/   Listing and archive routes
+│   │   ├── [...slug].astro         Catch-all for pages and posts
+│   │   ├── cart.astro, checkout.astro, order-summary.astro, account.astro   WooCommerce flow
+│   │   ├── login.astro, register.astro   Frontend auth
+│   │   ├── search.astro, shop.astro
+│   │   ├── sitemap.xml.ts, sitemap-index.xml.ts, rss.xml.ts, robots.txt.ts, llms.txt.ts
+│   │   ├── img.ts, hatch-media/     Image proxy
+│   │   └── api/                    revalidate.ts (webhook), comments.ts, telemetry.ts, auth/, hatch/, hatch-comments/, hatch-form/, wc-store/, wc-stripe-verify.ts
 │   ├── components/
-│   │   └── hatch-blocks/      Astro renderers for Hatch Gutenberg blocks
-│   │       ├── HatchContent.astro    Pass-through HTML renderer
-│   │       ├── HatchSection.astro    Component-mapping renderer
-│   │       ├── HatchHero.astro
-│   │       └── index.ts
+│   │   ├── SiteHeader.astro, SiteFooter.astro, Sidebar.astro, PostCard.astro, HatchForm.astro, HatchComments.astro, HatchImage.astro, HatchSchema.astro
+│   │   ├── hatch-blocks/           Gutenberg block renderers
+│   │   └── theme/                  Breadcrumb, PostMeta, ShareRow, SingleBase, and per-design folders (astronano, astrowind, docs, tech)
 │   ├── layouts/
-│   │   └── PageLayout.astro   Base HTML, head injection (RankMath getHead)
+│   │   └── PageLayout.astro        Base HTML, head injection
 │   └── lib/
-│       ├── hatch.ts           REST API client (auth, fetching)
-│       └── hatch-blocks.ts    Block parser + Tailwind safelist
+│       ├── hatch.ts                REST API client
+│       ├── features.ts, design.ts, blocks.ts, posts.ts, woo.ts, site.ts
+│       └── cache.ts, url-builder.ts, form-validator.ts, code-snippets.ts, theme-dispatch.ts
 └── tsconfig.json
 ```
 
@@ -96,47 +75,19 @@ astro-starter/
 
 ## Environment variables
 
-| Variable | Required | Purpose |
-|---|---|---|
-| `HATCH_WP_URL` | ✅ | Your WordPress URL (e.g. `https://cms.yoursite.com`). **No trailing slash.** |
-| `WORDPRESS_USER` | ✅ | WP username for REST API access |
-| `WORDPRESS_APP_PASSWORD` | ✅ | App Password generated from Hatch Connector tab |
-| `HATCH_WEBHOOK_SECRET` | ✅ | Used to verify incoming `/api/revalidate` calls |
-| `HATCH_FEATURES_URL` | optional | Override the `/wp-json/hatch/v1/features` URL. Defaults to `{HATCH_WP_URL}/wp-json/hatch/v1/features`. |
-| `SITE_TITLE` | optional | Browser title bar default. If empty, pulled from WP's site name. |
-| `SITE_DESCRIPTION` | optional | Default meta description. |
-
----
-
-## How content flows
-
-```
-┌──────────────────┐         ┌──────────────────┐         ┌──────────────────┐
-│  WordPress       │         │  Astro starter   │         │  Visitor's       │
-│  (cms.yoursite)  │ ──────► │  (build time)    │ ──────► │  browser         │
-│  + Hatch plugin  │  REST   │  npm run build   │  HTML   │                  │
-└──────────────────┘         └──────────────────┘         └──────────────────┘
-        ▲                            ▲
-        │                            │
-        │   POST /api/revalidate     │
-        └────────────────────────────┘
-              (when post changes)
-```
-
-1. **At build time:** Astro fetches all posts/pages from WordPress via REST + features from `/hatch/v1/features`
-2. **Astro pre-renders** every page to static HTML
-3. **Cloudflare serves** the static HTML from its global edge — every page loads in < 500ms
-4. **When a post changes:** WordPress fires a webhook → Cloudflare rebuilds → static HTML updates within ~2 minutes
+See [.env.example](.env.example) and the main repo's [README](../README.md#configuration) for the full, current list (`WP_API_URL`, `WP_API_USER`, `WP_API_PASS`, `HATCH_WEBHOOK_SECRET`, `PUBLIC_SITE_URL`, and optional Turnstile and Disqus keys).
 
 ---
 
 ## Scripts
 
 ```bash
-npm run dev        # Astro dev server at http://localhost:4321
-npm run build      # Production build → dist/
-npm run preview    # Preview the build locally
-npm run check      # TypeScript check
+npm run dev          # Astro dev server at http://localhost:4321
+npm run build        # Production build (Cloudflare target by default)
+npm run build:cf     # Explicit Cloudflare Workers build
+npm run build:node   # Node SSR build (HATCH_TARGET=node)
+npm run preview      # Preview the build locally
+npm run typecheck    # astro check
 ```
 
 ---
@@ -145,45 +96,29 @@ npm run check      # TypeScript check
 
 ### Change colors / fonts
 
-Edit `src/styles/globals.css` (or wherever your design tokens live). The Hatch blocks read 9 CSS variables for colors:
-
-```css
-:root {
-  --hatch-color-background: #ffffff;
-  --hatch-color-surface:    #f8fafc;
-  --hatch-color-foreground: #0f172a;
-  --hatch-color-muted:      #64748b;
-  --hatch-color-primary:    #2563eb;
-  --hatch-color-accent:     #f59e0b;
-  --hatch-color-success:    #10b981;
-  --hatch-color-danger:     #ef4444;
-  --hatch-color-border:     #e2e8f0;
-}
-```
-
-Change these to rebrand instantly. Every Hatch Block respects them.
+Design (colors, typography, layout, light/dark) is controlled from the Hatch plugin's Design tab in wp-admin and read at request time from `hatch/v1/design`. It is not hardcoded in this starter. See `src/lib/design.ts`.
 
 ### Add a feature
 
-Features (TOC, share sidebar, breadcrumb, etc.) come from `/wp-json/hatch/v1/features`. To respect them in your code:
+Features (TOC, share row, breadcrumb, etc.) come from `hatch/v1/features`:
 
 ```typescript
-import { fetchHatchFeatures } from './lib/hatch';
+import { getFeatures } from './lib/features';
 
-const { features, theme } = await fetchHatchFeatures();
+const { features } = await getFeatures();
 
-if (features.progress_bar) {
-  // render the progress bar component
+if (features.toc) {
+  // render the table of contents
 }
 ```
 
-Users toggle these in WordPress → Tools → Hatch → Features.
+Users toggle these in wp-admin, Hatch, Content tab.
 
 ### Use a different block renderer
 
-Default: **pass-through** — `<HatchContent html={post.content.rendered} />` injects WordPress's rendered HTML directly. Tailwind classes baked into the saved blocks pick up your config automatically.
+Default: pass-through. WordPress's rendered block HTML is injected directly, and Hatch design tokens style it via CSS variables.
 
-Advanced: **component mapping** — parse blocks server-side, render Astro components for each. See `src/components/hatch-blocks/index.ts` for the component map.
+Advanced: component mapping. See `src/components/hatch-blocks/` for per-block Astro components.
 
 ---
 
@@ -193,5 +128,5 @@ GPL-2.0-or-later, same as Hatch.
 
 ---
 
-> **Main repo:** [github.com/adityaarsharma/hatch](https://github.com/adityaarsharma/hatch)
-> **Cloudflare deploy guide:** [docs/hosting/cloudflare-pages.md](../docs/hosting/cloudflare-pages.md)
+> **Main repo:** [github.com/eticastudio/hatch](https://github.com/eticastudio/hatch)
+> **Setup guide:** [docs/SETUP-FLOW.md](../docs/SETUP-FLOW.md)

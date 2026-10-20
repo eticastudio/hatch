@@ -1,6 +1,8 @@
 ---
 import PageLayout from '@/layouts/PageLayout.astro';
+import Breadcrumb from '@/components/theme/Breadcrumb.astro';
 import PostCard from '@/components/PostCard.astro';
+import DocsShell from '@/components/theme/DocsShell.astro';
 import { getPostsByTagSlug } from '@/lib/hatch';
 import { getFeatures } from '@/lib/features';
 
@@ -27,17 +29,14 @@ const hasMore = total > page * 12;
   description={tag.description || `Posts tagged ${tag.name}`}
   canonical={`${SITE}/blog/tag/${slug}`}
 >
+  <DocsShell features={features}>
   <main class="mx-auto px-5 sm:px-8 py-12 sm:py-16" style="max-width: var(--hatch-max-width, 1160px)">
 
-    <nav class="text-[12.5px] text-hatch-fg-subtle mb-6 flex items-center gap-2 flex-wrap">
-      <a href="/" class="hover:text-hatch-fg transition-colors">Home</a>
-      <span>/</span>
-      <a href="/blog" class="hover:text-hatch-fg transition-colors">Blog</a>
-      <span>/</span>
-      <span class="text-hatch-fg">Tag</span>
-      <span>/</span>
-      <span class="text-hatch-fg">#{tag.name}</span>
-    </nav>
+    <Breadcrumb items={[
+      { label: 'Home', href: '/' },
+      { label: 'Blog', href: '/blog' },
+      { label: `#${tag.name}` },
+    ]} />
 
     <header class="mb-10 pb-8 border-b border-hatch-border">
       <p class="text-[11px] uppercase tracking-wider font-medium text-hatch-primary mb-3">Tag</p>
@@ -67,4 +66,5 @@ const hasMore = total > page * 12;
     )}
 
   </main>
+  </DocsShell>
 </PageLayout>

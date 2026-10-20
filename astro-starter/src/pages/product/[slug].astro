@@ -17,6 +17,14 @@
  */
 import PageLayout from '@/layouts/PageLayout.astro';
 import { WP_API_URL } from 'astro:env/server';
+import { getFeatures as getWooGateFeatures } from '@/lib/features';
+import { isWooActive, fallThroughToPage } from '@/lib/woo';
+
+// Store routes exist only while WooCommerce is active. Otherwise the same
+// path is served by the normal WordPress page lookup (or a themed 404).
+if (!isWooActive(await getWooGateFeatures())) {
+  return fallThroughToPage(Astro, `product/${Astro.params.slug ?? ''}`);
+}
 
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect('/');
@@ -182,7 +190,7 @@ const checkoutHref = `${base}/checkout/`;
   </main>
 </PageLayout>
 
-<script is:inline>
+<script is:inline data-astro-rerun>
   /* Async Add-to-Cart against Woo Store API.
      Flow:
        1. GET  <wp_base>/wp-json/wc/store/v1/cart   → capture `Nonce` response header
@@ -230,6 +238,7 @@ const checkoutHref = `${base}/checkout/`;
         if (count !== null) {
           document.querySelectorAll('[data-hatch-cart-count]').forEach((el) => {
             el.textContent = String(count);
+            el.hidden = count <= 0;
           });
         }
         if (status) status.textContent = 'Added to cart.';

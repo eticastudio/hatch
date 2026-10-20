@@ -1,15 +1,10 @@
 <?php
 /**
- * Hatch admin dashboard. v0.6 redesign.
+ * Hatch admin screens: data plumbing for the React admin.
  *
- * Four centered tabs only:
- *   - Connector  (home: status, diagnostic, setup credentials, hosting docs)
- *   - Features   (theme picker + 14 SproutOS-blog feature toggles)
- *   - Blocks     (8 Hatch block toggles with master switch)
- *   - Security   (hardening + role guard + brute force)
- *
- * No "Connection", "Frontend", "Health", or "Plugins" tabs anymore.
- * All centered (max-width 880px). 🐣 chick logo. Premium Tailwind aesthetic.
+ * Registers the Hatch menu entry, the plugin row Settings link, the REST route
+ * that saves options, the boot state for first paint, and the admin notices.
+ * Every visual lives in admin-react/.
  *
  * @package Hatch
  */
@@ -20,6 +15,7 @@ defined( 'ABSPATH' ) || exit;
 // pure data plumbing: REST routes, admin-post save handlers, boot state.
 
 add_action( 'admin_menu', 'hatch_register_admin_menu' );
+add_filter( 'plugin_action_links_' . plugin_basename( HATCH_PLUGIN_FILE ), 'hatch_plugin_action_links' );
 add_action( 'admin_init', 'hatch_register_settings' );
 // v0.50.1. Turnstile probe (validates that the saved Turnstile secret key works).
 add_action( 'admin_enqueue_scripts', 'hatch_enqueue_admin_assets' );
@@ -37,16 +33,6 @@ add_action( 'admin_notices', 'hatch_plain_permalinks_warning' );
 add_action( 'admin_notices', 'hatch_permalinks_auto_set_notice' );
 add_action( 'network_admin_notices', 'hatch_network_activate_blocked_notice' );
 add_action( 'admin_notices', 'hatch_multisite_subsite_tip' );
-// v0.50.1. daily cron prunes Hatch Application Passwords older than retention window.
-add_action( 'hatch_prune_app_pwds_cron', 'hatch_prune_app_pwds' );
-add_action(
-	'init',
-	function () {
-		if ( ! wp_next_scheduled( 'hatch_prune_app_pwds_cron' ) ) {
-			wp_schedule_event( time() + 3600, 'daily', 'hatch_prune_app_pwds_cron' );
-		}
-	}
-);
 
 /**
  * Enqueue Hatch admin design system. ONLY on Hatch screens.
@@ -77,7 +63,7 @@ function hatch_enqueue_admin_assets( $hook ): void {
 		add_action(
 			'admin_notices',
 			static function () {
-				echo '<div class="notice notice-error"><p>' . esc_html__( 'The Hatch admin screen files are missing. Reinstall the plugin, or run the build step if you are working from the source repository.', 'hatch-bridge' ) . '</p></div>';
+				echo '<div class="notice notice-error"><p>' . esc_html__( 'The Hatch admin screen files are missing. Reinstall the plugin, or run the build step if you are working from the source repository.', 'hatch-connect' ) . '</p></div>';
 			}
 		);
 		return;
@@ -109,7 +95,7 @@ function hatch_enqueue_admin_assets( $hook ): void {
 		wp_style_add_data( 'hatch-admin-react', 'rtl', 'replace' );
 	}
 
-	wp_set_script_translations( 'hatch-admin-react', 'hatch-bridge', HATCH_PLUGIN_DIR . 'languages' );
+	wp_set_script_translations( 'hatch-admin-react', 'hatch-connect', HATCH_PLUGIN_DIR . 'languages' );
 
 	// SSR-style boot state. The React app reads window.hatchBoot on first paint
 	// and skips any initial fetch round-trip.
@@ -133,7 +119,7 @@ function hatch_react_boot_state(): array {
 
 	$heartbeat_record = null;
 	$heartbeat_health = 'muted';
-	$heartbeat_label  = __( 'No check yet. The first one runs within a few minutes of a deploy.', 'hatch-bridge' );
+	$heartbeat_label  = __( 'No check yet. The first one runs within a few minutes of a deploy.', 'hatch-connect' );
 	if ( class_exists( 'Hatch_Cloud_Heartbeat' ) ) {
 		$host_for_hb      = Hatch_Cloud_Heartbeat::provider_for_model( $hosting_model );
 		$heartbeat_record = Hatch_Cloud_Heartbeat::get( $host_for_hb );
@@ -165,7 +151,7 @@ function hatch_react_boot_state(): array {
 
 	// Which admin app is mounting. Dashboard or setup wizard.
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only routing between two screens, no state change.
-	$page      = ( isset( $_GET['page'] ) && 'hatch-setup' === $_GET['page'] ) ? 'setup' : 'dashboard';
+	$page      = ( isset( $_GET['page'] ) && 'hatch-setup' === sanitize_key( wp_unslash( $_GET['page'] ) ) ) ? 'setup' : 'dashboard';
 	$home_host = (string) wp_parse_url( home_url(), PHP_URL_HOST );
 
 	return array(
@@ -400,6 +386,7 @@ function hatch_react_boot_state(): array {
 				array(
 					'comments_enabled'   => true,
 					'comments_turnstile' => false,
+					'accounts_enabled'   => false,
 				)
 			),
 			// v0.50.13: read Turnstile from the authoritative source
@@ -704,7 +691,7 @@ function hatch_react_menus_summary(): array {
 		$out[] = array(
 			'loc'      => (string) $loc,
 			'label'    => (string) $label,
-			'assigned' => $menu ? (string) $menu->name : __( 'Not assigned', 'hatch-bridge' ),
+			'assigned' => $menu ? (string) $menu->name : __( 'Not assigned', 'hatch-connect' ),
 		);
 	}
 	return $out;
@@ -965,7 +952,6 @@ function hatch_react_perf_state(): array {
 		'output'             => (string) ( $perf['output_mode'] ?? 'server' ),
 		'inline_stylesheets' => (string) ( $perf['inline_stylesheets'] ?? 'auto' ),
 		'compress_html'      => (bool) ( $perf['compress_html'] ?? false ),
-		'partytown'          => (bool) ( $perf['partytown_enabled'] ?? false ),
 		'telemetry'          => (bool) ( $perf['telemetry'] ?? false ),
 		'bloat_kill'         => (bool) get_option( 'hatch_perf_bloat_kill', false ),
 		'bloat'              => class_exists( 'Hatch_Performance_Bloat' ) ? Hatch_Performance_Bloat::state() : array(),
@@ -1038,19 +1024,12 @@ function hatch_react_setup_state(): array {
 	$has_app = function_exists( 'wp_is_application_passwords_available_for_user' ) && wp_is_application_passwords_available_for_user( $user );
 
 	return array(
-		'companionTheme' => class_exists( 'Hatch_Companion_Theme_Installer' ) ? Hatch_Companion_Theme_Installer::status() : array(
-			'installed' => false,
-			'active'    => false,
-			'slug'      => 'hatch-companion',
-			'error'     => '',
-		),
 		// Only nonces that a React form actually submits.
-		'nonces'         => array(
-			'probe_heartbeat'   => wp_create_nonce( 'hatch_probe_heartbeat' ),
-			'install_companion' => wp_create_nonce( 'hatch_install_companion_theme' ),
+		'nonces'      => array(
+			'probe_heartbeat' => wp_create_nonce( 'hatch_probe_heartbeat' ),
 		),
-		'wpUser'         => $user->user_login,
-		'disclosure'     => array(
+		'wpUser'      => $user->user_login,
+		'disclosure'  => array(
 			'themeName'         => (string) $theme->get( 'Name' ),
 			'permalinksPlain'   => '' === (string) get_option( 'permalink_structure', '' ),
 			'appPasswordsOn'    => $has_app,
@@ -1058,14 +1037,11 @@ function hatch_react_setup_state(): array {
 			'wpUrlIsPrivate'    => $is_local,
 			'settingsPermalink' => admin_url( 'options-permalink.php' ),
 			'appPasswordsUrl'   => admin_url( 'profile.php#application-passwords-section' ),
-			'appPasswordName'   => class_exists( 'Hatch_Deploy_Controller' ) ? Hatch_Deploy_Controller::APP_PASSWORD_NAME : 'Hatch (Cloudflare deploy)',
-			// The read-only user the deploy creates and issues the application password to.
-			'readerUser'        => class_exists( 'Hatch_App_Password_Helper' ) ? Hatch_App_Password_Helper::reader_login_preview() : 'hatch-reader',
-			'readerExists'      => class_exists( 'Hatch_App_Password_Helper' ) && Hatch_App_Password_Helper::get_reader_user() instanceof WP_User,
+			'newUserUrl'        => admin_url( 'user-new.php' ),
 		),
-		'skipUrl'        => wp_nonce_url( admin_url( 'admin.php?page=hatch-setup&hatch_skip_setup=1' ), 'hatch_skip_setup' ),
-		'completeUrl'    => wp_nonce_url( admin_url( 'admin.php?page=hatch-setup&hatch_complete_setup=1' ), 'hatch_complete_setup' ),
-		'cfTokenUrl'     => 'https://dash.cloudflare.com/profile/api-tokens',
+		'skipUrl'     => wp_nonce_url( admin_url( 'admin.php?page=hatch-setup&hatch_skip_setup=1' ), 'hatch_skip_setup' ),
+		'completeUrl' => wp_nonce_url( admin_url( 'admin.php?page=hatch-setup&hatch_complete_setup=1' ), 'hatch_complete_setup' ),
+		'cfTokenUrl'  => 'https://dash.cloudflare.com/profile/api-tokens', // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- A link the administrator opens to create a token, nothing is loaded.
 	);
 }
 
@@ -1161,7 +1137,6 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 		'performance.output'             => 'output_mode',
 		'performance.inline_stylesheets' => 'inline_stylesheets',
 		'performance.compress_html'      => 'compress_html',
-		'performance.partytown'          => 'partytown_enabled',
 		'performance.telemetry'          => 'telemetry',
 	);
 	$nested_groups = array(
@@ -1244,13 +1219,19 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 			continue;
 		}
 
-		// Code snippets (GTM only at the moment).
-		if ( 0 === strpos( $path, 'snippets.' ) ) {
-			$key              = substr( $path, 9 );
-			$snippets         = $load_agg( 'hatch_code_snippets' );
-			$snippets[ $key ] = sanitize_text_field( (string) $value );
+		// Code snippets: the Google Tag Manager container id and nothing else.
+		if ( 'snippets.gtm_id' === $path ) {
+			$gtm_id = strtoupper( trim( sanitize_text_field( (string) $value ) ) );
+			if ( '' !== $gtm_id && 1 !== preg_match( '/^GTM-[A-Z0-9]{4,12}$/', $gtm_id ) ) {
+				$gtm_id = '';
+			}
+			$snippets           = $load_agg( 'hatch_code_snippets' );
+			$snippets['gtm_id'] = $gtm_id;
 			$mark_agg( 'hatch_code_snippets', $snippets );
-			$applied[ $path ] = $snippets[ $key ];
+			$applied[ $path ] = $gtm_id;
+			continue;
+		}
+		if ( 0 === strpos( $path, 'snippets.' ) ) {
 			continue;
 		}
 
@@ -1332,7 +1313,7 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 		if ( isset( $perf_keys[ $path ] ) ) {
 			$sub  = $perf_keys[ $path ];
 			$perf = $load_agg( 'hatch_perf' );
-			if ( in_array( $sub, array( 'prefetch_enabled', 'compress_html', 'partytown_enabled' ), true ) ) {
+			if ( in_array( $sub, array( 'prefetch_enabled', 'compress_html' ), true ) ) {
 				$perf[ $sub ] = (bool) $value ? 1 : 0;
 			} else {
 				$perf[ $sub ] = sanitize_text_field( (string) $value );
@@ -1542,74 +1523,74 @@ function hatch_react_status_snapshot(): array {
 	$hosting_model = (string) get_option( 'hatch_hosting_model', '' );
 	$frontend_url  = (string) get_option( 'hatch_frontend_url', '' );
 	$img_proxy     = (string) get_option( 'hatch_image_proxy_url', '' );
-	$not_set       = __( 'Not set', 'hatch-bridge' );
+	$not_set       = __( 'Not set', 'hatch-connect' );
 
 	$sections = array(
 		array(
-			'label' => __( 'Frontend', 'hatch-bridge' ),
+			'label' => __( 'Frontend', 'hatch-connect' ),
 			'rows'  => array(
 				array(
-					'label' => __( 'Frontend address', 'hatch-bridge' ),
+					'label' => __( 'Frontend address', 'hatch-connect' ),
 					'value' => '' !== $frontend_url ? $frontend_url : $not_set,
-					'type'  => '' !== $frontend_url ? 'text' : 'off',
+					'type'  => 'text',
 				),
 				array(
-					'label' => __( 'Image address', 'hatch-bridge' ),
+					'label' => __( 'Image address', 'hatch-connect' ),
 					'value' => '' !== $img_proxy ? $img_proxy : $not_set,
-					'type'  => '' !== $img_proxy ? 'text' : 'off',
+					'type'  => 'text',
 				),
 				array(
-					'label' => __( 'Hosted on', 'hatch-bridge' ),
+					'label' => __( 'Hosted on', 'hatch-connect' ),
 					'value' => '' !== $hosting_model ? hatch_host_label( $hosting_model ) : $not_set,
-					'type'  => '' !== $hosting_model ? 'text' : 'off',
+					'type'  => 'text',
 				),
 			),
 		),
 		array(
-			'label' => __( 'Authentication', 'hatch-bridge' ),
+			'label' => __( 'Authentication', 'hatch-connect' ),
 			'rows'  => array(
 				array(
-					'label' => __( 'Webhook secret created', 'hatch-bridge' ),
+					'label' => __( 'Webhook secret created', 'hatch-connect' ),
 					'type'  => '' !== (string) get_option( 'hatch_webhook_secret', '' ) ? 'on' : 'off',
 				),
 			),
 		),
 		array(
-			'label' => __( 'Security', 'hatch-bridge' ),
+			'label' => __( 'Security', 'hatch-connect' ),
 			'rows'  => array(
 				array(
-					'label' => __( 'REST API hardening', 'hatch-bridge' ),
+					'label' => __( 'REST API hardening', 'hatch-connect' ),
 					'type'  => get_option( 'hatch_security_harden_rest' ) ? 'on' : 'off',
 				),
 				array(
-					'label' => __( 'XML-RPC disabled', 'hatch-bridge' ),
+					'label' => __( 'XML-RPC disabled', 'hatch-connect' ),
 					'type'  => get_option( 'hatch_security_disable_xmlrpc' ) ? 'on' : 'off',
 				),
 				array(
-					'label' => __( 'User name lookups blocked', 'hatch-bridge' ),
+					'label' => __( 'User name lookups blocked', 'hatch-connect' ),
 					'type'  => get_option( 'hatch_security_block_user_enum' ) ? 'on' : 'off',
 				),
 				array(
-					'label' => __( 'Hide this site from search engines', 'hatch-bridge' ),
+					'label' => __( 'Hide this site from search engines', 'hatch-connect' ),
 					'type'  => get_option( 'hatch_security_force_noindex' ) ? 'on' : 'off',
 				),
 			),
 		),
 		array(
-			'label' => __( 'Plugin', 'hatch-bridge' ),
+			'label' => __( 'Plugin', 'hatch-connect' ),
 			'rows'  => array(
 				array(
-					'label' => __( 'Hatch version', 'hatch-bridge' ),
+					'label' => __( 'Hatch version', 'hatch-connect' ),
 					'value' => HATCH_VERSION,
 					'type'  => 'text',
 				),
 				array(
-					'label' => __( 'WordPress version', 'hatch-bridge' ),
+					'label' => __( 'WordPress version', 'hatch-connect' ),
 					'value' => get_bloginfo( 'version' ),
 					'type'  => 'text',
 				),
 				array(
-					'label' => __( 'PHP version', 'hatch-bridge' ),
+					'label' => __( 'PHP version', 'hatch-connect' ),
 					'value' => PHP_VERSION,
 					'type'  => 'text',
 				),
@@ -1625,16 +1606,12 @@ function hatch_react_status_snapshot(): array {
 		}
 	);
 	$sections[] = array(
-		'label' => __( 'Plugin bridges', 'hatch-bridge' ),
+		'label' => __( 'Plugin connections', 'hatch-connect' ),
 		'rows'  => array(
 			array(
-				'label' => __( 'Supported plugins found', 'hatch-bridge' ),
+				'label' => __( 'Supported plugins found', 'hatch-connect' ),
 				'value' => count( $detected ) . ' / ' . count( $bridge ),
 				'type'  => count( $detected ) > 0 ? 'num' : 'warn',
-			),
-			array(
-				'label' => __( 'Hatch companion theme active', 'hatch-bridge' ),
-				'type'  => 'hatch-companion' === get_stylesheet() ? 'on' : 'off',
 			),
 		),
 	);
@@ -1642,23 +1619,23 @@ function hatch_react_status_snapshot(): array {
 	$last_revalidate = (int) get_option( 'hatch_last_revalidate_at', 0 );
 	$cron_disabled   = defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON;
 	$sections[]      = array(
-		'label' => __( 'Sync', 'hatch-bridge' ),
+		'label' => __( 'Sync', 'hatch-connect' ),
 		'rows'  => array(
 			array(
-				'label' => __( 'Last time the frontend was told to refresh', 'hatch-bridge' ),
+				'label' => __( 'Last time the frontend was told to refresh', 'hatch-connect' ),
 				'value' => $last_revalidate > 0
 					/* translators: %s: how long ago, for example "3 mins". */
-					? sprintf( __( '%s ago', 'hatch-bridge' ), human_time_diff( $last_revalidate ) )
-					: __( 'Never', 'hatch-bridge' ),
+					? sprintf( __( '%s ago', 'hatch-connect' ), human_time_diff( $last_revalidate ) )
+					: __( 'Never', 'hatch-connect' ),
 				'type'  => $last_revalidate > 0 ? 'num' : 'warn',
 			),
 			array(
-				'label' => __( 'Scheduled tasks', 'hatch-bridge' ),
-				'value' => $cron_disabled ? __( 'WP-Cron is off. A server cron must run it.', 'hatch-bridge' ) : __( 'Run by WP-Cron', 'hatch-bridge' ),
+				'label' => __( 'Scheduled tasks', 'hatch-connect' ),
+				'value' => $cron_disabled ? __( 'WP-Cron is off. A server cron must run it.', 'hatch-connect' ) : __( 'Run by WP-Cron', 'hatch-connect' ),
 				'type'  => $cron_disabled ? 'warn' : 'text',
 			),
 			array(
-				'label' => __( 'Refresh the frontend when you publish', 'hatch-bridge' ),
+				'label' => __( 'Refresh the frontend when you publish', 'hatch-connect' ),
 				'type'  => class_exists( 'Hatch_Revalidate' ) ? 'on' : 'off',
 			),
 		),
@@ -1676,14 +1653,31 @@ function hatch_register_admin_menu(): void {
 	// A dashicon follows every admin colour scheme, including hover and active.
 	$icon_svg = 'dashicons-cloud-upload';
 	add_menu_page(
-		__( 'Hatch', 'hatch-bridge' ),
-		__( 'Hatch', 'hatch-bridge' ),
+		__( 'Hatch', 'hatch-connect' ),
+		__( 'Hatch', 'hatch-connect' ),
 		'manage_options',
 		'hatch',
 		'hatch_render_admin_page',
 		$icon_svg,
 		80 // Next to Settings, so it does not push core menus around.
 	);
+}
+
+/**
+ * Add a Settings link to the Hatch row on the Plugins screen.
+ *
+ * @param array<int|string, string> $links Existing action links.
+ * @return array<int|string, string>
+ */
+function hatch_plugin_action_links( $links ): array {
+	$links = (array) $links;
+	if ( current_user_can( 'manage_options' ) ) {
+		array_unshift(
+			$links,
+			'<a href="' . esc_url( admin_url( 'admin.php?page=hatch' ) ) . '">' . esc_html__( 'Settings', 'hatch-connect' ) . '</a>'
+		);
+	}
+	return $links;
 }
 
 /**
@@ -1825,11 +1819,11 @@ function hatch_host_label( string $model ): string {
 		// both values read the same and no migration is needed.
 		case 'cloudflare-workers':
 		case 'cloudflare-pages':
-			return __( 'Cloudflare Workers', 'hatch-bridge' );
+			return __( 'Cloudflare Workers', 'hatch-connect' );
 		case '':
-			return __( 'Not connected', 'hatch-bridge' );
+			return __( 'Not connected', 'hatch-connect' );
 		default:
-			return __( 'A frontend you host yourself', 'hatch-bridge' );
+			return __( 'A frontend you host yourself', 'hatch-connect' );
 	}
 }
 
@@ -1876,60 +1870,15 @@ function hatch_sanitize_bf_window( $value ): int {
 }
 
 /**
- * Daily cron: prune old "Hatch ..." Application Passwords past the retention
- * window (default 7 days, `hatch_app_pwd_retention_days`). Always keeps the
- * newest 3. Never touches the password the deployed frontend uses: the
- * Cloudflare Worker holds it, so revoking it would break the live site.
- */
-function hatch_prune_app_pwds(): void {
-	if ( ! class_exists( 'WP_Application_Passwords' ) ) {
-		return;
-	}
-	$days_keep = max( 1, (int) get_option( 'hatch_app_pwd_retention_days', 7 ) );
-	$cutoff    = time() - ( $days_keep * DAY_IN_SECONDS );
-	$deploy_pw = class_exists( 'Hatch_Deploy_Controller' ) ? Hatch_Deploy_Controller::APP_PASSWORD_NAME : 'Hatch (Cloudflare deploy)';
-
-	foreach ( get_users(
-		array(
-			'fields'   => 'ID',
-			'role__in' => array( 'administrator' ),
-		)
-	) as $uid ) {
-		$pwds = WP_Application_Passwords::get_user_application_passwords( $uid );
-		if ( ! is_array( $pwds ) ) {
-			continue;
-		}
-		$hatch = array_values(
-			array_filter(
-				$pwds,
-				function ( $p ) use ( $deploy_pw ) {
-					return $deploy_pw !== $p['name'] && 0 === stripos( $p['name'], 'Hatch' );
-				}
-			)
-		);
-		usort(
-			$hatch,
-			function ( $a, $b ) {
-				return $b['created'] <=> $a['created'];
-			}
-		);
-		// Always preserve newest 3 regardless of age.
-		$candidates = array_slice( $hatch, 3 );
-		foreach ( $candidates as $p ) {
-			if ( $p['created'] < $cutoff ) {
-				WP_Application_Passwords::delete_application_password( $uid, $p['uuid'] );
-			}
-		}
-	}
-}
-
-/**
  * One-time notice after a deploy switched plain permalinks to "Post name".
  * Clears itself once shown.
  *
  * @return void
  */
 function hatch_permalinks_auto_set_notice(): void {
+	if ( ! hatch_is_own_admin_screen() ) {
+		return;
+	}
 	if ( ! current_user_can( 'manage_options' ) ) {
 		return;
 	}
@@ -1941,7 +1890,7 @@ function hatch_permalinks_auto_set_notice(): void {
 	printf(
 		wp_kses(
 			/* translators: %s: link to the Settings, Permalinks screen. */
-			__( 'Hatch changed your permalinks to <code>/%%postname%%/</code>, because the frontend needs them. You can change this in <a href="%s">Settings, Permalinks</a>.', 'hatch-bridge' ),
+			__( 'Hatch changed your permalinks to <code>/%%postname%%/</code>, because the frontend needs them. You can change this in <a href="%s">Settings, Permalinks</a>.', 'hatch-connect' ),
 			array(
 				'code' => array(),
 				'a'    => array( 'href' => true ),
@@ -1964,7 +1913,7 @@ function hatch_network_activate_blocked_notice(): void {
 	}
 	delete_transient( 'hatch_network_activate_blocked' );
 	echo '<div class="notice notice-error"><p>';
-	esc_html_e( 'Hatch cannot be network-activated. Each site has its own frontend address, saved token and theme, and sharing them across a network would mix them up. Activate it on individual sites instead.', 'hatch-bridge' );
+	esc_html_e( 'Hatch cannot be network-activated. Each site has its own frontend address, saved token and theme, and sharing them across a network would mix them up. Activate it on individual sites instead.', 'hatch-connect' );
 	echo '</p></div>';
 }
 
@@ -1974,6 +1923,9 @@ function hatch_network_activate_blocked_notice(): void {
  * @return void
  */
 function hatch_multisite_subsite_tip(): void {
+	if ( ! hatch_is_own_admin_screen() ) {
+		return;
+	}
 	if ( ! is_multisite() || ! current_user_can( 'manage_options' ) ) {
 		return;
 	}
@@ -1987,7 +1939,7 @@ function hatch_multisite_subsite_tip(): void {
 	echo esc_html(
 		sprintf(
 			/* translators: %d: numeric ID of the current site in a multisite network. */
-			__( 'You are setting up Hatch for site ID %d. Its settings, saved token and frontend address apply to this site only. Other sites in the network are not affected.', 'hatch-bridge' ),
+			__( 'You are setting up Hatch for site ID %d. Its settings, saved token and frontend address apply to this site only. Other sites in the network are not affected.', 'hatch-connect' ),
 			get_current_blog_id()
 		)
 	);
@@ -2000,12 +1952,16 @@ function hatch_multisite_subsite_tip(): void {
  * @return void
  */
 function hatch_plain_permalinks_warning(): void {
+	if ( ! hatch_is_own_admin_screen() ) {
+		return;
+	}
 	if ( ! current_user_can( 'manage_options' ) ) {
 		return;
 	}
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only screen check.
 	$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( (string) $_GET['page'] ) ) : '';
-	if ( 'hatch' !== $page && 'hatch-setup' !== $page ) {
+	// The setup screen explains this in step 3, so only the settings screen shows it.
+	if ( 'hatch' !== $page ) {
 		return;
 	}
 
@@ -2017,7 +1973,7 @@ function hatch_plain_permalinks_warning(): void {
 	printf(
 		wp_kses(
 			/* translators: %s: link to the Settings, Permalinks screen. */
-			__( 'Your permalinks are set to <em>Plain</em>. The frontend needs a pretty structure, so deploying will switch them to <em>Post name</em>. You can pick another structure first in <a href="%s">Settings, Permalinks</a>.', 'hatch-bridge' ),
+			__( 'Your permalinks (the link format of your posts) are set to <em>Plain</em>, and the frontend cannot read those. Choose <em>Post name</em> in <a href="%s">Settings, Permalinks</a>, or tick the permalinks box when you deploy and Hatch will change it for you.', 'hatch-connect' ),
 			array(
 				'em' => array(),
 				'a'  => array( 'href' => true ),
@@ -2036,6 +1992,9 @@ function hatch_plain_permalinks_warning(): void {
  * @return void
  */
 function hatch_builder_block_warning(): void {
+	if ( ! hatch_is_own_admin_screen() ) {
+		return;
+	}
 	if ( ! current_user_can( 'manage_options' ) ) {
 		return;
 	}
@@ -2069,7 +2028,7 @@ function hatch_builder_block_warning(): void {
 	echo esc_html(
 		sprintf(
 			/* translators: %s: comma-separated names of block plugins, for example "Kadence Blocks, Spectra". */
-			__( '%s is active. Blocks from these plugins depend on CSS that the frontend does not load, so they will look unstyled there. Core WordPress blocks and Hatch blocks display as designed.', 'hatch-bridge' ),
+			__( '%s is active. Blocks from these plugins depend on CSS that the frontend does not load, so they will look unstyled there. Core WordPress blocks and Hatch blocks display as designed.', 'hatch-connect' ),
 			implode( ', ', $active )
 		)
 	);
@@ -2088,7 +2047,7 @@ function hatch_builder_block_warning(): void {
  */
 function hatch_render_admin_page(): void {
 	if ( ! current_user_can( 'manage_options' ) ) {
-		wp_die( esc_html__( 'Permission denied.', 'hatch-bridge' ), '', array( 'response' => 403 ) );
+		wp_die( esc_html__( 'Permission denied.', 'hatch-connect' ), '', array( 'response' => 403 ) );
 	}
 	echo '<div class="wrap hatch-wrap"><hr class="wp-header-end"><div id="hatch-react-root"></div></div>';
 }

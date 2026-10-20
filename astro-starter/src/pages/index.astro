@@ -8,14 +8,17 @@
  */
 import PageLayout from '@/layouts/PageLayout.astro';
 import PostCard from '@/components/PostCard.astro';
+import DocsShell from '@/components/theme/DocsShell.astro';
 import { getPosts } from '@/lib/hatch';
 import { getFeatures } from '@/lib/features';
+import { siteName as resolveSiteName, siteDescription as resolveSiteDescription } from '@/lib/site';
 
 const features = await getFeatures();
 const { posts } = await getPosts({ page: 1, perPage: 3, category: null });
 const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
-const siteName = features.site.name || 'Hatch';
-const tagline = features.site.description || 'Headless WordPress, powered by Hatch.';
+const siteName = resolveSiteName(features.site);
+// Stays empty when the owner has not set a tagline: no meta tag, no empty gap.
+const tagline = resolveSiteDescription(features.site);
 ---
 
 <PageLayout
@@ -23,16 +26,19 @@ const tagline = features.site.description || 'Headless WordPress, powered by Hat
   description={tagline}
   canonical={SITE}
 >
+  <DocsShell features={features}>
   <main class="mx-auto px-5 sm:px-8 py-16 sm:py-24" style="max-width: var(--hatch-max-width, 1160px)">
 
     <section class="mb-16 sm:mb-24 pb-12 border-b border-hatch-border">
       <h1 class="text-4xl sm:text-6xl font-semibold tracking-tight leading-[1.05]">
         {siteName}
       </h1>
-      <p class="mt-4 text-lg sm:text-xl text-hatch-fg-muted max-w-2xl">
-        {tagline}
-      </p>
-      <div class="mt-8">
+      {tagline && (
+        <p class="mt-4 text-lg sm:text-xl text-hatch-fg-muted max-w-2xl">
+          {tagline}
+        </p>
+      )}
+      <div class={tagline ? 'mt-8' : 'mt-6'}>
         <a
           href="/blog"
           class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-[14px] font-medium bg-hatch-fg text-hatch-bg hover:opacity-90 transition-opacity"
@@ -65,4 +71,5 @@ const tagline = features.site.description || 'Headless WordPress, powered by Hat
     )}
 
   </main>
+  </DocsShell>
 </PageLayout>

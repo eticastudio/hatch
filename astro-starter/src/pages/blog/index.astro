@@ -10,7 +10,7 @@
 import PageLayout from '@/layouts/PageLayout.astro';
 import PostCard from '@/components/PostCard.astro';
 import HatchForm from '@/components/HatchForm.astro';
-import DocsSidebar from '@/components/DocsSidebar.astro';
+import DocsShell from '@/components/theme/DocsShell.astro';
 import { getPosts, getCategories } from '@/lib/hatch';
 import { getFeatures, hasFeature } from '@/lib/features';
 
@@ -51,17 +51,11 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
 
 <PageLayout
   title={activeCategory ? `${activeCategory.name} · Blog` : 'Blog'}
-  description={activeCategory ? `Posts in ${activeCategory.name}` : (features.site.description || 'Latest posts and updates.')}
+  description={activeCategory ? `Posts in ${activeCategory.name}` : ''}
   canonical={`${SITE}/blog${activeCategory ? `?category=${activeCategory.slug}` : ''}`}
 >
-  {/* v0.50.23 — Docs theme wraps the blog index in a 2-col grid with the
-      category sidebar on the left, so docs feel like a docs site. */}
-  <main class={`mx-auto px-5 sm:px-8 py-12 sm:py-16 ${features.theme === 'docs' ? 'grid gap-x-10 gap-y-8 lg:grid-cols-[220px_1fr]' : ''}`} style="max-width: var(--hatch-max-width, 1160px)">
-
-    {features.theme === 'docs' && (
-      <DocsSidebar activeCategorySlug={activeCategory?.slug || null} />
-    )}
-
+  <DocsShell features={features} activeCategorySlug={activeCategory?.slug || null}>
+  <main class="mx-auto px-5 sm:px-8 py-12 sm:py-16" style="max-width: var(--hatch-max-width, 1160px)">
     <div>
     <header class="mb-10 sm:mb-12 pb-8 border-b border-hatch-border">
       <h1 class="text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.05]">
@@ -151,7 +145,7 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
     )}
 
     {paginationStyle === 'infinite' && (
-      <script is:inline>
+      <script is:inline data-astro-rerun>
         (function () {
           var sentinel = document.getElementById('hatch-infinite-sentinel');
           if (!sentinel || !('IntersectionObserver' in window)) return;
@@ -184,4 +178,5 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
 
     </div>
   </main>
+  </DocsShell>
 </PageLayout>

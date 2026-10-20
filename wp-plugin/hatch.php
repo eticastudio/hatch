@@ -1,23 +1,22 @@
 <?php
 /**
- * Plugin Name:       Hatch
- * Description:       Turn WordPress into a headless CMS with an Astro frontend on Cloudflare Workers. Deploys from wp-admin with your own Cloudflare API token, plus security hardening, an image proxy, a REST bridge and a React admin.
- * Version:           0.8.0
+ * Plugin Name:       Hatch Connect
+ * Description:       Show your WordPress site through a fast frontend hosted on your own Cloudflare account. Set up from wp-admin in a few minutes, and undo it any time.
+ * Version:           1.0.2
  * Requires at least: 6.4
- * Tested up to:      7.0
  * Requires PHP:      7.4
  * Author:            Aditya Sharma
  * Author URI:        https://adityaarsharma.com
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       hatch-bridge
+ * Text Domain:       hatch-connect
  *
  * @package Hatch
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'HATCH_VERSION', '0.8.0' );
+define( 'HATCH_VERSION', '1.0.2' );
 define( 'HATCH_PLUGIN_FILE', __FILE__ );
 define( 'HATCH_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'HATCH_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -232,7 +231,7 @@ add_action(
  * v0.50.18 - Sync Hatch design tokens to the WordPress frontend so the
  * active WP theme respects the user's picks (max width, brand colors,
  * fonts, color mode). Without this, a user who installs Hatch but doesn't
- * activate the companion theme would see WordPress render with the theme's
+ * connect a frontend would see WordPress render with the theme's
  * own width / colors, ignoring everything they set in the Hatch admin -
  * exactly the "no conflict between Hatch + WP theme" guarantee the user
  * asked for.
@@ -240,7 +239,7 @@ add_action(
  * Adds ONE inline style block to the front end. Includes:
  *  1. Every CSS var the Astro frontend uses (so any Hatch block on a WP-
  *     rendered page picks them up automatically).
- *  2. A sync rule that hard-pins `max-width: var(--hatch-max-width)` on
+ *  2. An opt-in sync rule (off by default) that hard-pins `max-width: var(--hatch-max-width)` on
  *     the most common WP theme container classes (`.entry-content`,
  *     `.site-content`, `.wp-site-blocks`, `.wp-block-post-content`, `main`
  *     and `article`). Themes that already use narrower widths are
@@ -298,11 +297,19 @@ function hatch_sync_design_tokens_to_wp_frontend(): void {
 	$css .= '--hatch-radius:' . $radius . ';';
 	$css .= '--hatch-max-width:' . $max_w . 'px;';
 	$css .= '}';
-	// Sync rule: common WP theme container classes get the width the user picked.
-	// Themes using their own narrower width still win.
-	$css .= '.entry-content,.site-content,.wp-site-blocks,.wp-block-post-content,';
-	$css .= 'main.wp-block-group,article.post,article.page,.hatch-post-container{';
-	$css .= 'max-width:var(--hatch-max-width,1160px);margin-left:auto;margin-right:auto;}';
+	// Opt-in only: re-laying-out the active theme's containers is never done by default.
+	// Owners who want the Hatch width on WP-rendered pages turn it on with the
+	// `hatch_sync_wp_layout` option or filter. Themes with a narrower width still win.
+	/**
+	 * Filters whether Hatch pins its content width on the active theme's containers.
+	 *
+	 * @param bool $enabled Default false, from the `hatch_sync_wp_layout` option.
+	 */
+	if ( apply_filters( 'hatch_sync_wp_layout', (bool) get_option( 'hatch_sync_wp_layout', false ) ) ) {
+		$css .= '.entry-content,.site-content,.wp-site-blocks,.wp-block-post-content,';
+		$css .= 'main.wp-block-group,article.post,article.page,.hatch-post-container{';
+		$css .= 'max-width:var(--hatch-max-width,1160px);margin-left:auto;margin-right:auto;}';
+	}
 	if ( 'auto' !== $mode ) {
 		$css .= 'html{color-scheme:' . $mode . ';}';
 	}
@@ -388,10 +395,12 @@ function hatch_cors_headers(): void {
 	remove_filter( 'rest_pre_serve_request', 'rest_send_cors_headers' );
 	add_filter(
 		'rest_pre_serve_request',
-		function ( $value ) {
-			// Only adjust headers for our own namespace.
-			$path = Hatch_Request::request_uri();
-			if ( false === strpos( $path, '/wp-json/hatch/v1/' ) && false === strpos( $path, '/?rest_route=/hatch/v1/' ) ) {
+		function ( $value, $result = null, $request = null ) {
+			// Only adjust headers for our own namespace. The matched route is used
+			// rather than the URL, so a custom REST prefix, a subdirectory install,
+			// index.php?rest_route= and plain permalinks all behave the same way.
+			$route = $request instanceof WP_REST_Request ? $request->get_route() : '';
+			if ( 0 !== strpos( $route, '/hatch/v1/' ) && '/hatch/v1' !== $route ) {
 				// Not a Hatch route: keep WordPress core's own CORS handling.
 				return rest_send_cors_headers( $value );
 			}
@@ -425,7 +434,8 @@ function hatch_cors_headers(): void {
 			}
 			return $value;
 		},
-		15
+		15,
+		3
 	);
 }
 
@@ -451,8 +461,25 @@ function hatch_on_activation(): void {
 require_once HATCH_PLUGIN_DIR . 'includes/class-request.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-module-loader.php';
 
-// V0.1 core (companion plugin layer).
+// V0.1 core.
 require_once HATCH_PLUGIN_DIR . 'includes/class-detector.php';
+/**
+ * Whether the current admin request is one of Hatch's own screens.
+ *
+ * Hatch shows notices only on its own screens, never across the rest of wp-admin.
+ *
+ * @return bool
+ */
+function hatch_is_own_admin_screen(): bool {
+	if ( ! is_admin() ) {
+		return false;
+	}
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only screen check.
+	$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( (string) $_GET['page'] ) ) : '';
+	return 'hatch' === $page || 0 === strpos( $page, 'hatch-' ) || 0 === strpos( $page, 'hatch_' );
+}
+
+require_once HATCH_PLUGIN_DIR . 'includes/class-rest-permission.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-security.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-rest-api.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-revalidate.php';
@@ -474,7 +501,6 @@ require_once HATCH_PLUGIN_DIR . 'includes/class-options-rest.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-acf-bridge.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-cpt-scanner.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-login-hardening.php';
-require_once HATCH_PLUGIN_DIR . 'includes/class-app-password-helper.php';
 // Encrypted credential store for the Cloudflare API token.
 require_once HATCH_PLUGIN_DIR . 'includes/class-credential-store.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-diagnostic.php';
@@ -485,18 +511,22 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	require_once HATCH_PLUGIN_DIR . 'includes/class-cli.php';
 }
 
-// V0.22 - integrations + headless comments + headless forms + companion theme.
+// V0.22 - integrations + headless comments + headless forms + frontend redirect.
 require_once HATCH_PLUGIN_DIR . 'includes/class-integrations.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-headless-comments.php';
-// v0.7.5 - Strip third-party admin notices (WooCommerce Action Scheduler,
-// SEO plugin nags, review prompts, etc.) on Hatch's own admin screens.
-require_once HATCH_PLUGIN_DIR . 'includes/class-admin-quiet.php';
 require_once HATCH_PLUGIN_DIR . 'includes/class-headless-forms.php';
-require_once HATCH_PLUGIN_DIR . 'includes/class-companion-theme-installer.php';
-// Deactivating the plugin puts the previous theme back: the companion theme only redirects
-// to the frontend, whose content comes from this plugin. Plugin updates deactivate silently
-// and do not fire this hook, so an update never changes the theme.
-register_deactivation_hook( __FILE__, array( 'Hatch_Companion_Theme_Installer', 'restore_on_deactivate' ) );
+// Sends visitors of the raw WordPress address to the connected frontend. Plain plugin behaviour, no theme is installed or switched.
+require_once HATCH_PLUGIN_DIR . 'includes/class-frontend-redirect.php';
+Hatch_Frontend_Redirect::boot();
+// Privacy policy text plus personal-data export and erasure for stored form submissions.
+require_once HATCH_PLUGIN_DIR . 'includes/class-privacy.php';
+Hatch_Privacy::boot();
+// The optional URL rewriter mu-plugin follows the same lifecycle: written on activation only when the
+// site needs it, kept in step with the connection, removed again on deactivation and uninstall.
+require_once HATCH_PLUGIN_DIR . 'includes/class-mu-plugin.php';
+register_activation_hook( __FILE__, array( 'Hatch_Mu_Plugin', 'on_activate' ) );
+register_deactivation_hook( __FILE__, array( 'Hatch_Mu_Plugin', 'on_deactivate' ) );
+Hatch_Mu_Plugin::boot();
 // Periodic HEAD probe of the site's own frontend URL so the Status panel can show liveness.
 require_once HATCH_PLUGIN_DIR . 'includes/class-cloud-heartbeat.php';
 // V0.23 - design.md loader (brand tokens flow to the frontend as CSS variables).
@@ -522,6 +552,8 @@ require_once HATCH_PLUGIN_DIR . 'includes/deploy/class-hatch-cloudflare-api.php'
 require_once HATCH_PLUGIN_DIR . 'includes/deploy/class-hatch-frontend-bundle.php';
 require_once HATCH_PLUGIN_DIR . 'includes/deploy/class-hatch-cloudflare-proxy-worker.php';
 require_once HATCH_PLUGIN_DIR . 'includes/deploy/class-hatch-cloudflare-provider.php';
+require_once HATCH_PLUGIN_DIR . 'includes/deploy/class-hatch-wp-credential.php';
+add_action( 'wp_authenticate_application_password_errors', array( 'Hatch_Wp_Credential', 'refuse_if_promoted' ), 10, 2 );
 require_once HATCH_PLUGIN_DIR . 'includes/deploy/class-hatch-deploy-controller.php';
 // v0.5.8. Cloudflare Worker SEO rewriter. Reads hatch_cf_worker_state option
 // (written by Hatch_Deploy_Controller on a successful deploy) and rewrites

@@ -45,7 +45,7 @@ function hatch_setup_wizard_maybe_redirect_first_run(): void {
 		return;
 	}
 	// Only bounce on top-level GET admin loads.
-	if ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'GET' !== strtoupper( (string) $_SERVER['REQUEST_METHOD'] ) ) {
+	if ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'GET' !== strtoupper( sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_METHOD'] ) ) ) ) {
 		return;
 	}
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only screen check.
@@ -78,8 +78,8 @@ function hatch_setup_wizard_maybe_redirect_first_run(): void {
 function hatch_setup_wizard_menu(): void {
 	add_submenu_page(
 		'options.php',
-		__( 'Hatch setup', 'hatch-bridge' ),
-		__( 'Hatch setup', 'hatch-bridge' ),
+		__( 'Hatch setup', 'hatch-connect' ),
+		__( 'Hatch setup', 'hatch-connect' ),
 		'manage_options',
 		'hatch-setup',
 		'hatch_setup_wizard_render'
@@ -122,7 +122,7 @@ function hatch_setup_wizard_route(): void {
  */
 function hatch_setup_wizard_render(): void {
 	if ( ! current_user_can( 'manage_options' ) ) {
-		wp_die( esc_html__( 'Permission denied.', 'hatch-bridge' ), '', array( 'response' => 403 ) );
+		wp_die( esc_html__( 'Permission denied.', 'hatch-connect' ), '', array( 'response' => 403 ) );
 	}
 	// React owns the visuals. PHP only supplies the mount point. The bundle is
 	// enqueued by hatch_enqueue_admin_assets() and reads window.hatchBoot.page

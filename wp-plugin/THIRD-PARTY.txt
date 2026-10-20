@@ -13,7 +13,51 @@ in the public source repository, https://github.com/eticastudio/hatch.
 
 The admin screen is built from admin-react/src. It imports only React, wp-element
 and wp-i18n, which WordPress core provides at run time (see
-build/admin/index.jsx.asset.php). No third-party code is bundled into it.
+build/admin/index.jsx.asset.php).
+
+The only third-party material bundled into it is icon path data from Lucide
+(https://lucide.dev), copied into admin-react/src/icons.jsx. Lucide is licensed
+ISC. Portions of Lucide derive from Feather (MIT, Cole Bemis 2013-2022); all
+other copyright is held by Lucide Contributors. Its licence text must stay with
+any redistribution of those icon paths.
+
+Lucide licence (ISC):
+
+  Copyright (c) Lucide Icons and Contributors
+
+  Permission to use, copy, modify, and/or distribute this software for any
+  purpose with or without fee is hereby granted, provided that the above
+  copyright notice and this permission notice appear in all copies.
+
+  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+Feather licence (MIT), for the Lucide icons derived from Feather:
+
+  Copyright (c) 2013-present Cole Bemis
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
 
 
 2. Frontend uploaded to Cloudflare (frontend-bundle)
@@ -32,9 +76,18 @@ built from these packages, all under the MIT licence:
   clsx                   2.1.1    Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com)
 
 The dependencies of these packages are resolved in astro-starter/package-lock.json
-(230 packages). Their licences are MIT, ISC, BSD-2-Clause, BSD-3-Clause,
-Apache-2.0, BlueOak-1.0.0, CC0-1.0, MPL-2.0, Python-2.0 and "MIT OR Apache-2.0".
+(492 packages, most of them build tools and optional platform binaries that are
+never uploaded). The compiled frontend-bundle contains only the code that the
+bundler inlined from the packages above and their runtime dependencies, which
+are under MIT, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0, BlueOak-1.0.0 or
+CC0-1.0 (all GPL-compatible, or permissive licences that GPL code may include).
 The lock file names the licence of each package.
+
+These packages appear in the lock file but their code is NOT part of the
+frontend-bundle (they are used only while building or by optional features):
+sharp and its libvips binaries (LGPL-3.0-or-later), lightningcss (MPL-2.0),
+@fontsource/inter and @fontsource/lora (OFL-1.1, fonts are not shipped),
+tslib (0BSD) and typescript (Apache-2.0).
 
 Web fonts are not shipped in the plugin. The deployed frontend requests them from
 Google Fonts in the visitor's browser (see "External services" in readme.txt).

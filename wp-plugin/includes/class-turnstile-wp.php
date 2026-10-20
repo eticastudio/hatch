@@ -30,7 +30,10 @@ defined( 'ABSPATH' ) || exit;
 
 class Hatch_Turnstile_WP {
 
-	const API_SCRIPT = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+	// The Turnstile widget script Cloudflare requires sites to load from its own address. Listed under External services in readme.txt.
+	const API_SCRIPT = 'https://challenges.cloudflare.com/turnstile/v0/api.js'; // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Documented external service.
+
+	const LOGIN_CSS = '.login form #wp-submit{margin-top:8px;}.login .cf-turnstile{display:flex;justify-content:center;margin:0 0 16px;}';
 
 	public static function instance(): self {
 		static $i = null;
@@ -52,7 +55,6 @@ class Hatch_Turnstile_WP {
 			add_action( 'register_form', array( __CLASS__, 'render_widget_login' ) );
 			add_filter( 'authenticate', array( __CLASS__, 'verify_login' ), 99, 3 );
 			add_filter( 'lostpassword_post', array( __CLASS__, 'verify_lostpassword' ), 10, 1 );
-			add_action( 'login_head', array( __CLASS__, 'login_inline_style' ) );
 		}
 
 		// --- WP classic comment form (only matters if user has WP comments enabled
@@ -133,12 +135,17 @@ class Hatch_Turnstile_WP {
 			'cf-turnstile',
 			self::API_SCRIPT,
 			array(),
-			HATCH_VERSION,
+			null, // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Third-party script: Cloudflare asks for its URL unmodified, so no ?ver query string.
 			array(
 				'in_footer' => false,
 				'strategy'  => 'defer',
 			)
 		);
+		// Layout for the widget on wp-login.php, attached to a registered handle
+		// instead of echoing a style tag from login_head.
+		wp_register_style( 'hatch-login-turnstile', false, array(), HATCH_VERSION );
+		wp_enqueue_style( 'hatch-login-turnstile' );
+		wp_add_inline_style( 'hatch-login-turnstile', self::LOGIN_CSS );
 	}
 
 	public static function render_widget_login(): void {
@@ -147,16 +154,9 @@ class Hatch_Turnstile_WP {
 		}
 		$c = self::config();
 		printf(
-			'<div class="cf-turnstile" data-sitekey="%s" data-theme="auto" style="margin: 0 0 16px;"></div>',
+			'<div class="cf-turnstile" data-sitekey="%s" data-theme="auto"></div>',
 			esc_attr( $c['site_key'] )
 		);
-	}
-
-	public static function login_inline_style(): void {
-		if ( ! self::active() ) {
-			return;
-		}
-		echo '<style>.login form #wp-submit{margin-top:8px;} .login .cf-turnstile{display:flex;justify-content:center;}</style>';
 	}
 
 	/**
@@ -188,7 +188,7 @@ class Hatch_Turnstile_WP {
 		if ( ! $ok ) {
 			return new WP_Error(
 				'hatch_turnstile_login',
-				__( '<strong>Anti-spam check failed.</strong> Try again.', 'hatch-bridge' )
+				__( '<strong>Anti-spam check failed.</strong> Try again.', 'hatch-connect' )
 			);
 		}
 		return $user;
@@ -208,7 +208,7 @@ class Hatch_Turnstile_WP {
 		$ok    = Hatch_Integrations::verify_turnstile( $token, self::client_ip() );
 		if ( ! $ok ) {
 			$err = ( $errors instanceof WP_Error ) ? $errors : new WP_Error();
-			$err->add( 'hatch_turnstile_lost', __( '<strong>Anti-spam check failed.</strong> Try again.', 'hatch-bridge' ) );
+			$err->add( 'hatch_turnstile_lost', __( '<strong>Anti-spam check failed.</strong> Try again.', 'hatch-connect' ) );
 			return $err;
 		}
 		return $errors;
@@ -231,7 +231,7 @@ class Hatch_Turnstile_WP {
 			'cf-turnstile',
 			self::API_SCRIPT,
 			array(),
-			HATCH_VERSION,
+			null, // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Third-party script: Cloudflare asks for its URL unmodified, so no ?ver query string.
 			array(
 				'in_footer' => true,
 				'strategy'  => 'defer',
@@ -258,8 +258,8 @@ class Hatch_Turnstile_WP {
 		$ok    = Hatch_Integrations::verify_turnstile( $token, self::client_ip() );
 		if ( ! $ok ) {
 			wp_die(
-				esc_html__( 'Anti-spam check failed. Please go back and try again.', 'hatch-bridge' ),
-				esc_html__( 'Comment rejected', 'hatch-bridge' ),
+				esc_html__( 'Anti-spam check failed. Please go back and try again.', 'hatch-connect' ),
+				esc_html__( 'Comment rejected', 'hatch-connect' ),
 				array(
 					'response'  => 400,
 					'back_link' => true,

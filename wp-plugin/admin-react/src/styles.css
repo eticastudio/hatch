@@ -30,14 +30,14 @@
 	--hx-gray-1:  #ffffff;
 	--hx-gray-2:  #fafafa;
 	--hx-gray-3:  #f4f4f5;
-	--hx-gray-4:  #ececee;
-	--hx-gray-5:  #e5e5e7;
-	--hx-gray-6:  #d4d4d8;
-	--hx-gray-7:  #a1a1aa;
-	--hx-gray-8:  #71717a;
-	--hx-gray-9:  #52525b;
-	--hx-gray-10: #3f3f46;
-	--hx-gray-11: #27272a;
+	--hx-gray-4:  #ebebeb;
+	--hx-gray-5:  #e5e5e5;
+	--hx-gray-6:  #d4d4d4;
+	--hx-gray-7:  #a3a3a3;
+	--hx-gray-8:  #737373;
+	--hx-gray-9:  #525252;
+	--hx-gray-10: #404040;
+	--hx-gray-11: #262626;
 	--hx-gray-12: #0a0a0a;
 
 	/* Surfaces */
@@ -59,26 +59,51 @@
 	--hx-muted:       var(--hx-text-muted);   /* legacy alias */
 	--hx-subtle:      var(--hx-text-subtle);  /* legacy alias */
 
-	/* Accent. Follows the administrator's chosen WordPress colour scheme via
-	   --wp-admin-theme-color, so buttons and focus rings match the rest of
-	   wp-admin. The fallback is WordPress's default blue. `primary-subtle` is
-	   a wash used for focus rings and subtle fills. */
-	--hx-primary:         var(--wp-admin-theme-color, #2271b1);
-	--hx-primary-hover:   var(--wp-admin-theme-color-darker-10, #135e96);
-	--hx-primary-subtle:  color-mix(in srgb, var(--hx-primary) 10%, var(--hx-surface));
-	--hx-primary-3:       var(--hx-primary-subtle); /* legacy alias */
-	--hx-link:            var(--hx-primary);
-	--hx-on-primary:      #ffffff;
+	/* Accent. Brand orange, used sparingly (DESIGN-SYSTEM.md section 1). It is
+	   an accent, never a state colour: toggles stay black. Orange text on white
+	   fails contrast, so links and focus rings use the foreground colour. */
+	--hx-primary:         #ff6b00;
+	--hx-primary-hover:   #e66000;
+	--hx-primary-3:       #fff3e8;
+	--hx-primary-subtle:  var(--hx-primary-3);
+	--hx-link:            var(--hx-fg);
+	--hx-focus:           var(--hx-fg);
+	/* Text on the orange button is black: 6.4:1, where white is 2.9:1. */
+	--hx-on-primary:      #0a0a0a;
 
-	/* State, foreground + subtle-fill pair for each. */
+	/* State, foreground + subtle-fill pair for each. -soft and -edge tint a
+	   whole card or notice (fill and border) without shouting. */
 	--hx-success:         #16a34a;
 	--hx-success-subtle:  #dcfce7;
+	--hx-success-soft:    #f0fdf4;
+	--hx-success-edge:    #bbf7d0;
 	--hx-warning:         #d97706;
 	--hx-warning-subtle:  #fef3c7;
+	--hx-warning-soft:    #fff7ed;
+	--hx-warning-edge:    #fed7aa;
 	--hx-danger:          #b91c1c;
+	--hx-on-danger:       #fafafa;
 	--hx-danger-subtle:   #fee2e2;
+	--hx-danger-soft:     #fef2f2;
+	--hx-danger-edge:     #fecaca;
 	--hx-info:            #2563eb;
 	--hx-info-subtle:     #dbeafe;
+	--hx-info-soft:       #eff6ff;
+	--hx-info-edge:       #bfdbfe;
+
+	/* Save bar: warm dark zinc, never --hx-fg, in both themes. */
+	--hx-bar:             #18181b;
+	--hx-bar-fg:          #fafafa;
+	--hx-bar-fg-dim:      #a3a3a3;
+	--hx-bar-line:        #3f3f46;
+	/* Toggle thumb: near-white in both themes. */
+	--hx-thumb:           #fafafa;
+	--hx-thumb-on:        #fafafa;
+
+	/* Elevation */
+	--hx-shadow-1:        0 1px 4px rgba(10, 10, 10, 0.12);
+	--hx-shadow-hover:    0 4px 20px rgba(10, 10, 10, 0.07);
+	--hx-shadow-bar:      0 8px 32px rgba(10, 10, 10, 0.28);
 
 	/* Motion */
 	--hx-ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -125,20 +150,30 @@
 	--hx-muted:       var(--hx-text-muted);
 	--hx-subtle:      var(--hx-text-subtle);
 
-	--hx-primary:         var(--wp-admin-theme-color, #3858e9);
-	--hx-primary-hover:   var(--wp-admin-theme-color-darker-10, #2145e6);
-	--hx-primary-subtle:  color-mix(in srgb, var(--hx-primary) 18%, var(--hx-surface));
-	--hx-primary-3:       var(--hx-primary-subtle);
-	--hx-link:            #8fa3ff; /* text-safe on the dark surface, 7:1 */
+	--hx-primary-hover:   #ff8533;
+	--hx-primary-3:       color-mix(in srgb, var(--hx-primary) 16%, var(--hx-surface));
+	--hx-primary-subtle:  var(--hx-primary-3);
 
 	--hx-success:         #4ade80;
 	--hx-success-subtle:  #0a2a17;
+	--hx-success-soft:    #0a2a17;
+	--hx-success-edge:    #14532d;
 	--hx-warning:         #fbbf24;
 	--hx-warning-subtle:  #2a1c05;
+	--hx-warning-soft:    #2a1c05;
+	--hx-warning-edge:    #78350f;
 	--hx-danger:          #f87171;
+	--hx-on-danger:       #1a0505;
 	--hx-danger-subtle:   #2a0d0d;
+	--hx-danger-soft:     #2a0d0d;
+	--hx-danger-edge:     #7f1d1d;
 	--hx-info:            #60a5fa;
 	--hx-info-subtle:     #0f1d33;
+	--hx-info-soft:       #0f1d33;
+	--hx-info-edge:       #1e3a8a;
+	--hx-shadow-hover:    0 4px 20px rgba(0, 0, 0, 0.5);
+	/* ON track is light in dark mode, so the thumb on it goes dark. */
+	--hx-thumb-on:        #18181b;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -175,6 +210,11 @@
 @media (max-width: 640px) {
 	.hatch-react .hx-row { flex-wrap: wrap; }
 	.hatch-react .hx-row-ctl { flex-shrink: 1; min-width: 0; max-width: 100%; }
+	.hatch-react .hx-row-ctl > [role="group"] { justify-content: flex-start !important; }
+	/* Action rows (Connection tab): the control always sits under its description, start aligned,
+	   so a row never has its button on the right while its neighbour has it below. */
+	.hatch-react .hx-row-stack { flex-direction: column; align-items: flex-start !important; gap: 10px !important; }
+	.hatch-react .hx-row-stack > div:first-child { flex: 0 0 auto !important; width: 100%; }
 }
 
 /* Tab pill strip: scrolls sideways on a narrow screen. The native scrollbar is
@@ -184,8 +224,8 @@
 .hatch-react .hx-tabstrip::-webkit-scrollbar { display: none; }
 @media (max-width: 640px) {
 	.hatch-react .hx-tabstrip {
-		-webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-		mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+		-webkit-mask-image: linear-gradient(to right, CanvasText calc(100% - 28px), transparent);
+		mask-image: linear-gradient(to right, CanvasText calc(100% - 28px), transparent);
 	}
 }
 
@@ -220,6 +260,8 @@
 	cursor: pointer;
 }
 .hatch-react select:hover { border-color: var(--hx-border-strong); }
+.hatch-react { --hx-dir: 1; }
+[dir="rtl"] .hatch-react { --hx-dir: -1; }
 [dir="rtl"] .hatch-react select { background-position: left 10px center; }
 
 /* The app draws its own full-bleed layout: cancel wp-admin's content padding
@@ -243,6 +285,13 @@ body.admin_page_hatch-setup #wpbody-content { padding-bottom: 0 !important; }
 /* Login address shown in the security bookmark notice. */
 .hatch-login-url { word-break: break-all; }
 
+/* The WP-admin surround sits outside .hatch-react, so it carries its own copy
+   of the page colour. Same values as --hx-bg in each theme. */
+body.toplevel_page_hatch,
+body.admin_page_hatch-setup { --hx-page-bg: #fafafa; }
+body.toplevel_page_hatch[data-hx-theme="dark"],
+body.admin_page_hatch-setup[data-hx-theme="dark"] { --hx-page-bg: #0f0f11; }
+
 /* Dark mode: make sure the WP-admin surround inherits our page bg so the
    pale WP chrome doesn't halo the dark app. */
 body.toplevel_page_hatch[data-hx-theme="dark"],
@@ -251,7 +300,7 @@ body.toplevel_page_hatch[data-hx-theme="dark"] #wpbody-content,
 body.admin_page_hatch-setup[data-hx-theme="dark"],
 body.admin_page_hatch-setup[data-hx-theme="dark"] #wpbody,
 body.admin_page_hatch-setup[data-hx-theme="dark"] #wpbody-content {
-	background: #0f0f11;
+	background: var(--hx-page-bg);
 }
 
 /* Focus rings, WCAG 2.4.7 */
@@ -260,10 +309,50 @@ body.admin_page_hatch-setup[data-hx-theme="dark"] #wpbody-content {
 .hatch-react select:focus-visible,
 .hatch-react a:focus-visible,
 .hatch-react summary:focus-visible {
-	outline: 2px solid var(--hx-primary);
+	outline: 2px solid var(--hx-focus);
 	outline-offset: 2px;
 	border-radius: 4px;
 }
+
+/* Text links. Orange text fails contrast on white, so links use the
+   foreground colour and are told apart by the underline. */
+.hatch-react a.hx-link {
+	color: var(--hx-link);
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 3px;
+	overflow-wrap: anywhere;
+}
+.hatch-react a.hx-link:hover { text-decoration-thickness: 2px; }
+
+/* Icon-box tint. Light theme uses the soft colour from ibg() inline; in the
+   dark theme the same hue is mixed into the dark surface instead. */
+[data-hx-theme="dark"] .hatch-react .hx-ibox { background: color-mix(in srgb, var(--ibc, var(--hx-muted)) 18%, var(--hx-surface)) !important; }
+
+/* Tab attention dot (section 4): amber, pulses once to catch the eye. */
+.hatch-react .hx-tab-dot {
+	position: absolute;
+	top: 6px;
+	inset-inline-end: 8px;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--hx-warning);
+	box-shadow: 0 0 0 2px var(--hx-surface-2);
+}
+.hatch-react .hx-tab-dot::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: 50%;
+	background: var(--hx-warning);
+	animation: hxPulse 1.8s var(--hx-ease) infinite;
+}
+@keyframes hxPulse {
+	0%   { opacity: 0.6; transform: scale(1); }
+	100% { opacity: 0;   transform: scale(2.6); }
+}
+@media (prefers-reduced-motion: reduce) { .hatch-react .hx-tab-dot::after { animation: none; display: none; } }
 
 /* Footer links */
 .hatch-react .hatch-foot-link {
@@ -277,16 +366,21 @@ body.admin_page_hatch-setup[data-hx-theme="dark"] #wpbody-content {
 .hatch-react .hatch-tab:hover:not(.is-active) { color: var(--hx-text-muted) !important; }
 
 @keyframes hxFadeUp {
-	from { opacity: 0; transform: translateY(4px); }
+	from { opacity: 0; transform: translateY(6px); }
 	to   { opacity: 1; transform: translateY(0); }
 }
-.hatch-react .hatch-tab-enter { animation: hxFadeUp 0.13s var(--hx-ease) both; }
+.hatch-react .hatch-tab-enter { animation: hxFadeUp 0.2s var(--hx-ease) both; }
+
+@keyframes hxFadeIn {
+	from { opacity: 0; }
+	to   { opacity: 1; }
+}
 
 @keyframes hxPopIn {
-	from { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.98); }
+	from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.97); }
 	to   { opacity: 1; transform: translateX(-50%) translateY(0)   scale(1); }
 }
-.hatch-react .hatch-save-bar { animation: hxPopIn 0.16s var(--hx-ease) both; }
+.hatch-react .hatch-save-bar { animation: hxPopIn 0.2s var(--hx-ease) both; }
 
 @media (min-width: 783px) {
 	body.toplevel_page_hatch:not(.folded) .hatch-react .hatch-save-bar { margin-inline-start: 80px; }
@@ -294,8 +388,7 @@ body.admin_page_hatch-setup[data-hx-theme="dark"] #wpbody-content {
 }
 
 .hatch-react .hx-card-hover { transition: box-shadow 0.2s var(--hx-ease); }
-.hatch-react .hx-card-hover:hover { box-shadow: 0 4px 20px rgba(0,0,0,.07); }
-[data-hx-theme="dark"] .hatch-react .hx-card-hover:hover { box-shadow: 0 4px 20px rgba(0,0,0,.5); }
+.hatch-react .hx-card-hover:hover { box-shadow: var(--hx-shadow-hover); }
 
 @keyframes hxSpin { to { transform: rotate(360deg); } }
 
@@ -304,45 +397,60 @@ body.admin_page_hatch-setup[data-hx-theme="dark"] #wpbody-content {
 	.hatch-react .hatch-save-bar { animation: none; }
 }
 
-/* Save bar buttons, warm dark surface stays dark in both themes for anchor. */
-.hatch-react .hatch-sb-discard {
-	padding: 7px 16px;
+/* Save bar. The bar is a pill on --hx-bar in both themes; its buttons are
+   pills too, matching HxBtn (sm). */
+.hatch-react .hatch-save-bar { color: var(--hx-bar-fg); }
+.hatch-react .hatch-sb-kbd {
+	padding: 2px 7px;
 	border-radius: 6px;
+	border: 1px solid var(--hx-bar-line);
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.4;
+	color: var(--hx-bar-fg-dim);
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (max-width: 640px) { .hatch-react .hatch-sb-kbd { display: none; } }
+.hatch-react .hatch-sb-discard {
+	padding: 7px 14px;
+	border-radius: 999px;
 	cursor: pointer;
 	font-family: inherit;
-	font-size: 13px;
+	font-size: 14px;
 	font-weight: 500;
 	background: transparent;
-	color: rgba(255,255,255,0.6);
-	border: 1px solid rgba(255,255,255,0.15);
-	transition: border-color .15s var(--hx-ease);
+	color: var(--hx-bar-fg-dim);
+	border: 1px solid var(--hx-bar-line);
+	transition: border-color .2s var(--hx-ease), color .2s var(--hx-ease);
 }
-.hatch-react .hatch-sb-discard:hover { border-color: rgba(255,255,255,0.3); }
+.hatch-react .hatch-sb-discard:hover { border-color: var(--hx-bar-fg-dim); color: var(--hx-bar-fg); }
 .hatch-react .hatch-sb-save {
-	padding: 7px 18px;
-	border-radius: 6px;
+	padding: 7px 14px;
+	border-radius: 999px;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	background: var(--hx-primary);
+	color: var(--hx-on-primary);
+	border: 1px solid transparent;
+	transition: opacity .2s var(--hx-ease), transform .2s var(--hx-ease);
+}
+.hatch-react .hatch-sb-save:hover { opacity: 0.84; transform: translateY(-1px); }
+.hatch-react .hatch-sb-retry {
+	margin-inline-start: 4px;
+	padding: 5px 12px;
+	border-radius: 999px;
 	cursor: pointer;
 	font-family: inherit;
 	font-size: 13px;
-	font-weight: 700;
-	background: var(--hx-primary);
-	color: var(--hx-on-primary);
-	border: none;
-	transition: opacity .15s var(--hx-ease);
-}
-.hatch-react .hatch-sb-save:hover { opacity: 0.88; }
-.hatch-react .hatch-sb-retry {
-	margin-inline-start: 4px;
-	padding: 4px 12px;
-	border-radius: 6px;
-	cursor: pointer;
-	font-family: inherit;
-	font-size: 12px;
 	font-weight: 600;
 	background: var(--hx-danger);
-	color: var(--hx-on-primary);
-	border: none;
+	color: var(--hx-on-danger);
+	border: 1px solid transparent;
 }
+/* The bar keeps focus rings visible on its dark surface. */
+.hatch-react .hatch-save-bar button:focus-visible { outline-color: var(--hx-bar-fg) !important; }
 
 /* Inputs */
 .hatch-react input[type="text"],
@@ -355,9 +463,8 @@ body.admin_page_hatch-setup[data-hx-theme="dark"] #wpbody-content {
 .hatch-react input[type="email"]:focus,
 .hatch-react input[type="number"]:focus,
 .hatch-react input[type="url"]:focus {
-	border-color: var(--hx-primary) !important;
-	box-shadow: 0 0 0 3px var(--hx-primary-subtle);
-	outline: none;
+	border-color: var(--hx-fg);
+	box-shadow: 0 0 0 3px var(--hx-surface-2);
 }
 
 /* Scrollbar */
@@ -411,8 +518,8 @@ body.admin_page_hatch-setup[data-hx-theme="dark"] #wpbody-content {
 
 /* hatch-flash */
 @keyframes hatchFlash {
-	0%   { background: rgba(234, 179, 8, 0.18); box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.45); }
-	100% { background: transparent;             box-shadow: 0 0 0 0 transparent; }
+	0%   { background: var(--hx-warning-subtle); box-shadow: 0 0 0 2px var(--hx-warning); }
+	100% { background: transparent;              box-shadow: 0 0 0 0 transparent; }
 }
 .hatch-react .hatch-flash { animation: hatchFlash 1.6s var(--hx-ease) forwards; }
 
@@ -448,7 +555,7 @@ body.admin_page_hatch-setup[data-hx-theme="dark"] #wpbody-content {
 .hatch-react textarea:focus-visible,
 .hatch-react [role="tab"]:focus-visible,
 .hatch-react [role="button"]:focus-visible {
-	outline: 2px solid var(--hx-primary);
+	outline: 2px solid var(--hx-focus);
 	outline-offset: 2px;
 	border-radius: 4px;
 }
@@ -468,3 +575,105 @@ body.admin_page_hatch-setup[data-hx-theme="dark"] #wpbody-content {
 	padding: 0;
 }
 .hatch-react .hx-theme-toggle:hover { border-color: var(--hx-border-strong); color: var(--hx-text); }
+
+/* Deployment history: a plain table that turns into stacked rows on a narrow
+   screen so nothing scrolls sideways. */
+.hatch-react .hx-hist { width: 100%; border-collapse: collapse; font-size: 13px; }
+.hatch-react .hx-hist th,
+.hatch-react .hx-hist td { padding: 10px 12px 10px 0; text-align: start; vertical-align: top; border-bottom: 1px solid var(--hx-border); }
+.hatch-react .hx-hist th { color: var(--hx-subtle); font-weight: 600; font-size: 12px; }
+.hatch-react .hx-hist tbody tr:last-child td { border-bottom: 0; }
+.hatch-react .hx-hist td { overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+	.hatch-react .hx-hist thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+	.hatch-react .hx-hist,
+	.hatch-react .hx-hist tbody,
+	.hatch-react .hx-hist tr,
+	.hatch-react .hx-hist td { display: block; width: 100%; box-sizing: border-box; }
+	.hatch-react .hx-hist tr { padding: 10px 0; border-bottom: 1px solid var(--hx-border); }
+	.hatch-react .hx-hist tbody tr:last-child { border-bottom: 0; }
+	.hatch-react .hx-hist td { border: 0; padding: 3px 0; }
+	.hatch-react .hx-hist td::before { content: attr(data-label); display: inline-block; min-width: 72px; color: var(--hx-subtle); font-size: 12px; font-weight: 600; margin-inline-end: 8px; }
+}
+
+/* Setup screen. Step tracker, "before you start" card, token steps,
+   permission rows and the "what next" list. All spacing steps come from the
+   --hx-space scale; logical properties keep it right in RTL. */
+.hatch-react .hx-wiz { max-width: 792px; margin: 0 auto; padding: 32px 16px 0; }
+.hatch-react .hx-wiz-head h1 { font-size: 24px; font-weight: 600; line-height: 1.2; margin: 0; padding: 0; color: var(--hx-fg); }
+.hatch-react .hx-wiz-head p { font-size: 14px; color: var(--hx-muted); margin: 6px 0 0; }
+.hatch-react .hx-wiz-stack { display: flex; flex-direction: column; gap: 14px; margin-top: 24px; }
+.hatch-react .hx-wiz-foot { margin-top: 24px; display: flex; gap: 16px; flex-wrap: wrap; }
+
+.hatch-react .hx-stepper { list-style: none; margin: 20px 0 0; padding: 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.hatch-react .hx-stepper li { display: inline-flex; align-items: center; gap: 8px; padding: 5px 14px 5px 5px; border: 1px solid var(--hx-border); border-radius: 999px; background: var(--hx-surface); color: var(--hx-muted); font-size: 13px; line-height: 1.3; }
+.hatch-react .hx-stepper li[aria-current="step"] { border-color: var(--hx-primary); color: var(--hx-fg); font-weight: 600; }
+.hatch-react .hx-stepper .hx-step-dot { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; background: var(--hx-surface-2); color: var(--hx-fg); flex-shrink: 0; }
+.hatch-react .hx-stepper li[aria-current="step"] .hx-step-dot { background: var(--hx-primary); color: var(--hx-on-primary); }
+.hatch-react .hx-stepper li.is-done .hx-step-dot { background: var(--hx-success); color: var(--hx-on-primary); }
+.hatch-react .hx-stepper li.is-done { color: var(--hx-fg); }
+
+.hatch-react .hx-intro-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px 28px; margin-top: 16px; }
+.hatch-react .hx-intro-grid h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--hx-fg); }
+.hatch-react .hx-ticks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.hatch-react .hx-ticks li { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.5; color: var(--hx-fg); }
+.hatch-react .hx-ticks li > svg { flex-shrink: 0; margin-top: 2px; color: var(--hx-success); }
+.hatch-react .hx-ticks li > span { min-width: 0; }
+
+.hatch-react .hx-how { margin: 0 0 16px; padding: 0; list-style: none; counter-reset: hxhow; display: flex; flex-direction: column; gap: 8px; }
+.hatch-react .hx-how li { counter-increment: hxhow; display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.5; color: var(--hx-fg); }
+.hatch-react .hx-how li::before { content: counter(hxhow); flex-shrink: 0; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; background: var(--hx-surface-2); border: 1px solid var(--hx-border); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+
+.hatch-react .hx-perm-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 4px; }
+.hatch-react .hx-perms { list-style: none; margin: 0 0 12px; padding: 0; }
+.hatch-react .hx-perms li { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px 0; border-bottom: 1px solid var(--hx-border); }
+.hatch-react .hx-perms li:last-child { border-bottom: 0; }
+@media (max-width: 480px) {
+	.hatch-react .hx-perms li { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}
+
+.hatch-react .hx-live-url { display: block; font-size: 18px; font-weight: 600; color: var(--hx-link); overflow-wrap: anywhere; margin: 4px 0 0; }
+.hatch-react .hx-next { list-style: none; margin: 12px 0 0; padding: 0; }
+.hatch-react .hx-next li { border-top: 1px solid var(--hx-border); }
+.hatch-react .hx-next a { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; text-decoration: none; color: var(--hx-fg); }
+.hatch-react .hx-next a:hover .hx-next-title { color: var(--hx-link); text-decoration: underline; }
+.hatch-react .hx-next-title { font-size: 14px; font-weight: 600; }
+.hatch-react .hx-next-desc { font-size: 13px; color: var(--hx-muted); margin-top: 2px; }
+[dir="rtl"] .hatch-react .hx-next a svg { transform: scaleX(-1); }
+
+/* The WP-admin surround on the two Hatch screens takes the app's own page
+   colour, so a notice above the app does not sit on a grey band. */
+body.toplevel_page_hatch,
+body.admin_page_hatch-setup,
+body.toplevel_page_hatch #wpwrap,
+body.admin_page_hatch-setup #wpwrap,
+body.toplevel_page_hatch #wpbody,
+body.admin_page_hatch-setup #wpbody,
+body.toplevel_page_hatch #wpbody-content,
+body.admin_page_hatch-setup #wpbody-content,
+body.toplevel_page_hatch #wpcontent,
+body.admin_page_hatch-setup #wpcontent { background: var(--hx-page-bg); }
+
+/* Windows high contrast and other forced-colors modes: keep borders, focus
+   rings and badges visible when the browser replaces our colours. */
+@media (forced-colors: active) {
+	.hatch-react button,
+	.hatch-react a[role="button"] { border: 1px solid ButtonText; }
+	.hatch-react button:disabled { border-color: GrayText; color: GrayText; }
+	.hatch-react [role="group"] { border-color: CanvasText; }
+}
+
+@media (max-width: 600px) {
+	.hatch-react .hx-chev { display: none; }
+}
+
+/* Some controls carry an inline outline reset. This keeps the keyboard focus ring visible on every one of them. */
+.hatch-react a:focus-visible,
+.hatch-react button:focus-visible,
+.hatch-react input:focus-visible,
+.hatch-react select:focus-visible,
+.hatch-react textarea:focus-visible,
+.hatch-react [role="radio"]:focus-visible {
+	outline: 2px solid var(--hx-focus) !important;
+	outline-offset: 2px !important;
+}

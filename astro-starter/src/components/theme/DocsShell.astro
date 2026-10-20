@@ -1,0 +1,58 @@
+---
+/**
+ * DocsShell: puts the docs category navigation around a page.
+ *
+ * The Docs design is more than a stylesheet: it is a layout with a topic
+ * sidebar. Wrapping every public page (home, pages, blog, archives) in this
+ * shell is what makes the design option reach the rendered page. For any
+ * other design it renders its slot untouched.
+ */
+import type { HatchFeatures } from '../../lib/features';
+import { themeKey } from '../../lib/theme-dispatch';
+import DocsSidebar from '../DocsSidebar.astro';
+
+interface Props {
+  features: HatchFeatures;
+  activeCategorySlug?: string | null;
+}
+const { features, activeCategorySlug = null } = Astro.props;
+const isDocs = themeKey(features) === 'docs';
+---
+
+{isDocs ? (
+  <div class="hatch-docs-shell" data-hatch-docs-shell>
+    <DocsSidebar activeCategorySlug={activeCategorySlug} />
+    <div class="hatch-docs-shell__main"><slot /></div>
+  </div>
+) : (
+  <slot />
+)}
+
+<style>
+  .hatch-docs-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    margin-inline: auto;
+    max-inline-size: var(--hatch-max-width, 1160px);
+    padding: 1.5rem 1.25rem 0;
+  }
+  @media (min-width: 640px) {
+    .hatch-docs-shell { padding-inline: 2rem; }
+  }
+  @media (min-width: 1024px) {
+    .hatch-docs-shell {
+      grid-template-columns: 220px minmax(0, 1fr);
+      column-gap: 2.5rem;
+      padding-top: 0;
+    }
+  }
+  .hatch-docs-shell__main { min-inline-size: 0; }
+  /* The page body already centres and pads itself; inside the shell the grid does that. */
+  .hatch-docs-shell__main > :global(main),
+  .hatch-docs-shell__main > :global(article) {
+    max-inline-size: none !important;
+    margin-inline: 0 !important;
+    padding-inline: 0 !important;
+  }
+</style>

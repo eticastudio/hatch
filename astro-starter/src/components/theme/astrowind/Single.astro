@@ -4,6 +4,7 @@
  * card, and prominent share/CTA below the fold.
  */
 import ShareRow from '../ShareRow.astro';
+import Breadcrumb from '../Breadcrumb.astro';
 import HatchImage from '../../HatchImage.astro';
 
 interface Props {
@@ -23,12 +24,12 @@ const showSidebar = flags.sidebarSide !== "none" && toc.length > 0;
 
 <article class="mx-auto px-5 sm:px-8 py-10 sm:py-14" style="max-width: var(--hatch-max-width, 1160px);">
   {flags.showBreadcrumb && (
-    <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[12.5px] text-hatch-fg-subtle mb-6 flex-wrap">
-      <a href="/" class="hover:text-hatch-primary transition-colors">Home</a>
-      <span>{flags.breadcrumbSep}</span>
-      <a href="/blog" class="hover:text-hatch-primary transition-colors">Blog</a>
-      {post.category && <><span>{flags.breadcrumbSep}</span><a href={`/blog/category/${post.categorySlug}`} class="hover:text-hatch-primary transition-colors">{post.category}</a></>}
-    </nav>
+    <Breadcrumb sep={flags.breadcrumbSep} items={[
+      { label: 'Home', href: '/' },
+      { label: 'Blog', href: '/blog' },
+      ...(post.category ? [{ label: post.category, href: `/blog/category/${post.categorySlug}` }] : []),
+      { label: post.title },
+    ]} />
   )}
 
   <header class="max-w-3xl mb-12">

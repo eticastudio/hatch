@@ -152,13 +152,16 @@ class Hatch_Login_Hardening {
 	/**
 	 * Build transient key from the requester's IP.
 	 *
-	 * Uses hash to avoid storing raw IPs as option keys. Trusts only REMOTE_ADDR
-	 * (no X-Forwarded-For trust - spoofable without a proxy whitelist).
+	 * Uses hash to avoid storing raw IPs as option keys. The address comes from
+	 * Hatch_Auth::client_ip(): REMOTE_ADDR by default, and CF-Connecting-IP only
+	 * when the administrator opted in AND the direct peer is a Cloudflare edge.
+	 * Behind the Cloudflare Worker every browser login would otherwise share the
+	 * edge address, so five wrong passwords from anyone would lock everyone out.
 	 *
 	 * @return string|null Null if no usable IP.
 	 */
 	private function get_lockout_key(): ?string {
-		$ip = trim( Hatch_Request::server( 'REMOTE_ADDR' ) );
+		$ip = class_exists( 'Hatch_Auth' ) ? Hatch_Auth::client_ip() : trim( Hatch_Request::server( 'REMOTE_ADDR' ) );
 		if ( '' === $ip || ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
 			return null;
 		}
@@ -184,7 +187,7 @@ class Hatch_Login_Hardening {
 		if ( $attempts >= $this->get_bf_limit() ) {
 			return new WP_Error(
 				'hatch_too_many_attempts',
-				esc_html__( 'Too many failed login attempts. Try again later.', 'hatch-bridge' )
+				esc_html__( 'Too many failed login attempts. Try again later.', 'hatch-connect' )
 			);
 		}
 		return $user;

@@ -27,100 +27,92 @@ class Hatch_Module_Loader {
 	 */
 	private static array $modules = array(
 		// Core - always load.
-		'Hatch_Detector'                  => array(
+		'Hatch_Detector'           => array(
 			'file' => 'class-detector.php',
 			'flag' => null,
 		),
-		'Hatch_Security'                  => array(
+		'Hatch_Security'           => array(
 			'file' => 'class-security.php',
 			'flag' => null,
 		),
-		'Hatch_Rest_Api'                  => array(
+		'Hatch_Rest_Api'           => array(
 			'file' => 'class-rest-api.php',
 			'flag' => null,
 		),
-		'Hatch_Revalidate'                => array(
+		'Hatch_Revalidate'         => array(
 			'file' => 'class-revalidate.php',
 			'flag' => null,
 		),
-		'Hatch_Seo_Bridge'                => array(
+		'Hatch_Seo_Bridge'         => array(
 			'file' => 'class-seo-bridge.php',
 			'flag' => null,
 		),
-		'Hatch_Features'                  => array(
+		'Hatch_Features'           => array(
 			'file' => 'class-features.php',
 			'flag' => null,
 		),
-		'Hatch_Design_Loader'             => array(
+		'Hatch_Design_Loader'      => array(
 			'file' => 'class-design-loader.php',
 			'flag' => null,
 		),
-		'Hatch_Integrations'              => array(
+		'Hatch_Integrations'       => array(
 			'file' => 'class-integrations.php',
 			'flag' => null,
 		),
-		'Hatch_Connection_Status'         => array(
+		'Hatch_Connection_Status'  => array(
 			'file' => 'class-connection-status.php',
 			'flag' => null,
 		),
-		'Hatch_App_Password_Helper'       => array(
-			'file' => 'class-app-password-helper.php',
-			'flag' => null,
-		),
-		'Hatch_Diagnostic'                => array(
+		'Hatch_Diagnostic'         => array(
 			'file' => 'class-diagnostic.php',
 			'flag' => null,
 		),
-		'Hatch_Domain_Check'              => array(
+		'Hatch_Domain_Check'       => array(
 			'file' => 'class-domain-check.php',
 			'flag' => null,
 		),
-		'Hatch_Cpt_Scanner'               => array(
+		'Hatch_Cpt_Scanner'        => array(
 			'file' => 'class-cpt-scanner.php',
 			'flag' => null,
 		),
-		'Hatch_Companion_Theme_Installer' => array(
-			'file' => 'class-companion-theme-installer.php',
-			'flag' => null,
-		),
-		'Hatch_Block_Serializer'          => array(
+		'Hatch_Block_Serializer'   => array(
 			'file' => 'class-block-serializer.php',
 			'flag' => null,
 		),
-		'Hatch_Performance_Bloat'         => array(
+		'Hatch_Performance_Bloat'  => array(
 			'file' => 'class-performance-bloat.php',
 			'flag' => null,
 		),
-		'Hatch_Rankready_Bridge'          => array(
+		'Hatch_Rankready_Bridge'   => array(
 			'file' => 'class-rankready-bridge.php',
 			'flag' => null,
 		),
-		'Hatch_Acf_Bridge'                => array(
+		'Hatch_Acf_Bridge'         => array(
 			'file' => 'class-acf-bridge.php',
 			'flag' => null,
 		),
 		// Feature-gated - load only when the matching toggle is ON.
-		'Hatch_Headless_Comments'         => array(
+		'Hatch_Headless_Comments'  => array(
 			'file' => 'class-headless-comments.php',
 			'flag' => 'comments',
 		),
-		'Hatch_Headless_Forms'            => array(
+		'Hatch_Headless_Forms'     => array(
 			'file' => 'class-headless-forms.php',
 			'flag' => 'fluent_forms',
 		),
-		'Hatch_Forms_Bridge'              => array(
+		'Hatch_Forms_Bridge'       => array(
 			'file' => 'class-forms-bridge.php',
 			'flag' => 'fluent_forms',
 		),
-		'Hatch_Woocommerce_Bridge'        => array(
+		'Hatch_Woocommerce_Bridge' => array(
 			'file' => 'class-woocommerce-bridge.php',
 			'flag' => 'woocommerce',
 		),
-		'Hatch_Login_Hardening'           => array(
+		'Hatch_Login_Hardening'    => array(
 			'file' => 'class-login-hardening.php',
 			'flag' => 'login_hardening',
 		),
-		'Hatch_Turnstile_Wp'              => array(
+		'Hatch_Turnstile_Wp'       => array(
 			'file' => 'class-turnstile-wp.php',
 			'flag' => 'turnstile',
 		),

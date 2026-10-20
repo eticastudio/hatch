@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getPosts } from '@/lib/hatch';
 import { getFeatures } from '@/lib/features';
+import { siteName, siteDescription, escapeXml } from '@/lib/site';
 
 /**
  * RSS 2.0 feed at /rss.xml — referenced from <head> via <link rel="alternate">.
@@ -13,8 +14,8 @@ export const GET: APIRoute = async () => {
   ]);
 
   const site = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
-  const title = escapeXml(features.site.name || 'Hatch');
-  const description = escapeXml(features.site.description || '');
+  const title = escapeXml(siteName(features.site));
+  const description = escapeXml(siteDescription(features.site));
   const buildDate = new Date().toUTCString();
 
   const items = posts
@@ -53,15 +54,6 @@ ${items}
     },
   });
 };
-
-function escapeXml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
 
 function stripHtml(s: string): string {
   return s.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();

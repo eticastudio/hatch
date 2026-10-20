@@ -182,7 +182,7 @@ class Hatch_Security {
 		}
 		return new WP_Error(
 			'hatch_rest_not_logged_in',
-			__( 'REST API restricted to authenticated users.', 'hatch-bridge' ),
+			__( 'REST API restricted to authenticated users.', 'hatch-connect' ),
 			array( 'status' => 401 )
 		);
 	}
@@ -213,7 +213,7 @@ class Hatch_Security {
 		}
 		$is_rest = ( defined( 'REST_REQUEST' ) && REST_REQUEST )
 			|| false !== strpos( Hatch_Request::request_uri(), '/wp-json/' );
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only checks that Basic auth credentials are present.
 		$has_basic_auth = ! empty( $_SERVER['PHP_AUTH_USER'] ) && ! empty( $_SERVER['PHP_AUTH_PW'] );
 		return $is_rest && $has_basic_auth;
 	}
@@ -258,7 +258,7 @@ class Hatch_Security {
 		if ( '/wp/v2/users' === $route && 'GET' === $request->get_method() ) {
 			return new WP_Error(
 				'hatch_users_list_protected',
-				__( 'User listing requires authentication.', 'hatch-bridge' ),
+				__( 'User listing requires authentication.', 'hatch-connect' ),
 				array( 'status' => 401 )
 			);
 		}
@@ -306,11 +306,11 @@ class Hatch_Security {
 				return;
 			}
 		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only inspection of the current request; no state change.
 		if ( isset( $_GET['rest_route'] ) ) {
 			return;
 		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only inspection of the current request; no state change.
 		if ( isset( $_GET['author'] ) ) {
 			status_header( 404 );
 			nocache_headers();

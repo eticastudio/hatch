@@ -1,5 +1,7 @@
 import { __, sprintf } from '@wordpress/i18n';
-import { HxIcon, HxToggle, HxCard, HxHead, HxRow, HxGL, HxInp, Chip, HxBadge } from '../components.jsx';
+import { createContext, useContext } from '@wordpress/element';
+import { HxIcon, HxToggle, HxCard, HxHead, HxRow, HxGL, HxInp, Chip, HxBadge, HxBtn } from '../components.jsx';
+import { IC } from '../icons';
 import { TP } from '../theme-previews.jsx';
 import { FontSelect } from '../fonts.jsx';
 
@@ -8,18 +10,46 @@ import { FontSelect } from '../fonts.jsx';
 // invalid value.
 const hexOr = (value, fallback) => (/^#[0-9a-f]{6}$/i.test(String(value || '')) ? value : fallback);
 
+// ChipRow renders as an HxRow so every chip-pick setting shares the label,
+// description and control rhythm of every toggle. Hoisted to module level so
+// it keeps a stable identity across renders; state arrives through context.
+const DesignCtx = createContext(null);
+
+const ChipRow = ({ label, desc, path, current, options, last }) => {
+	const { onChip } = useContext(DesignCtx);
+	return (
+		<HxRow label={label} desc={desc} last={last}>
+			<div role="group" aria-label={label} style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+				{options.map((o) => (
+					<Chip key={o.id} label={o.label} active={String(current) === o.id} onClick={onChip(path, o.id)} />
+				))}
+			</div>
+		</HxRow>
+	);
+};
+
+// Renders one Theme Features toggle by slug. Label and description come from
+// featureCatalog (PHP), so the copy is not duplicated here.
+const FeatureToggle = ({ slug, last = false }) => {
+	const { features, featureCatalog, setSetting, onDirty } = useContext(DesignCtx);
+	const meta = featureCatalog.find((f) => f.slug === slug);
+	if (!meta) return null;
+	return (
+		<HxRow label={meta.label} desc={meta.description} last={last}>
+			<HxToggle ariaLabel={meta.label} on={!!features[slug]} onChange={(v) => { setSetting(`features.${slug}`, v); onDirty(); }} />
+		</HxRow>
+	);
+};
+
 export default function Design({ state, onDirty, setSetting }) {
 	// v0.50.25 - Themes are sourced from boot state (state.themes) so the
 	// authoritative label and description come from
 	// PHP Hatch_Features::themes(). Local map adds the SVG previewKey + chip
 	// color tint per slug: pure visual metadata that does not belong in PHP.
 	const themeMeta = {
-		blog:       { previewKey: 'Blog',       col: '#3b82f6' },
+		blog:       { previewKey: 'Blog',       col: '#2563eb' },
 		tech:       { previewKey: 'Tech',       col: '#8b5cf6' },
 		docs:       { previewKey: 'Data',       col: '#0d9488' },
-		astropaper: { previewKey: 'AstroPaper', col: 'var(--hx-primary)' },
-		astrowind:  { previewKey: 'AstroWind',  col: 'var(--hx-info)' },
-		astronano:  { previewKey: 'Astro Nano', col: 'var(--hx-text-subtle)' },
 	};
 	const themes = (state.themes || []).map((t) => ({
 		id:         t.id,
@@ -29,7 +59,7 @@ export default function Design({ state, onDirty, setSetting }) {
 		col:        themeMeta[t.id]?.col || 'var(--hx-text-subtle)',
 	}));
 
-	const theme = (state.design?.theme || 'astropaper').toLowerCase();
+	const theme = (state.design?.theme || 'blog').toLowerCase();
 	const brand = state.design?.brand || { primary: '', secondary: '', accent: '', background: '' };
 	// v0.50.14 - Canonical IDs (lowercase, no units) are the contract between
 	// WP and the Astro frontend. Display labels stay readable in the UI but the
@@ -67,49 +97,24 @@ export default function Design({ state, onDirty, setSetting }) {
 	const onToggle = (path) => (v) => { setSetting(path, v); onDirty(); };
 	const onChip   = (path, id) => () => { setSetting(path, id); onDirty(); };
 
-	const colorInputStyle = { width: 32, height: 32, borderRadius: 6, border: '1px solid var(--hx-border-2)', cursor: 'pointer', padding: 2, background: 'var(--hx-surface)' };
+	const colorInputStyle = { width: 36, height: 36, borderRadius: 8, border: '1px solid var(--hx-border-2)', cursor: 'pointer', padding: 2, background: 'var(--hx-surface)' };
 
-	// v0.50.19 - ChipRow renders as an HxRow so every chip-pick setting uses
-	// the SAME label/desc/control rhythm as every toggle.
-	const ChipRow = ({ label, desc, path, current, options, last }) => (
-		<HxRow label={label} desc={desc} last={last}>
-			<div role="group" aria-label={label} style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-				{options.map((o) => (
-					<Chip key={o.id} label={o.label} active={String(current) === o.id} onClick={onChip(path, o.id)} />
-				))}
-			</div>
-		</HxRow>
-	);
-
-	// v0.50.17 - Render a single Theme Features toggle by slug, so each one
-	// can live inside the semantic card it belongs to. Label and description
-	// come from featureCatalog (PHP), so the copy is not duplicated here.
-	const FeatureToggle = ({ slug, last = false }) => {
-		const meta = featureCatalog.find((f) => f.slug === slug);
-		if (!meta) return null;
-		return (
-			<HxRow label={meta.label} desc={meta.description} last={last}>
-				<HxToggle ariaLabel={meta.label} on={!!features[slug]} onChange={(v) => { setSetting(`features.${slug}`, v); onDirty(); }} />
-			</HxRow>
-		);
-	};
+	const ctxValue = { onChip, features, featureCatalog, setSetting, onDirty };
 
 	const selectTheme = (id) => { setSetting('design.theme', id); onDirty(); };
 
 	return (
+		<DesignCtx.Provider value={ctxValue}>
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 			{/* Theme picker */}
 			<HxCard>
 				<HxHead
-					iconChildren={<>
-						<circle cx="12" cy="12" r="3" />
-						<path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14" />
-					</>}
+					iconChildren={IC.palette}
 					iconColor="#ff6b00"
-					title={__( 'Theme', 'hatch-bridge' )}
-					desc={__( 'Choose the starter design for your Astro frontend. You can adjust fonts, colors, and layout below.', 'hatch-bridge' )}
+					title={__( 'Frontend design', 'hatch-connect' )}
+					desc={__( 'Choose the look of your frontend. You can change fonts, colors and layout below.', 'hatch-connect' )}
 				/>
-				<div className="hx-grid-cols-3" role="radiogroup" aria-label={__( 'Theme', 'hatch-bridge' )} style={{ gap: 10 }}>
+				<div className="hx-grid-cols-3" role="radiogroup" aria-label={__( 'Frontend design', 'hatch-connect' )} style={{ gap: 10 }}>
 					{themes.map((t) => {
 						const sel = theme === t.id;
 						return (
@@ -126,16 +131,15 @@ export default function Design({ state, onDirty, setSetting }) {
 									}
 								}}
 								style={{
-									border: '1px solid var(--hx-border)',
-									boxShadow: sel ? `0 0 0 2px ${t.col}` : 'none',
+									border: sel ? '2px solid var(--hx-primary)' : '2px solid var(--hx-border)',
 									borderRadius: 12,
-									padding: '14px 16px',
+									padding: '12px 14px',
 									cursor: 'pointer',
-									background: sel ? `color-mix(in srgb, ${t.col} 5%, transparent)` : 'var(--hx-surface-2)',
-									transition: 'box-shadow .18s var(--hx-ease), background .18s var(--hx-ease)',
+									background: sel ? 'color-mix(in srgb, var(--hx-primary) 5%, var(--hx-surface))' : 'var(--hx-surface-2)',
+									transition: 'border-color .2s var(--hx-ease), background .2s var(--hx-ease)',
 								}}
 							>
-								<div style={{ marginBottom: 10, borderRadius: 6, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)', opacity: sel ? 1 : 0.7, transition: 'opacity .18s' }}>
+								<div style={{ marginBottom: 10, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--hx-border)', opacity: sel ? 1 : 0.7, transition: 'opacity .2s var(--hx-ease)' }}>
 									{TP[t.previewKey] || TP.Blog}
 								</div>
 								<div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6, marginBottom: 2 }}>
@@ -166,33 +170,14 @@ export default function Design({ state, onDirty, setSetting }) {
 			    card so the shipped themes stay the only selectable options.
 			    This card is not clickable. */}
 			<HxCard>
-				<div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-					<div style={{
-						flex: '0 0 44px',
-						width: 44,
-						height: 44,
-						borderRadius: 10,
-						background: 'var(--hx-surface-2)',
-						display: 'inline-flex',
-						alignItems: 'center',
-						justifyContent: 'center',
-						color: 'var(--hx-text-muted)',
-					}}>
-						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
-							<path d="M8 3h5l6 6v12H8z" />
-							<path d="M13 3v6h6" />
-							<path d="M12 13v6" />
-							<path d="M9 16h6" />
-						</svg>
-					</div>
-					<div style={{ flex: '1 1 320px', minWidth: 0 }}>
-						<div className="hx-title" style={{ marginBottom: 4 }}>{__( 'Bring your own theme', 'hatch-bridge' )}</div>
-						<div className="hx-desc" style={{ color: 'var(--hx-text-muted)', marginBottom: 10 }}>
-							{__( 'Use your own Astro theme instead of the built-in starters. This is not available yet.', 'hatch-bridge' )}
-						</div>
-						<HxBadge color="orange">{__( 'Coming soon', 'hatch-bridge' )}</HxBadge>
-					</div>
-				</div>
+				<HxHead
+					iconChildren={IC.filePlus}
+					iconColor="#737373"
+					title={__( 'Bring your own design', 'hatch-connect' )}
+					desc={__( 'Use a design of your own instead of the three above. This is not available yet.', 'hatch-connect' )}
+					mb={0}
+					action={<HxBadge color="neutral">{__( 'Coming soon', 'hatch-connect' )}</HxBadge>}
+				/>
 			</HxCard>
 
 			{/* v0.50.16. Brand colors + color mode + typography + layout in one
@@ -201,23 +186,23 @@ export default function Design({ state, onDirty, setSetting }) {
 			    individual picker. */}
 			<HxCard>
 				<HxHead
-					iconChildren={<><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3" /></>}
+					iconChildren={IC.slidersHorizontal}
 					iconColor="#ff6b00"
-					title={__( 'Typography, colors and layout', 'hatch-bridge' )}
-					desc={__( 'Set brand colors, fonts, spacing, and borders. Upload a design.md file to fill in all of them at once, or adjust each one below.', 'hatch-bridge' )}
+					title={__( 'Typography, colors and layout', 'hatch-connect' )}
+					desc={__( 'Set your brand colors, fonts, spacing and borders. Upload a design.md file to fill them all in at once, or change each one below.', 'hatch-connect' )}
 					mb={16}
 				/>
 
-				<HxGL>{__( 'Brand colors', 'hatch-bridge' )}</HxGL>
+				<HxGL>{__( 'Brand colors', 'hatch-connect' )}</HxGL>
 				{/* Whitelist canonical brand color slots. The stored option can carry
 				    legacy siblings (bg, fg, font_heading); rendering ALL keys as
 				    <input type="color"> created duplicate rows and a broken picker
 				    on the font_heading string. */}
 				{[
-					['primary',    __( 'Primary', 'hatch-bridge' )],
-					['secondary',  __( 'Secondary', 'hatch-bridge' )],
-					['accent',     __( 'Accent', 'hatch-bridge' )],
-					['background', __( 'Background', 'hatch-bridge' )],
+					['primary',    __( 'Primary', 'hatch-connect' )],
+					['secondary',  __( 'Secondary', 'hatch-connect' )],
+					['accent',     __( 'Accent', 'hatch-connect' )],
+					['background', __( 'Background', 'hatch-connect' )],
 				].map(([k, label]) => {
 					const v = brand[k] || '';
 					return (
@@ -229,9 +214,9 @@ export default function Design({ state, onDirty, setSetting }) {
 							<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
 								<input
 									type="color"
-									value={hexOr(v, '#000000')}
+									value={hexOr(v, '#0a0a0a')}
 									/* translators: %s: brand color name, for example Primary or Accent */
-									aria-label={sprintf( __( '%s color picker', 'hatch-bridge' ), label )}
+									aria-label={sprintf( __( '%s color picker', 'hatch-connect' ), label )}
 									onChange={(e) => { setSetting(`design.brand.${k}`, e.target.value); onDirty(); }}
 									style={colorInputStyle}
 								/>
@@ -243,56 +228,56 @@ export default function Design({ state, onDirty, setSetting }) {
 					);
 				})}
 				<ChipRow
-					label={__( 'Color mode', 'hatch-bridge' )}
-					desc={__( 'Light or Dark locks the site to one look. Auto follows the visitor\'s device setting.', 'hatch-bridge' )}
+					label={__( 'Color mode', 'hatch-connect' )}
+					desc={__( 'Light or Dark keeps the site in one look. Auto follows each visitor\'s device setting.', 'hatch-connect' )}
 					path="design.mode"
 					current={mode}
 					options={[
-						{ id: 'light', label: __( 'Light', 'hatch-bridge' ) },
-						{ id: 'dark',  label: __( 'Dark', 'hatch-bridge' ) },
-						{ id: 'auto',  label: __( 'Auto', 'hatch-bridge' ) },
+						{ id: 'light', label: __( 'Light', 'hatch-connect' ) },
+						{ id: 'dark',  label: __( 'Dark', 'hatch-connect' ) },
+						{ id: 'auto',  label: __( 'Auto', 'hatch-connect' ) },
 					]}
 					last
 				/>
 
-				<HxGL>{__( 'Typography', 'hatch-bridge' )}</HxGL>
-				<HxRow label={__( 'Heading font', 'hatch-bridge' )} desc={__( 'Used for headings (H1 to H4) across the site.', 'hatch-bridge' )}>
+				<HxGL>{__( 'Typography', 'hatch-connect' )}</HxGL>
+				<HxRow label={__( 'Heading font', 'hatch-connect' )} desc={__( 'Used for headings across the site.', 'hatch-connect' )}>
 					<div style={{ width: 220 }}>
-						<FontSelect ariaLabel={__( 'Heading font', 'hatch-bridge' )} value={fontHead} onChange={(e) => { setSetting('design.font_heading', e.target.value); onDirty(); }} />
+						<FontSelect ariaLabel={__( 'Heading font', 'hatch-connect' )} value={fontHead} onChange={(e) => { setSetting('design.font_heading', e.target.value); onDirty(); }} />
 					</div>
 				</HxRow>
-				<HxRow label={__( 'Body font', 'hatch-bridge' )} desc={__( 'Used for paragraphs, lists, and interface text.', 'hatch-bridge' )} last>
+				<HxRow label={__( 'Body font', 'hatch-connect' )} desc={__( 'Used for paragraphs, lists, and interface text.', 'hatch-connect' )} last>
 					<div style={{ width: 220 }}>
-						<FontSelect ariaLabel={__( 'Body font', 'hatch-bridge' )} value={fontBody} onChange={(e) => { setSetting('design.font_body', e.target.value); onDirty(); }} />
+						<FontSelect ariaLabel={__( 'Body font', 'hatch-connect' )} value={fontBody} onChange={(e) => { setSetting('design.font_body', e.target.value); onDirty(); }} />
 					</div>
 				</HxRow>
 
-				<HxGL>{__( 'Layout', 'hatch-bridge' )}</HxGL>
+				<HxGL>{__( 'Layout', 'hatch-connect' )}</HxGL>
 				<ChipRow
-					label={__( 'Density', 'hatch-bridge' )}
-					desc={__( 'How much space sits between elements on every page.', 'hatch-bridge' )}
+					label={__( 'Density', 'hatch-connect' )}
+					desc={__( 'How much space sits between elements on every page.', 'hatch-connect' )}
 					path="design.layout.density"
 					current={layout.density}
 					options={[
-						{ id: 'compact',     label: __( 'Compact', 'hatch-bridge' ) },
-						{ id: 'comfortable', label: __( 'Comfortable', 'hatch-bridge' ) },
-						{ id: 'spacious',    label: __( 'Spacious', 'hatch-bridge' ) },
+						{ id: 'compact',     label: __( 'Compact', 'hatch-connect' ) },
+						{ id: 'comfortable', label: __( 'Comfortable', 'hatch-connect' ) },
+						{ id: 'spacious',    label: __( 'Spacious', 'hatch-connect' ) },
 					]}
 				/>
 				<ChipRow
-					label={__( 'Roundness', 'hatch-bridge' )}
-					desc={__( 'Corner radius of cards and containers. Buttons use the Button style setting below.', 'hatch-bridge' )}
+					label={__( 'Roundness', 'hatch-connect' )}
+					desc={__( 'How round the corners of cards and boxes are. Buttons use the Button style setting below.', 'hatch-connect' )}
 					path="design.layout.rounded"
 					current={layout.rounded ?? layout.roundness}
 					options={[
-						{ id: 'sharp',  label: __( 'Sharp', 'hatch-bridge' ) },
-						{ id: 'smooth', label: __( 'Default', 'hatch-bridge' ) },
-						{ id: 'extra',  label: __( 'Extra round', 'hatch-bridge' ) },
+						{ id: 'sharp',  label: __( 'Sharp', 'hatch-connect' ) },
+						{ id: 'smooth', label: __( 'Default', 'hatch-connect' ) },
+						{ id: 'extra',  label: __( 'Extra round', 'hatch-connect' ) },
 					]}
 				/>
 				<ChipRow
-					label={__( 'Max content width', 'hatch-bridge' )}
-					desc={__( 'The widest the page content can be.', 'hatch-bridge' )}
+					label={__( 'Max content width', 'hatch-connect' )}
+					desc={__( 'The widest the page content can be.', 'hatch-connect' )}
 					path="design.layout.max_width"
 					current={layout.max_width ?? layout.maxWidth}
 					options={[
@@ -302,25 +287,25 @@ export default function Design({ state, onDirty, setSetting }) {
 					]}
 				/>
 				<ChipRow
-					label={__( 'Button style', 'hatch-bridge' )}
-					desc={__( 'Corner shape for buttons, set separately from container roundness.', 'hatch-bridge' )}
+					label={__( 'Button style', 'hatch-connect' )}
+					desc={__( 'Corner shape for buttons, set separately from container roundness.', 'hatch-connect' )}
 					path="design.layout.button_style"
 					current={layout.button_style ?? layout.buttonStyle}
 					options={[
-						{ id: 'pill',    label: __( 'Pill', 'hatch-bridge' ) },
-						{ id: 'rounded', label: __( 'Rounded', 'hatch-bridge' ) },
-						{ id: 'sharp',   label: __( 'Sharp', 'hatch-bridge' ) },
+						{ id: 'pill',    label: __( 'Pill', 'hatch-connect' ) },
+						{ id: 'rounded', label: __( 'Rounded', 'hatch-connect' ) },
+						{ id: 'sharp',   label: __( 'Sharp', 'hatch-connect' ) },
 					]}
 					last
 				/>
 
-				<HxGL>{__( 'Borders & shadows', 'hatch-bridge' )}</HxGL>
-				<HxRow label={__( 'Border color', 'hatch-bridge' )} desc={__( 'Used by cards, dividers, and outlined buttons.', 'hatch-bridge' )}>
+				<HxGL>{__( 'Borders & shadows', 'hatch-connect' )}</HxGL>
+				<HxRow label={__( 'Border color', 'hatch-connect' )} desc={__( 'Used on cards, dividers and outlined buttons.', 'hatch-connect' )}>
 					<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
 						<input
 							type="color"
 							value={hexOr(borders.color, '#e5e5e5')}
-							aria-label={__( 'Border color picker', 'hatch-bridge' )}
+							aria-label={__( 'Border color picker', 'hatch-connect' )}
 							onChange={(e) => { setSetting('borders.color', e.target.value); onDirty(); }}
 							style={colorInputStyle}
 						/>
@@ -330,24 +315,24 @@ export default function Design({ state, onDirty, setSetting }) {
 					</div>
 				</HxRow>
 				<ChipRow
-					label={__( 'Shadow preset', 'hatch-bridge' )}
-					desc={__( 'How raised cards and popovers look. None gives a flat design.', 'hatch-bridge' )}
+					label={__( 'Shadow preset', 'hatch-connect' )}
+					desc={__( 'How raised cards and popovers look. None gives a flat design.', 'hatch-connect' )}
 					path="borders.shadow"
 					current={borders.shadow}
 					options={[
-						{ id: 'none',     label: __( 'None', 'hatch-bridge' ) },
-						{ id: 'soft',     label: __( 'Soft', 'hatch-bridge' ) },
-						{ id: 'medium',   label: __( 'Medium', 'hatch-bridge' ) },
-						{ id: 'dramatic', label: __( 'Dramatic', 'hatch-bridge' ) },
+						{ id: 'none',     label: __( 'None', 'hatch-connect' ) },
+						{ id: 'soft',     label: __( 'Soft', 'hatch-connect' ) },
+						{ id: 'medium',   label: __( 'Medium', 'hatch-connect' ) },
+						{ id: 'dramatic', label: __( 'Dramatic', 'hatch-connect' ) },
 					]}
 					last
 				/>
 
-				<HxGL>{__( 'Breakpoints', 'hatch-bridge' )}</HxGL>
+				<HxGL>{__( 'Screen sizes', 'hatch-connect' )}</HxGL>
 				{[
-					{ key: 'mobile',  label: __( 'Mobile', 'hatch-bridge' ),  desc: __( 'Screens narrower than this width use the mobile layout.', 'hatch-bridge' ) },
-					{ key: 'tablet',  label: __( 'Tablet', 'hatch-bridge' ),  desc: __( 'Screens narrower than this width use the tablet layout.', 'hatch-bridge' ) },
-					{ key: 'desktop', label: __( 'Desktop', 'hatch-bridge' ), desc: __( 'Screens wider than this width use the wide-screen layout.', 'hatch-bridge' ) },
+					{ key: 'mobile',  label: __( 'Mobile', 'hatch-connect' ),  desc: __( 'Screens narrower than this (in pixels) use the phone layout.', 'hatch-connect' ) },
+					{ key: 'tablet',  label: __( 'Tablet', 'hatch-connect' ),  desc: __( 'Screens narrower than this (in pixels) use the tablet layout.', 'hatch-connect' ) },
+					{ key: 'desktop', label: __( 'Desktop', 'hatch-connect' ), desc: __( 'Screens wider than this (in pixels) use the wide-screen layout.', 'hatch-connect' ) },
 				].map((bp, i, arr) => (
 					<HxRow
 						key={bp.key}
@@ -355,14 +340,18 @@ export default function Design({ state, onDirty, setSetting }) {
 						desc={bp.desc}
 						last={i === arr.length - 1}
 					>
-						<input
-							type="number" min="0" step="1"
-							value={breakpoints[bp.key] || 0}
-							/* translators: %s: device size name, for example Mobile or Tablet */
-							aria-label={sprintf( __( '%s breakpoint in pixels', 'hatch-bridge' ), bp.label )}
-							onChange={(e) => { setSetting(`breakpoints.${bp.key}`, parseInt(e.target.value, 10) || 0); onDirty(); }}
-							style={{ width: 110, height: 32, padding: '0 10px', borderRadius: 6, border: '1px solid var(--hx-border-2)', fontSize: 13, outline: 'none', fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', color: 'var(--hx-fg)', background: 'var(--hx-surface)', boxSizing: 'border-box', textAlign: 'end' }}
-						/>
+						<div style={{ width: 110 }}>
+							<HxInp
+								type="number"
+								mono
+								min={0}
+								step={1}
+								value={breakpoints[bp.key] || 0}
+								/* translators: %s: device size name, for example Mobile or Tablet */
+								ariaLabel={sprintf( __( '%s breakpoint in pixels', 'hatch-connect' ), bp.label )}
+								onChange={(e) => { setSetting(`breakpoints.${bp.key}`, parseInt(e.target.value, 10) || 0); onDirty(); }}
+							/>
+						</div>
 					</HxRow>
 				))}
 
@@ -381,25 +370,19 @@ export default function Design({ state, onDirty, setSetting }) {
 					}}
 				>
 					<div className="hx-desc" style={{ color: 'var(--hx-fg)' }}>
-						{__( 'Import all of these settings from a design.md file.', 'hatch-bridge' )}
+						{__( 'Import all of these settings from a design.md file.', 'hatch-connect' )}
 						<span className="hx-help" style={{ marginInlineStart: 8, color: 'var(--hx-subtle)' }}>
-							{state.design_md ? __( 'A design.md file is saved.', 'hatch-bridge' ) : __( 'No design.md file uploaded.', 'hatch-bridge' )}
+							{state.design_md ? __( 'A design.md file is saved.', 'hatch-connect' ) : __( 'No design.md file uploaded.', 'hatch-connect' )}
 						</span>
 					</div>
-					<label
-						htmlFor="hatch-designmd-file"
-						className="hx-label"
-						style={{
-							display: 'inline-flex', alignItems: 'center', gap: 6,
-							padding: '7px 14px', borderRadius: 8,
-							border: '1px solid var(--hx-border-2)', background: 'var(--hx-surface)',
-							color: 'var(--hx-fg)',
-							cursor: 'pointer', whiteSpace: 'nowrap',
-						}}
+					<HxBtn
+						variant="ghost"
+						size="sm"
+						onClick={() => { const el = document.getElementById('hatch-designmd-file'); if (el) el.click(); }}
 					>
-						<HxIcon size={13}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></HxIcon>
-						{__( 'Upload', 'hatch-bridge' )}
-					</label>
+						<HxIcon size={13}>{IC.upload}</HxIcon>
+						{__( 'Upload', 'hatch-connect' )}
+					</HxBtn>
 					<input
 						id="hatch-designmd-file"
 						type="file"
@@ -427,33 +410,33 @@ export default function Design({ state, onDirty, setSetting }) {
 			{/* Header & Footer */}
 			<HxCard>
 				<HxHead
-					iconChildren={<><rect x="3" y="4" width="18" height="4" rx="1" /><rect x="3" y="16" width="18" height="4" rx="1" /></>}
-					iconColor="#0ea5e9"
-					title={__( 'Header & Footer', 'hatch-bridge' )}
-					desc={__( 'The header and footer shown on every page: scroll behavior, color-mode button, and brand mark.', 'hatch-bridge' )}
+					iconChildren={IC.panelsTopBottom}
+					iconColor="#2563eb"
+					title={__( 'Header & footer', 'hatch-connect' )}
+					desc={__( 'The header and footer shown on every page: how the header behaves when scrolling, the light and dark button, and your brand name or logo.', 'hatch-connect' )}
 					mb={16}
 				/>
-				<HxGL>{__( 'Header', 'hatch-bridge' )}</HxGL>
+				<HxGL>{__( 'Header', 'hatch-connect' )}</HxGL>
 				<ChipRow
-					label={__( 'Header scroll behavior', 'hatch-bridge' )}
-					desc={__( 'Sticky keeps the header at the top of the screen. Hide on scroll tucks it away while scrolling down.', 'hatch-bridge' )}
+					label={__( 'Header scroll behavior', 'hatch-connect' )}
+					desc={__( 'Sticky keeps the header at the top of the screen. Hide on scroll tucks it away while scrolling down.', 'hatch-connect' )}
 					path="header.sticky"
 					current={header.sticky}
 					options={[
-						{ id: 'sticky',         label: __( 'Sticky', 'hatch-bridge' ) },
-						{ id: 'static',         label: __( 'Static', 'hatch-bridge' ) },
-						{ id: 'hide_on_scroll', label: __( 'Hide on scroll', 'hatch-bridge' ) },
+						{ id: 'sticky',         label: __( 'Sticky', 'hatch-connect' ) },
+						{ id: 'static',         label: __( 'Static', 'hatch-connect' ) },
+						{ id: 'hide_on_scroll', label: __( 'Hide on scroll', 'hatch-connect' ) },
 					]}
 				/>
 				<ChipRow
-					label={__( 'Brand mark', 'hatch-bridge' )}
-					desc={__( 'What appears next to the navigation.', 'hatch-bridge' )}
+					label={__( 'Brand name or logo', 'hatch-connect' )}
+					desc={__( 'What appears next to the navigation.', 'hatch-connect' )}
 					path="header.brand_mark"
 					current={header.brand_mark}
 					options={[
-						{ id: 'icon_text', label: __( 'Icon + text', 'hatch-bridge' ) },
-						{ id: 'text',      label: __( 'Text only', 'hatch-bridge' ) },
-						{ id: 'initial',   label: __( 'Initial only', 'hatch-bridge' ) },
+						{ id: 'icon_text', label: __( 'Icon + text', 'hatch-connect' ) },
+						{ id: 'text',      label: __( 'Text only', 'hatch-connect' ) },
+						{ id: 'initial',   label: __( 'Initial only', 'hatch-connect' ) },
 					]}
 				/>
 				{/* v0.50.31 - Logo / Text / Both control. When a logo is set in
@@ -461,42 +444,42 @@ export default function Design({ state, onDirty, setSetting }) {
 				    only, text only, both, or auto (logo if present, else text).
 				    Independent from brand_mark above. */}
 				<ChipRow
-					label={__( 'Brand display', 'hatch-bridge' )}
-					desc={__( 'Show the site logo, the site title, or both. Auto uses the logo if you have uploaded one, otherwise the title.', 'hatch-bridge' )}
+					label={__( 'Brand display', 'hatch-connect' )}
+					desc={__( 'Show the site logo, the site title, or both. Auto uses the logo if you have uploaded one, otherwise the title.', 'hatch-connect' )}
 					path="header.brand_display"
 					current={header.brand_display || 'auto'}
 					options={[
-						{ id: 'auto', label: __( 'Auto', 'hatch-bridge' ) },
-						{ id: 'logo', label: __( 'Logo only', 'hatch-bridge' ) },
-						{ id: 'text', label: __( 'Text only', 'hatch-bridge' ) },
-						{ id: 'both', label: __( 'Logo + text', 'hatch-bridge' ) },
+						{ id: 'auto', label: __( 'Auto', 'hatch-connect' ) },
+						{ id: 'logo', label: __( 'Logo only', 'hatch-connect' ) },
+						{ id: 'text', label: __( 'Text only', 'hatch-connect' ) },
+						{ id: 'both', label: __( 'Logo + text', 'hatch-connect' ) },
 					]}
 				/>
 				{/* v0.50.21 - Blur is meaningless on a static (non-overlapping) header. */}
 				{header.sticky !== 'static' && (
-					<HxRow label={__( 'Translucent blur background', 'hatch-bridge' )} desc={__( 'Blurs the page content behind the header so it shows through.', 'hatch-bridge' )}>
-						<HxToggle ariaLabel={__( 'Translucent blur background', 'hatch-bridge' )} on={!!header.blur} onChange={onToggle('header.blur')} />
+					<HxRow label={__( 'Blurred header background', 'hatch-connect' )} desc={__( 'Lets the page show through the header as a soft blur.', 'hatch-connect' )}>
+						<HxToggle ariaLabel={__( 'Blurred header background', 'hatch-connect' )} on={!!header.blur} onChange={onToggle('header.blur')} />
 					</HxRow>
 				)}
-				<HxRow label={__( 'Color-mode toggle button', 'hatch-bridge' )} desc={__( 'Adds a sun and moon button to the header so visitors can switch between light and dark.', 'hatch-bridge' )} last>
-					<HxToggle ariaLabel={__( 'Color-mode toggle button', 'hatch-bridge' )} on={!!header.color_mode_button} onChange={onToggle('header.color_mode_button')} />
+				<HxRow label={__( 'Light and dark button', 'hatch-connect' )} desc={__( 'Adds a sun and moon button to the header so visitors can switch between light and dark.', 'hatch-connect' )} last>
+					<HxToggle ariaLabel={__( 'Light and dark button', 'hatch-connect' )} on={!!header.color_mode_button} onChange={onToggle('header.color_mode_button')} />
 				</HxRow>
 
-				<HxGL>{__( 'Footer', 'hatch-bridge' )}</HxGL>
+				<HxGL>{__( 'Footer', 'hatch-connect' )}</HxGL>
 				<FeatureToggle slug="built_by_hatch" last />
 			</HxCard>
 
 			{/* Reading Experience (single posts) */}
 			<HxCard>
 				<HxHead
-					iconChildren={<><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zM22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" /></>}
+					iconChildren={IC.bookOpen}
 					iconColor="#16a34a"
-					title={__( 'Reading Experience', 'hatch-bridge' )}
-					desc={__( 'Settings for individual blog posts: dates, reading time, breadcrumbs, table of contents, and author. Turn features on first, then style them.', 'hatch-bridge' )}
+					title={__( 'Reading experience', 'hatch-connect' )}
+					desc={__( 'Settings for single posts: dates, reading time, breadcrumbs, table of contents and author. Turn a feature on first, then adjust how it looks.', 'hatch-connect' )}
 					mb={16}
 				/>
 
-				<HxGL>{__( 'Show on single posts', 'hatch-bridge' )}</HxGL>
+				<HxGL>{__( 'Show on single posts', 'hatch-connect' )}</HxGL>
 				<FeatureToggle slug="progress_bar" />
 				<FeatureToggle slug="toc_sidebar" />
 				<FeatureToggle slug="breadcrumb" />
@@ -504,73 +487,73 @@ export default function Design({ state, onDirty, setSetting }) {
 				<FeatureToggle slug="last_updated" />
 				<FeatureToggle slug="author_bio" last />
 
-				<HxGL>{__( 'Single-post template', 'hatch-bridge' )}</HxGL>
+				<HxGL>{__( 'Single-post template', 'hatch-connect' )}</HxGL>
 				<ChipRow
-					label={__( 'Sidebar on single posts', 'hatch-bridge' )}
-					desc={__( 'None makes posts full width. Left or Right places the table of contents in a sidebar when the post has H2 or H3 headings. Themes may adjust this to fit their own layout.', 'hatch-bridge' )}
+					label={__( 'Sidebar on single posts', 'hatch-connect' )}
+					desc={__( 'This applies to single posts only, not to the blog list or other pages. None makes posts full width. Left or Right adds a sidebar with the table of contents, shown when the post has headings. The Docs design shows its category menu there instead.', 'hatch-connect' )}
 					path="templates.single_sidebar"
 					current={templates.single_sidebar}
 					options={[
-						{ id: 'none',  label: __( 'None', 'hatch-bridge' ) },
-						{ id: 'left',  label: __( 'Left', 'hatch-bridge' ) },
-						{ id: 'right', label: __( 'Right', 'hatch-bridge' ) },
+						{ id: 'none',  label: __( 'None', 'hatch-connect' ) },
+						{ id: 'left',  label: __( 'Left', 'hatch-connect' ) },
+						{ id: 'right', label: __( 'Right', 'hatch-connect' ) },
 					]}
 				/>
 				<ChipRow
-					label={__( 'Hero style', 'hatch-bridge' )}
-					desc={__( 'How the featured image appears above the post title.', 'hatch-bridge' )}
+					label={__( 'Hero style', 'hatch-connect' )}
+					desc={__( 'How the featured image appears above the post title.', 'hatch-connect' )}
 					path="templates.single_hero"
 					current={templates.single_hero}
 					options={[
-						{ id: 'featured', label: __( 'Featured', 'hatch-bridge' ) },
-						{ id: 'compact',  label: __( 'Compact', 'hatch-bridge' ) },
-						{ id: 'none',     label: __( 'None', 'hatch-bridge' ) },
+						{ id: 'featured', label: __( 'Featured', 'hatch-connect' ) },
+						{ id: 'compact',  label: __( 'Compact', 'hatch-connect' ) },
+						{ id: 'none',     label: __( 'None', 'hatch-connect' ) },
 					]}
 				/>
 				<ChipRow
-					label={__( 'Content width', 'hatch-bridge' )}
-					desc={__( 'Post width relative to the Max content width setting above.', 'hatch-bridge' )}
+					label={__( 'Content width', 'hatch-connect' )}
+					desc={__( 'Post width relative to the Max content width setting above.', 'hatch-connect' )}
 					path="templates.single_width"
 					current={templates.single_width}
 					options={[
-						{ id: 'narrow', label: __( 'Narrow', 'hatch-bridge' ) },
-						{ id: 'medium', label: __( 'Medium', 'hatch-bridge' ) },
-						{ id: 'wide',   label: __( 'Wide', 'hatch-bridge' ) },
+						{ id: 'narrow', label: __( 'Narrow', 'hatch-connect' ) },
+						{ id: 'medium', label: __( 'Medium', 'hatch-connect' ) },
+						{ id: 'wide',   label: __( 'Wide', 'hatch-connect' ) },
 					]}
 					last
 				/>
 
 				{/* v0.50.21 - Style controls render only while their parent
 				    visibility toggle is on, so there is no dead UI. */}
-				<HxGL>{__( 'Style', 'hatch-bridge' )}</HxGL>
+				<HxGL>{__( 'Style', 'hatch-connect' )}</HxGL>
 				<ChipRow
-					label={__( 'Date format', 'hatch-bridge' )}
-					desc={__( 'Examples: May 19, 2026 / May 19 / 3 days ago.', 'hatch-bridge' )}
+					label={__( 'Date format', 'hatch-connect' )}
+					desc={__( 'Examples: May 19, 2026 / May 19 / 3 days ago.', 'hatch-connect' )}
 					path="reading.date_format"
 					current={reading.date_format}
 					options={[
-						{ id: 'long',     label: __( 'Long', 'hatch-bridge' ) },
-						{ id: 'short',    label: __( 'Short', 'hatch-bridge' ) },
-						{ id: 'relative', label: __( 'Relative', 'hatch-bridge' ) },
+						{ id: 'long',     label: __( 'Long', 'hatch-connect' ) },
+						{ id: 'short',    label: __( 'Short', 'hatch-connect' ) },
+						{ id: 'relative', label: __( 'Relative', 'hatch-connect' ) },
 					]}
 				/>
 				{!!features.reading_time && (
 					<ChipRow
-						label={__( 'Reading-time wording', 'hatch-bridge' )}
-						desc={__( 'How the reading-time label reads, or hide it.', 'hatch-bridge' )}
+						label={__( 'Reading-time wording', 'hatch-connect' )}
+						desc={__( 'How the reading-time label reads, or hide it.', 'hatch-connect' )}
 						path="reading.reading_time_label"
 						current={reading.reading_time_label}
 						options={[
-							{ id: 'min_read', label: __( '“5 min read”', 'hatch-bridge' ) },
-							{ id: 'mins',     label: __( '“5 mins”', 'hatch-bridge' ) },
-							{ id: 'hidden',   label: __( 'Hide', 'hatch-bridge' ) },
+							{ id: 'min_read', label: __( '“5 min read”', 'hatch-connect' ) },
+							{ id: 'mins',     label: __( '“5 mins”', 'hatch-connect' ) },
+							{ id: 'hidden',   label: __( 'Hide', 'hatch-connect' ) },
 						]}
 					/>
 				)}
 				{!!features.breadcrumb && (
 					<ChipRow
-						label={__( 'Breadcrumb separator', 'hatch-bridge' )}
-						desc={__( 'Character shown between breadcrumb items.', 'hatch-bridge' )}
+						label={__( 'Breadcrumb separator', 'hatch-connect' )}
+						desc={__( 'Character shown between breadcrumb items.', 'hatch-connect' )}
 						path="reading.breadcrumb_separator"
 						current={reading.breadcrumb_separator}
 						options={[
@@ -583,113 +566,113 @@ export default function Design({ state, onDirty, setSetting }) {
 				{!!features.toc_sidebar && (
 					<>
 						<ChipRow
-							label={__( 'TOC depth', 'hatch-bridge' )}
-							desc={__( 'Which heading levels appear in the table of contents.', 'hatch-bridge' )}
+							label={__( 'Table of contents depth', 'hatch-connect' )}
+							desc={__( 'Which heading levels appear in the table of contents.', 'hatch-connect' )}
 							path="reading.toc_depth"
 							current={reading.toc_depth}
 							options={[
-								{ id: 'h2',       label: __( 'H2 only', 'hatch-bridge' ) },
-								{ id: 'h2_h3',    label: __( 'H2 + H3', 'hatch-bridge' ) },
-								{ id: 'h2_h3_h4', label: __( 'H2 to H4', 'hatch-bridge' ) },
+								{ id: 'h2',       label: __( 'H2 only', 'hatch-connect' ) },
+								{ id: 'h2_h3',    label: __( 'H2 + H3', 'hatch-connect' ) },
+								{ id: 'h2_h3_h4', label: __( 'H2 to H4', 'hatch-connect' ) },
 							]}
 						/>
-						<HxRow label={__( 'TOC heading label', 'hatch-bridge' )} desc={__( 'Heading shown above the table of contents, for example "On this page".', 'hatch-bridge' )}>
+						<HxRow label={__( 'Table of contents title', 'hatch-connect' )} desc={__( 'The title above the table of contents, for example "On this page".', 'hatch-connect' )}>
 							<div style={{ width: 200 }}>
-								<HxInp value={reading.toc_label || ''} onChange={onText('reading.toc_label')} placeholder={__( 'On this page', 'hatch-bridge' )} />
+								<HxInp value={reading.toc_label || ''} onChange={onText('reading.toc_label')} placeholder={__( 'On this page', 'hatch-connect' )} />
 							</div>
 						</HxRow>
 					</>
 				)}
 				{!!features.author_bio && (
 					<ChipRow
-						label={__( 'Author avatar shape', 'hatch-bridge' )}
-						desc={__( 'Used on the author byline and the author bio card.', 'hatch-bridge' )}
+						label={__( 'Author avatar shape', 'hatch-connect' )}
+						desc={__( 'Used on the author byline and the author bio card.', 'hatch-connect' )}
 						path="reading.author_avatar_shape"
 						current={reading.author_avatar_shape}
 						options={[
-							{ id: 'circle',  label: __( 'Circle', 'hatch-bridge' ) },
-							{ id: 'rounded', label: __( 'Rounded', 'hatch-bridge' ) },
-							{ id: 'square',  label: __( 'Square', 'hatch-bridge' ) },
+							{ id: 'circle',  label: __( 'Circle', 'hatch-connect' ) },
+							{ id: 'rounded', label: __( 'Rounded', 'hatch-connect' ) },
+							{ id: 'square',  label: __( 'Square', 'hatch-connect' ) },
 						]}
 					/>
 				)}
 				{!!features.progress_bar && (
 					<>
 						<ChipRow
-							label={__( 'Progress bar position', 'hatch-bridge' )}
-							desc={__( 'Show the progress bar at the top or bottom of the screen.', 'hatch-bridge' )}
+							label={__( 'Progress bar position', 'hatch-connect' )}
+							desc={__( 'Show the progress bar at the top or bottom of the screen.', 'hatch-connect' )}
 							path="reading.progress_bar_position"
 							current={reading.progress_bar_position}
 							options={[
-								{ id: 'top',    label: __( 'Top', 'hatch-bridge' ) },
-								{ id: 'bottom', label: __( 'Bottom', 'hatch-bridge' ) },
+								{ id: 'top',    label: __( 'Top', 'hatch-connect' ) },
+								{ id: 'bottom', label: __( 'Bottom', 'hatch-connect' ) },
 							]}
 						/>
 						<ChipRow
-							label={__( 'Progress bar color', 'hatch-bridge' )}
-							desc={__( 'Uses one of your brand colors.', 'hatch-bridge' )}
+							label={__( 'Progress bar color', 'hatch-connect' )}
+							desc={__( 'Uses one of your brand colors.', 'hatch-connect' )}
 							path="reading.progress_bar_color"
 							current={reading.progress_bar_color}
 							options={[
-								{ id: 'primary', label: __( 'Primary', 'hatch-bridge' ) },
-								{ id: 'accent',  label: __( 'Accent', 'hatch-bridge' ) },
+								{ id: 'primary', label: __( 'Primary', 'hatch-connect' ) },
+								{ id: 'accent',  label: __( 'Accent', 'hatch-connect' ) },
 							]}
 						/>
 					</>
 				)}
 				<HxRow
-					label={__( 'Heading anchor links', 'hatch-bridge' )}
-					desc={__( 'Shows a # icon on hover so readers can link straight to a section.', 'hatch-bridge' )}
+					label={__( 'Links to headings', 'hatch-connect' )}
+					desc={__( 'Shows a # next to a heading when a reader points at it, so they can share a link to that section.', 'hatch-connect' )}
 					last
 				>
-					<HxToggle ariaLabel={__( 'Heading anchor links', 'hatch-bridge' )} on={!!reading.heading_anchors} onChange={onToggle('reading.heading_anchors')} />
+					<HxToggle ariaLabel={__( 'Links to headings', 'hatch-connect' )} on={!!reading.heading_anchors} onChange={onToggle('reading.heading_anchors')} />
 				</HxRow>
 			</HxCard>
 
 			{/* Post Navigation & Sharing */}
 			<HxCard>
 				<HxHead
-					iconChildren={<><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></>}
+					iconChildren={IC.share2}
 					iconColor="#6366f1"
-					title={__( 'Post Navigation & Sharing', 'hatch-bridge' )}
-					desc={__( 'Share buttons, previous and next links, and related posts. Choose which share networks appear.', 'hatch-bridge' )}
+					title={__( 'Post navigation & sharing', 'hatch-connect' )}
+					desc={__( 'Share buttons, previous and next links, and related posts. Choose which share networks appear.', 'hatch-connect' )}
 					mb={16}
 				/>
 
 				{/* v0.50.21 - sub-option groups below render only while their
 				    parent toggle is on. */}
-				<HxGL>{__( 'Show on single posts', 'hatch-bridge' )}</HxGL>
+				<HxGL>{__( 'Show on single posts', 'hatch-connect' )}</HxGL>
 				<FeatureToggle slug="next_prev_nav" />
 				<FeatureToggle slug="related_posts" />
 				<FeatureToggle slug="sticky_share" last />
 
 				{!!features.sticky_share && (
 					<>
-						<HxGL>{__( 'Share networks', 'hatch-bridge' )}</HxGL>
+						<HxGL>{__( 'Share networks', 'hatch-connect' )}</HxGL>
 						{[
 							['x',        'X'],
 							['linkedin', 'LinkedIn'],
 							['whatsapp', 'WhatsApp'],
-							['copy',     __( 'Copy link', 'hatch-bridge' )],
+							['copy',     __( 'Copy link', 'hatch-connect' )],
 							['facebook', 'Facebook'],
 							['reddit',   'Reddit'],
-							['email',    __( 'Email', 'hatch-bridge' )],
+							['email',    __( 'Email', 'hatch-connect' )],
 						].map(([k, label], i, arr) => (
 							<HxRow key={k} label={label} desc={null} last={i === arr.length - 1}>
 								<HxToggle ariaLabel={label} on={!!share[k]} onChange={onToggle(`share.${k}`)} />
 							</HxRow>
 						))}
 
-						<HxGL>{__( 'Share bar', 'hatch-bridge' )}</HxGL>
+						<HxGL>{__( 'Share bar', 'hatch-connect' )}</HxGL>
 						<ChipRow
-							label={__( 'Share bar position', 'hatch-bridge' )}
-							desc={__( 'Where the share buttons appear on single posts.', 'hatch-bridge' )}
+							label={__( 'Share bar position', 'hatch-connect' )}
+							desc={__( 'Where the share buttons appear on single posts.', 'hatch-connect' )}
 							path="share.position"
 							current={share.position}
 							options={[
-								{ id: 'inline', label: __( 'Inline (bottom)', 'hatch-bridge' ) },
-								{ id: 'sticky', label: __( 'Sticky (side)', 'hatch-bridge' ) },
-								{ id: 'both',   label: __( 'Both', 'hatch-bridge' ) },
+								{ id: 'inline', label: __( 'Inline (bottom)', 'hatch-connect' ) },
+								{ id: 'sticky', label: __( 'Sticky (side)', 'hatch-connect' ) },
+								{ id: 'both',   label: __( 'Both', 'hatch-connect' ) },
 							]}
 							last
 						/>
@@ -698,10 +681,10 @@ export default function Design({ state, onDirty, setSetting }) {
 
 				{!!features.related_posts && (
 					<>
-						<HxGL>{__( 'Related posts', 'hatch-bridge' )}</HxGL>
+						<HxGL>{__( 'Related posts', 'hatch-connect' )}</HxGL>
 						<ChipRow
-							label={__( 'Count', 'hatch-bridge' )}
-							desc={__( 'How many related posts appear below each post.', 'hatch-bridge' )}
+							label={__( 'Count', 'hatch-connect' )}
+							desc={__( 'How many related posts appear below each post.', 'hatch-connect' )}
 							path="post_navigation.related_count"
 							current={String(postNav.related_count)}
 							options={[
@@ -712,14 +695,14 @@ export default function Design({ state, onDirty, setSetting }) {
 							]}
 						/>
 						<ChipRow
-							label={__( 'Source', 'hatch-bridge' )}
-							desc={__( 'How related posts are chosen.', 'hatch-bridge' )}
+							label={__( 'Source', 'hatch-connect' )}
+							desc={__( 'How related posts are chosen.', 'hatch-connect' )}
 							path="post_navigation.related_source"
 							current={postNav.related_source}
 							options={[
-								{ id: 'category', label: __( 'Same category', 'hatch-bridge' ) },
-								{ id: 'tags',     label: __( 'Same tags', 'hatch-bridge' ) },
-								{ id: 'mixed',    label: __( 'Mixed', 'hatch-bridge' ) },
+								{ id: 'category', label: __( 'Same category', 'hatch-connect' ) },
+								{ id: 'tags',     label: __( 'Same tags', 'hatch-connect' ) },
+								{ id: 'mixed',    label: __( 'Mixed', 'hatch-connect' ) },
 							]}
 							last
 						/>
@@ -730,34 +713,34 @@ export default function Design({ state, onDirty, setSetting }) {
 			{/* Blog Index & Homepage */}
 			<HxCard>
 				<HxHead
-					iconChildren={<><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>}
-					iconColor="#f59e0b"
-					title={__( 'Blog Index & Homepage', 'hatch-bridge' )}
-					desc={__( 'Layout of the post list page: columns, pagination, featured post, and topics.', 'hatch-bridge' )}
+					iconChildren={IC.layoutGrid}
+					iconColor="#d97706"
+					title={__( 'Blog index & homepage', 'hatch-connect' )}
+					desc={__( 'How the list of posts looks: columns, page numbers, featured post and topics.', 'hatch-connect' )}
 					mb={16}
 				/>
 
-				<HxGL>{__( 'Visibility', 'hatch-bridge' )}</HxGL>
+				<HxGL>{__( 'Visibility', 'hatch-connect' )}</HxGL>
 				<FeatureToggle slug="category_tabs" />
-				<HxRow label={__( 'Featured post on blog index', 'hatch-bridge' )} desc={__( 'A large card that highlights the latest post.', 'hatch-bridge' )}>
-					<HxToggle ariaLabel={__( 'Featured post on blog index', 'hatch-bridge' )} on={!!blogIndex.show_hero} onChange={onToggle('blog_index.show_hero')} />
+				<HxRow label={__( 'Featured post on blog index', 'hatch-connect' )} desc={__( 'A large card that highlights the latest post.', 'hatch-connect' )}>
+					<HxToggle ariaLabel={__( 'Featured post on blog index', 'hatch-connect' )} on={!!blogIndex.show_hero} onChange={onToggle('blog_index.show_hero')} />
 				</HxRow>
-				<HxRow label={__( 'Topics section on homepage', 'hatch-bridge' )} desc={__( 'Category tiles so visitors can browse by topic.', 'hatch-bridge' )} last>
-					<HxToggle ariaLabel={__( 'Topics section on homepage', 'hatch-bridge' )} on={!!blogIndex.show_topics} onChange={onToggle('blog_index.show_topics')} />
-				</HxRow>
-
-				<HxGL>{__( 'Card style', 'hatch-bridge' )}</HxGL>
-				<HxRow label={__( 'Show excerpt under post titles', 'hatch-bridge' )} desc={__( 'Shows the post excerpt below the title on archive cards.', 'hatch-bridge' )}>
-					<HxToggle ariaLabel={__( 'Show excerpt under post titles', 'hatch-bridge' )} on={templates.archive_excerpt !== 'false' && templates.archive_excerpt !== false} onChange={(v) => { setSetting('templates.archive_excerpt', v ? 'true' : 'false'); onDirty(); }} />
-				</HxRow>
-				<HxRow label={__( 'Show search on 404 page', 'hatch-bridge' )} desc={__( 'Adds a search box to the 404 page so visitors can look for what they were after.', 'hatch-bridge' )} last>
-					<HxToggle ariaLabel={__( 'Show search on 404 page', 'hatch-bridge' )} on={templates.not_found_search !== 'false' && templates.not_found_search !== false} onChange={(v) => { setSetting('templates.not_found_search', v ? 'true' : 'false'); onDirty(); }} />
+				<HxRow label={__( 'Topics section on homepage', 'hatch-connect' )} desc={__( 'Category tiles so visitors can browse by topic.', 'hatch-connect' )} last>
+					<HxToggle ariaLabel={__( 'Topics section on homepage', 'hatch-connect' )} on={!!blogIndex.show_topics} onChange={onToggle('blog_index.show_topics')} />
 				</HxRow>
 
-				<HxGL>{__( 'Layout', 'hatch-bridge' )}</HxGL>
+				<HxGL>{__( 'Card style', 'hatch-connect' )}</HxGL>
+				<HxRow label={__( 'Show excerpt under post titles', 'hatch-connect' )} desc={__( 'Shows the post excerpt below the title on archive cards.', 'hatch-connect' )}>
+					<HxToggle ariaLabel={__( 'Show excerpt under post titles', 'hatch-connect' )} on={templates.archive_excerpt !== 'false' && templates.archive_excerpt !== false} onChange={(v) => { setSetting('templates.archive_excerpt', v ? 'true' : 'false'); onDirty(); }} />
+				</HxRow>
+				<HxRow label={__( 'Show search on 404 page', 'hatch-connect' )} desc={__( 'Adds a search box to the 404 page so visitors can look for what they were after.', 'hatch-connect' )} last>
+					<HxToggle ariaLabel={__( 'Show search on 404 page', 'hatch-connect' )} on={templates.not_found_search !== 'false' && templates.not_found_search !== false} onChange={(v) => { setSetting('templates.not_found_search', v ? 'true' : 'false'); onDirty(); }} />
+				</HxRow>
+
+				<HxGL>{__( 'Layout', 'hatch-connect' )}</HxGL>
 				<ChipRow
-					label={__( 'Archive grid columns', 'hatch-bridge' )}
-					desc={__( 'How many post cards appear per row on the blog index.', 'hatch-bridge' )}
+					label={__( 'Archive grid columns', 'hatch-connect' )}
+					desc={__( 'How many post cards appear per row on the blog index.', 'hatch-connect' )}
 					path="blog_index.archive_grid"
 					current={blogIndex.archive_grid}
 					options={[
@@ -768,14 +751,14 @@ export default function Design({ state, onDirty, setSetting }) {
 					]}
 				/>
 				<ChipRow
-					label={__( 'Pagination style', 'hatch-bridge' )}
-					desc={__( 'How readers move through older posts.', 'hatch-bridge' )}
+					label={__( 'Pagination style', 'hatch-connect' )}
+					desc={__( 'How readers move through older posts.', 'hatch-connect' )}
 					path="blog_index.pagination_style"
 					current={blogIndex.pagination_style}
 					options={[
-						{ id: 'load_more', label: __( 'Load more', 'hatch-bridge' ) },
-						{ id: 'numbered',  label: __( 'Numbered', 'hatch-bridge' ) },
-						{ id: 'infinite',  label: __( 'Infinite scroll', 'hatch-bridge' ) },
+						{ id: 'load_more', label: __( 'Load more', 'hatch-connect' ) },
+						{ id: 'numbered',  label: __( 'Numbered', 'hatch-connect' ) },
+						{ id: 'infinite',  label: __( 'Infinite scroll', 'hatch-connect' ) },
 					]}
 					last
 				/>
@@ -784,30 +767,30 @@ export default function Design({ state, onDirty, setSetting }) {
 			{/* Images & Media */}
 			<HxCard>
 				<HxHead
-					iconChildren={<><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></>}
-					iconColor="#ec4899"
-					title={__( 'Images & Media', 'hatch-bridge' )}
-					desc={__( 'How images load and how they respond when visitors interact with them.', 'hatch-bridge' )}
+					iconChildren={IC.image}
+					iconColor="#8b5cf6"
+					title={__( 'Images & media', 'hatch-connect' )}
+					desc={__( 'How images load and how they respond when visitors interact with them.', 'hatch-connect' )}
 					mb={16}
 				/>
-				<HxRow label={__( 'Lightbox on click', 'hatch-bridge' )} desc={__( 'Clicking an image in a post opens it in a full-screen overlay.', 'hatch-bridge' )}>
-					<HxToggle ariaLabel={__( 'Lightbox on click', 'hatch-bridge' )} on={!!images.lightbox} onChange={onToggle('images.lightbox')} />
+				<HxRow label={__( 'Lightbox on click', 'hatch-connect' )} desc={__( 'Clicking an image in a post opens it in a full-screen overlay.', 'hatch-connect' )}>
+					<HxToggle ariaLabel={__( 'Lightbox on click', 'hatch-connect' )} on={!!images.lightbox} onChange={onToggle('images.lightbox')} />
 				</HxRow>
-				<HxRow label={__( 'Hover zoom on cards', 'hatch-bridge' )} desc={__( 'Slightly enlarges post-card thumbnails when the cursor is over them.', 'hatch-bridge' )}>
-					<HxToggle ariaLabel={__( 'Hover zoom on cards', 'hatch-bridge' )} on={!!images.hover_zoom} onChange={onToggle('images.hover_zoom')} />
+				<HxRow label={__( 'Hover zoom on cards', 'hatch-connect' )} desc={__( 'Slightly enlarges post thumbnails when a visitor points at them.', 'hatch-connect' )}>
+					<HxToggle ariaLabel={__( 'Hover zoom on cards', 'hatch-connect' )} on={!!images.hover_zoom} onChange={onToggle('images.hover_zoom')} />
 				</HxRow>
-				<HxRow label={__( 'Lazy-load below the fold', 'hatch-bridge' )} desc={__( 'Waits to load off-screen images until they are needed, for a faster first load.', 'hatch-bridge' )}>
-					<HxToggle ariaLabel={__( 'Lazy-load below the fold', 'hatch-bridge' )} on={!!images.lazy_load} onChange={onToggle('images.lazy_load')} />
+				<HxRow label={__( 'Load images as people scroll', 'hatch-connect' )} desc={__( 'Waits to load images that are off screen until they are needed, so the page opens faster.', 'hatch-connect' )}>
+					<HxToggle ariaLabel={__( 'Load images as people scroll', 'hatch-connect' )} on={!!images.lazy_load} onChange={onToggle('images.lazy_load')} />
 				</HxRow>
-				<HxRow label={__( 'High-resolution images (2x)', 'hatch-bridge' )} desc={__( 'Serves larger image versions to high-density screens.', 'hatch-bridge' )}>
-					<HxToggle ariaLabel={__( 'High-resolution images (2x)', 'hatch-bridge' )} on={!!images.retina_2x} onChange={onToggle('images.retina_2x')} />
+				<HxRow label={__( 'Sharp images on high-resolution screens', 'hatch-connect' )} desc={__( 'Sends larger image versions to screens that show fine detail.', 'hatch-connect' )}>
+					<HxToggle ariaLabel={__( 'Sharp images on high-resolution screens', 'hatch-connect' )} on={!!images.retina_2x} onChange={onToggle('images.retina_2x')} />
 				</HxRow>
-				<HxRow label={__( 'Fallback gradient', 'hatch-bridge' )} desc={__( 'Shows a soft brand-colored gradient when a post has no featured image.', 'hatch-bridge' )}>
-					<HxToggle ariaLabel={__( 'Fallback gradient', 'hatch-bridge' )} on={!!images.fallback_gradient} onChange={onToggle('images.fallback_gradient')} />
+				<HxRow label={__( 'Colored backup for missing images', 'hatch-connect' )} desc={__( 'Shows a soft gradient in your brand colors when a post has no featured image.', 'hatch-connect' )}>
+					<HxToggle ariaLabel={__( 'Colored backup for missing images', 'hatch-connect' )} on={!!images.fallback_gradient} onChange={onToggle('images.fallback_gradient')} />
 				</HxRow>
 				<ChipRow
-					label={__( 'Featured-image aspect ratio', 'hatch-bridge' )}
-					desc={__( 'Shape of post-card thumbnails and the single-post hero image.', 'hatch-bridge' )}
+					label={__( 'Featured image shape', 'hatch-connect' )}
+					desc={__( 'The shape of post thumbnails and the large image at the top of a post.', 'hatch-connect' )}
 					path="images.aspect_ratio"
 					current={images.aspect_ratio}
 					options={[
@@ -822,17 +805,17 @@ export default function Design({ state, onDirty, setSetting }) {
 			{/* Animation & Motion */}
 			<HxCard>
 				<HxHead
-					iconChildren={<><polyline points="13 17 18 12 13 7" /><polyline points="6 17 11 12 6 7" /></>}
-					iconColor="#a855f7"
-					title={__( 'Animation & Motion', 'hatch-bridge' )}
-					desc={__( 'Page transitions and motion preferences. Reduced motion follows the accessibility setting on the visitor\'s device.', 'hatch-bridge' )}
+					iconChildren={IC.chevronsRight}
+					iconColor="#0d9488"
+					title={__( 'Animation & motion', 'hatch-connect' )}
+					desc={__( 'Page transitions and motion. Visitors whose device asks for less motion are respected.', 'hatch-connect' )}
 					mb={16}
 				/>
-				<HxRow label={__( 'Page transitions', 'hatch-bridge' )} desc={__( 'Pages fade in instead of reloading fully.', 'hatch-bridge' )}>
-					<HxToggle ariaLabel={__( 'Page transitions', 'hatch-bridge' )} on={!!animation.page_transitions} onChange={onToggle('animation.page_transitions')} />
+				<HxRow label={__( 'Page transitions', 'hatch-connect' )} desc={__( 'Pages fade in instead of flashing white.', 'hatch-connect' )}>
+					<HxToggle ariaLabel={__( 'Page transitions', 'hatch-connect' )} on={!!animation.page_transitions} onChange={onToggle('animation.page_transitions')} />
 				</HxRow>
-				<HxRow label={__( 'Respect reduced-motion setting', 'hatch-bridge' )} desc={__( 'Turns off animation for visitors whose device asks for reduced motion.', 'hatch-bridge' )} last>
-					<HxToggle ariaLabel={__( 'Respect reduced-motion setting', 'hatch-bridge' )} on={!!animation.respect_reduced_motion} onChange={onToggle('animation.respect_reduced_motion')} />
+				<HxRow label={__( 'Respect the less-motion setting', 'hatch-connect' )} desc={__( 'Turns off animation for visitors whose device asks for less motion.', 'hatch-connect' )} last>
+					<HxToggle ariaLabel={__( 'Respect the less-motion setting', 'hatch-connect' )} on={!!animation.respect_reduced_motion} onChange={onToggle('animation.respect_reduced_motion')} />
 				</HxRow>
 			</HxCard>
 
@@ -842,5 +825,6 @@ export default function Design({ state, onDirty, setSetting }) {
 			    One source of truth per concern. */}
 
 		</div>
+		</DesignCtx.Provider>
 	);
 }

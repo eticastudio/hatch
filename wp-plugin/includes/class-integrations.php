@@ -227,7 +227,7 @@ class Hatch_Integrations {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( __CLASS__, 'route_integrations' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 			)
 		);
 	}
@@ -311,8 +311,9 @@ class Hatch_Integrations {
 		if ( '' !== $remote_ip ) {
 			$body['remoteip'] = $remote_ip;
 		}
+		// Server-side verification call to the Cloudflare Turnstile service, listed under External services in readme.txt.
 		$res = wp_remote_post(
-			'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+			'https://challenges.cloudflare.com/turnstile/v0/siteverify', // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Documented external service, an API call and not offloaded assets.
 			array(
 				'timeout'     => 8,
 				'redirection' => 0,

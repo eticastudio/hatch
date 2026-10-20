@@ -63,11 +63,6 @@ class Hatch_Hardening {
 
 		}
 
-		// 2FA reminder - only meaningful when a provider exists.
-		if ( get_option( 'hatch_security_enforce_2fa', false ) ) {
-			add_action( 'init', array( __CLASS__, 'maybe_remind_2fa' ), 5 );
-		}
-
 		// -- Fortress Mode wiring ------------------------------------------
 		// The master switch forces all seven sub-features on when active;
 		// individual toggles still work when the master is off. `is_on()`
@@ -220,7 +215,7 @@ class Hatch_Hardening {
 		if ( false !== strpos( $route, '/wp/v2/users' ) ) {
 			return new WP_Error(
 				'hatch_fortress_users_disabled',
-				esc_html__( 'The users endpoint is disabled for anonymous requests.', 'hatch-bridge' ),
+				esc_html__( 'The users endpoint is disabled for anonymous requests.', 'hatch-connect' ),
 				array( 'status' => 401 )
 			);
 		}
@@ -229,8 +224,11 @@ class Hatch_Hardening {
 
 	/**
 	 * Require Application Passwords (not real user passwords) for any REST
-	 * mutation (POST/PUT/PATCH/DELETE) on /wp/v2/*. Hatch's own /hatch/v1/*
-	 * endpoints are exempted - they run their own auth model.
+	 * mutation (POST/PUT/PATCH/DELETE) on /wp/v2/* made by an outside app.
+	 * Hatch's own /hatch/v1/* endpoints are exempted - they run their own auth
+	 * model. A request from the WordPress dashboard itself (a logged-in cookie
+	 * session carrying a valid REST nonce, which is what the block editor sends)
+	 * is exempted too, otherwise Fortress Mode would stop editors saving posts.
 	 *
 	 * Detection: WordPress core sets `application_passwords` on the auth
 	 * state during authentication when the caller used an app password
@@ -248,19 +246,26 @@ class Hatch_Hardening {
 		if ( ! in_array( $method, array( 'POST', 'PUT', 'PATCH', 'DELETE' ), true ) ) {
 			return $result;
 		}
-		$route = isset( $GLOBALS['wp']->query_vars['rest_route'] ) ? (string) $GLOBALS['wp']->query_vars['rest_route'] : '';
+		$route     = isset( $GLOBALS['wp']->query_vars['rest_route'] ) ? (string) $GLOBALS['wp']->query_vars['rest_route'] : '';
+		$from_path = false;
 		if ( '' === $route && isset( $_SERVER['REQUEST_URI'] ) ) {
-			$route = (string) wp_parse_url( Hatch_Request::request_uri(), PHP_URL_PATH );
+			$route     = (string) wp_parse_url( Hatch_Request::request_uri(), PHP_URL_PATH );
+			$from_path = true;
 		}
-		// Only enforce for core /wp/v2 mutations. Exempt Hatch's namespace.
+		// Only enforce for core /wp/v2 mutations. Exempt Hatch's namespace, matched on the route itself.
 		if ( false === strpos( $route, '/wp/v2/' ) ) {
 			return $result;
 		}
-		if ( false !== strpos( $route, '/hatch/' ) ) {
+		if ( 1 === preg_match( $from_path ? '#/wp-json/hatch/#' : '#^/hatch/#', $route ) ) {
 			return $result;
 		}
 		if ( ! is_user_logged_in() ) {
 			return $result; // Let core reject with its own 401.
+		}
+		// The dashboard (block editor, quick edit) is a cookie session that proves itself with a REST nonce.
+		$nonce = Hatch_Request::server( 'HTTP_X_WP_NONCE' );
+		if ( '' !== $nonce && false !== wp_verify_nonce( $nonce, 'wp_rest' ) ) {
+			return $result;
 		}
 
 		// Core fires this action only after a request authenticated with an Application Password.
@@ -274,7 +279,7 @@ class Hatch_Hardening {
 
 		return new WP_Error(
 			'hatch_fortress_app_password_required',
-			esc_html__( 'This endpoint requires an Application Password. Cookie or basic-auth mutations are disabled by Fortress Mode.', 'hatch-bridge' ),
+			esc_html__( 'Fortress Mode only accepts content changes from the WordPress dashboard or from an app signed in with an Application Password.', 'hatch-connect' ),
 			array( 'status' => 401 )
 		);
 	}
@@ -399,6 +404,9 @@ class Hatch_Hardening {
 	 * eventually succeeds.
 	 */
 	public static function notice_htaccess_write_failed(): void {
+		if ( ! hatch_is_own_admin_screen() ) {
+			return;
+		}
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
@@ -407,10 +415,10 @@ class Hatch_Hardening {
 			return;
 		}
 		echo '<div class="notice notice-warning is-dismissible"><p><strong>' .
-			esc_html__( 'Hatch hardening: could not write .htaccess in uploads.', 'hatch-bridge' ) .
+			esc_html__( 'Hatch hardening: could not write .htaccess in uploads.', 'hatch-connect' ) .
 			'</strong> ' .
 			/* translators: %s: file path. */
-			esc_html( sprintf( __( 'Path: %s - directory listings + PHP execution blocks are not applied. Grant the web-server user write access to that path, or apply the equivalent server-level rules.', 'hatch-bridge' ), $path ) ) .
+			esc_html( sprintf( __( 'Path: %s - directory listings + PHP execution blocks are not applied. Grant the web-server user write access to that path, or apply the equivalent server-level rules.', 'hatch-connect' ), $path ) ) .
 			'</p></div>';
 	}
 
@@ -440,41 +448,6 @@ class Hatch_Hardening {
 		}
 	}
 
-	/**
-	 * Remind administrators who have not set up two-factor authentication to do so.
-	 *
-	 * This is a reminder only, and the Security tab words it that way. Hatch ships no
-	 * two-factor system of its own, and blocking admin access on the strength of
-	 * another plugin's data would lock everyone out if that plugin were removed.
-	 * The reminder shows only while a supported two-factor plugin is active.
-	 *
-	 * @return void
-	 */
-	public static function maybe_remind_2fa(): void {
-		$provider = self::detect_2fa_provider();
-		if ( '' === $provider ) {
-			return;
-		}
-		add_action(
-			'admin_notices',
-			static function () use ( $provider ) {
-				if ( ! current_user_can( 'manage_options' ) || self::user_has_2fa_configured() ) {
-					return;
-				}
-				$url     = self::get_2fa_settings_url();
-				$message = sprintf(
-					/* translators: %s: name of the two-factor plugin. */
-					esc_html__( 'Hatch reminder: you have not set up two-factor authentication yet. Set it up with %s to keep your admin access secure.', 'hatch-bridge' ),
-					esc_html( $provider )
-				);
-				echo '<div class="notice notice-warning"><p>' . wp_kses_post( $message );
-				if ( '' !== $url ) {
-					echo ' <a href="' . esc_url( $url ) . '">' . esc_html__( 'Open the two-factor settings', 'hatch-bridge' ) . '</a>';
-				}
-				echo '</p></div>';
-			}
-		);
-	}
 
 	/**
 	 * Best-effort: identify the active 2FA plugin so we can name it in copy.

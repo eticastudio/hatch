@@ -10,6 +10,7 @@
  */
 
 import { WP_API_URL, WP_API_USER, WP_API_PASS } from 'astro:env/server';
+import { DEFAULT_SITE_NAME, siteName, siteDescription } from './site';
 const WP_API = WP_API_URL;
 const WP_USER = WP_API_USER;
 const WP_PASS = WP_API_PASS;
@@ -28,6 +29,25 @@ export interface HatchSite {
   language: string;
   icon_url: string;
   logo_url: string;
+}
+
+export interface HatchWooPage {
+  id: number;
+  slug: string;
+  url: string;
+  /** Site-relative path of the page as WordPress serves it, no trailing slash. Empty when unset. */
+  path: string;
+}
+
+/** Capability snapshot from WP. Shop, cart and account UI render only when `active`. */
+export interface HatchWooCommerce {
+  active: boolean;
+  pages: {
+    shop: HatchWooPage;
+    cart: HatchWooPage;
+    checkout: HatchWooPage;
+    myaccount: HatchWooPage;
+  };
 }
 
 export interface HatchHome {
@@ -189,7 +209,6 @@ export interface HatchPerf {
   image_proxy: boolean;
   prefetch_enabled: boolean;
   prefetch_strategy: 'hover' | 'tap' | 'viewport' | 'load';
-  partytown: boolean;
   compress_html: boolean;
   telemetry: boolean;
   image_layout: 'constrained' | 'fixed' | 'full-width' | 'none';
@@ -205,13 +224,14 @@ export interface HatchFeatures {
   theme: 'blog' | 'tech' | 'docs' | 'astropaper' | 'astrowind' | 'astronano';
   design: HatchDesign | null;
   aesthetic: HatchAesthetic;
-  content?: { comments_enabled: boolean; comments_turnstile: boolean };
+  content?: { comments_enabled: boolean; comments_turnstile: boolean; accounts_enabled: boolean; registration_open: boolean };
   perf: HatchPerf;
   features: Record<string, boolean>;
   site: HatchSite;
   home: HatchHome;
   cpts: HatchCpt[];
   integrations: HatchIntegrations | null;
+  woocommerce: HatchWooCommerce;
   image_proxy_url: string;
   version: string;
 }
@@ -220,7 +240,6 @@ const PERF_FALLBACK: HatchPerf = {
   image_proxy: true,
   prefetch_enabled: true,
   prefetch_strategy: 'hover',
-  partytown: false,
   compress_html: true,
   telemetry: false,
   image_layout: 'constrained',
@@ -271,6 +290,51 @@ const AESTHETIC_FALLBACK: HatchAesthetic = {
   post_navigation: { related_count: 3, related_source: 'category' },
 };
 
+const EMPTY_WOO_PAGE: HatchWooPage = { id: 0, slug: '', url: '', path: '' };
+
+const WOO_FALLBACK: HatchWooCommerce = {
+  active: false,
+  pages: {
+    shop: EMPTY_WOO_PAGE,
+    cart: EMPTY_WOO_PAGE,
+    checkout: EMPTY_WOO_PAGE,
+    myaccount: EMPTY_WOO_PAGE,
+  },
+};
+
+function mergeWoo(raw: unknown): HatchWooCommerce {
+  const src = (raw && typeof raw === 'object' ? raw : {}) as Partial<HatchWooCommerce>;
+  if (!src.active) return WOO_FALLBACK;
+  const page = (p: unknown): HatchWooPage => {
+    const o = (p && typeof p === 'object' ? p : {}) as Partial<HatchWooPage>;
+    const id = Number(o.id) || 0;
+    // An id of 0 or less means WooCommerce has no page for this role.
+    if (id <= 0) return EMPTY_WOO_PAGE;
+    const slug = String(o.slug || '').replace(/^\/+|\/+$/g, '');
+    const url = String(o.url || '');
+    let path = '';
+    try {
+      // The permalink carries the full path, including parent pages and
+      // non-ASCII slugs, which a bare post_name cannot.
+      path = new URL(url, 'http://placeholder.invalid').pathname.replace(/\/+$/, '');
+    } catch {
+      path = '';
+    }
+    if (!path && slug) path = '/' + slug;
+    return { id, slug, url, path };
+  };
+  const pages = (src.pages || {}) as Partial<HatchWooCommerce['pages']>;
+  return {
+    active: true,
+    pages: {
+      shop: page(pages.shop),
+      cart: page(pages.cart),
+      checkout: page(pages.checkout),
+      myaccount: page(pages.myaccount),
+    },
+  };
+}
+
 // Sensible defaults if WP is unreachable — keeps the build from crashing.
 const FALLBACK: HatchFeatures = {
   theme: 'blog',
@@ -279,8 +343,8 @@ const FALLBACK: HatchFeatures = {
   perf: PERF_FALLBACK,
   features: {},
   site: {
-    name: 'Hatch',
-    description: 'Headless WordPress, powered by Hatch.',
+    name: DEFAULT_SITE_NAME,
+    description: '',
     url: import.meta.env.PUBLIC_SITE_URL || '',
     language: 'en-US',
     icon_url: '',
@@ -289,10 +353,11 @@ const FALLBACK: HatchFeatures = {
   home: { mode: 'posts', static_page_slug: '', static_page_id: 0 },
   cpts: [],
   integrations: INTEGRATIONS_FALLBACK,
+  woocommerce: WOO_FALLBACK,
   image_proxy_url: '',
   version: '',
   // v0.5.7 — ensure comments render by default when /features fetch fails.
-  content: { comments_enabled: true, comments_turnstile: false },
+  content: { comments_enabled: true, comments_turnstile: false, accounts_enabled: false, registration_open: false },
 } as HatchFeatures;
 
 let cached: { data: HatchFeatures; expires: number } | null = null;
@@ -314,6 +379,15 @@ const FETCH_TIMEOUT_MS = 5000;
  */
 export function clearFeaturesCache(): void {
   cached = null;
+}
+
+/**
+ * True when WordPress could not be reached and these are the built-in
+ * defaults. Pages served from defaults must never be edge-cached, otherwise a
+ * short WP outage freezes the wrong theme into the CDN.
+ */
+export function isFallbackFeatures(features: HatchFeatures): boolean {
+  return features === FALLBACK;
 }
 
 export async function getFeatures(): Promise<HatchFeatures> {
@@ -368,12 +442,17 @@ export async function getFeatures(): Promise<HatchFeatures> {
         post_navigation: { ...AESTHETIC_FALLBACK.post_navigation, ...((data.aesthetic && data.aesthetic.post_navigation) || {}) },
       },
       // v0.50.31 — Merge perf block from /features so PageLayout + middleware
-      // can honor prefetch / partytown / compress_html / telemetry / image_layout
+      // can honor prefetch / compress_html / telemetry / image_layout
       // at request time. Falls back to defaults if WP plugin is older.
       perf: { ...PERF_FALLBACK, ...(data.perf || {}) },
       features: { ...FALLBACK.features, ...(data.features || {}) },
       site: (() => {
         const merged = { ...FALLBACK.site, ...(data.site || {}) };
+        // Normalise once so every consumer sees the same values: entities
+        // decoded, whitespace-only counts as empty, an empty name becomes
+        // "Your Site", and an empty description stays empty.
+        merged.name = siteName({ name: merged.name });
+        merged.description = siteDescription({ description: merged.description });
         // v0.5.9 — allow deploy-time override of site.url (e.g. when WP is
         // behind a tunnel with siteurl=localhost, but the public frontend
         // lives at a CF Worker URL). Canonical + og:url use this.
@@ -391,6 +470,7 @@ export async function getFeatures(): Promise<HatchFeatures> {
             comments:  { ...INTEGRATIONS_FALLBACK.comments,  ...(data.integrations.comments || {}) },
           }
         : INTEGRATIONS_FALLBACK,
+      woocommerce: mergeWoo((data as { woocommerce?: unknown }).woocommerce),
       image_proxy_url: data.image_proxy_url || '',
       version: data.version || '',
       // v0.5.7 — content block (comments_enabled, comments_turnstile) was
@@ -402,8 +482,10 @@ export async function getFeatures(): Promise<HatchFeatures> {
         ? {
             comments_enabled:   !!(data as any).content.comments_enabled,
             comments_turnstile: !!(data as any).content.comments_turnstile,
+            accounts_enabled:   !!(data as any).content.accounts_enabled,
+            registration_open:  !!(data as any).content.registration_open,
           }
-        : { comments_enabled: true, comments_turnstile: false },
+        : { comments_enabled: true, comments_turnstile: false, accounts_enabled: false, registration_open: false },
     };
     cached = { data: merged, expires: Date.now() + CACHE_TTL_MS };
     return merged;

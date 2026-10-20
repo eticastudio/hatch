@@ -75,7 +75,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 	 * @return string
 	 */
 	public function get_label(): string {
-		return __( 'Cloudflare Workers', 'hatch-bridge' );
+		return __( 'Cloudflare Workers', 'hatch-connect' );
 	}
 
 	/**
@@ -99,28 +99,28 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 				'permission' => 'Workers Scripts',
 				'access'     => 'Edit',
 				'required'   => true,
-				'reason'     => __( 'Uploads the frontend Worker and its static files.', 'hatch-bridge' ),
+				'reason'     => __( 'Uploads the frontend Worker and its static files.', 'hatch-connect' ),
 			),
 			array(
 				'scope'      => 'Account',
 				'permission' => 'Account Settings',
 				'access'     => 'Read',
 				'required'   => false,
-				'reason'     => __( 'Lets Hatch find your Cloudflare account automatically.', 'hatch-bridge' ),
+				'reason'     => __( 'Lets Hatch find your Cloudflare account automatically.', 'hatch-connect' ),
 			),
 			array(
 				'scope'      => 'Zone',
 				'permission' => 'Zone',
 				'access'     => 'Read',
 				'required'   => false,
-				'reason'     => __( 'Only for a custom domain: finds the domain in your account.', 'hatch-bridge' ),
+				'reason'     => __( 'Only for a custom domain: finds the domain in your account.', 'hatch-connect' ),
 			),
 			array(
 				'scope'      => 'Zone',
 				'permission' => 'Workers Routes',
 				'access'     => 'Edit',
 				'required'   => false,
-				'reason'     => __( 'Only for a custom domain: routes the domain to the Worker.', 'hatch-bridge' ),
+				'reason'     => __( 'Only for a custom domain: routes the domain to the Worker.', 'hatch-connect' ),
 			),
 		);
 	}
@@ -134,7 +134,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 	public function verify_token( string $token ) {
 		$token = trim( $token );
 		if ( '' === $token ) {
-			return new WP_Error( 'hatch_cf_no_token', __( 'A Cloudflare API token is required.', 'hatch-bridge' ), array( 'status' => 400 ) );
+			return new WP_Error( 'hatch_cf_no_token', __( 'A Cloudflare API token is required.', 'hatch-connect' ), array( 'status' => 400 ) );
 		}
 		$api = new Hatch_Cloudflare_Api( $token );
 
@@ -162,8 +162,8 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 			return new WP_Error(
 				'hatch_cf_token_inactive',
 				'expired' === $status
-					? __( 'This Cloudflare API token has expired. Create a new one and try again.', 'hatch-bridge' )
-					: __( 'This Cloudflare API token is not active. Check it in your Cloudflare dashboard, or create a new one.', 'hatch-bridge' ),
+					? __( 'This Cloudflare API token has expired. Create a new one and try again.', 'hatch-connect' )
+					: __( 'This Cloudflare API token is not active. Check it in your Cloudflare dashboard, or create a new one.', 'hatch-connect' ),
 				array( 'status' => 400 )
 			);
 		}
@@ -206,20 +206,20 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 		$wp_url = isset( $options['wp_url'] ) ? untrailingslashit( (string) $options['wp_url'] ) : '';
 		foreach ( array( 'wp_user', 'wp_pass', 'webhook_secret' ) as $required ) {
 			if ( empty( $options[ $required ] ) ) {
-				return new WP_Error( 'hatch_deploy_incomplete', __( 'Deploy could not start because a WordPress credential is missing.', 'hatch-bridge' ), array( 'status' => 400 ) );
+				return new WP_Error( 'hatch_deploy_incomplete', __( 'Deploy could not start because a WordPress credential is missing.', 'hatch-connect' ), array( 'status' => 400 ) );
 			}
 		}
 		// The address is handed to the Worker, never requested from here, so only its shape matters: http(s) with a host.
 		$wp_parts = wp_parse_url( $wp_url );
 		if ( ! is_array( $wp_parts ) || empty( $wp_parts['host'] ) || ! isset( $wp_parts['scheme'] ) || ! in_array( $wp_parts['scheme'], array( 'http', 'https' ), true ) ) {
-			return new WP_Error( 'hatch_deploy_bad_wp_url', __( 'The public WordPress address is not a valid URL.', 'hatch-bridge' ), array( 'status' => 400 ) );
+			return new WP_Error( 'hatch_deploy_bad_wp_url', __( 'The public WordPress address is not a valid URL.', 'hatch-connect' ), array( 'status' => 400 ) );
 		}
 
 		$mount_mode = Hatch_Cloudflare_Proxy_Worker::normalize_mount_mode( isset( $options['mount_mode'] ) ? (string) $options['mount_mode'] : 'root' );
 		$subpath    = 'subfolder' === $mount_mode ? Hatch_Cloudflare_Proxy_Worker::normalize_subpath( isset( $options['subpath'] ) ? (string) $options['subpath'] : '' ) : '';
 		$domain     = self::normalize_domain( isset( $options['domain'] ) ? (string) $options['domain'] : '' );
 		if ( isset( $options['domain'] ) && '' !== trim( (string) $options['domain'] ) && '' === $domain ) {
-			return new WP_Error( 'hatch_deploy_bad_domain', __( 'That domain name is not valid. Enter a host name such as example.com, without https:// or a path.', 'hatch-bridge' ), array( 'status' => 400 ) );
+			return new WP_Error( 'hatch_deploy_bad_domain', __( 'That domain name is not valid. Enter a host name such as example.com, without https:// or a path.', 'hatch-connect' ), array( 'status' => 400 ) );
 		}
 
 		$api = new Hatch_Cloudflare_Api( $token );
@@ -227,7 +227,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 		// Steps 1 and 2: token and account.
 		$verified = $this->verify_token( $token );
 		if ( is_wp_error( $verified ) ) {
-			return $this->step_error( $verified, __( 'Checking the token', 'hatch-bridge' ), 'verify' );
+			return $this->step_error( $verified, __( 'Checking the token', 'hatch-connect' ), 'verify' );
 		}
 		$account_id = $this->choose_account( $verified, isset( $options['account_id'] ) ? (string) $options['account_id'] : '' );
 		if ( is_wp_error( $account_id ) ) {
@@ -239,7 +239,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 		if ( '' !== $domain ) {
 			$zone = $this->find_zone( $api, $domain, $account_id );
 			if ( is_wp_error( $zone ) ) {
-				return $this->step_error( $zone, __( 'Looking up your domain', 'hatch-bridge' ), 'zone' );
+				return $this->step_error( $zone, __( 'Looking up your domain', 'hatch-connect' ), 'zone' );
 			}
 			$zone_id = $zone;
 		}
@@ -247,7 +247,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 		// Step 4: workers.dev address, checked before any upload.
 		$subdomain = $this->get_workers_subdomain( $api, $account_id );
 		if ( is_wp_error( $subdomain ) ) {
-			return $this->step_error( $subdomain, __( 'Checking your workers.dev address', 'hatch-bridge' ), 'subdomain' );
+			return $this->step_error( $subdomain, __( 'Checking your workers.dev address', 'hatch-connect' ), 'subdomain' );
 		}
 
 		$script = $this->script_name();
@@ -261,7 +261,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 		}
 		$completion = $this->upload_assets( $api, $bundle, $acct, $name, $manifest );
 		if ( is_wp_error( $completion ) ) {
-			return $this->step_error( $completion, __( 'Uploading the site files', 'hatch-bridge' ), 'assets' );
+			return $this->step_error( $completion, __( 'Uploading the site files', 'hatch-connect' ), 'assets' );
 		}
 
 		// Step 6: the Worker script. The addresses that were fixed at build time are replaced with this site's own.
@@ -325,13 +325,13 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 		);
 		$uploaded = $api->request_multipart( 'PUT', '/accounts/' . $acct . '/workers/scripts/' . $name, $parts );
 		if ( is_wp_error( $uploaded ) ) {
-			return $this->step_error( $uploaded, __( 'Publishing the Worker', 'hatch-bridge' ), 'script' );
+			return $this->step_error( $uploaded, __( 'Publishing the Worker', 'hatch-connect' ), 'script' );
 		}
 
 		// Step 7: workers.dev address.
 		$enabled = $api->request( 'POST', '/accounts/' . $acct . '/workers/scripts/' . $name . '/subdomain', array( 'body' => array( 'enabled' => true ) ) );
 		if ( is_wp_error( $enabled ) ) {
-			return $this->step_error( $enabled, __( 'Turning on the workers.dev address', 'hatch-bridge' ), 'script_subdomain' );
+			return $this->step_error( $enabled, __( 'Turning on the workers.dev address', 'hatch-connect' ), 'script_subdomain' );
 		}
 		$origin = $workers_origin;
 
@@ -359,7 +359,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 					$proxy->get_error_code(),
 					sprintf(
 						/* translators: %s: error detail. */
-						__( 'The frontend is live on its workers.dev address, but connecting your domain failed. %s', 'hatch-bridge' ),
+						__( 'The frontend is live on its workers.dev address, but connecting your domain failed. %s', 'hatch-connect' ),
 						$proxy->get_error_message()
 					),
 					$data
@@ -394,7 +394,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 				)
 			);
 			if ( is_wp_error( $response ) ) {
-				return $this->step_error( $response, __( 'Listing your domains', 'hatch-bridge' ), 'zones' );
+				return $this->step_error( $response, __( 'Listing your domains', 'hatch-connect' ), 'zones' );
 			}
 			$rows = (array) ( $response['result'] ?? array() );
 			foreach ( $rows as $zone ) {
@@ -449,7 +449,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 		$requested = strtolower( trim( $requested ) );
 		if ( '' !== $requested ) {
 			if ( 1 !== preg_match( '/^[a-f0-9]{32}$/', $requested ) ) {
-				return new WP_Error( 'hatch_cf_bad_account', __( 'That Cloudflare account ID is not valid. It is 32 letters and digits.', 'hatch-bridge' ), array( 'status' => 400 ) );
+				return new WP_Error( 'hatch_cf_bad_account', __( 'That Cloudflare account ID is not valid. It is 32 letters and digits.', 'hatch-connect' ), array( 'status' => 400 ) );
 			}
 			if ( ! empty( $accounts ) ) {
 				foreach ( $accounts as $account ) {
@@ -457,7 +457,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 						return $account['id'];
 					}
 				}
-				return new WP_Error( 'hatch_cf_bad_account', __( 'This token cannot access that Cloudflare account.', 'hatch-bridge' ), array( 'status' => 400 ) );
+				return new WP_Error( 'hatch_cf_bad_account', __( 'This token cannot access that Cloudflare account.', 'hatch-connect' ), array( 'status' => 400 ) );
 			}
 			return $requested;
 		}
@@ -473,7 +473,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 				'hatch_cf_choose_account',
 				sprintf(
 					/* translators: %s: comma separated account names. */
-					__( 'This token can reach more than one Cloudflare account (%s). Choose which one to use.', 'hatch-bridge' ),
+					__( 'This token can reach more than one Cloudflare account (%s). Choose which one to use.', 'hatch-connect' ),
 					implode( ', ', $names )
 				),
 				array(
@@ -484,7 +484,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 		}
 		return new WP_Error(
 			'hatch_cf_no_account',
-			__( 'Hatch could not find a Cloudflare account for this token. Add the "Account Settings Read" permission to the token, or enter your account ID.', 'hatch-bridge' ),
+			__( 'Hatch could not find a Cloudflare account for this token. Add the "Account Settings Read" permission to the token, or enter your account ID.', 'hatch-connect' ),
 			array( 'status' => 400 )
 		);
 	}
@@ -513,7 +513,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 				if ( '' !== $zone_account && strtolower( $zone_account ) !== strtolower( $account_id ) ) {
 					return new WP_Error(
 						'hatch_cf_zone_other_account',
-						__( 'That domain belongs to a different Cloudflare account than the one this token deploys to.', 'hatch-bridge' ),
+						__( 'That domain belongs to a different Cloudflare account than the one this token deploys to.', 'hatch-connect' ),
 						array( 'status' => 400 )
 					);
 				}
@@ -523,7 +523,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 		}
 		return new WP_Error(
 			'hatch_cf_zone_missing',
-			__( 'That domain is not in this Cloudflare account, or the token cannot see it. Add the domain to Cloudflare first, and give the token "Zone Read".', 'hatch-bridge' ),
+			__( 'That domain is not in this Cloudflare account, or the token cannot see it. Add the domain to Cloudflare first, and give the token "Zone Read".', 'hatch-connect' ),
 			array( 'status' => 404 )
 		);
 	}
@@ -559,7 +559,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 	private function missing_subdomain_error(): WP_Error {
 		return new WP_Error(
 			'hatch_cf_no_subdomain',
-			__( 'Your Cloudflare account has no workers.dev address yet. Open Workers and Pages in the Cloudflare dashboard once to create it, then try again. Nothing was uploaded.', 'hatch-bridge' ),
+			__( 'Your Cloudflare account has no workers.dev address yet. Open Workers and Pages in the Cloudflare dashboard once to create it, then try again. Nothing was uploaded.', 'hatch-connect' ),
 			array( 'status' => 409 )
 		);
 	}
@@ -586,7 +586,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 		$upload_jwt = isset( $session['result']['jwt'] ) ? (string) $session['result']['jwt'] : '';
 		$buckets    = isset( $session['result']['buckets'] ) && is_array( $session['result']['buckets'] ) ? $session['result']['buckets'] : array();
 		if ( '' === $upload_jwt ) {
-			return new WP_Error( 'hatch_cf_bad_response', __( 'Cloudflare did not start the file upload. Nothing was marked as deployed.', 'hatch-bridge' ) );
+			return new WP_Error( 'hatch_cf_bad_response', __( 'Cloudflare did not start the file upload. Nothing was marked as deployed.', 'hatch-connect' ) );
 		}
 		if ( empty( $buckets ) ) {
 			// Every file is already stored on Cloudflare; the session token is the completion token.
@@ -628,7 +628,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 			}
 		}
 		if ( '' === $completion ) {
-			return new WP_Error( 'hatch_cf_bad_response', __( 'Cloudflare did not confirm the file upload. Nothing was marked as deployed.', 'hatch-bridge' ) );
+			return new WP_Error( 'hatch_cf_bad_response', __( 'Cloudflare did not confirm the file upload. Nothing was marked as deployed.', 'hatch-connect' ) );
 		}
 		return $completion;
 	}
@@ -672,7 +672,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 			)
 		);
 		if ( is_wp_error( $put ) ) {
-			return $this->step_error( $put, __( 'Publishing the domain proxy', 'hatch-bridge' ), 'proxy' );
+			return $this->step_error( $put, __( 'Publishing the domain proxy', 'hatch-connect' ), 'proxy' );
 		}
 
 		$patterns = 'subfolder' === $mount_mode
@@ -681,7 +681,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 
 		$existing = $api->request( 'GET', '/zones/' . rawurlencode( $zone_id ) . '/workers/routes' );
 		if ( is_wp_error( $existing ) ) {
-			return $this->step_error( $existing, __( 'Reading the domain routes', 'hatch-bridge' ), 'routes' );
+			return $this->step_error( $existing, __( 'Reading the domain routes', 'hatch-connect' ), 'routes' );
 		}
 		$taken = array();
 		foreach ( (array) ( $existing['result'] ?? array() ) as $route ) {
@@ -704,9 +704,9 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 					'hatch_cf_route_taken',
 					sprintf(
 						/* translators: 1: route pattern, 2: name of another Worker. */
-						__( 'The route %1$s already points at another Worker (%2$s). Hatch will not overwrite it. Remove that route in Cloudflare, then try again.', 'hatch-bridge' ),
+						__( 'The route %1$s already points at another Worker (%2$s). Hatch will not overwrite it. Remove that route in Cloudflare, then try again.', 'hatch-connect' ),
 						$pattern,
-						'' !== $taken[ $pattern ]['script'] ? $taken[ $pattern ]['script'] : __( 'none', 'hatch-bridge' )
+						'' !== $taken[ $pattern ]['script'] ? $taken[ $pattern ]['script'] : __( 'none', 'hatch-connect' )
 					),
 					array( 'status' => 409 )
 				);
@@ -722,7 +722,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 				)
 			);
 			if ( is_wp_error( $created ) ) {
-				return $this->step_error( $created, __( 'Connecting the domain route', 'hatch-bridge' ), 'route' );
+				return $this->step_error( $created, __( 'Connecting the domain route', 'hatch-connect' ), 'route' );
 			}
 			$route_ids[] = isset( $created['result']['id'] ) ? (string) $created['result']['id'] : '';
 		}
@@ -791,7 +791,7 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 			$error->get_error_code(),
 			sprintf(
 				/* translators: 1: step that failed, 2: error detail. */
-				__( '%1$s failed. %2$s', 'hatch-bridge' ),
+				__( '%1$s failed. %2$s', 'hatch-connect' ),
 				$step,
 				$error->get_error_message()
 			),

@@ -83,6 +83,47 @@ class Hatch_WooCommerce_Bridge {
 	}
 
 	/**
+	 * Capability snapshot for the headless frontend.
+	 *
+	 * The frontend shows shop, cart and account UI only when `active` is true,
+	 * and uses the real page ids and slugs configured in WooCommerce (never a
+	 * guessed "shop" slug), so translated or renamed pages keep working.
+	 * A page id of -1 or 0 from wc_get_page_id() means "not set" and is
+	 * reported as an empty entry.
+	 *
+	 * @return array{active:bool,pages:array<string,array{id:int,slug:string,url:string}>}
+	 */
+	public static function get_capabilities(): array {
+		$active = self::is_available() && function_exists( 'wc_get_page_id' );
+		$pages  = array();
+		foreach ( array( 'shop', 'cart', 'checkout', 'myaccount' ) as $key ) {
+			$entry = array(
+				'id'   => 0,
+				'slug' => '',
+				'url'  => '',
+			);
+			if ( $active ) {
+				$id = (int) wc_get_page_id( $key );
+				if ( $id > 0 ) {
+					$post = get_post( $id );
+					if ( $post && 'publish' === $post->post_status ) {
+						$entry = array(
+							'id'   => $id,
+							'slug' => (string) $post->post_name,
+							'url'  => (string) get_permalink( $id ),
+						);
+					}
+				}
+			}
+			$pages[ $key ] = $entry;
+		}
+		return array(
+			'active' => $active,
+			'pages'  => $pages,
+		);
+	}
+
+	/**
 	 * Register routes only if Woo is present.
 	 *
 	 * @return void
@@ -106,7 +147,7 @@ class Hatch_WooCommerce_Bridge {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'route_products' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 				'args'                => array(
 					'page'     => array(
 						'default'           => 1,
@@ -148,7 +189,7 @@ class Hatch_WooCommerce_Bridge {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'route_product' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -164,7 +205,7 @@ class Hatch_WooCommerce_Bridge {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'route_variations' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -180,7 +221,7 @@ class Hatch_WooCommerce_Bridge {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'route_categories' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 			)
 		);
 
@@ -190,7 +231,7 @@ class Hatch_WooCommerce_Bridge {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'route_featured' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 				'args'                => array(
 					'per_page' => array(
 						'default'           => 8,
@@ -286,10 +327,10 @@ class Hatch_WooCommerce_Bridge {
 		$id      = (int) $request['id'];
 		$product = wc_get_product( $id );
 		if ( ! $product ) {
-			return new WP_Error( 'hatch_store_not_found', __( 'Product not found.', 'hatch-bridge' ), array( 'status' => 404 ) );
+			return new WP_Error( 'hatch_store_not_found', __( 'Product not found.', 'hatch-connect' ), array( 'status' => 404 ) );
 		}
 		if ( ! $this->is_product_public( $product ) ) {
-			return new WP_Error( 'hatch_store_not_public', __( 'Product is not public.', 'hatch-bridge' ), array( 'status' => 403 ) );
+			return new WP_Error( 'hatch_store_not_public', __( 'Product is not public.', 'hatch-connect' ), array( 'status' => 403 ) );
 		}
 		return rest_ensure_response( $this->normalize_product( $product, true ) );
 	}
@@ -320,10 +361,10 @@ class Hatch_WooCommerce_Bridge {
 		$id      = (int) $request['id'];
 		$product = wc_get_product( $id );
 		if ( ! $product || ! $product->is_type( 'variable' ) ) {
-			return new WP_Error( 'hatch_store_not_variable', __( 'Not a variable product.', 'hatch-bridge' ), array( 'status' => 400 ) );
+			return new WP_Error( 'hatch_store_not_variable', __( 'Not a variable product.', 'hatch-connect' ), array( 'status' => 400 ) );
 		}
 		if ( ! $this->is_product_public( $product ) ) {
-			return new WP_Error( 'hatch_store_not_public', __( 'Product is not public.', 'hatch-bridge' ), array( 'status' => 403 ) );
+			return new WP_Error( 'hatch_store_not_public', __( 'Product is not public.', 'hatch-connect' ), array( 'status' => 403 ) );
 		}
 		$variations = array();
 		foreach ( $product->get_available_variations() as $variation ) {
@@ -451,6 +492,9 @@ class Hatch_WooCommerce_Bridge {
 
 		$primary_image = wp_get_attachment_image_url( (int) $product->get_image_id(), 'large' );
 		$product_terms = get_the_terms( $id, 'product_cat' );
+		// A password-protected product is still listed, but its text stays back until it is unlocked.
+		$post     = get_post( $id );
+		$withheld = $post instanceof WP_Post && Hatch_Rest_Api::is_body_withheld( $post );
 
 		$payload = array(
 			'id'             => $id,
@@ -458,7 +502,7 @@ class Hatch_WooCommerce_Bridge {
 			'name'           => (string) $product->get_name(),
 			'type'           => (string) $product->get_type(),
 			'permalink'      => (string) get_permalink( $id ),
-			'short'          => wp_kses_post( $product->get_short_description() ),
+			'short'          => $withheld ? '' : wp_kses_post( $product->get_short_description() ),
 			'price'          => (string) $product->get_price(),
 			'regular_price'  => (string) $product->get_regular_price(),
 			'sale_price'     => (string) $product->get_sale_price(),

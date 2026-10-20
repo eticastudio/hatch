@@ -29,8 +29,8 @@ class Hatch_Headless_Forms {
 			self::SUBMISSIONS_CPT,
 			array(
 				'labels'          => array(
-					'name'          => __( 'Hatch Submissions', 'hatch-bridge' ),
-					'singular_name' => __( 'Submission', 'hatch-bridge' ),
+					'name'          => __( 'Hatch Submissions', 'hatch-connect' ),
+					'singular_name' => __( 'Submission', 'hatch-connect' ),
 				),
 				'public'          => false,
 				'show_ui'         => true,

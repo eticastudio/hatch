@@ -11,7 +11,9 @@
  * avatar) is inside _embedded.author[0].
  */
 import PageLayout from '@/layouts/PageLayout.astro';
+import Breadcrumb from '@/components/theme/Breadcrumb.astro';
 import PostCard from '@/components/PostCard.astro';
+import DocsShell from '@/components/theme/DocsShell.astro';
 import { getPosts } from '@/lib/hatch';
 import { getFeatures } from '@/lib/features';
 import { resolveAuthorBySlug } from '@/lib/posts';
@@ -39,17 +41,14 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
   description={author.description || `Posts by ${author.name}`}
   canonical={`${SITE}/blog/author/${author.slug}`}
 >
+  <DocsShell features={features}>
   <main class="mx-auto px-5 sm:px-8 py-12 sm:py-16" style="max-width: var(--hatch-max-width, 1160px)">
 
-    <nav class="text-[12.5px] text-hatch-fg-subtle mb-6 flex items-center gap-2 flex-wrap" aria-label="Breadcrumb">
-      <a href="/" class="hover:text-hatch-fg transition-colors">Home</a>
-      <span>/</span>
-      <a href="/blog" class="hover:text-hatch-fg transition-colors">Blog</a>
-      <span>/</span>
-      <span class="text-hatch-fg">Author</span>
-      <span>/</span>
-      <span class="text-hatch-fg">{author.name}</span>
-    </nav>
+    <Breadcrumb items={[
+      { label: 'Home', href: '/' },
+      { label: 'Blog', href: '/blog' },
+      { label: author.name },
+    ]} />
 
     <header class="mb-10 pb-8 border-b border-hatch-border flex flex-col sm:flex-row gap-5 items-start">
       {author.avatar && (
@@ -95,4 +94,5 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
     )}
 
   </main>
+  </DocsShell>
 </PageLayout>

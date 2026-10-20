@@ -36,7 +36,9 @@ const THEME_CSS_URL: Record<string, string> = {
 import { ClientRouter } from 'astro:transitions';
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
-import { getFeatures } from '../lib/features';
+import { getFeatures, isFallbackFeatures } from '../lib/features';
+import { siteName as resolveSiteName, siteDescription as resolveSiteDescription } from '../lib/site';
+import colorModeScript from '../scripts/color-mode.js?raw';
 import { getMenus } from '../lib/hatch';
 import { designToCssVars, designFontHref } from '../lib/design';
 import { edgeCache } from '../lib/cache';
@@ -70,8 +72,8 @@ const [features, primaryMenu, footerMenu, codeSnippets] = await Promise.all([
   getMenus('footer'),
   getCodeSnippets(),
 ]);
-const siteName = features.site.name || 'Hatch';
-const siteDescription = features.site.description || '';
+const siteName = resolveSiteName(features.site);
+const siteDescription = resolveSiteDescription(features.site);
 const lang = (features.site.language || 'en-US').split('-')[0];
 const iconUrl = features.site.icon_url || '';
 const theme = features.theme || 'blog';
@@ -85,7 +87,6 @@ const usePageTransitions = features.aesthetic.animation.page_transitions;
 //   - prefetch_enabled → emits Speculation Rules (browser pre-renders on
 //     hover) on supported browsers, falls back to standard prefetch
 //     elsewhere. User no longer picks the strategy — best-by-default.
-//   - partytown → conditional Web Worker init (analytics off main thread)
 //   - telemetry → POST navigation + LCP to this site's own /api/telemetry after page load (opt-in)
 const perf = features.perf;
 const prefetchStrategy = perf.prefetch_enabled ? 'prerender' : null;
@@ -94,17 +95,25 @@ const prefetchStrategy = perf.prefetch_enabled ? 'prerender' : null;
 const fullTitle = title === siteName ? siteName : `${title} — ${siteName}`;
 const metaDescription = description || siteDescription;
 
-// Edge cache: default 60s fresh + 1hr stale-while-revalidate.
-if (cacheTtl !== 0) {
+// Edge cache: default 60s fresh + 1hr stale-while-revalidate. A page built
+// from the built-in defaults (WordPress was unreachable) is never cached, or
+// a short outage would pin the wrong theme and site name into the CDN.
+if (isFallbackFeatures(features)) {
+  Astro.response.headers.set('Cache-Control', 'no-store');
+  Astro.response.headers.set('X-Hatch-Features', 'fallback');
+} else if (cacheTtl !== 0) {
   edgeCache(Astro, { ttl: cacheTtl ?? 60, swr: 3600 });
 }
 ---
 
 <!doctype html>
-<html lang={lang} data-hatch-theme={theme} data-hatch-mode={colorMode} style={designCssVars}>
+<html lang={lang} data-hatch-theme={theme} data-hatch-mode={colorMode} data-hatch-default-mode={colorMode} style={designCssVars}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {/* Blocking on purpose: sets the color mode before first paint and keeps
+        it correct across client-router navigations. See scripts/color-mode.js. */}
+    <script is:inline set:html={colorModeScript}></script>
 
     {rawHead ? (
       <Fragment set:html={rawHead} />
@@ -185,17 +194,6 @@ if (cacheTtl !== 0) {
       })} />
     )}
 
-    {/* v0.50.31 — Partytown: hoists analytics + third-party scripts off the
-        main thread into a Web Worker. Conditionally loaded when
-        features.perf.partytown is on. Inlined config tells Partytown which
-        domains to proxy through the worker. */}
-    {perf.partytown && (
-      <>
-        <script is:inline>{`window.partytown = { forward: ['dataLayer.push', 'gtag'], lib: '/~partytown/' };`}</script>
-        <script is:inline type="text/partytown" src="https://cdn.jsdelivr.net/npm/@builder.io/partytown@0.10.2/lib/partytown.js"></script>
-      </>
-    )}
-
     {/* Telemetry: fires a lightweight LCP + TTFB beacon to this site's own
         /api/telemetry once per page, only when the owner turns it on (off by
         default). It is never sent to a third party. No PII, no IP, no cookies. */}
@@ -243,21 +241,17 @@ if (cacheTtl !== 0) {
       [data-hatch-theme] article { padding-block: calc(2.5rem * var(--hatch-density, 1)) !important; }
     </style>
 
-    {/* Code injection — head slot. Auto-generated GA4/GTM/Plausible/Pixel
-        snippets from configured IDs + any raw HTML pasted in the admin.
-        Source: /wp-admin → Hatch → Content → Code injection. */}
+    {/* Head slot: Google Tag Manager and search-engine verification tags, built from validated values in lib/code-snippets.ts. */}
     {codeSnippets.head && <Fragment set:html={codeSnippets.head} />}
   </head>
   <body class="antialiased font-sans bg-hatch-bg text-hatch-fg flex flex-col min-h-screen">
-    {/* Code injection — body-start slot. GTM noscript fallback + any custom HTML. */}
+    {/* Body-start slot: the Google Tag Manager noscript fallback. */}
     {codeSnippets.bodyStart && <Fragment set:html={codeSnippets.bodyStart} />}
     {!bare && <SiteHeader features={features} menuItems={primaryMenu} />}
     <div class="flex-1">
       <slot />
     </div>
     {!bare && <SiteFooter features={features} menuItems={footerMenu} />}
-    {/* Code injection — body-end slot. Chat widgets, late-bound scripts. */}
-    {codeSnippets.bodyEnd && <Fragment set:html={codeSnippets.bodyEnd} />}
 
     {/* v0.3.2 — Hatch blocks runtime + stylesheet. Vanilla JS, no framework.
         Hydrates YouTube facade / Tabs / Search / Form / Posts on first paint

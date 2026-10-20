@@ -107,7 +107,7 @@ class Hatch_Connection_Status {
 
 		if ( '' === $model ) {
 			update_option( self::OPT_CONNECTED, 0 );
-			update_option( self::OPT_DISCONNECT_NOTE, __( 'Setup not complete.', 'hatch-bridge' ) );
+			update_option( self::OPT_DISCONNECT_NOTE, __( 'Setup not complete.', 'hatch-connect' ) );
 			return;
 		}
 
@@ -118,17 +118,17 @@ class Hatch_Connection_Status {
 
 		if ( 0 === $last_ack ) {
 			update_option( self::OPT_CONNECTED, 0 );
-			update_option( self::OPT_DISCONNECT_NOTE, __( 'Webhook never reached your frontend. Click "Test connection".', 'hatch-bridge' ) );
+			update_option( self::OPT_DISCONNECT_NOTE, __( 'Webhook never reached your frontend. Click "Test connection".', 'hatch-connect' ) );
 		} elseif ( 'fail' === $status ) {
 			update_option( self::OPT_CONNECTED, 0 );
-			update_option( self::OPT_DISCONNECT_NOTE, __( 'Frontend probe failed. Confirm the deploy is live and reachable, then re-test.', 'hatch-bridge' ) );
+			update_option( self::OPT_DISCONNECT_NOTE, __( 'Frontend probe failed. Confirm the deploy is live and reachable, then re-test.', 'hatch-connect' ) );
 		} elseif ( $stale ) {
 			update_option( self::OPT_CONNECTED, 0 );
 			update_option(
 				self::OPT_DISCONNECT_NOTE,
 				sprintf(
 					/* translators: %s: human-readable time diff */
-					__( 'Last successful webhook was %s ago. Re-verify with "Test connection".', 'hatch-bridge' ),
+					__( 'Last successful webhook was %s ago. Re-verify with "Test connection".', 'hatch-connect' ),
 					human_time_diff( $last_ack )
 				)
 			);
@@ -197,8 +197,8 @@ class Hatch_Connection_Status {
 		$last_seen = (int) get_option( self::OPT_LAST_ACK, 0 );
 
 		$last_seen_human = $last_seen > 0
-			? sprintf( /* translators: %s: time diff */ __( '%s ago', 'hatch-bridge' ), human_time_diff( $last_seen ) )
-			: __( 'never', 'hatch-bridge' );
+			? sprintf( /* translators: %s: time diff */ __( '%s ago', 'hatch-connect' ), human_time_diff( $last_seen ) )
+			: __( 'never', 'hatch-connect' );
 
 		return array(
 			'connected'       => $connected,
@@ -245,7 +245,7 @@ class Hatch_Connection_Status {
 			return array(
 				'ok'      => false,
 				'code'    => 0,
-				'message' => __( 'No frontend URL configured. Deploy first from the Hatch Connection tab.', 'hatch-bridge' ),
+				'message' => __( 'No frontend URL configured. Deploy first from the Hatch Connection tab.', 'hatch-connect' ),
 			);
 		}
 		if ( ! filter_var( $probe_url, FILTER_VALIDATE_URL ) ) {
@@ -253,13 +253,24 @@ class Hatch_Connection_Status {
 			return array(
 				'ok'      => false,
 				'code'    => 0,
-				'message' => __( 'Frontend URL is malformed.', 'hatch-bridge' ),
+				'message' => __( 'Frontend URL is malformed.', 'hatch-connect' ),
 			);
 		}
 
 		// Step 1 - plain GET on the frontend root. This is the source of truth.
 		$probe_origin = self::origin_of( $probe_url );
-		$probe        = wp_remote_get(
+		if ( ! Hatch_Revalidate::endpoint_allowed( $probe_origin ) ) {
+			update_option( self::OPT_LAST_ACK_STATUS, 'fail' );
+			return array(
+				'ok'      => false,
+				'code'    => 0,
+				'message' => __( 'The frontend URL must use https.', 'hatch-connect' ),
+			);
+		}
+		// wp_safe_remote_request() refuses private and loopback addresses, so a saved
+		// frontend URL cannot be used to reach services inside the hosting network.
+		$probe = Hatch_Revalidate::safe_request(
+			'GET',
 			$probe_origin,
 			array(
 				'timeout'     => 10,
@@ -280,7 +291,7 @@ class Hatch_Connection_Status {
 				'code'    => 0,
 				'message' => sprintf(
 					/* translators: 1: URL 2: error */
-					__( 'Could not reach %1$s: %2$s', 'hatch-bridge' ),
+					__( 'Could not reach %1$s: %2$s', 'hatch-connect' ),
 					$probe_origin,
 					$probe->get_error_message()
 				),
@@ -293,10 +304,10 @@ class Hatch_Connection_Status {
 		// Step 2 - optional revalidate webhook ping. Result is informational only.
 		$webhook_msg = '';
 		if ( '' !== $endpoint && '' !== $secret ) {
-			$webhook = wp_remote_post(
+			$webhook = Hatch_Revalidate::safe_request(
+				'POST',
 				$endpoint,
 				array(
-					'method'   => 'POST',
 					'timeout'  => 6,
 					'blocking' => true,
 					'headers'  => array(
@@ -317,9 +328,9 @@ class Hatch_Connection_Status {
 			if ( ! is_wp_error( $webhook ) ) {
 				$wc = (int) wp_remote_retrieve_response_code( $webhook );
 				if ( $wc >= 200 && $wc < 400 ) {
-					$webhook_msg = sprintf( /* translators: %d: code */ __( ' Revalidate webhook returned HTTP %d (will purge cache faster than 60s TTL).', 'hatch-bridge' ), $wc );
+					$webhook_msg = sprintf( /* translators: %d: code */ __( ' Revalidate webhook returned HTTP %d (will purge cache faster than 60s TTL).', 'hatch-connect' ), $wc );
 				} else {
-					$webhook_msg = sprintf( /* translators: %d: code */ __( ' Revalidate webhook returned HTTP %d. It is optional in SSR mode and safe to ignore.', 'hatch-bridge' ), $wc );
+					$webhook_msg = sprintf( /* translators: %d: code */ __( ' Revalidate webhook returned HTTP %d. It is optional in SSR mode and safe to ignore.', 'hatch-connect' ), $wc );
 				}
 			}
 		}
@@ -336,14 +347,14 @@ class Hatch_Connection_Status {
 			'message' => $probe_ok
 				? sprintf(
 					/* translators: 1: URL 2: code 3: webhook info */
-					__( 'Frontend at %1$s responded with HTTP %2$d.%3$s', 'hatch-bridge' ),
+					__( 'Frontend at %1$s responded with HTTP %2$d.%3$s', 'hatch-connect' ),
 					$probe_origin,
 					$probe_code,
 					$webhook_msg
 				)
 				: sprintf(
 					/* translators: 1: URL 2: code */
-					__( 'Frontend at %1$s responded with HTTP %2$d. Make sure the deploy is live.', 'hatch-bridge' ),
+					__( 'Frontend at %1$s responded with HTTP %2$d. Make sure the deploy is live.', 'hatch-connect' ),
 					$probe_origin,
 					$probe_code
 				),
@@ -386,6 +397,17 @@ class Hatch_Connection_Status {
 			)
 		);
 
+		// Check now: probe the saved frontend address and explain the outcome.
+		register_rest_route(
+			HATCH_REST_NAMESPACE,
+			'/connection-check',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'route_connection_check' ),
+				'permission_callback' => array( 'Hatch_Rest_Api', 'permission_admin_static' ),
+			)
+		);
+
 		// Admin status read.
 		register_rest_route(
 			HATCH_REST_NAMESPACE,
@@ -408,6 +430,169 @@ class Hatch_Connection_Status {
 		unset( $request );
 		$result = self::verify_webhook();
 		return new WP_REST_Response( $result, $result['ok'] ? 200 : 502 );
+	}
+
+	/**
+	 * POST /hatch/v1/connection-check - probe the frontend now.
+	 *
+	 * The Connection tab calls this so the page stays where it is and the
+	 * result shows in the Connection check row. Rate limited per administrator
+	 * so a held-down button cannot hammer the frontend.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function route_connection_check( WP_REST_Request $request ) {
+		unset( $request );
+		$key   = 'hatch_conn_check_' . get_current_user_id();
+		$count = (int) get_transient( $key );
+		if ( $count >= 6 ) {
+			return new WP_Error(
+				'hatch_check_throttled',
+				__( 'You checked a few times in a row. Wait a minute, then check again.', 'hatch-connect' ),
+				array( 'status' => 429 )
+			);
+		}
+		set_transient( $key, $count + 1, MINUTE_IN_SECONDS );
+
+		$probe = Hatch_Cloud_Heartbeat::check_now();
+		if ( ! $probe['ran'] ) {
+			return new WP_Error(
+				'hatch_check_no_frontend',
+				__( 'There is no frontend address to check yet. Set up Hatch first.', 'hatch-connect' ),
+				array( 'status' => 409 )
+			);
+		}
+
+		$record = Hatch_Cloud_Heartbeat::get( Hatch_Cloud_Heartbeat::provider_for_model( (string) get_option( self::OPT_HOSTING_MODEL, '' ) ) );
+		$result = self::diagnose_probe( (int) $probe['status'], (int) $probe['rtt_ms'], (string) $probe['error'] );
+
+		$result['status']      = (int) $probe['status'];
+		$result['rtt_ms']      = (int) $probe['rtt_ms'];
+		$result['checked_at']  = (int) $probe['checked_at'];
+		$result['healthClass'] = Hatch_Cloud_Heartbeat::health( $record );
+		$result['healthLabel'] = Hatch_Cloud_Heartbeat::label( $record );
+		return new WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * Turn a probe outcome into a verdict a site owner can act on.
+	 *
+	 * @param int    $status HTTP status of the frontend, 0 when it did not answer.
+	 * @param int    $rtt_ms Response time in milliseconds.
+	 * @param string $error  Transport error text when there was no answer, else "".
+	 * @return array{ok:bool,tone:string,title:string,reason:string,next_step:string,code:string}
+	 */
+	public static function diagnose_probe( int $status, int $rtt_ms, string $error ): array {
+		if ( $status >= 200 && $status < 400 ) {
+			return array(
+				'ok'        => true,
+				'tone'      => 'success',
+				'code'      => 'ok',
+				'title'     => __( 'Your frontend is responding', 'hatch-connect' ),
+				/* translators: 1: response time in milliseconds, 2: HTTP status code. */
+				'reason'    => sprintf( __( 'It answered in %1$d ms (HTTP %2$d).', 'hatch-connect' ), $rtt_ms, $status ),
+				'next_step' => '',
+			);
+		}
+
+		if ( 0 === $status ) {
+			$lower = strtolower( $error );
+			if ( false !== strpos( $lower, 'timed out' ) || false !== strpos( $lower, 'timeout' ) || false !== strpos( $lower, 'error 28' ) ) {
+				return array(
+					'ok'        => false,
+					'tone'      => 'error',
+					'code'      => 'timeout',
+					'title'     => __( 'The frontend did not answer in time', 'hatch-connect' ),
+					'reason'    => __( 'The check waited 8 seconds and got no reply.', 'hatch-connect' ),
+					'next_step' => __( 'Wait a minute and check again. If it keeps happening, use Redeploy to publish the frontend again.', 'hatch-connect' ),
+				);
+			}
+			if ( false !== strpos( $lower, 'resolve host' ) || 1 === preg_match( '/error 6\b/', $lower ) || false !== strpos( $lower, 'getaddrinfo' ) ) {
+				return array(
+					'ok'        => false,
+					'tone'      => 'error',
+					'code'      => 'dns',
+					'title'     => __( 'The frontend address does not exist yet', 'hatch-connect' ),
+					'reason'    => __( 'This server could not find that address. A new domain can take a while to start working.', 'hatch-connect' ),
+					'next_step' => __( 'Wait a few minutes and check again. If the address is wrong, use Change domain.', 'hatch-connect' ),
+				);
+			}
+			if ( false !== strpos( $lower, 'ssl' ) || false !== strpos( $lower, 'certificate' ) || false !== strpos( $lower, 'error 60' ) || false !== strpos( $lower, 'error 35' ) ) {
+				return array(
+					'ok'        => false,
+					'tone'      => 'error',
+					'code'      => 'tls',
+					'title'     => __( 'The secure connection to the frontend failed', 'hatch-connect' ),
+					'reason'    => __( 'The certificate for that address is not ready or not valid.', 'hatch-connect' ),
+					'next_step' => __( 'A new domain can take several minutes to get its certificate. Check again shortly, or use Change domain if the address is wrong.', 'hatch-connect' ),
+				);
+			}
+			return array(
+				'ok'        => false,
+				'tone'      => 'error',
+				'code'      => 'unreachable',
+				'title'     => __( 'Could not reach the frontend', 'hatch-connect' ),
+				'reason'    => __( 'This server could not connect to the frontend address.', 'hatch-connect' ),
+				'next_step' => __( 'Open the frontend in your browser. If it loads there, your host may block outgoing requests from this site. If not, use Redeploy.', 'hatch-connect' ),
+			);
+		}
+
+		if ( 401 === $status || 403 === $status ) {
+			return array(
+				'ok'        => false,
+				'tone'      => 'warning',
+				'code'      => 'blocked',
+				'title'     => __( 'The frontend refused the check', 'hatch-connect' ),
+				/* translators: %d: HTTP status code. */
+				'reason'    => sprintf( __( 'It answered with HTTP %d. A firewall or bot protection may be blocking requests from this server.', 'hatch-connect' ), $status ),
+				'next_step' => __( 'Open the frontend in your browser. If it loads there, the site is fine and only this check is blocked.', 'hatch-connect' ),
+			);
+		}
+
+		if ( 404 === $status ) {
+			return array(
+				'ok'        => false,
+				'tone'      => 'warning',
+				'code'      => 'not_found',
+				'title'     => __( 'The frontend address answered, but with Not found', 'hatch-connect' ),
+				'reason'    => __( 'Something is serving that address, but not the Hatch frontend.', 'hatch-connect' ),
+				'next_step' => __( 'Use Redeploy to publish the frontend again. If you changed the domain recently, check that its address points to Cloudflare.', 'hatch-connect' ),
+			);
+		}
+
+		if ( 429 === $status ) {
+			return array(
+				'ok'        => false,
+				'tone'      => 'warning',
+				'code'      => 'rate_limited',
+				'title'     => __( 'The frontend asked this server to slow down', 'hatch-connect' ),
+				'reason'    => __( 'It answered with HTTP 429, which means too many requests.', 'hatch-connect' ),
+				'next_step' => __( 'Wait a minute, then check again.', 'hatch-connect' ),
+			);
+		}
+
+		if ( $status >= 500 ) {
+			return array(
+				'ok'        => false,
+				'tone'      => 'error',
+				'code'      => 'server_error',
+				'title'     => __( 'The frontend is having trouble', 'hatch-connect' ),
+				/* translators: %d: HTTP status code. */
+				'reason'    => sprintf( __( 'It answered with HTTP %d, which is an error on its side.', 'hatch-connect' ), $status ),
+				'next_step' => __( 'Wait a few minutes and check again. If it stays down, make sure this WordPress site is online, then use Redeploy.', 'hatch-connect' ),
+			);
+		}
+
+		return array(
+			'ok'        => false,
+			'tone'      => 'warning',
+			'code'      => 'unexpected',
+			'title'     => __( 'The frontend gave an unexpected answer', 'hatch-connect' ),
+			/* translators: %d: HTTP status code. */
+			'reason'    => sprintf( __( 'It answered with HTTP %d.', 'hatch-connect' ), $status ),
+			'next_step' => __( 'Open the frontend in your browser to see what it shows. Use Redeploy if it looks wrong.', 'hatch-connect' ),
+		);
 	}
 
 	/**

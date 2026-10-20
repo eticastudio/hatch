@@ -6,13 +6,24 @@
  * Standards followed: RFC 7519 (JWT), RFC 6265 (HttpOnly Secure SameSite cookies).
  */
 import PageLayout from '@/layouts/PageLayout.astro';
+import { getFeatures as getWooGateFeatures } from '@/lib/features';
+import { isWooActive, fallThroughToPage } from '@/lib/woo';
+import { safeRedirectPath } from '@/lib/url-builder';
 import { getFeatures } from '@/lib/features';
-
 export const prerender = false;
+
+// Store routes exist only while WooCommerce is active. Otherwise the same
+// path is served by the normal WordPress page lookup (or a themed 404).
+// Account routes also need "Frontend accounts" on in Hatch (and, for sign-up,
+// WordPress's "Anyone can register"). While off, WordPress serves no sign-in route.
+const accountGate = await getWooGateFeatures();
+if (!isWooActive(accountGate) || !accountGate.content?.registration_open) {
+  return fallThroughToPage(Astro, 'register');
+}
 
 const features = await getFeatures();
 const url = new URL(Astro.request.url);
-const redirectTo = url.searchParams.get('redirect_to') || '/account';
+const redirectTo = safeRedirectPath(url.searchParams.get('redirect_to'));
 const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
 ---
 
@@ -56,7 +67,7 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
       </div>
     </form>
 
-    <script is:inline>
+    <script is:inline data-astro-rerun>
       (function () {
         const form = document.getElementById('hatch-register-form');
         if (!form) return;

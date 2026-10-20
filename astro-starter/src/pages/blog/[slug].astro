@@ -26,6 +26,8 @@ import DocsSidebar from '@/components/DocsSidebar.astro';
 // markup below (unchanged). Tech / Docs / AstroPaper / AstroWind / Astro
 // Nano dispatch to their own components.
 import TechSingle       from '@/components/theme/tech/Single.astro';
+import Breadcrumb from '@/components/theme/Breadcrumb.astro';
+import PostMeta from '@/components/theme/PostMeta.astro';
 import DocsSingle       from '@/components/theme/docs/Single.astro';
 import AstroPaperSingle from '@/components/theme/astropaper/Single.astro';
 import AstroWindSingle  from '@/components/theme/astrowind/Single.astro';
@@ -243,45 +245,19 @@ const tk = themeKey(features);
   <article class="mx-auto px-5 sm:px-8 py-10 sm:py-14" style={articleMaxWStyle}>
 
     {showBreadcrumb && (
-      <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[13px] text-hatch-fg-subtle mb-8 flex-wrap">
-        <a href="/" class="hover:text-hatch-fg transition-colors">Home</a>
-        <span class="text-hatch-fg-subtle">{breadcrumbSep}</span>
-        <a href="/blog" class="hover:text-hatch-fg transition-colors">Blog</a>
-        {post.category && (
-          <>
-            <span class="text-hatch-fg-subtle">{breadcrumbSep}</span>
-            <a href={`/blog/category/${post.categorySlug}`} class="hover:text-hatch-fg transition-colors">{post.category}</a>
-          </>
-        )}
-        <span class="text-hatch-fg-subtle">{breadcrumbSep}</span>
-        <span class="text-hatch-fg truncate max-w-[260px] sm:max-w-none">{post.title}</span>
-      </nav>
+      <Breadcrumb sep={breadcrumbSep} items={[
+        { label: 'Home', href: '/' },
+        { label: 'Blog', href: '/blog' },
+        ...(post.category ? [{ label: post.category, href: `/blog/category/${post.categorySlug}` }] : []),
+        { label: post.title },
+      ]} />
     )}
 
     {/* Header — title + metadata. Left-aligned, Vercel-style. */}
     <header class="max-w-3xl mb-10">
-      {post.category && (
-        <a href={`/blog/category/${post.categorySlug}`} class="inline-block text-[11px] uppercase tracking-wider font-medium text-hatch-primary mb-4 hover:underline">
-          {post.category}
-        </a>
-      )}
-      <h1 class="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight leading-[1.1]" set:html={post.title} />
-      <div class="mt-6 flex items-center flex-wrap gap-x-4 gap-y-2 text-[14px] text-hatch-fg-muted">
-        {post.author && (
-          <a href={`/blog/author/${post.author.slug}`} class="flex items-center gap-2 hover:text-hatch-fg transition-colors">
-            {post.author.avatar && <img src={post.author.avatar} alt="" width="24" height="24" class={avatarShape} loading="lazy" />}
-            <span class="font-medium">{post.author.name}</span>
-          </a>
-        )}
-        <span class="text-hatch-fg-subtle">·</span>
-        <time datetime={post.publishedAt}>{dateLabel}</time>
-        {showReadingTime && (
-          <>
-            <span class="text-hatch-fg-subtle">·</span>
-            <span>{readingTimeText(post.readMinutes)}</span>
-          </>
-        )}
-      </div>
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight leading-[1.1]">{post.title}</h1>
+      <PostMeta variant="blog" author={post.author} publishedAt={post.publishedAt} dateLabel={dateLabel}
+        readingTime={showReadingTime ? readingTimeText(post.readMinutes) : ''} categories={post.categories} avatarClass={avatarShape} />
       {showUpdated && updatedDifferent && (
         <p class="mt-2 text-[13px] text-hatch-fg-subtle italic">Last updated {updatedLabel}</p>
       )}
@@ -416,13 +392,13 @@ const tk = themeKey(features);
         {adjacent.prev ? (
           <a href={`/blog/${adjacent.prev.slug}`} rel="prev" class="hatch-post-nav__prev group p-4 rounded-lg border border-hatch-border hover:border-hatch-fg transition-colors">
             <span class="block text-[11px] uppercase tracking-wider text-hatch-fg-subtle mb-1">Previous</span>
-            <span class="block font-medium leading-snug line-clamp-2 group-hover:text-hatch-primary transition-colors" set:html={adjacent.prev.title} />
+            <span class="block font-medium leading-snug line-clamp-2 group-hover:text-hatch-primary transition-colors">{adjacent.prev.title}</span>
           </a>
         ) : <div />}
         {adjacent.next ? (
           <a href={`/blog/${adjacent.next.slug}`} rel="next" class="hatch-post-nav__next group p-4 rounded-lg border border-hatch-border hover:border-hatch-fg transition-colors sm:text-right">
             <span class="block text-[11px] uppercase tracking-wider text-hatch-fg-subtle mb-1">Next</span>
-            <span class="block font-medium leading-snug line-clamp-2 group-hover:text-hatch-primary transition-colors" set:html={adjacent.next.title} />
+            <span class="block font-medium leading-snug line-clamp-2 group-hover:text-hatch-primary transition-colors">{adjacent.next.title}</span>
           </a>
         ) : <div />}
       </nav>
@@ -459,101 +435,131 @@ const tk = themeKey(features);
     </div>
   )}
 
-  {/* Client scripts: ID-inject for TOC headings + reading progress + copy link + lightbox + reading anchors */}
-  <script is:inline define:vars={{ showProgress, tocIds: toc.map(t => t.id), lightboxOn: images.lightbox, anchorsOn: reading.heading_anchors }}>
-    // v0.50.31 — Wrapped in a single init() so we can re-run on Astro
-    // ClientRouter navigations. Previously the script only ran on a hard
-    // refresh, so the lightbox + heading anchors + TOC IDs didn't bind
-    // when arriving at a post via in-app navigation. Now: run on first
-    // load AND on every `astro:page-load` event.
-    function hatchInitPostScripts() {
-    // Add id="..." to h2/h3 inside .hatch-prose so TOC anchor links work.
-    (function() {
-      const prose = document.querySelector('.hatch-prose');
-      if (!prose) return;
-      const headings = prose.querySelectorAll('h2, h3');
-      let i = 0;
-      headings.forEach((h) => {
-        if (i < tocIds.length) { h.id = tocIds[i++]; }
-      });
-    })();
+  {/* Client script for this page: TOC heading ids, reading progress, copy link, lightbox, heading anchors.
+      Its text never changes between posts, so the router runs it once per tab; the per-post settings travel in
+      the config element below and are read again on every astro:page-load. Every binding is idempotent. */}
+  <div
+    id="hatch-post-config"
+    hidden
+    data-show-progress={showProgress ? '1' : '0'}
+    data-lightbox={images.lightbox ? '1' : '0'}
+    data-anchors={reading.heading_anchors ? '1' : '0'}
+    data-toc-ids={JSON.stringify(toc.map(t => t.id))}
+  ></div>
+  <script is:inline>
+    (function () {
+      if (window.__hatchPostScripts) { window.__hatchPostScripts.init(); return; }
 
-    if (showProgress) {
-      const bar = document.getElementById('reading-progress');
-      if (bar) {
-        const onScroll = () => {
-          const h = document.documentElement;
-          const max = h.scrollHeight - h.clientHeight;
-          const pct = max > 0 ? h.scrollTop / max : 0;
-          bar.style.transform = `scaleX(${pct})`;
+      var checkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-600" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+      function config() {
+        var el = document.getElementById('hatch-post-config');
+        if (!el) return null;
+        var ids = [];
+        try { ids = JSON.parse(el.getAttribute('data-toc-ids') || '[]'); } catch (e) { ids = []; }
+        return {
+          progress: el.getAttribute('data-show-progress') === '1',
+          lightbox: el.getAttribute('data-lightbox') === '1',
+          anchors: el.getAttribute('data-anchors') === '1',
+          ids: ids
         };
-        addEventListener('scroll', onScroll, { passive: true });
-        onScroll();
       }
-    }
 
-    const copyBtn = document.getElementById('hatch-share-copy');
-    if (copyBtn) {
-      const linkIcon = copyBtn.innerHTML;
-      const checkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-600" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-      copyBtn.addEventListener('click', async () => {
-        try {
-          await navigator.clipboard.writeText(copyBtn.dataset.url || location.href);
-          copyBtn.innerHTML = checkIcon;
-          copyBtn.setAttribute('aria-label', 'Copied');
-          setTimeout(() => {
-            copyBtn.innerHTML = linkIcon;
-            copyBtn.setAttribute('aria-label', 'Copy link');
-          }, 1500);
-        } catch {}
-      });
-    }
+      function updateProgress() {
+        var bar = document.getElementById('reading-progress');
+        if (!bar) return;
+        var h = document.documentElement;
+        var max = h.scrollHeight - h.clientHeight;
+        bar.style.transform = 'scaleX(' + (max > 0 ? h.scrollTop / max : 0) + ')';
+      }
 
-    // Lightbox — wire all images inside .hatch-prose. Click image -> open
-    // overlay with the full-resolution src. Esc + backdrop click close it.
-    if (lightboxOn) {
-      const lb = document.getElementById('hatch-lightbox');
-      const lbImg = document.getElementById('hatch-lightbox-img');
-      const lbClose = document.getElementById('hatch-lightbox-close');
-      const open = (src, alt) => {
-        if (!lb || !lbImg) return;
-        lbImg.src = src; lbImg.alt = alt || '';
-        lb.classList.remove('hidden');
-        lb.classList.add('flex');
-        document.body.style.overflow = 'hidden';
-      };
-      const close = () => {
+      function closeLightbox() {
+        var lb = document.getElementById('hatch-lightbox');
         if (!lb) return;
         lb.classList.add('hidden');
         lb.classList.remove('flex');
         document.body.style.overflow = '';
-      };
-      document.querySelectorAll('.hatch-prose img').forEach((img) => {
-        img.style.cursor = 'zoom-in';
-        img.addEventListener('click', () => open(img.currentSrc || img.src, img.alt));
-      });
-      if (lb) lb.addEventListener('click', (e) => { if (e.target === lb) close(); });
-      if (lbClose) lbClose.addEventListener('click', close);
-      addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
-    }
+      }
 
-    // Heading anchor links — append a clickable # before each h2/h3 inside
-    // .hatch-prose when reading.heading_anchors is on.
-    if (anchorsOn) {
-      document.querySelectorAll('.hatch-prose h2[id], .hatch-prose h3[id]').forEach((h) => {
-        if (h.querySelector('a[data-hatch-anchor]')) return; // idempotent on re-init
-        const a = document.createElement('a');
-        a.href = '#' + h.id;
-        a.textContent = '#';
-        a.setAttribute('aria-label', 'Permalink');
-        a.setAttribute('data-hatch-anchor', '');
-        a.className = 'ml-2 text-hatch-fg-subtle hover:text-hatch-primary opacity-0 group-hover:opacity-100 transition-opacity';
-        h.classList.add('group');
-        h.appendChild(a);
-      });
-    }
-    }
-    hatchInitPostScripts();
-    document.addEventListener('astro:page-load', hatchInitPostScripts);
+      function openLightbox(src, alt) {
+        var lb = document.getElementById('hatch-lightbox');
+        var lbImg = document.getElementById('hatch-lightbox-img');
+        if (!lb || !lbImg) return;
+        lbImg.src = src;
+        lbImg.alt = alt || '';
+        lb.classList.remove('hidden');
+        lb.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function init() {
+        var cfg = config();
+        if (!cfg) return;
+
+        var prose = document.querySelector('.hatch-prose');
+        if (prose) {
+          var i = 0;
+          prose.querySelectorAll('h2, h3').forEach(function (h) {
+            if (i < cfg.ids.length) { h.id = cfg.ids[i++]; }
+          });
+        }
+
+        if (cfg.progress) updateProgress();
+
+        var copyBtn = document.getElementById('hatch-share-copy');
+        if (copyBtn && !copyBtn.hasAttribute('data-hatch-bound')) {
+          copyBtn.setAttribute('data-hatch-bound', '');
+          var linkIcon = copyBtn.innerHTML;
+          copyBtn.addEventListener('click', function () {
+            var url = copyBtn.dataset.url || location.href;
+            var done = function () {
+              copyBtn.innerHTML = checkIcon;
+              copyBtn.setAttribute('aria-label', 'Copied');
+              setTimeout(function () {
+                copyBtn.innerHTML = linkIcon;
+                copyBtn.setAttribute('aria-label', 'Copy link');
+              }, 1500);
+            };
+            try { navigator.clipboard.writeText(url).then(done, function () {}); } catch (e) {}
+          });
+        }
+
+        if (cfg.lightbox) {
+          document.querySelectorAll('.hatch-prose img').forEach(function (img) {
+            if (img.hasAttribute('data-hatch-bound')) return;
+            img.setAttribute('data-hatch-bound', '');
+            img.style.cursor = 'zoom-in';
+            img.addEventListener('click', function () { openLightbox(img.currentSrc || img.src, img.alt); });
+          });
+          var lb = document.getElementById('hatch-lightbox');
+          if (lb && !lb.hasAttribute('data-hatch-bound')) {
+            lb.setAttribute('data-hatch-bound', '');
+            lb.addEventListener('click', function (e) { if (e.target === lb) closeLightbox(); });
+            var lbClose = document.getElementById('hatch-lightbox-close');
+            if (lbClose) lbClose.addEventListener('click', closeLightbox);
+          }
+        }
+
+        if (cfg.anchors) {
+          document.querySelectorAll('.hatch-prose h2[id], .hatch-prose h3[id]').forEach(function (h) {
+            if (h.querySelector('a[data-hatch-anchor]')) return;
+            var a = document.createElement('a');
+            a.href = '#' + h.id;
+            a.textContent = '#';
+            a.setAttribute('aria-label', 'Permalink');
+            a.setAttribute('data-hatch-anchor', '');
+            a.className = 'ml-2 text-hatch-fg-subtle hover:text-hatch-primary opacity-0 group-hover:opacity-100 transition-opacity';
+            h.classList.add('group');
+            h.appendChild(a);
+          });
+        }
+      }
+
+      window.__hatchPostScripts = { init: init };
+      window.addEventListener('scroll', updateProgress, { passive: true });
+      window.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLightbox(); });
+      document.addEventListener('astro:page-load', init);
+      init();
+    })();
   </script>
 </PageLayout>

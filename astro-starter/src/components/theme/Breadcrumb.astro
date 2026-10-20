@@ -1,0 +1,107 @@
+---
+/**
+ * Breadcrumb trail shared by every archive and single layout.
+ *
+ * - Labels are plain text: tags stripped, entities decoded (WordPress titles
+ *   arrive as "Tom &amp; Jerry"), then escaped by Astro on output.
+ * - The last item is the current page: aria-current="page", not a link, the
+ *   full text in a title attribute, and a single-line ellipsis when it is
+ *   longer than the space it has.
+ * - Separators are decoration (aria-hidden) and sit at the end of the item
+ *   before them, so a wrapped line never starts with one.
+ */
+import { cleanSiteText } from '../../lib/site';
+
+interface Crumb {
+  label: string;
+  href?: string;
+  /** Accessible name when the visible label is a symbol, e.g. "~" for Home. */
+  ariaLabel?: string;
+}
+interface Props {
+  items: Crumb[];
+  sep?: string;
+  variant?: 'default' | 'mono';
+  class?: string;
+}
+
+const { items, sep = '/', variant = 'default', class: extra = '' } = Astro.props;
+const crumbs = items
+  .map((c) => ({ ...c, label: cleanSiteText(c.label) }))
+  .filter((c) => c.label !== '');
+const lastIndex = crumbs.length - 1;
+---
+<nav aria-label="Breadcrumb" class:list={['hatch-crumbs', variant === 'mono' && 'hatch-crumbs--mono', extra]}>
+  <ol>
+    {crumbs.map((c, i) => (
+      <li class={i === lastIndex ? 'hatch-crumbs__current' : undefined}>
+        {i === lastIndex ? (
+          <span aria-current="page" title={c.label}>{c.label}</span>
+        ) : (
+          <>
+            {c.href ? <a href={c.href} aria-label={c.ariaLabel}>{c.label}</a> : <span>{c.label}</span>}
+            <span class="hatch-crumbs__sep" aria-hidden="true">{sep}</span>
+          </>
+        )}
+      </li>
+    ))}
+  </ol>
+</nav>
+
+<style>
+  .hatch-crumbs {
+    margin-block-end: 2rem;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: var(--hatch-fg-muted);
+  }
+  .hatch-crumbs--mono {
+    font-family: var(--hatch-font-mono, ui-monospace, monospace);
+    font-size: 0.75rem;
+  }
+  .hatch-crumbs ol {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .hatch-crumbs li {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-width: 0;
+    margin: 0;
+  }
+  .hatch-crumbs a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .hatch-crumbs a:hover,
+  .hatch-crumbs a:focus-visible {
+    color: var(--hatch-fg);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .hatch-crumbs__sep {
+    color: var(--hatch-fg-subtle);
+    user-select: none;
+  }
+  /* The current page takes whatever room is left on the row and shrinks with
+     an ellipsis, so a long title never forces its own line unless fewer than
+     about twelve characters are free. */
+  .hatch-crumbs__current {
+    flex: 1 1 12ch;
+    max-inline-size: min(100%, 60ch);
+  }
+  .hatch-crumbs__current > span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--hatch-fg);
+  }
+</style>

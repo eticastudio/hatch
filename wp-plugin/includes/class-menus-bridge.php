@@ -17,8 +17,8 @@ class Hatch_Menus_Bridge {
 
 	/**
 	 * Register the two Hatch-known menu locations (primary + footer) from the
-	 * plugin so the admin picker always shows both slots even when the
-	 * companion theme is inactive. Priority 4 so a theme registering the
+	 * plugin so the admin picker always shows both slots even when no theme
+	 * registers them. Priority 4 so a theme registering the
 	 * same slugs at the default priority can override the label.
 	 *
 	 * @return void
@@ -27,8 +27,8 @@ class Hatch_Menus_Bridge {
 		if ( ! function_exists( 'register_nav_menu' ) ) {
 			return;
 		}
-		register_nav_menu( 'primary', __( 'Primary (site header)', 'hatch-bridge' ) );
-		register_nav_menu( 'footer', __( 'Footer navigation', 'hatch-bridge' ) );
+		register_nav_menu( 'primary', __( 'Primary (site header)', 'hatch-connect' ) );
+		register_nav_menu( 'footer', __( 'Footer navigation', 'hatch-connect' ) );
 	}
 
 	/**
@@ -107,11 +107,12 @@ class Hatch_Menus_Bridge {
 		$out = array();
 		foreach ( $items as $item ) {
 			$url = (string) $item->url;
-			// v0.7.4 - normalize away ANY host prefix, not just wp_home.
-			// The url-rewrite mu-plugin can inject tunnel/public host via
-			// post_link filter, which breaks the home_url strip below.
-			// wp_make_link_relative safely converts //host/path → /path.
-			if ( preg_match( '#^https?://#', $url ) ) {
+			// Internal objects (posts, terms, archives) can carry any host: the
+			// url-rewrite mu-plugin injects a tunnel or public host through the
+			// post_link filter. Strip the host from those. A custom link is kept
+			// as typed unless it points at this site, so external links such as
+			// https://example.org/x never lose their host.
+			if ( preg_match( '#^https?://#', $url ) && ( 'custom' !== (string) $item->type || self::is_same_host( $url, $wp_home ) ) ) {
 				$url = wp_make_link_relative( $url );
 			}
 
@@ -134,5 +135,18 @@ class Hatch_Menus_Bridge {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Whether a URL points at the same host as the site address.
+	 *
+	 * @param string $url  Absolute URL.
+	 * @param string $home Site address.
+	 * @return bool
+	 */
+	private static function is_same_host( string $url, string $home ): bool {
+		$a = wp_parse_url( $url, PHP_URL_HOST );
+		$b = wp_parse_url( $home, PHP_URL_HOST );
+		return is_string( $a ) && is_string( $b ) && strtolower( $a ) === strtolower( $b );
 	}
 }

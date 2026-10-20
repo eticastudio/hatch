@@ -38,7 +38,7 @@ class Hatch_Headless_Comments {
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( __CLASS__, 'route_list' ),
-					'permission_callback' => '__return_true',
+					'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 					'args'                => array(
 						'post' => array(
 							'type'     => 'integer',
@@ -49,7 +49,7 @@ class Hatch_Headless_Comments {
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array( __CLASS__, 'route_submit' ),
-					'permission_callback' => '__return_true',
+					'permission_callback' => array( 'Hatch_Rest_Permission', 'public_submit' ),
 				),
 			)
 		);
@@ -110,7 +110,7 @@ class Hatch_Headless_Comments {
 	public static function route_submit( WP_REST_Request $req ) {
 		$cfg = Hatch_Integrations::get_all()['comments'];
 		if ( ! $cfg['enabled'] ) {
-			return self::field_error( 'hatch_comments_disabled', __( 'Comments are disabled.', 'hatch-bridge' ), 403 );
+			return self::field_error( 'hatch_comments_disabled', __( 'Comments are disabled.', 'hatch-connect' ), 403 );
 		}
 
 		// Honeypot: bots fill everything. Real humans never touch a hidden field.
@@ -124,7 +124,7 @@ class Hatch_Headless_Comments {
 					'status'     => 'pending',
 					'id'         => 0,
 					'approved'   => false,
-					'message'    => __( 'Thanks - your comment is awaiting moderation.', 'hatch-bridge' ),
+					'message'    => __( 'Thanks - your comment is awaiting moderation.', 'hatch-connect' ),
 				),
 				201
 			);
@@ -137,7 +137,7 @@ class Hatch_Headless_Comments {
 		if ( $count >= self::RATE_LIMIT ) {
 			return self::field_error(
 				'hatch_rate_limited',
-				__( 'You are commenting too quickly. Please wait a few minutes and try again.', 'hatch-bridge' ),
+				__( 'You are commenting too quickly. Please wait a few minutes and try again.', 'hatch-connect' ),
 				429
 			);
 		}
@@ -155,13 +155,13 @@ class Hatch_Headless_Comments {
 
 		$field_errors = array();
 		if ( $post_id <= 0 || ! get_post( $post_id ) ) {
-			return self::field_error( 'hatch_invalid_post', __( 'Invalid post.', 'hatch-bridge' ), 400, 'post' );
+			return self::field_error( 'hatch_invalid_post', __( 'Invalid post.', 'hatch-connect' ), 400, 'post' );
 		}
 		if ( 'publish' !== get_post_status( $post_id ) ) {
-			return self::field_error( 'hatch_invalid_post', __( 'Post is not published.', 'hatch-bridge' ), 400, 'post' );
+			return self::field_error( 'hatch_invalid_post', __( 'Post is not published.', 'hatch-connect' ), 400, 'post' );
 		}
 		if ( post_password_required( $post_id ) ) {
-			return self::field_error( 'hatch_invalid_post', __( 'Post is password protected.', 'hatch-bridge' ), 403, 'post' );
+			return self::field_error( 'hatch_invalid_post', __( 'Post is password protected.', 'hatch-connect' ), 403, 'post' );
 		}
 		if ( $parent > 0 ) {
 			$parent_comment = get_comment( $parent );
@@ -170,23 +170,23 @@ class Hatch_Headless_Comments {
 			}
 		}
 		if ( ! comments_open( $post_id ) ) {
-			return self::field_error( 'hatch_comments_closed', __( 'Comments are closed on this post.', 'hatch-bridge' ), 403 );
+			return self::field_error( 'hatch_comments_closed', __( 'Comments are closed on this post.', 'hatch-connect' ), 403 );
 		}
 		if ( '' === $author ) {
-			$field_errors['author'] = __( 'Name is required.', 'hatch-bridge' );
+			$field_errors['author'] = __( 'Name is required.', 'hatch-connect' );
 		}
 		if ( ! is_email( $email ) ) {
-			$field_errors['email'] = __( 'A valid email is required.', 'hatch-bridge' );
+			$field_errors['email'] = __( 'A valid email is required.', 'hatch-connect' );
 		}
 		if ( strlen( trim( wp_strip_all_tags( $content ) ) ) < 3 ) {
-			$field_errors['content'] = __( 'Please write a longer comment.', 'hatch-bridge' );
+			$field_errors['content'] = __( 'Please write a longer comment.', 'hatch-connect' );
 		}
 		if ( ! empty( $field_errors ) ) {
 			return new WP_REST_Response(
 				array(
 					'ok'           => false,
 					'code'         => 'hatch_invalid_fields',
-					'message'      => __( 'Please fix the highlighted fields.', 'hatch-bridge' ),
+					'message'      => __( 'Please fix the highlighted fields.', 'hatch-connect' ),
 					'field_errors' => $field_errors,
 				),
 				400
@@ -196,7 +196,7 @@ class Hatch_Headless_Comments {
 		if ( ! empty( $cfg['turnstile'] ) ) {
 			$ok = Hatch_Integrations::verify_turnstile( $token, $ip );
 			if ( ! $ok ) {
-				return self::field_error( 'hatch_turnstile', __( 'Anti-spam challenge failed. Try again.', 'hatch-bridge' ), 400 );
+				return self::field_error( 'hatch_turnstile', __( 'Anti-spam challenge failed. Try again.', 'hatch-connect' ), 400 );
 			}
 		}
 
@@ -247,16 +247,16 @@ class Hatch_Headless_Comments {
 				set_transient( $rate_k, self::RATE_LIMIT, self::RATE_WINDOW );
 				return self::field_error(
 					'hatch_rate_limited',
-					__( 'You are commenting too quickly. Please wait a few minutes and try again.', 'hatch-bridge' ),
+					__( 'You are commenting too quickly. Please wait a few minutes and try again.', 'hatch-connect' ),
 					429
 				);
 			}
-			return self::field_error( 'hatch_insert_failed', '' !== (string) $msg ? $msg : __( 'Could not save comment.', 'hatch-bridge' ), 400 );
+			return self::field_error( 'hatch_insert_failed', '' !== (string) $msg ? $msg : __( 'Could not save comment.', 'hatch-connect' ), 400 );
 		}
 
 		$comment_id = (int) $comment;
 		if ( $comment_id <= 0 ) {
-			return self::field_error( 'hatch_insert_failed', __( 'Could not save comment.', 'hatch-bridge' ), 500 );
+			return self::field_error( 'hatch_insert_failed', __( 'Could not save comment.', 'hatch-connect' ), 500 );
 		}
 
 		$status_str = wp_get_comment_status( $comment_id );
@@ -278,8 +278,8 @@ class Hatch_Headless_Comments {
 				'id'         => $comment_id,
 				'approved'   => $approved,
 				'message'    => $approved
-					? __( 'Comment posted.', 'hatch-bridge' )
-					: __( 'Held for moderation.', 'hatch-bridge' ),
+					? __( 'Comment posted.', 'hatch-connect' )
+					: __( 'Held for moderation.', 'hatch-connect' ),
 			),
 			201
 		);

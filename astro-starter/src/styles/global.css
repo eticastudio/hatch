@@ -894,6 +894,7 @@ img, video, picture, canvas {
  * Light mode keeps the exact brand colour.
  */
 [data-hatch-mode="dark"] {
+	color-scheme: dark;
 	--hatch-primary: color-mix(in oklab, var(--hatch-primary-brand, #ff6b00) 70%, white) !important;
 	/* Label colour for solid primary surfaces, chosen against the lifted colour
 	   in lib/design.ts (darkPrimaryForeground). Falls back to near-black. */
@@ -907,6 +908,13 @@ img, video, picture, canvas {
 	align-items: center;
 	min-height: 24px;
 }
+
+/* Colour-mode toggle icon: show the icon of the mode a click switches to (sun in
+   dark mode, moon otherwise). Pure CSS so it is right on first paint. */
+.hatch-color-mode-toggle .hatch-cm-sun { display: none; }
+.hatch-color-mode-toggle .hatch-cm-moon { display: block; }
+[data-hatch-mode="dark"] .hatch-color-mode-toggle .hatch-cm-sun { display: block; }
+[data-hatch-mode="dark"] .hatch-color-mode-toggle .hatch-cm-moon { display: none; }
 
 /* Below the desktop breakpoint the colour-mode toggle sits inline, just left of the
    hamburger, instead of floating over the top-right corner above it. */

@@ -6,15 +6,14 @@
  * a headless frontend needs from the WordPress side.
  *
  * Commands:
- *   wp hatch setup [--frontend=<url>] [--name=<name>]
- *     Runs full setup: diagnose → generate App Password → set webhook URL.
- *     Outputs a ready-to-paste .env block.
+ *   wp hatch setup --frontend-user=<login> [--frontend=<url>] [--name=<name>]
+ *     Runs setup: diagnose, print the WordPress command that creates an
+ *     Application Password for an existing low-privilege user, set the
+ *     webhook URL. Outputs a ready-to-paste .env block. Hatch itself never
+ *     creates users or Application Passwords.
  *
  *   wp hatch diagnose [--format=table|json]
- *     Runs 12 preflight checks and prints results.
- *
- *   wp hatch generate-token [--name=<name>]
- *     Generates an Application Password. Prints once.
+ *     Runs the preflight checks and prints results.
  *
  *   wp hatch info [--format=table|json]
  *     Prints detected plugins + site state.
@@ -23,8 +22,7 @@
  *     Manually fires the revalidation webhook.
  *
  *   wp hatch env
- *     Outputs the .env block (without regenerating the App Password).
- *     Use when you already have a token saved elsewhere.
+ *     Outputs the .env block for an Application Password you already have.
  *
  * Loaded only when WP_CLI is defined (see hatch.php bootstrap).
  *
@@ -43,7 +41,7 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 class Hatch_CLI {
 
 	/**
-	 * Full setup - diagnose, generate App Password, set webhook URL, print .env.
+	 * Full setup - diagnose, set webhook URL, print .env. Hatch does not create the Application Password; the command prints how to make one with WordPress core.
 	 *
 	 * ## OPTIONS
 	 *
@@ -51,7 +49,10 @@ class Hatch_CLI {
 	 * : URL of your headless frontend (used for the revalidation webhook).
 	 *
 	 * [--name=<name>]
-	 * : Friendly name for the Application Password.
+	 * : Friendly name to use in the suggested application-password command.
+	 *
+	 * [--frontend-user=<login>]
+	 * : User name of the low-privilege (Subscriber) account the frontend reads as. Defaults to the current user.
 	 *
 	 * [--skip-diagnose]
 	 * : Skip the preflight diagnostic.
@@ -61,8 +62,8 @@ class Hatch_CLI {
 	 *     # Full setup in one command:
 	 *     wp hatch setup --frontend=https://mysite.com
 	 *
-	 *     # Pre-set the App Password name:
-	 *     wp hatch setup --frontend=https://mysite.com --name="Production frontend"
+	 *     # Name the application password in the suggested command:
+	 *     wp hatch setup --frontend=https://mysite.com --name="Production frontend" --frontend-user=reader
 	 *
 	 * @param array $args       Positional args.
 	 * @param array $assoc_args Flags.
@@ -96,38 +97,12 @@ class Hatch_CLI {
 			WP_CLI::log( '' );
 		}
 
-		// Step 2: Generate Application Password.
-		WP_CLI::log( WP_CLI::colorize( '%y▶ Step 2/4: Generating Application Password…%n' ) );
-		if ( ! class_exists( 'WP_Application_Passwords' ) ) {
-			WP_CLI::error( 'Application Passwords are not available on this WordPress.' );
-		}
-		$user_id = get_current_user_id();
-		if ( ! $user_id ) {
-			$user = get_user_by( 'login', 'admin' );
-			if ( ! $user ) {
-				$users = get_users(
-					array(
-						'role'   => 'administrator',
-						'number' => 1,
-					)
-				);
-				$user  = $users[0] ?? null;
-			}
-			if ( ! $user ) {
-				WP_CLI::error( 'No administrator user found. Run as an admin: wp --user=admin hatch setup' );
-			}
-			$user_id = $user->ID;
-		}
-		$user = get_userdata( $user_id );
-
-		$created = WP_Application_Passwords::create_new_application_password( $user_id, array( 'name' => $name ) );
-		if ( is_wp_error( $created ) ) {
-			WP_CLI::error( 'Could not create App Password: ' . $created->get_error_message() );
-		}
-		list( $password, $item ) = $created;
-		unset( $item );
-
-		WP_CLI::success( sprintf( 'App Password created for user %s.', $user->user_login ) );
+		// Step 2: Hatch never creates application passwords. Point at WordPress's own command.
+		WP_CLI::log( WP_CLI::colorize( '%y▶ Step 2/4: Application Password (you create it)%n' ) );
+		$user = $this->frontend_user( $assoc_args );
+		WP_CLI::log( sprintf( 'Create an Application Password for %s with WordPress itself:', $user->user_login ) );
+		WP_CLI::log( sprintf( '  wp user application-password create %s "%s" --porcelain', $user->user_login, $name ) );
+		WP_CLI::log( '' );
 
 		// Step 3: Set webhook URL (if provided).
 		if ( '' !== $frontend ) {
@@ -149,7 +124,7 @@ class Hatch_CLI {
 		$lines          = array(
 			'HATCH_WP_URL=' . home_url(),
 			'WORDPRESS_USER=' . $user->user_login,
-			'WORDPRESS_APP_PASSWORD=' . $password,
+			'WORDPRESS_APP_PASSWORD=<output of the wp user application-password create command above>',
 			'HATCH_WEBHOOK_SECRET=' . $webhook_secret,
 		);
 		WP_CLI::log( WP_CLI::colorize( '%g' . str_repeat( '─', 56 ) . '%n' ) );
@@ -205,6 +180,26 @@ class Hatch_CLI {
 	}
 
 	/**
+	 * Resolve the account the frontend reads as. Hatch never creates it: the
+	 * admin passes an existing low-privilege user, and accounts that can edit
+	 * or manage the site are refused.
+	 *
+	 * @param array<string,string> $assoc_args WP-CLI associative args.
+	 * @return WP_User
+	 */
+	private function frontend_user( array $assoc_args ): WP_User {
+		$login = isset( $assoc_args['frontend-user'] ) ? sanitize_user( (string) $assoc_args['frontend-user'], true ) : '';
+		if ( '' === $login ) {
+			WP_CLI::error( 'Pass --frontend-user=<login>: an existing Subscriber account. Hatch does not create users. Add one with: wp user create reader reader@example.com --role=subscriber' );
+		}
+		$user = Hatch_Wp_Credential::check_account( $login );
+		if ( is_wp_error( $user ) ) {
+			WP_CLI::error( $user->get_error_message() );
+		}
+		return $user;
+	}
+
+	/**
 	 * Print diagnostic results as a nice CLI table.
 	 *
 	 * @param array $report Report from Hatch_Diagnostic::run().
@@ -242,47 +237,6 @@ class Hatch_CLI {
 				(int) $report['fail_count']
 			)
 		);
-	}
-
-	/**
-	 * Generate an Application Password.
-	 *
-	 * ## OPTIONS
-	 *
-	 * [--name=<name>]
-	 * : Friendly name (default: "Hatch CLI Token").
-	 *
-	 * ## EXAMPLES
-	 *
-	 *     wp hatch generate-token
-	 *     wp hatch generate-token --name="Production"
-	 *
-	 * @param array $args       Positional args.
-	 * @param array $assoc_args Flags.
-	 * @return void
-	 */
-	public function generate_token( $args, $assoc_args ) {
-		unset( $args );
-		$name = isset( $assoc_args['name'] ) ? sanitize_text_field( (string) $assoc_args['name'] ) : 'Hatch CLI Token';
-
-		if ( ! class_exists( 'WP_Application_Passwords' ) ) {
-			WP_CLI::error( 'Application Passwords are not available on this WordPress.' );
-		}
-		$user_id = get_current_user_id();
-		if ( ! $user_id ) {
-			WP_CLI::error( 'Run as an admin: wp --user=<admin> hatch generate-token' );
-		}
-		$created = WP_Application_Passwords::create_new_application_password( $user_id, array( 'name' => $name ) );
-		if ( is_wp_error( $created ) ) {
-			WP_CLI::error( 'Could not create App Password: ' . $created->get_error_message() );
-		}
-		list( $password ) = $created;
-		$user             = get_userdata( $user_id );
-
-		WP_CLI::log( sprintf( 'Username: %s', $user->user_login ) );
-		WP_CLI::log( sprintf( 'Password: %s', $password ) );
-		WP_CLI::log( '' );
-		WP_CLI::warning( 'This is the only time the password is shown. Save it now.' );
 	}
 
 	/**

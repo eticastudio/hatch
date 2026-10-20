@@ -33,6 +33,14 @@
  */
 import PageLayout from '@/layouts/PageLayout.astro';
 import { WP_API_URL, PUBLIC_STRIPE_KEY, PUBLIC_PAYPAL_CLIENT_ID } from 'astro:env/server';
+import { getFeatures as getWooGateFeatures } from '@/lib/features';
+import { isWooActive, fallThroughToPage } from '@/lib/woo';
+
+// Store routes exist only while WooCommerce is active. Otherwise the same
+// path is served by the normal WordPress page lookup (or a themed 404).
+if (!isWooActive(await getWooGateFeatures())) {
+  return fallThroughToPage(Astro, 'checkout');
+}
 
 const base = (WP_API_URL || '').replace(/\/wp-json(\/.*)?$/, '').replace(/\/$/, '');
 
@@ -346,7 +354,7 @@ const paymentMethods: PM[] = rawMethods.filter((pm) => {
   ></script>
 )}
 
-<script is:inline>
+<script is:inline data-astro-rerun>
   (function () {
     const form = document.getElementById('hatch-checkout-form');
     if (!form) return;

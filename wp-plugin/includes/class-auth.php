@@ -40,6 +40,13 @@ class Hatch_Auth {
 	const RL_MAX_ATTEMPTS = 5;
 	const RL_WINDOW       = 300;      // 5 minutes.
 
+	/**
+	 * Capabilities that mark a staff account. Frontend accounts are for
+	 * visitors and customers; staff sign in at wp-admin, so these accounts get
+	 * no frontend session and their tokens are never honoured.
+	 */
+	const STAFF_CAPS = array( 'edit_posts', 'manage_options' );
+
 	private static $instance = null;
 
 	/**
@@ -50,9 +57,26 @@ class Hatch_Auth {
 	 */
 	private static $cookie_auth_uid = 0;
 
+	/**
+	 * Whether frontend accounts are turned on (Content tab, "Frontend accounts").
+	 *
+	 * Off by default. While off, Hatch registers no sign-in, sign-up or session
+	 * route and adds no authentication filter, so nothing here can log a user in.
+	 * Sign-up additionally needs core's "Anyone can register" setting.
+	 *
+	 * @return bool
+	 */
+	public static function accounts_enabled(): bool {
+		$flags = (array) get_option( 'hatch_content_flags', array() );
+		return ! empty( $flags['accounts_enabled'] );
+	}
+
 	public static function instance(): Hatch_Auth {
 		if ( null === self::$instance ) {
 			self::$instance = new self();
+			if ( ! self::accounts_enabled() ) {
+				return self::$instance;
+			}
 			add_action( 'rest_api_init', array( __CLASS__, 'register_routes' ) );
 			add_filter( 'rest_pre_dispatch', array( __CLASS__, 'attach_jwt_user' ), 5, 3 );
 
@@ -85,7 +109,7 @@ class Hatch_Auth {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( __CLASS__, 'route_login' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_submit' ),
 			)
 		);
 
@@ -95,7 +119,7 @@ class Hatch_Auth {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( __CLASS__, 'route_register' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_submit' ),
 			)
 		);
 
@@ -105,7 +129,7 @@ class Hatch_Auth {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( __CLASS__, 'route_logout' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_submit' ),
 			)
 		);
 
@@ -115,7 +139,7 @@ class Hatch_Auth {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( __CLASS__, 'route_me' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'session_required' ),
 			)
 		);
 
@@ -125,7 +149,7 @@ class Hatch_Auth {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( __CLASS__, 'route_refresh' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'session_required' ),
 			)
 		);
 	}
@@ -134,12 +158,27 @@ class Hatch_Auth {
 	 * Route: login
 	 * --------------------------------------------------------------------- */
 
+	/**
+	 * POST /auth/login.
+	 *
+	 * Why this exists: a headless frontend on another domain cannot use wp-login.php
+	 * (its cookie would be set for the WordPress domain), so it needs a login
+	 * endpoint that returns a session it can hold. The route does not check
+	 * passwords itself: it calls core wp_authenticate(), which runs the whole
+	 * `authenticate` filter chain, so login-limit, 2FA and CAPTCHA plugins still
+	 * apply, and core fires `wp_login_failed` on every failure. Application
+	 * Passwords are switched off for this call so a scoped credential cannot be
+	 * traded for a full session.
+	 *
+	 * @param WP_REST_Request $req Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
 	public static function route_login( WP_REST_Request $req ) {
 		$ip = self::client_ip();
 		if ( self::rate_limited( $ip ) ) {
 			return new WP_Error(
 				'hatch_auth_rate_limited',
-				__( 'Too many attempts. Try again in a few minutes.', 'hatch-bridge' ),
+				__( 'Too many attempts. Try again in a few minutes.', 'hatch-connect' ),
 				array( 'status' => 429 )
 			);
 		}
@@ -149,13 +188,23 @@ class Hatch_Auth {
 
 		if ( '' === $username || '' === $password ) {
 			self::bump_rate_limit( $ip );
-			return new WP_Error( 'hatch_auth_bad_request', __( 'Username and password are required.', 'hatch-bridge' ), array( 'status' => 400 ) );
+			return new WP_Error( 'hatch_auth_bad_request', __( 'Username and password are required.', 'hatch-connect' ), array( 'status' => 400 ) );
 		}
 
+		// During a REST request core also accepts an Application Password here. That
+		// would trade a scoped, revocable credential for a full login session (JWT plus
+		// wp-admin cookie), so this route accepts the account password only.
+		$app_password_hooked = has_filter( 'authenticate', 'wp_authenticate_application_password' );
+		if ( false !== $app_password_hooked ) {
+			remove_filter( 'authenticate', 'wp_authenticate_application_password', (int) $app_password_hooked );
+		}
 		$user = wp_authenticate( $username, $password );
+		if ( false !== $app_password_hooked ) {
+			add_filter( 'authenticate', 'wp_authenticate_application_password', (int) $app_password_hooked, 3 );
+		}
 		if ( is_wp_error( $user ) ) {
 			self::bump_rate_limit( $ip );
-			return new WP_Error( 'hatch_auth_invalid', __( 'Invalid username or password.', 'hatch-bridge' ), array( 'status' => 401 ) );
+			return new WP_Error( 'hatch_auth_invalid', __( 'Invalid username or password.', 'hatch-connect' ), array( 'status' => 401 ) );
 		}
 
 		return self::success_response( $user );
@@ -165,48 +214,100 @@ class Hatch_Auth {
 	 * Route: register
 	 * --------------------------------------------------------------------- */
 
+	/**
+	 * POST /auth/register.
+	 *
+	 * Why this exists: a headless frontend cannot post to wp-login.php?action=register
+	 * from another domain, so it needs its own endpoint. It only works when the
+	 * core "Anyone can register" setting is on. It runs the same checks core's
+	 * register_new_user() runs (illegal_user_logins, `register_post`,
+	 * `registration_errors`) so anti-spam and security plugins can block it,
+	 * creates the user with core wp_create_user() (which assigns the core
+	 * "New User Default Role" setting, never a role chosen here), and fires core's
+	 * `register_new_user` action and admin notification.
+	 *
+	 * @param WP_REST_Request $req Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
 	public static function route_register( WP_REST_Request $req ) {
 		// Honeypot - bots fill hidden fields. Silent reject.
 		$hp = (string) $req->get_param( 'hp_website' );
 		if ( '' !== trim( $hp ) ) {
-			return new WP_Error( 'hatch_auth_spam', __( 'Registration failed.', 'hatch-bridge' ), array( 'status' => 400 ) );
+			return new WP_Error( 'hatch_auth_spam', __( 'Registration failed.', 'hatch-connect' ), array( 'status' => 400 ) );
 		}
 
 		if ( ! (int) get_option( 'users_can_register' ) ) {
-			return new WP_Error( 'hatch_auth_disabled', __( 'Registration is disabled on this site.', 'hatch-bridge' ), array( 'status' => 403 ) );
+			return new WP_Error( 'hatch_auth_disabled', __( 'Registration is disabled on this site.', 'hatch-connect' ), array( 'status' => 403 ) );
 		}
 
 		$ip = self::client_ip();
 		if ( self::rate_limited( $ip ) ) {
-			return new WP_Error( 'hatch_auth_rate_limited', __( 'Too many attempts. Try again in a few minutes.', 'hatch-bridge' ), array( 'status' => 429 ) );
+			return new WP_Error( 'hatch_auth_rate_limited', __( 'Too many attempts. Try again in a few minutes.', 'hatch-connect' ), array( 'status' => 429 ) );
 		}
 
-		$username = sanitize_user( (string) $req->get_param( 'username' ), true );
-		$email    = sanitize_email( (string) $req->get_param( 'email' ) );
-		$password = (string) $req->get_param( 'password' );
+		$raw_login = (string) $req->get_param( 'username' );
+		$username  = sanitize_user( $raw_login, true );
+		$email     = sanitize_email( (string) $req->get_param( 'email' ) );
+		$password  = (string) $req->get_param( 'password' );
+
+		// Core's registration refuses a login that sanitising would change; do the same.
+		if ( '' !== $username && ( $username !== $raw_login || ! validate_username( $username ) ) ) {
+			self::bump_rate_limit( $ip );
+			return new WP_Error( 'hatch_auth_bad_username', __( 'That username has characters that are not allowed.', 'hatch-connect' ), array( 'status' => 400 ) );
+		}
 
 		if ( '' === $username || ! is_email( $email ) || strlen( $password ) < 8 ) {
 			self::bump_rate_limit( $ip );
 			return new WP_Error(
 				'hatch_auth_bad_request',
-				__( 'Username, valid email, and 8+ char password required.', 'hatch-bridge' ),
+				__( 'Username, valid email, and 8+ char password required.', 'hatch-connect' ),
 				array( 'status' => 400 )
 			);
 		}
 
 		if ( username_exists( $username ) || email_exists( $email ) ) {
 			self::bump_rate_limit( $ip );
-			return new WP_Error( 'hatch_auth_exists', __( 'A user with that username or email already exists.', 'hatch-bridge' ), array( 'status' => 409 ) );
+			return new WP_Error( 'hatch_auth_exists', __( 'A user with that username or email already exists.', 'hatch-connect' ), array( 'status' => 409 ) );
 		}
 
+		// Same gate core's register_new_user() applies, so security and anti-spam plugins can block this.
+		/** This filter is documented in wp-includes/user.php */
+		$illegal = array_map( 'strtolower', (array) apply_filters( 'illegal_user_logins', array() ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hook, documented in wp-includes/user.php.
+		$errors  = new WP_Error();
+		if ( in_array( strtolower( $username ), $illegal, true ) ) {
+			$errors->add( 'invalid_username', __( 'Sorry, that username is not allowed.', 'hatch-connect' ) );
+		}
+		/** This action is documented in wp-includes/user.php */
+		do_action( 'register_post', $username, $email, $errors ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hook, documented in wp-includes/user.php.
+		/** This filter is documented in wp-includes/user.php */
+		$errors = apply_filters( 'registration_errors', $errors, $username, $email ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hook, documented in wp-includes/user.php.
+		if ( is_wp_error( $errors ) && $errors->has_errors() ) {
+			self::bump_rate_limit( $ip );
+			return new WP_Error( 'hatch_auth_registration_blocked', wp_strip_all_tags( $errors->get_error_message() ), array( 'status' => 400 ) );
+		}
+
+		// Core's user insert (behind wp_create_user) gives the user the "New User Default Role" setting.
 		$user_id = wp_create_user( $username, $password, $email );
 		if ( is_wp_error( $user_id ) ) {
 			return new WP_Error( 'hatch_auth_create_failed', $user_id->get_error_message(), array( 'status' => 400 ) );
 		}
 
+		// Core's default `register_new_user` hook mails the new user a set-password link, which makes no
+		// sense when they just chose a password. Run the action for every other listener, then tell the admin.
+		$default_hook = has_action( 'register_new_user', 'wp_send_new_user_notifications' );
+		if ( false !== $default_hook ) {
+			remove_action( 'register_new_user', 'wp_send_new_user_notifications', (int) $default_hook );
+		}
+		/** This action is documented in wp-includes/user.php */
+		do_action( 'register_new_user', $user_id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hook, documented in wp-includes/user.php.
+		if ( false !== $default_hook ) {
+			add_action( 'register_new_user', 'wp_send_new_user_notifications', (int) $default_hook );
+		}
+		wp_new_user_notification( $user_id, null, 'admin' );
+
 		$user = get_user_by( 'id', $user_id );
 		if ( ! $user ) {
-			return new WP_Error( 'hatch_auth_create_failed', __( 'User creation failed.', 'hatch-bridge' ), array( 'status' => 500 ) );
+			return new WP_Error( 'hatch_auth_create_failed', __( 'User creation failed.', 'hatch-connect' ), array( 'status' => 500 ) );
 		}
 
 		return self::success_response( $user );
@@ -225,7 +326,34 @@ class Hatch_Auth {
 			update_user_meta( $uid, self::VERSION_META, self::token_version( $uid ) + 1 );
 		}
 		self::clear_cookie();
+		self::end_native_session();
 		return new WP_REST_Response( array( 'ok' => true ), 200 );
+	}
+
+	/**
+	 * End the native WordPress session of this browser.
+	 *
+	 * Login mints a wordpress_logged_in cookie next to the hatch_jwt one, so logout
+	 * has to end both. Only the session in this request's cookie is destroyed; the
+	 * user's sessions on other devices are not touched (their JWTs are already
+	 * invalid after the token version bump).
+	 *
+	 * @return void
+	 */
+	private static function end_native_session(): void {
+		if ( ! function_exists( 'wp_parse_auth_cookie' ) || ! function_exists( 'wp_clear_auth_cookie' ) ) {
+			return;
+		}
+		$cookie = wp_parse_auth_cookie( '', 'logged_in' );
+		if ( is_array( $cookie ) && ! empty( $cookie['username'] ) && ! empty( $cookie['token'] ) ) {
+			$owner = get_user_by( 'login', (string) $cookie['username'] );
+			if ( $owner ) {
+				WP_Session_Tokens::get_instance( (int) $owner->ID )->destroy( (string) $cookie['token'] );
+			}
+		}
+		if ( ! headers_sent() ) {
+			wp_clear_auth_cookie();
+		}
 	}
 
 	/* --------------------------------------------------------------------- *
@@ -235,11 +363,11 @@ class Hatch_Auth {
 	public static function route_me( WP_REST_Request $req ) {
 		$payload = self::verify_incoming_token( $req );
 		if ( ! $payload ) {
-			return new WP_Error( 'hatch_auth_unauthorized', __( 'Not authenticated.', 'hatch-bridge' ), array( 'status' => 401 ) );
+			return new WP_Error( 'hatch_auth_unauthorized', __( 'Not authenticated.', 'hatch-connect' ), array( 'status' => 401 ) );
 		}
 		$user = get_user_by( 'id', (int) $payload['sub'] );
 		if ( ! $user || ! self::token_matches_user( $payload, $user ) ) {
-			return new WP_Error( 'hatch_auth_unauthorized', __( 'Your session is no longer valid. Sign in again.', 'hatch-bridge' ), array( 'status' => 401 ) );
+			return new WP_Error( 'hatch_auth_unauthorized', __( 'Your session is no longer valid. Sign in again.', 'hatch-connect' ), array( 'status' => 401 ) );
 		}
 		return new WP_REST_Response(
 			array(
@@ -258,16 +386,16 @@ class Hatch_Auth {
 	public static function route_refresh( WP_REST_Request $req ) {
 		$payload = self::verify_incoming_token( $req );
 		if ( ! $payload ) {
-			return new WP_Error( 'hatch_auth_unauthorized', __( 'Not authenticated.', 'hatch-bridge' ), array( 'status' => 401 ) );
+			return new WP_Error( 'hatch_auth_unauthorized', __( 'Not authenticated.', 'hatch-connect' ), array( 'status' => 401 ) );
 		}
 		$now = time();
 		$exp = (int) $payload['exp'];
 		if ( ( $exp - $now ) > self::REFRESH_WINDOW ) {
-			return new WP_Error( 'hatch_auth_refresh_too_early', __( 'Token not eligible for refresh yet.', 'hatch-bridge' ), array( 'status' => 400 ) );
+			return new WP_Error( 'hatch_auth_refresh_too_early', __( 'Token not eligible for refresh yet.', 'hatch-connect' ), array( 'status' => 400 ) );
 		}
 		$user = get_user_by( 'id', (int) $payload['sub'] );
 		if ( ! $user || ! self::token_matches_user( $payload, $user ) ) {
-			return new WP_Error( 'hatch_auth_unauthorized', __( 'Your session is no longer valid. Sign in again.', 'hatch-bridge' ), array( 'status' => 401 ) );
+			return new WP_Error( 'hatch_auth_unauthorized', __( 'Your session is no longer valid. Sign in again.', 'hatch-connect' ), array( 'status' => 401 ) );
 		}
 		return self::success_response( $user );
 	}
@@ -295,8 +423,12 @@ class Hatch_Auth {
 		}
 		list( $payload, $via_cookie ) = self::incoming_token( $request );
 		if ( $payload && ! empty( $payload['sub'] ) ) {
-			$uid = (int) $payload['sub'];
-			if ( get_user_by( 'id', $uid ) ) {
+			$uid         = (int) $payload['sub'];
+			$token_owner = get_user_by( 'id', $uid );
+			if ( $token_owner && self::token_matches_user( $payload, $token_owner ) ) {
+				// Technically necessary: a headless commenter holds a signed JWT, not a WordPress cookie, so
+				// core's comment permission check only sees the person once the request user is set. The token
+				// was signed by this site, and a cookie-borne one is dropped again below unless a nonce proves intent.
 				wp_set_current_user( $uid );
 				// A cookie-borne token is sent by the browser on its own, so it
 				// only counts when the request also proves same-origin intent.
@@ -367,6 +499,7 @@ class Hatch_Auth {
 			return $result;
 		}
 		$nonce = Hatch_Request::server( 'HTTP_X_WP_NONCE' );
+		// Dropping to user 0 is a safety step, not a login: a cookie session without a valid nonce acts as a guest (CSRF defence).
 		if ( '' === $nonce ) {
 			wp_set_current_user( 0 );
 			return $result;
@@ -375,7 +508,7 @@ class Hatch_Auth {
 			wp_set_current_user( 0 );
 			return new WP_Error(
 				'hatch_auth_invalid_nonce',
-				__( 'Cookie check failed. Send a valid X-WP-Nonce header.', 'hatch-bridge' ),
+				__( 'Cookie check failed. Send a valid X-WP-Nonce header.', 'hatch-connect' ),
 				array( 'status' => 403 )
 			);
 		}
@@ -396,7 +529,20 @@ class Hatch_Auth {
 	 * Response helpers
 	 * --------------------------------------------------------------------- */
 
-	private static function success_response( WP_User $user ): WP_REST_Response {
+	/**
+	 * Issue the frontend session for a signed-in user, or refuse a staff account.
+	 *
+	 * @param WP_User $user User.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	private static function success_response( WP_User $user ) {
+		if ( self::is_staff( $user ) ) {
+			return new WP_Error(
+				'hatch_auth_staff',
+				__( 'Staff accounts sign in at wp-admin, not on the frontend.', 'hatch-connect' ),
+				array( 'status' => 403 )
+			);
+		}
 		$now   = time();
 		$exp   = $now + self::TOKEN_TTL;
 		$token = self::sign_token(
@@ -419,9 +565,11 @@ class Hatch_Auth {
 		// and RFC 6265 (HttpOnly SameSite cookies).
 		$wp_login_set = false;
 		if ( function_exists( 'wp_set_auth_cookie' ) && ! headers_sent() ) {
+			// Technically necessary: wp_set_auth_cookie() and the Store API read the request user, and the
+			// user was already authenticated above by core wp_authenticate() or just registered.
 			wp_set_current_user( (int) $user->ID );
 			wp_set_auth_cookie( (int) $user->ID, true, is_ssl() );
-			do_action( 'wp_login', $user->user_login, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core action, so login listeners run after an Application Password exchange.
+			do_action( 'wp_login', $user->user_login, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core action, so login listeners (security and audit plugins) see frontend sign-ins.
 			$wp_login_set = true;
 		}
 
@@ -447,6 +595,7 @@ class Hatch_Auth {
 	 */
 	private static function nonce_for( WP_User $user ): string {
 		if ( get_current_user_id() !== (int) $user->ID ) {
+			// wp_create_nonce() is tied to the request user, so the nonce for this just-authenticated user needs it set.
 			wp_set_current_user( (int) $user->ID );
 		}
 		return wp_create_nonce( 'wp_rest' );
@@ -518,6 +667,21 @@ class Hatch_Auth {
 	}
 
 	/**
+	 * Is this a staff account (see STAFF_CAPS)?
+	 *
+	 * @param WP_User $user User.
+	 * @return bool
+	 */
+	public static function is_staff( WP_User $user ): bool {
+		foreach ( self::STAFF_CAPS as $cap ) {
+			if ( user_can( $user, $cap ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Does a verified token still belong to the user's current session?
 	 *
 	 * @param array   $payload Verified token payload.
@@ -525,7 +689,7 @@ class Hatch_Auth {
 	 * @return bool
 	 */
 	private static function token_matches_user( array $payload, WP_User $user ): bool {
-		if ( ! isset( $payload['ver'], $payload['pw'] ) ) {
+		if ( ! isset( $payload['ver'], $payload['pw'] ) || self::is_staff( $user ) ) {
 			return false;
 		}
 		return self::token_version( (int) $user->ID ) === (int) $payload['ver']
@@ -601,6 +765,21 @@ class Hatch_Auth {
 			return array( self::verify_token( $tok ), false );
 		}
 		return array( null, false );
+	}
+
+	/**
+	 * Whether the request carries a Hatch session token that still matches its user.
+	 *
+	 * @param WP_REST_Request $req Current request.
+	 * @return bool
+	 */
+	public static function has_valid_session( WP_REST_Request $req ): bool {
+		$payload = self::verify_incoming_token( $req );
+		if ( ! $payload ) {
+			return false;
+		}
+		$user = get_user_by( 'id', (int) $payload['sub'] );
+		return $user instanceof WP_User && self::token_matches_user( $payload, $user );
 	}
 
 	private static function verify_incoming_token( WP_REST_Request $req ): ?array {

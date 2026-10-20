@@ -158,6 +158,11 @@ if ( ! class_exists( 'Hatch_Blocks' ) ) :
 				return $allowed;
 			}
 
+			// Another filter already turned every block off: keep it that way.
+			if ( false === $allowed ) {
+				return false;
+			}
+
 			$whitelist = self::whitelist();
 
 			// Respect a narrower list a prior filter already set: intersect.

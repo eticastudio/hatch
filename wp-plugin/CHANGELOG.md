@@ -1,7 +1,80 @@
-## 0.7.6.1 — 2026-08-13
-- fix(img): allow same-origin self-fetch through /img proxy (broken CF-deploy image thumbnails)
-
 # Hatch WordPress Plugin — Changelog
+
+## 1.0.2 (2026-10-20)
+
+Changes after the WordPress.org Plugin Review Team's review of 1.0.1.
+
+Removed
+- The `_headers` file from the bundled frontend. Its cache rule now travels in the Cloudflare upload settings (`bundle.json` → `assets_config._headers`).
+- Partytown and its remote script from cdn.jsdelivr.net, plus the Partytown setting.
+- The Hatch Reader user and role. Hatch no longer creates, lists or deletes users or application passwords.
+
+Changed
+- Deploy asks for a username and an Application Password the site owner creates in their own profile. Accounts that can manage options or edit others' posts are refused. The password is stored encrypted and never shown again.
+- Frontend sign-in and registration (`hatch/v1/auth`) are off by default behind a new "Frontend accounts" switch (Hatch, Content; option `hatch_content_flags['accounts_enabled']`). While off, no auth routes or filters are registered and the Astro `/login`, `/register` and `/account` pages fall through to normal page lookup. Registration also needs WordPress's "Anyone can register".
+- The frontend bundle build fails if a remote script outside the documented services, or a not-permitted file, ends up in the bundle.
+
+Security
+- Frontend sign-in refuses staff accounts (`edit_posts` or `manage_options`) and their tokens are ignored by `determine_current_user` and the comment-posting path; staff sign in at wp-admin.
+- The comment-posting path now checks the token against the user's session version and password stamp, so tokens ended by logout or a password change no longer post comments.
+- The deploy account check also refuses `unfiltered_html`, `list_users`, `create_users`, `edit_users`, `promote_users`, `delete_users`, `install_plugins`, `activate_plugins` and `edit_theme_options`, and runs again on every Application Password sign-in (`wp_authenticate_application_password_errors`).
+- Registration rejects user names that `sanitize_user()` would change or `validate_username()` refuses.
+- `/hatch/v1/info` returns `wp_version` to administrators only.
+
+Cleanup
+- On upgrade, the `hatch_prune_app_pwds_cron` event and the `hatch_reader_user_id` and `hatch_app_pwd_retention_days` options are removed once. Uninstall also removes the `hatch_reader` role.
+- THIRD-PARTY.txt now carries the full Lucide (ISC) and Feather (MIT) licence texts.
+
+## 1.0.1 (2026-10-01)
+
+Changes after the WordPress.org Plugin Review Team's first review.
+
+Removed
+- The Hatch Companion theme and its installer. Hatch no longer bundles, installs or switches a theme.
+- `Hatch_Admin_Quiet`, which removed other plugins' admin notices on Hatch screens.
+- Advisory notices for ACF, custom post types, root domains and two-factor reminders.
+- Raw head, body-start and body-end code injection through `/code-snippets` and the Astro `set:html` slots.
+- The `Tested up to` line from the plugin file header (it stays in readme.txt).
+
+Changed
+- Visitors of the raw WordPress address are redirected to the frontend by `Hatch_Frontend_Redirect`, a plain plugin class.
+- Text domain is now `hatch-connect`, matching the plugin slug.
+- Every REST route names a permission callback (`Hatch_Rest_Permission`); `/auth/me` and `/auth/refresh` require a verified session.
+- Remaining Hatch admin notices appear only on Hatch screens.
+- `readme.txt` Contributors now lists the owner username `hmbhq`.
+
+Fixed
+- Forms bridge no longer merges `$_REQUEST`.
+- The frontend URL is passed through `esc_url_raw()` before it reaches page output.
+
+## 1.0.0 (2026-10-01)
+
+First stable release for WordPress.org.
+
+Changed
+- Audited against the WordPress.org Plugin Check tool: no code changes were required, every flagged line is either a documented external service (see readme.txt "External services") or standard WordPress API usage on a custom table and a taxonomy filter.
+
+Removed
+- Two unused frontend routes left over from a retired hosted-deploy flow. Nothing in the codebase called them.
+
+## 0.8.1 (2026-10-01)
+
+Pre-submission stability pass (GitHub issues 2 to 12 plus a security review).
+
+Fixed
+- Disconnect leaves no "deployed" state behind (`Hatch_Deploy_Controller::mark_disconnected`): the frontend URL, cache-refresh endpoint and hosting model are cleared and the SEO rewrites stop. A deploy now warns if the Companion theme could not be switched on.
+- Edge proxy: `//host` paths no longer turn it into an open proxy.
+- `/post/{id}/blocks` no longer exposes stored form submissions.
+- `route_login` rejects Application Passwords; logout ends the WP session.
+- `app_password_only` no longer breaks block-editor and dashboard saves.
+- Real client IP behind Cloudflare for lockouts and form entries.
+- Astro `/login` and `/register` accept only same-site `redirect_to` paths; `robots.txt` Sitemap uses the frontend origin.
+
+Added
+- Deployment history; mu-plugin and Companion theme lifecycle (deactivate, uninstall); first-run setup guide.
+
+Changed
+- Text domain, slug and zip folder are `hatch` (was `hatch-bridge`).
 
 ## 0.8.0 (2026-09-28)
 
@@ -27,6 +100,9 @@ Fixed
 
 Removed
 - Hosted deploy service, VPS agent, Netlify and Vercel deploy paths, the plugin's own updater, all outbound telemetry, the AI helper and the Blocks tab, the legacy cleanup class, moved or hidden login URL.
+
+## 0.7.6.1 — 2026-08-13
+- fix(img): allow same-origin self-fetch through /img proxy (broken CF-deploy image thumbnails)
 
 ## 0.7.6.0 — 2026-08-13
 

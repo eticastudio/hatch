@@ -6,7 +6,7 @@
  * (`mysite.com`). It belongs on a subdomain (`cms.mysite.com`, `wp.mysite.com`,
  * `admin.mysite.com`) so the public frontend can own the root.
  *
- * This class detects the violation and shows a persistent, dismissible warning
+ * This class detects the violation and records it for the Hatch health panel
  * with a clear migration guide.
  *
  * Detection logic:
@@ -64,8 +64,6 @@ class Hatch_Domain_Check {
 	 * Wire hooks.
 	 */
 	private function __construct() {
-		add_action( 'admin_notices', array( $this, 'maybe_show_notice' ) );
-		add_action( 'admin_init', array( $this, 'maybe_dismiss_notice' ) );
 	}
 
 	/**
@@ -135,70 +133,5 @@ class Hatch_Domain_Check {
 		}
 
 		return 'unknown';
-	}
-
-	/**
-	 * Maybe show the root-domain warning.
-	 *
-	 * @return void
-	 */
-	public function maybe_show_notice(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-		if ( get_transient( self::DISMISS_KEY ) ) {
-			return;
-		}
-		if ( 'root' !== self::classify() ) {
-			return;
-		}
-
-		$dismiss_url  = wp_nonce_url(
-			add_query_arg( 'hatch_dismiss_root_domain', '1' ),
-			'hatch_dismiss_root_domain'
-		);
-		$current_host = (string) wp_parse_url( home_url(), PHP_URL_HOST );
-		?>
-		<div class="notice notice-warning is-dismissible" style="border-left-color:#f59e0b;">
-			<p style="font-size:14px; line-height:1.5;">
-				<strong>⚠ <?php esc_html_e( 'Hatch - Headless WordPress', 'hatch-bridge' ); ?>:</strong>
-				<?php esc_html_e( 'WordPress is running on a publicly-accessible root address.', 'hatch-bridge' ); ?>
-				<code><?php echo esc_html( $current_host ); ?></code>
-			</p>
-			<p style="font-size:13px; line-height:1.5; color:#475569;">
-				<?php esc_html_e( 'In a headless setup, your public frontend owns the root address. WordPress should live on a separate, non-public-facing address (any subdomain works - name it whatever you want).', 'hatch-bridge' ); ?>
-				<br/>
-				<?php esc_html_e( 'Why this matters: visitors should not be able to reach WordPress directly. If they can, search engines will index it, your frontend will conflict on the same host, and SEO suffers.', 'hatch-bridge' ); ?>
-			</p>
-			<p>
-				<a href="<?php echo esc_url( $dismiss_url ); ?>" style="margin-inline-start:12px; font-size:12px; color:#64748b;">
-					<?php esc_html_e( 'Dismiss for 30 days', 'hatch-bridge' ); ?>
-				</a>
-			</p>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Handle dismiss link.
-	 *
-	 * @return void
-	 */
-	public function maybe_dismiss_notice(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( empty( $_GET['hatch_dismiss_root_domain'] ) ) {
-			return;
-		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['_wpnonce'] ) ) : '';
-		if ( ! wp_verify_nonce( $nonce, 'hatch_dismiss_root_domain' ) ) {
-			return;
-		}
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-		set_transient( self::DISMISS_KEY, 1, self::DISMISS_TTL );
-		wp_safe_redirect( remove_query_arg( array( 'hatch_dismiss_root_domain', '_wpnonce' ) ) );
-		exit;
 	}
 }

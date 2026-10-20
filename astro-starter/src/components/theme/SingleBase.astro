@@ -11,6 +11,8 @@
  */
 import HatchImage from '../HatchImage.astro';
 import ShareRow from './ShareRow.astro';
+import Breadcrumb from './Breadcrumb.astro';
+import PostMeta from './PostMeta.astro';
 
 interface Props {
   post: any;
@@ -52,42 +54,18 @@ const showSidebar = flags.sidebarSide !== 'none' && toc.length > 0;
 ---
 <article class="mx-auto px-5 sm:px-8 py-10 sm:py-14" style="max-width: var(--hatch-max-width, 1160px);">
   {flags.showBreadcrumb && (
-    <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[12.5px] text-hatch-fg-subtle mb-8 flex-wrap">
-      <a href="/" class="hover:text-hatch-fg transition-colors">Home</a>
-      <span class="text-hatch-fg-subtle">{flags.breadcrumbSep}</span>
-      <a href="/blog" class="hover:text-hatch-fg transition-colors">Blog</a>
-      {post.category && (
-        <>
-          <span class="text-hatch-fg-subtle">{flags.breadcrumbSep}</span>
-          <a href={`/blog/category/${post.categorySlug}`} class="hover:text-hatch-fg transition-colors">{post.category}</a>
-        </>
-      )}
-      <span class="text-hatch-fg-subtle">{flags.breadcrumbSep}</span>
-      <span class="text-hatch-fg truncate max-w-[260px] sm:max-w-none">{post.title}</span>
-    </nav>
+    <Breadcrumb sep={flags.breadcrumbSep} items={[
+      { label: 'Home', href: '/' },
+      { label: 'Blog', href: '/blog' },
+      ...(post.category ? [{ label: post.category, href: `/blog/category/${post.categorySlug}` }] : []),
+      { label: post.title },
+    ]} />
   )}
 
   <header class="max-w-3xl mb-10">
-    {post.category && (
-      <a href={`/blog/category/${post.categorySlug}`} class="inline-block text-[11px] uppercase tracking-wider font-medium text-hatch-primary mb-4 hover:underline">{post.category}</a>
-    )}
     <h1 class="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight leading-[1.1]" style="font-family: var(--hatch-font-heading);">{post.title}</h1>
-    <div class="mt-6 flex items-center flex-wrap gap-x-4 gap-y-2 text-[13.5px] text-hatch-fg-muted">
-      {post.author && (
-        <a href={`/blog/author/${post.author.slug}`} class="flex items-center gap-2 hover:text-hatch-fg transition-colors">
-          {post.author.avatar && <img src={post.author.avatar} alt={post.author.name} width="24" height="24" class={`${flags.avatarShape} flex-shrink-0`} loading="lazy" />}
-          <span>{post.author.name}</span>
-        </a>
-      )}
-      <span class="text-hatch-fg-subtle">·</span>
-      <time datetime={post.publishedAt}>{dateLabel}</time>
-      {flags.showReadingTime && (
-        <>
-          <span class="text-hatch-fg-subtle">·</span>
-          <span>{flags.readingTimeText(post.readMinutes)}</span>
-        </>
-      )}
-    </div>
+    <PostMeta variant="blog" author={post.author} publishedAt={post.publishedAt} dateLabel={dateLabel}
+      readingTime={flags.showReadingTime ? flags.readingTimeText(post.readMinutes) : ''} categories={post.categories} avatarClass={flags.avatarShape} />
     {flags.showUpdated && updatedLabel && (
       <p class="mt-2 text-[12px] text-hatch-fg-subtle italic">Last updated {updatedLabel}</p>
     )}

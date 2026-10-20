@@ -36,9 +36,14 @@ const tsKey = ts && ts.enabled && ts.site_key ? String(ts.site_key) : '';
 ---
 
 <div id="hatch-form-config" data-turnstile-key={tsKey} hidden></div>
-<script is:inline>
+<script is:inline data-astro-rerun>
   (function () {
-    if (window.__hatchFormHydrated) return;
+    // The runtime is defined once per tab. On later client-side navigations
+    // this script runs again (data-astro-rerun) only to hydrate the new page.
+    if (window.__hatchFormHydrated) {
+      if (typeof window.hatchBootForms === 'function') window.hatchBootForms();
+      return;
+    }
     window.__hatchFormHydrated = true;
     const tsKey = (document.getElementById('hatch-form-config') || { dataset: {} }).dataset.turnstileKey || '';
 
@@ -515,6 +520,8 @@ const tsKey = ts && ts.enabled && ts.site_key ? String(ts.site_key) : '';
       // Fallback for raw wpforms markup that came through un-shortcoded.
       document.querySelectorAll('form.wpforms-form').forEach(bindWpformsFallback);
     }
+
+    window.hatchBootForms = boot;
 
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', boot);

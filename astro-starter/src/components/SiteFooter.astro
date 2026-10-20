@@ -10,6 +10,7 @@
 import type { HatchFeatures } from '../lib/features';
 import type { HatchMenuItem } from '../lib/hatch';
 import { hasFeature } from '../lib/features';
+import { siteName as resolveSiteName, siteDescription as resolveSiteDescription } from '../lib/site';
 import HatchCredit from './HatchCredit.astro';
 
 interface Props {
@@ -18,8 +19,8 @@ interface Props {
 }
 
 const { features, menuItems = [] } = Astro.props;
-const siteName = features.site.name || 'Hatch';
-const tagline  = features.site.description || '';
+const siteName = resolveSiteName(features.site);
+const tagline  = resolveSiteDescription(features.site);
 const logoUrl  = (features.site.logo_url || '').trim();
 const year     = new Date().getFullYear();
 const showBuiltBy = hasFeature(features, 'built_by_hatch');

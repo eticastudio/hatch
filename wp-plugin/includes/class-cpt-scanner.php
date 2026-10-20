@@ -79,8 +79,6 @@ class Hatch_Cpt_Scanner {
 	 * Wire hooks.
 	 */
 	private function __construct() {
-		add_action( 'admin_notices', array( $this, 'maybe_show_admin_notice' ) );
-		add_action( 'admin_init', array( $this, 'maybe_dismiss_notice' ) );
 
 		// Bust cache when CPTs are registered (most CPT plugins fire this).
 		add_action( 'registered_post_type', array( __CLASS__, 'flush_cache' ) );
@@ -169,98 +167,5 @@ class Hatch_Cpt_Scanner {
 	 */
 	public static function flush_cache(): void {
 		delete_transient( self::CACHE_KEY );
-	}
-
-	/**
-	 * Show admin notice if any public CPTs are not REST-accessible.
-	 *
-	 * @return void
-	 */
-	public function maybe_show_admin_notice(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-		if ( get_transient( self::DISMISS_KEY ) ) {
-			return;
-		}
-
-		// Avoid double-noise on the Hatch health panel itself.
-		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( $screen && false !== strpos( (string) $screen->id, 'hatch' ) ) {
-			return;
-		}
-
-		$status = self::scan();
-		if ( $status['hidden'] < 1 ) {
-			return;
-		}
-
-		$names = array();
-		foreach ( $status['hidden_types'] as $type ) {
-			$names[] = $type['name'];
-		}
-		$names_display = implode( ', ', array_map( 'esc_html', array_slice( $names, 0, 5 ) ) );
-		if ( count( $names ) > 5 ) {
-			$names_display .= '…';
-		}
-
-		$dismiss_url = wp_nonce_url(
-			add_query_arg( 'hatch_dismiss_cpt_notice', '1' ),
-			'hatch_dismiss_cpt_notice'
-		);
-		?>
-		<div class="notice notice-error is-dismissible">
-			<p>
-				<strong><?php esc_html_e( 'Hatch - Headless WordPress', 'hatch-bridge' ); ?>:</strong>
-				<?php
-				printf(
-					/* translators: 1: number of hidden CPTs, 2: comma-separated list */
-					esc_html(
-						/* translators: 1: number of hidden custom post types, 2: comma-separated list. */
-						_n(
-							'%1$d custom post type is not accessible via REST API: %2$s. Your headless frontend will receive 404 errors when querying it.',
-							'%1$d custom post types are not accessible via REST API: %2$s. Your headless frontend will receive 404 errors when querying them.',
-							(int) $status['hidden'],
-							'hatch-bridge'
-						)
-					),
-					(int) $status['hidden'],
-					// $names_display is already escaped above.
-					$names_display // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-				);
-				?>
-				<a href="<?php echo esc_url( admin_url( 'admin.php?page=hatch#status' ) ); ?>">
-					<?php esc_html_e( 'Open Hatch health panel →', 'hatch-bridge' ); ?>
-				</a>
-				&nbsp;|&nbsp;
-				<a href="<?php echo esc_url( $dismiss_url ); ?>">
-					<?php esc_html_e( 'Dismiss for 7 days', 'hatch-bridge' ); ?>
-				</a>
-			</p>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Handle dismiss click - nonce-verified.
-	 *
-	 * @return void
-	 */
-	public function maybe_dismiss_notice(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( empty( $_GET['hatch_dismiss_cpt_notice'] ) ) {
-			return;
-		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['_wpnonce'] ) ) : '';
-		if ( ! wp_verify_nonce( $nonce, 'hatch_dismiss_cpt_notice' ) ) {
-			return;
-		}
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-		set_transient( self::DISMISS_KEY, 1, 7 * DAY_IN_SECONDS );
-		wp_safe_redirect( remove_query_arg( array( 'hatch_dismiss_cpt_notice', '_wpnonce' ) ) );
-		exit;
 	}
 }

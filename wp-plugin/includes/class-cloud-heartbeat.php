@@ -71,17 +71,36 @@ class Hatch_Cloud_Heartbeat {
 	 */
 	public function handle_probe_now(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You do not have permission to do this.', 'hatch-bridge' ), '', array( 'response' => 403 ) );
+			wp_die( esc_html__( 'You do not have permission to do this.', 'hatch-connect' ), '', array( 'response' => 403 ) );
 		}
 		check_admin_referer( self::NONCE );
 
-		$url = trim( (string) get_option( 'hatch_frontend_url', '' ) );
-		if ( '' !== $url ) {
-			$this->probe_and_store( self::provider_for_model( (string) get_option( 'hatch_hosting_model', '' ) ), $url );
-		}
+		self::check_now();
 
 		wp_safe_redirect( admin_url( 'admin.php?page=hatch#connection' ) );
 		exit;
+	}
+
+	/**
+	 * Probe the saved frontend address right now and return what was found.
+	 *
+	 * Used by the Connection tab's Check now button (through REST, so the page
+	 * stays put) and by the admin-post fallback.
+	 *
+	 * @return array{ran:bool,status:int,rtt_ms:int,error:string,checked_at:int} "ran" is false when no frontend address is saved.
+	 */
+	public static function check_now(): array {
+		$url = trim( (string) get_option( 'hatch_frontend_url', '' ) );
+		if ( '' === $url ) {
+			return array(
+				'ran'        => false,
+				'status'     => 0,
+				'rtt_ms'     => 0,
+				'error'      => '',
+				'checked_at' => 0,
+			);
+		}
+		return self::instance()->probe_and_store( self::provider_for_model( (string) get_option( 'hatch_hosting_model', '' ) ), $url );
 	}
 
 	/**
@@ -94,7 +113,7 @@ class Hatch_Cloud_Heartbeat {
 		if ( ! isset( $schedules[ self::CRON_RECUR ] ) ) {
 			$schedules[ self::CRON_RECUR ] = array(
 				'interval' => 15 * MINUTE_IN_SECONDS,
-				'display'  => __( 'Every 15 minutes (Hatch)', 'hatch-bridge' ),
+				'display'  => __( 'Every 15 minutes (Hatch)', 'hatch-connect' ),
 			);
 		}
 		return $schedules;
@@ -143,11 +162,13 @@ class Hatch_Cloud_Heartbeat {
 	 *
 	 * @param string $provider Storage key.
 	 * @param string $url      Frontend URL.
-	 * @return void
+	 * @return array{ran:bool,status:int,rtt_ms:int,error:string,checked_at:int} The outcome, with the transport error text when no answer came.
 	 */
-	private function probe_and_store( string $provider, string $url ): void {
-		$start  = microtime( true );
-		$res    = wp_remote_head(
+	private function probe_and_store( string $provider, string $url ): array {
+		$start = microtime( true );
+		// SSRF-safe: https only, and private or loopback targets are refused (local dev hosts excepted).
+		$res    = Hatch_Revalidate::safe_request(
+			'HEAD',
 			$url,
 			array(
 				'timeout'     => 8,
@@ -159,15 +180,17 @@ class Hatch_Cloud_Heartbeat {
 		$rtt_ms = (int) round( ( microtime( true ) - $start ) * 1000 );
 
 		$status = is_wp_error( $res ) ? 0 : (int) wp_remote_retrieve_response_code( $res );
+		$error  = is_wp_error( $res ) ? wp_strip_all_tags( $res->get_error_message() ) : '';
 		if ( 0 === $status ) {
 			$rtt_ms = 0;
 		}
+		$now = time();
 
 		$opt_key   = self::OPT_PREFIX . $provider;
 		$prev      = (array) get_option( $opt_key, array() );
 		$history   = isset( $prev['history'] ) && is_array( $prev['history'] ) ? $prev['history'] : array();
 		$history[] = array(
-			'ts'     => time(),
+			'ts'     => $now,
 			'status' => $status,
 			'rtt_ms' => $rtt_ms,
 		);
@@ -178,12 +201,20 @@ class Hatch_Cloud_Heartbeat {
 		update_option(
 			$opt_key,
 			array(
-				'ts'      => time(),
+				'ts'      => $now,
 				'status'  => $status,
 				'rtt_ms'  => $rtt_ms,
 				'history' => $history,
 			),
 			false
+		);
+
+		return array(
+			'ran'        => true,
+			'status'     => $status,
+			'rtt_ms'     => $rtt_ms,
+			'error'      => $error,
+			'checked_at' => $now,
 		);
 	}
 
@@ -253,25 +284,25 @@ class Hatch_Cloud_Heartbeat {
 	 */
 	public static function label( ?array $record ): string {
 		if ( ! $record || empty( $record['ts'] ) ) {
-			return __( 'No check yet. The first one runs within a few minutes of a deploy.', 'hatch-bridge' );
+			return __( 'No check yet. The first one runs within a few minutes of a deploy.', 'hatch-connect' );
 		}
 		$age = human_time_diff( (int) $record['ts'] );
 		if ( self::is_stale( $record ) ) {
 			/* translators: %s: how long ago the last check ran, for example "3 hours". */
-			return sprintf( __( 'No recent check. The last one ran %s ago.', 'hatch-bridge' ), $age );
+			return sprintf( __( 'No recent check. The last one ran %s ago.', 'hatch-connect' ), $age );
 		}
 		$status = (int) ( $record['status'] ?? 0 );
 		$rtt    = (int) ( $record['rtt_ms'] ?? 0 );
 		if ( 0 === $status ) {
 			/* translators: %s: how long ago the check ran, for example "3 mins". */
-			return sprintf( __( 'No response from the frontend. Last checked %s ago.', 'hatch-bridge' ), $age );
+			return sprintf( __( 'No response from the frontend. Last checked %s ago.', 'hatch-connect' ), $age );
 		}
 		if ( $status >= 200 && $status < 400 ) {
 			/* translators: 1: response time in milliseconds, for example "180 ms". 2: how long ago the check ran, for example "3 mins". */
-			return sprintf( __( 'Responded in %1$s. Last checked %2$s ago.', 'hatch-bridge' ), $rtt . ' ms', $age );
+			return sprintf( __( 'Responded in %1$s. Last checked %2$s ago.', 'hatch-connect' ), $rtt . ' ms', $age );
 		}
 		/* translators: 1: HTTP status code, for example "503". 2: how long ago the check ran, for example "3 mins". */
-		return sprintf( __( 'The frontend answered with HTTP %1$d. Last checked %2$s ago.', 'hatch-bridge' ), $status, $age );
+		return sprintf( __( 'The frontend answered with HTTP %1$d. Last checked %2$s ago.', 'hatch-connect' ), $status, $age );
 	}
 }
 

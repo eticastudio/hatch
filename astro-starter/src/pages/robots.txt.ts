@@ -12,7 +12,22 @@ import { WP_API_URL } from 'astro:env/server';
  *
  * Edge-cached 5min so we don't pound WP REST per crawler hit.
  */
-export const GET: APIRoute = async () => {
+/**
+ * Crawlers must be told about the sitemap on the domain they are reading, which is
+ * this frontend, not the WordPress address the rule text was generated on.
+ */
+function pointSitemapsHere(body: string, origin: string): string {
+  return body.replace(/^(\s*Sitemap:\s*)(\S+)\s*$/gim, (line, prefix: string, raw: string) => {
+    try {
+      const u = new URL(raw);
+      return `${prefix}${origin}${u.pathname}${u.search}`;
+    } catch {
+      return line;
+    }
+  });
+}
+
+export const GET: APIRoute = async ({ url }) => {
   const fallback = 'User-agent: *\nDisallow:\n';
   if (!WP_API_URL) return new Response(fallback, { headers: { 'Content-Type': 'text/plain' } });
   const base = WP_API_URL.replace(/\/wp\/v2\/?$/, '');
@@ -25,7 +40,7 @@ export const GET: APIRoute = async () => {
       return new Response(fallback, { headers: { 'Content-Type': 'text/plain' } });
     }
     const data = (await res.json()) as { robots_txt?: string };
-    const body = (data?.robots_txt && data.robots_txt.trim()) || fallback;
+    const body = pointSitemapsHere((data?.robots_txt && data.robots_txt.trim()) || fallback, url.origin);
     return new Response(body, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',

@@ -13,6 +13,14 @@
  */
 import PageLayout from '@/layouts/PageLayout.astro';
 import { WP_API_URL } from 'astro:env/server';
+import { getFeatures as getWooGateFeatures } from '@/lib/features';
+import { isWooActive, fallThroughToPage } from '@/lib/woo';
+
+// Store routes exist only while WooCommerce is active. Otherwise the same
+// path is served by the normal WordPress page lookup (or a themed 404).
+if (!isWooActive(await getWooGateFeatures())) {
+  return fallThroughToPage(Astro, 'shop');
+}
 
 const base = (WP_API_URL || '').replace(/\/wp-json(\/.*)?$/, '').replace(/\/$/, '');
 

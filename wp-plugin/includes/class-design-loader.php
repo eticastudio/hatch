@@ -353,7 +353,7 @@ class Hatch_Design_Loader {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( __CLASS__, 'route_get_design' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 			)
 		);
 	}

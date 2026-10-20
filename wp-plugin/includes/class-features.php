@@ -36,52 +36,52 @@ class Hatch_Features {
 
 			// Reading experience.
 			'progress_bar'   => array(
-				'label'       => __( 'Reading progress bar', 'hatch-bridge' ),
-				'description' => __( 'Thin bar at the top of single posts that fills as the reader scrolls.', 'hatch-bridge' ),
+				'label'       => __( 'Reading progress bar', 'hatch-connect' ),
+				'description' => __( 'Thin bar at the top of single posts that fills as the reader scrolls.', 'hatch-connect' ),
 				'group'       => 'reading',
 				'default'     => true,
 			),
 			'sticky_share'   => array(
-				'label'       => __( 'Sticky share sidebar', 'hatch-bridge' ),
-				'description' => __( 'X / LinkedIn / WhatsApp / Copy buttons that follow the reader down the page.', 'hatch-bridge' ),
+				'label'       => __( 'Sticky share sidebar', 'hatch-connect' ),
+				'description' => __( 'Share buttons (X, LinkedIn, WhatsApp, copy link) that follow the reader down the page.', 'hatch-connect' ),
 				'group'       => 'reading',
 				'default'     => true,
 			),
 			'toc_sidebar'    => array(
-				'label'       => __( 'Table of Contents', 'hatch-bridge' ),
-				'description' => __( 'Auto-generated from H2 / H3 headings, sticky, with active-section highlighting.', 'hatch-bridge' ),
+				'label'       => __( 'Table of Contents', 'hatch-connect' ),
+				'description' => __( 'Built from the headings in the post. It stays in view and highlights the section being read.', 'hatch-connect' ),
 				'group'       => 'reading',
 				'default'     => true,
 			),
 			'breadcrumb'     => array(
-				'label'       => __( 'Breadcrumb navigation', 'hatch-bridge' ),
-				'description' => __( 'Home → Blog → Post title. Helps both readers and SEO.', 'hatch-bridge' ),
+				'label'       => __( 'Breadcrumb navigation', 'hatch-connect' ),
+				'description' => __( 'Shows where the post sits, for example Home, Blog, Post title. Helps readers and search engines.', 'hatch-connect' ),
 				'group'       => 'reading',
 				'default'     => true,
 			),
 			'reading_time'   => array(
-				'label'       => __( 'Word count + reading time', 'hatch-bridge' ),
-				'description' => __( 'Shown below the post title. Calculated from content length at build time.', 'hatch-bridge' ),
+				'label'       => __( 'Word count and reading time', 'hatch-connect' ),
+				'description' => __( 'Shown below the post title, worked out from the length of the post.', 'hatch-connect' ),
 				'group'       => 'reading',
 				'default'     => true,
 			),
 			'last_updated'   => array(
-				'label'       => __( 'Last updated date', 'hatch-bridge' ),
-				'description' => __( 'Shown alongside the publish date when a post has been modified.', 'hatch-bridge' ),
+				'label'       => __( 'Last updated date', 'hatch-connect' ),
+				'description' => __( 'Shown alongside the publish date when a post has been modified.', 'hatch-connect' ),
 				'group'       => 'reading',
 				'default'     => true,
 			),
 
 			// Post navigation.
 			'next_prev_nav'  => array(
-				'label'       => __( 'Next / Previous post navigation', 'hatch-bridge' ),
-				'description' => __( 'Adjacent posts shown at the bottom of single posts.', 'hatch-bridge' ),
+				'label'       => __( 'Next and previous post links', 'hatch-connect' ),
+				'description' => __( 'Adjacent posts shown at the bottom of single posts.', 'hatch-connect' ),
 				'group'       => 'navigation',
 				'default'     => true,
 			),
 			'related_posts'  => array(
-				'label'       => __( 'Related posts (by category)', 'hatch-bridge' ),
-				'description' => __( 'Up to 3 posts from the same category at the bottom of single posts.', 'hatch-bridge' ),
+				'label'       => __( 'Related posts (by category)', 'hatch-connect' ),
+				'description' => __( 'Up to 3 posts from the same category at the bottom of single posts.', 'hatch-connect' ),
 				'group'       => 'navigation',
 				'default'     => true,
 			),
@@ -89,8 +89,8 @@ class Hatch_Features {
 			// Per-post chrome (lives under Reading experience now that route-level
 			// archive toggles were stripped out).
 			'author_bio'     => array(
-				'label'       => __( 'Author bio on single posts', 'hatch-bridge' ),
-				'description' => __( 'Author avatar, name, and bio pulled live from WordPress.', 'hatch-bridge' ),
+				'label'       => __( 'Author bio on single posts', 'hatch-connect' ),
+				'description' => __( 'The author photo, name and bio, taken from WordPress.', 'hatch-connect' ),
 				'group'       => 'reading',
 				'default'     => true,
 			),
@@ -100,16 +100,16 @@ class Hatch_Features {
 			// concerns, not aesthetics, and they were dead (the Astro routes
 			// never read the toggle).
 			'category_tabs'  => array(
-				'label'       => __( 'Category tabs + Load More', 'hatch-bridge' ),
-				'description' => __( 'Filterable category tabs on the blog index instead of pagination.', 'hatch-bridge' ),
+				'label'       => __( 'Category tabs with a Load more button', 'hatch-connect' ),
+				'description' => __( 'Category tabs on the blog list, with a Load more button instead of page numbers.', 'hatch-connect' ),
 				'group'       => 'archives',
 				'default'     => true,
 			),
 
 			// Footer.
 			'built_by_hatch' => array(
-				'label'       => __( 'Show "Built by Hatch" in footer', 'hatch-bridge' ),
-				'description' => __( 'Show a small credit link to the Hatch project in the frontend footer. Off unless you turn it on.', 'hatch-bridge' ),
+				'label'       => __( 'Show "Built by Hatch" in footer', 'hatch-connect' ),
+				'description' => __( 'Show a small credit link to the Hatch project in the frontend footer. Off unless you turn it on.', 'hatch-connect' ),
 				'group'       => 'footer',
 				'default'     => false,
 			),
@@ -132,10 +132,10 @@ class Hatch_Features {
 		// non-aesthetic catalog entries were stripped. `seo` / `engagement`
 		// groups are gone because their only members moved out of Design.
 		return array(
-			'reading'    => __( 'Reading experience', 'hatch-bridge' ),
-			'navigation' => __( 'Post navigation', 'hatch-bridge' ),
-			'archives'   => __( 'Blog index', 'hatch-bridge' ),
-			'footer'     => __( 'Footer', 'hatch-bridge' ),
+			'reading'    => __( 'Reading experience', 'hatch-connect' ),
+			'navigation' => __( 'Post navigation', 'hatch-connect' ),
+			'archives'   => __( 'Blog index', 'hatch-connect' ),
+			'footer'     => __( 'Footer', 'hatch-connect' ),
 		);
 	}
 
@@ -150,18 +150,18 @@ class Hatch_Features {
 		// Slugs are kept stable so existing saves persist.
 		return array(
 			'blog' => array(
-				'label'       => __( 'Editorial', 'hatch-bridge' ),
-				'description' => __( 'Reading-first, minimal. Personal blogs, magazines, news.', 'hatch-bridge' ),
+				'label'       => __( 'Editorial', 'hatch-connect' ),
+				'description' => __( 'Clean and made for reading. Good for personal blogs, magazines and news.', 'hatch-connect' ),
 				'icon'        => '📰',
 			),
 			'tech' => array(
-				'label'       => __( 'Terminal', 'hatch-bridge' ),
-				'description' => __( 'Developer blog with mono headings, code blocks, dark mode.', 'hatch-bridge' ),
+				'label'       => __( 'Terminal', 'hatch-connect' ),
+				'description' => __( 'Made for developer blogs, with code-style headings, code blocks and a dark look.', 'hatch-connect' ),
 				'icon'        => '⚙️',
 			),
 			'docs' => array(
-				'label'       => __( 'Docs', 'hatch-bridge' ),
-				'description' => __( 'Documentation layout with sidebar category nav + search.', 'hatch-bridge' ),
+				'label'       => __( 'Docs', 'hatch-connect' ),
+				'description' => __( 'Made for help pages and documentation, with a category menu on the side and search.', 'hatch-connect' ),
 				'icon'        => '📚',
 			),
 			// v0.5.7 - only the three themes that are actually finished and
@@ -253,7 +253,7 @@ class Hatch_Features {
 				'callback'            => array( __CLASS__, 'route_features' ),
 				// Public - the frontend reads this at build time without auth.
 				// No sensitive data here; only feature flags.
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( 'Hatch_Rest_Permission', 'public_read' ),
 			)
 		);
 	}
@@ -487,10 +487,13 @@ class Hatch_Features {
 		$content       = array(
 			'comments_enabled'   => isset( $content_flags['comments_enabled'] ) ? (bool) $content_flags['comments_enabled'] : true,
 			'comments_turnstile' => isset( $content_flags['comments_turnstile'] ) ? (bool) $content_flags['comments_turnstile'] : false,
+			// Frontend sign-in and sign-up. Off until the site owner turns it on.
+			'accounts_enabled'   => class_exists( 'Hatch_Auth' ) && Hatch_Auth::accounts_enabled(),
+			'registration_open'  => class_exists( 'Hatch_Auth' ) && Hatch_Auth::accounts_enabled() && (bool) get_option( 'users_can_register' ),
 		);
 
 		// Emit `perf` block. Every key here is read at RUNTIME by PageLayout /
-		// middleware (prefetch / partytown / compress_html / telemetry /
+		// middleware (prefetch / compress_html / telemetry /
 		// image_layout / image_proxy). Build-time-only knobs (image_service,
 		// output_mode, inline_stylesheets) are exposed read-only for the admin
 		// Status tab - Astro reads them from astro.config.mjs at build time.
@@ -500,7 +503,6 @@ class Hatch_Features {
 			'image_proxy'        => (bool) get_option( 'hatch_image_proxy_url', '' ),
 			'prefetch_enabled'   => isset( $perf_opt['prefetch_enabled'] ) ? (bool) $perf_opt['prefetch_enabled'] : true,
 			'prefetch_strategy'  => (string) ( $perf_opt['prefetch_strategy'] ?? 'hover' ),
-			'partytown'          => isset( $perf_opt['partytown_enabled'] ) ? (bool) $perf_opt['partytown_enabled'] : false,
 			'compress_html'      => isset( $perf_opt['compress_html'] ) ? (bool) $perf_opt['compress_html'] : true,
 			'telemetry'          => isset( $perf_opt['telemetry'] ) ? (bool) $perf_opt['telemetry'] : false,
 			'image_layout'       => (string) ( $perf_opt['image_layout'] ?? 'constrained' ),
@@ -510,7 +512,7 @@ class Hatch_Features {
 			'inline_stylesheets' => (string) ( $perf_opt['inline_stylesheets'] ?? 'auto' ),
 		);
 
-		return new WP_REST_Response(
+		$response = new WP_REST_Response(
 			array(
 				'theme'           => self::get_theme(),
 				'design'          => $design,
@@ -546,11 +548,21 @@ class Hatch_Features {
 				),
 				'cpts'            => $cpts,
 				'integrations'    => $integrations,
+				'woocommerce'     => class_exists( 'Hatch_WooCommerce_Bridge' )
+					? Hatch_WooCommerce_Bridge::get_capabilities()
+					: array(
+						'active' => false,
+						'pages'  => array(),
+					),
 				'image_proxy_url' => get_option( 'hatch_image_proxy_url', '' ),
 				'version'         => defined( 'HATCH_VERSION' ) ? HATCH_VERSION : '',
 			),
 			200
 		);
+		// Design, theme and site identity must reach the live site on the next request.
+		// A cached copy here is what made a design change look like it was ignored.
+		$response->header( 'Cache-Control', 'no-store, max-age=0' );
+		return $response;
 	}
 }
 

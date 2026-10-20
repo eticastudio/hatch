@@ -33,8 +33,8 @@ phpunit.xml.dist
 phpstan-bootstrap.php
 
 # Tests
-tests
-test
+/tests
+/test
 *.spec.ts
 *.spec.js
 playwright.config.ts
@@ -57,7 +57,7 @@ DESIGN.md
 SECURITY.md
 CONTRIBUTING.md
 CODE_OF_CONDUCT.md
-docs
+/docs
 
 # Other workspace clutter
 scripts/dev-*

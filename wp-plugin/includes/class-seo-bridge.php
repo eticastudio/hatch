@@ -92,7 +92,7 @@ class Hatch_Seo_Bridge {
 	private static function fetch_rankmath_head( string $url ): string {
 		// RankMath validates against home URL - pass an internal URL.
 		$internal_url = self::derive_internal_url( $url );
-		$api_url      = add_query_arg( 'url', rawurlencode( $internal_url ), home_url( '/wp-json/rankmath/v1/getHead' ) );
+		$api_url      = add_query_arg( 'url', rawurlencode( $internal_url ), rest_url( 'rankmath/v1/getHead' ) );
 
 		$res = wp_remote_get( $api_url, array( 'timeout' => 10 ) );
 		if ( is_wp_error( $res ) || 200 !== wp_remote_retrieve_response_code( $res ) ) {
@@ -110,7 +110,7 @@ class Hatch_Seo_Bridge {
 	 */
 	private static function fetch_yoast_head( string $url ): string {
 		$internal_url = self::derive_internal_url( $url );
-		$api_url      = add_query_arg( 'url', rawurlencode( $internal_url ), home_url( '/wp-json/yoast/v1/get_head' ) );
+		$api_url      = add_query_arg( 'url', rawurlencode( $internal_url ), rest_url( 'yoast/v1/get_head' ) );
 
 		$res = wp_remote_get( $api_url, array( 'timeout' => 10 ) );
 		if ( is_wp_error( $res ) || 200 !== wp_remote_retrieve_response_code( $res ) ) {
@@ -122,16 +122,52 @@ class Hatch_Seo_Bridge {
 	}
 
 	/**
+	 * Site title for public output: entities decoded, tags stripped, whitespace
+	 * collapsed. An empty or whitespace-only title falls back to "Your Site".
+	 *
+	 * @return string Plain text, escape on output.
+	 */
+	public static function site_name(): string {
+		$name = self::clean_site_text( (string) get_bloginfo( 'name' ) );
+		return '' === $name ? __( 'Your Site', 'hatch-connect' ) : $name;
+	}
+
+	/**
+	 * Tagline for public output. Stays empty when the owner has not set one,
+	 * so callers can leave the tag out instead of printing filler.
+	 *
+	 * @return string Plain text, escape on output.
+	 */
+	public static function site_description(): string {
+		return self::clean_site_text( (string) get_bloginfo( 'description' ) );
+	}
+
+	/**
+	 * Normalise one WordPress site text value.
+	 *
+	 * @param string $value Raw option value.
+	 * @return string
+	 */
+	private static function clean_site_text( string $value ): string {
+		$value = wp_strip_all_tags( wp_specialchars_decode( $value, ENT_QUOTES ) );
+		$value = preg_replace( '/\s+/u', ' ', $value );
+		return trim( (string) $value );
+	}
+
+	/**
 	 * Minimal fallback head when no SEO plugin is installed.
+	 *
+	 * The description tag is only printed when the site actually has a tagline.
 	 *
 	 * @return string
 	 */
 	private static function build_fallback_head(): string {
-		return sprintf(
-			'<title>%s</title><meta name="description" content="%s"/><meta name="robots" content="index, follow"/>',
-			esc_html( get_bloginfo( 'name' ) ),
-			esc_attr( get_bloginfo( 'description' ) )
-		);
+		$head        = '<title>' . esc_html( self::site_name() ) . '</title>';
+		$description = self::site_description();
+		if ( '' !== $description ) {
+			$head .= '<meta name="description" content="' . esc_attr( $description ) . '"/>';
+		}
+		return $head . '<meta name="robots" content="index, follow"/>';
 	}
 
 	/**
@@ -220,7 +256,7 @@ class Hatch_Seo_Bridge {
 		$internal = self::derive_internal_url( $url );
 		$post_id  = url_to_postid( $internal );
 		$home     = home_url();
-		$site     = get_bloginfo( 'name' );
+		$site     = self::site_name();
 		$schemas  = array();
 
 		if ( $post_id ) {
@@ -450,7 +486,7 @@ class Hatch_Seo_Bridge {
 				'hatch_seo',
 				array(
 					'schema'       => array(
-						'description' => __( 'Normalised SEO meta resolved from RankMath / Yoast / WP core.', 'hatch-bridge' ),
+						'description' => __( 'Normalised SEO meta resolved from RankMath / Yoast / WP core.', 'hatch-connect' ),
 						'type'        => 'object',
 						'context'     => array( 'view', 'edit', 'embed' ),
 					),

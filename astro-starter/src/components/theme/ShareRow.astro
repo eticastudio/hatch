@@ -124,7 +124,7 @@ const NETS: readonly Net[] = [
   ))}
 </div>
 
-<script is:inline>
+<script is:inline data-astro-rerun>
   document.querySelectorAll('.hatch-share-copy').forEach((btn) => {
     btn.addEventListener('click', () => {
       const url = btn.getAttribute('data-url') || '';

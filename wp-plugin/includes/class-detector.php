@@ -28,7 +28,8 @@ class Hatch_Detector {
 		'rankmath_pro'     => 'seo-by-rank-math-pro/rank-math-pro.php',
 		'yoast'            => 'wordpress-seo/wp-seo.php',
 		'yoast_premium'    => 'wordpress-seo-premium/wp-seo-premium.php',
-		'rankready'        => 'rankready/rankready.php',
+		'rankready'        => 'rankready-ai-llm-seo/rankready.php',
+		'rankready_dev'    => 'rankready/rankready.php',
 
 		// Forms.
 		'wpforms'          => 'wpforms-lite/wpforms.php',
@@ -200,7 +201,7 @@ class Hatch_Detector {
 			'custom_fields' => self::get_custom_fields_plugin(),
 			'cpt_manager'   => self::get_cpt_plugin(),
 			'i18n'          => self::get_i18n_plugin(),
-			'has_rankready' => self::is_active( 'rankready' ),
+			'has_rankready' => self::is_active( 'rankready' ) || self::is_active( 'rankready_dev' ),
 		);
 	}
 

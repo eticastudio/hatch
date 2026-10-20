@@ -8,6 +8,7 @@
 // v0.50.x — secrets read via astro:env (runtime) instead of Vite-inlined.
 // WP_API_USER / WP_API_PASS no longer appear in the deployed JS bundle.
 import { WP_API_URL, WP_API_USER, WP_API_PASS } from 'astro:env/server';
+import { cleanSiteText, decodeEntities } from './site';
 const WP_API = WP_API_URL;
 const WP_USER = WP_API_USER;
 const WP_PASS = WP_API_PASS;
@@ -33,6 +34,8 @@ export interface Post {
   category: string | null;
   categorySlug: string | null;
   categoryId: number | null;
+  /** Every category on the post (name decoded), primary first. */
+  categories: { name: string; slug: string }[];
   featuredImage: string | null;
   featuredImageAlt: string | null;
   publishedAt: string;
@@ -108,17 +111,9 @@ interface WpRawPost {
   };
 }
 
+/** Single-pass entity decode (named and numeric). Output is plain text; Astro escapes it on render. */
 function decode(s: string): string {
-  return s
-    .replace(/&amp;/g, '&')
-    .replace(/&#038;/g, '&')
-    .replace(/&#8211;/g, '–')
-    .replace(/&#8212;/g, '—')
-    .replace(/&#8216;|&#8217;|&apos;/g, "'")
-    .replace(/&#8220;|&#8221;|&quot;/g, '"')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ');
+  return decodeEntities(s);
 }
 
 function readMinutes(html: string): number {
@@ -136,12 +131,13 @@ function transform(p: WpRawPost): Post {
   return {
     id: p.id,
     slug: p.slug,
-    title: decode(p.title?.rendered ?? ''),
+    title: cleanSiteText(p.title?.rendered ?? ''),
     content: html,
     excerpt: decode((p.excerpt?.rendered ?? '').replace(/<[^>]+>/g, '').trim()).slice(0, 160),
     category: cats[0] ? decode(cats[0].name) : null,
     categorySlug: cats[0]?.slug ?? null,
     categoryId: cats[0]?.id ?? null,
+    categories: cats.map((c) => ({ name: decode(c.name), slug: c.slug })),
     featuredImage: media?.source_url ?? null,
     featuredImageAlt: media?.alt_text ?? null,
     publishedAt: p.date,
@@ -237,12 +233,13 @@ function hatchContentToPost(c: HatchContent): Post {
   return {
     id: c.id,
     slug: c.slug,
-    title: c.title,
+    title: cleanSiteText(c.title),
     content: c.content,
     excerpt: c.excerpt,
-    category:     primary ? primary.name : null,
+    category:     primary ? decode(primary.name) : null,
     categorySlug: primary ? primary.slug : null,
     categoryId:   primary ? primary.id   : null,
+    categories:   cats.map((cat) => ({ name: decode(cat.name), slug: cat.slug })),
     featuredImage:    c.featured_media_url || null,
     featuredImageAlt: c.featured_media_alt || null,
     publishedAt: c.published,
@@ -253,7 +250,7 @@ function hatchContentToPost(c: HatchContent): Post {
       avatar:      c.author.avatar || null,
       description: c.author.bio || '',
     } : null,
-    tags: (c.tags || []).map((t) => t.name),
+    tags: (c.tags || []).map((t) => decode(t.name)),
     readMinutes,
     seo: c.seo,
   } as Post;
