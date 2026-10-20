@@ -7,7 +7,7 @@ Changes after the WordPress.org Plugin Review Team's review of 1.0.1.
 Removed
 - The `_headers` file from the bundled frontend. Its cache rule now travels in the Cloudflare upload settings (`bundle.json` → `assets_config._headers`).
 - Partytown and its remote script from cdn.jsdelivr.net, plus the Partytown setting.
-- The Hatch Reader user and role. Hatch no longer creates, lists or deletes users or application passwords.
+- The Hatch Reader user and role. Hatch no longer creates or deletes users, or creates application passwords.
 
 Changed
 - Deploy asks for a username and an Application Password the site owner creates in their own profile. Accounts that can manage options or edit others' posts are refused. The password is stored encrypted and never shown again.
@@ -19,6 +19,7 @@ Security
 - The comment-posting path now checks the token against the user's session version and password stamp, so tokens ended by logout or a password change no longer post comments.
 - The deploy account check also refuses `unfiltered_html`, `list_users`, `create_users`, `edit_users`, `promote_users`, `delete_users`, `install_plugins`, `activate_plugins` and `edit_theme_options`, and runs again on every Application Password sign-in (`wp_authenticate_application_password_errors`).
 - Registration rejects user names that `sanitize_user()` would change or `validate_username()` refuses.
+- Registration is refused (403 `hatch_auth_staff_role`) when the New User Default Role is missing or has `edit_posts` or `manage_options`, so sign-up never creates a staff account.
 - `/hatch/v1/info` returns `wp_version` to administrators only.
 
 Cleanup

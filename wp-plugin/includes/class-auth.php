@@ -240,6 +240,10 @@ class Hatch_Auth {
 			return new WP_Error( 'hatch_auth_disabled', __( 'Registration is disabled on this site.', 'hatch-connect' ), array( 'status' => 403 ) );
 		}
 
+		if ( self::default_role_is_staff() ) {
+			return new WP_Error( 'hatch_auth_staff_role', __( 'Registration is disabled on this site.', 'hatch-connect' ), array( 'status' => 403 ) );
+		}
+
 		$ip = self::client_ip();
 		if ( self::rate_limited( $ip ) ) {
 			return new WP_Error( 'hatch_auth_rate_limited', __( 'Too many attempts. Try again in a few minutes.', 'hatch-connect' ), array( 'status' => 429 ) );
@@ -675,6 +679,24 @@ class Hatch_Auth {
 	public static function is_staff( WP_User $user ): bool {
 		foreach ( self::STAFF_CAPS as $cap ) {
 			if ( user_can( $user, $cap ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Would a new sign-up get a staff role? True when the "New User Default
+	 * Role" is missing or carries any STAFF_CAPS, so registration never
+	 * creates an account that frontend sign-in would then refuse.
+	 */
+	public static function default_role_is_staff(): bool {
+		$role = get_role( (string) get_option( 'default_role', 'subscriber' ) );
+		if ( ! $role ) {
+			return true;
+		}
+		foreach ( self::STAFF_CAPS as $cap ) {
+			if ( $role->has_cap( $cap ) ) {
 				return true;
 			}
 		}
