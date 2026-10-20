@@ -1,6 +1,6 @@
 {
   "name": "hatch-wp",
-  "version": "1.0.2",
+  "version": "0.2.0",
   "description": "Hatch: run WordPress as a headless CMS and deploy an Astro frontend to your own Cloudflare account. Uses standard core Gutenberg blocks.",
   "license": "GPL-2.0-or-later",
   "author": "Aditya Sharma",

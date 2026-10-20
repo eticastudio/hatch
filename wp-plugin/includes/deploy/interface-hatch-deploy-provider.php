@@ -9,7 +9,7 @@
  * so the controller and the REST layer stay unchanged.
  *
  * @package Hatch
- * @since   1.0.0
+ * @since   0.2
  */
 
 defined( 'ABSPATH' ) || exit;

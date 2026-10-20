@@ -8,7 +8,7 @@
  * with its signature check, a path against an allowlist).
  *
  * @package Hatch
- * @since   1.0.0
+ * @since   0.2
  */
 
 defined( 'ABSPATH' ) || exit;

@@ -17,7 +17,7 @@
  * The disconnect route forgets the stored credential.
  *
  * @package Hatch
- * @since   1.0.0
+ * @since   0.2
  */
 
 defined( 'ABSPATH' ) || exit;

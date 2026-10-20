@@ -181,7 +181,7 @@ final class Hatch {
 	/**
 	 * One-time cleanup for sites upgrading from a version that created the
 	 * Hatch Reader user. Nothing reads these settings any more. The user and
-	 * role are left alone: a frontend deployed before 1.0.2 still signs in as
+	 * role are left alone: a frontend deployed by an older build still signs in as
 	 * that user until its next Redeploy, and the site owner deletes it.
 	 *
 	 * @return void

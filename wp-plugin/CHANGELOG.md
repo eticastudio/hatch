@@ -1,6 +1,10 @@
 # Hatch WordPress Plugin — Changelog
 
-## 1.0.2 (2026-10-20)
+## 0.2 (2026-10-20)
+
+First public WordPress.org release. Renumbered from the internal 1.0.2 build so that 1.0 is kept for a later milestone. The code is the 1.0.2 build below; the 1.0.x and 0.8.x numbers were never published.
+
+## 1.0.2 (2026-10-20, internal, shipped as 0.2)
 
 Changes after the WordPress.org Plugin Review Team's review of 1.0.1.
 
@@ -21,6 +25,10 @@ Security
 - Registration rejects user names that `sanitize_user()` would change or `validate_username()` refuses.
 - Registration is refused (403 `hatch_auth_staff_role`) when the New User Default Role is missing or has `edit_posts` or `manage_options`, so sign-up never creates a staff account.
 - `/hatch/v1/info` returns `wp_version` to administrators only.
+- Brand and border colour settings accept only hex colours (`sanitize_hex_color`); any other value keeps the stored one. Found in the 0.2 visual QA, where a test string had been saved as the border colour.
+
+Fixed (0.2 visual QA)
+- Status tab: "Hide this site from search engines" now reads "Hide the WordPress address from search engines", matching the Security setting it reports. "Supported plugins found" is now "Plugin integrations found", since it counts individual plugins while the Plugins tab counts types.
 
 Cleanup
 - On upgrade, the `hatch_prune_app_pwds_cron` event and the `hatch_reader_user_id` and `hatch_app_pwd_retention_days` options are removed once. Uninstall also removes the `hatch_reader` role.

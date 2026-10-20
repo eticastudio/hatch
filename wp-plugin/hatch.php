@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Hatch Connect
  * Description:       Show your WordPress site through a fast frontend hosted on your own Cloudflare account. Set up from wp-admin in a few minutes, and undo it any time.
- * Version:           1.0.2
+ * Version:           0.2
  * Requires at least: 6.4
  * Requires PHP:      7.4
  * Author:            Aditya Sharma
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'HATCH_VERSION', '1.0.2' );
+define( 'HATCH_VERSION', '0.2' );
 define( 'HATCH_PLUGIN_FILE', __FILE__ );
 define( 'HATCH_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'HATCH_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

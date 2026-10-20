@@ -4,7 +4,7 @@ Tags: headless, cloudflare, astro, jamstack, rest-api
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.2
+Stable tag: 0.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,7 +119,7 @@ Third-party components and their licences are listed in `THIRD-PARTY.txt` inside
 * **Consent first.** A deploy does not start until you tick a box that lists the changes below.
 * **Frontend account (you create it).** The deploy never creates users or Application Passwords. Before a deploy you create a user with the Subscriber role and an Application Password for it, with WordPress's own screens, and enter the user name and password in the setup guide. Hatch refuses any account that can edit other people's posts or manage users, plugins or the site, both when you enter it and every time it signs in. The frontend uses that account only to read. Disconnect (Hatch, Connection) forgets the stored copy; you revoke the Application Password in your profile.
 * **Sign-in for frontend visitors.** Off until you switch on Frontend accounts (Hatch, Content). While it is off, the `hatch/v1/auth` routes do not exist. When it is on, the routes exist, and the frontend shows its login and registration pages only if WooCommerce is also active. Login checks the password with core `wp_authenticate()` and also sets the normal WordPress login cookie, because WooCommerce keeps carts and orders on that session. Registration works only when "Anyone can register" is on and creates the user with core `wp_create_user()` and the "New User Default Role", and is refused if that role can edit posts or manage the site. Staff accounts (anyone who can edit posts or manage the site) are refused and sign in at wp-admin. They use signed tokens (JWT, valid 24 hours), a per-IP rate limit and a honeypot field on registration. Logging out, or changing a password, ends all earlier sessions for that user. Sessions issued by versions before 0.8.0 are no longer valid, so signed-in visitors log in once more after the update.
-* **Redirect to your frontend.** After a successful deploy, visitors who open the raw WordPress address are sent to the same path on your frontend, and the View post, View page and archive links in wp-admin point at it too. WordPress stays the back office: wp-admin, wp-login, the REST API, feeds, sitemaps and previews are never redirected, and a signed-in user still sees the site's own theme on the bare home URL. Hatch does not install, bundle, switch or remove any theme. Disconnect (Hatch, Connection) turns the redirect off.
+* **Redirect to your frontend.** After a successful deploy, visitors who open the raw WordPress address are sent to the same path on your frontend, and the View post, View page and archive links in wp-admin point at it too. WordPress stays the back office: wp-admin, wp-login, the REST API, feeds, sitemaps and previews are never redirected (feeds move only if you switch on WordPress feeds under Performance), and a signed-in user still sees the site's own theme on the bare home URL. Hatch does not install, bundle, switch or remove any theme. Disconnect (Hatch, Connection) turns the redirect off.
 * **Image address helper (only on local or temporary addresses).** When WordPress itself runs on `localhost`, a Docker host or a trycloudflare.com address and a frontend is connected, Hatch copies one small file, `hatch-url-rewrite.php`, into `wp-content/mu-plugins/` so images and links use your frontend address. It is never installed on a normal public domain. The file is marked as written by Hatch, does nothing while Hatch is off, and is removed when Hatch is deactivated or deleted. A file with that name that Hatch did not write is never changed or deleted. If the folder cannot be written, Hatch shows a notice with the exact manual step.
 * **Permalinks.** If your site uses plain permalinks (the link format of your posts), the frontend cannot read your posts. The setup guide offers to change them to `/%postname%/`, and does so only if you tick that box. Sites that already use pretty permalinks are left alone.
 * **Application password.** The Application Password you entered is stored encrypted on your site (so a redeploy does not ask again) and given to your Worker as an encrypted secret. Hatch never shows it again and never creates, lists or deletes Application Passwords. Review and revoke it under Users, Profile, Application Passwords, at any time.
@@ -220,79 +220,16 @@ See "What Hatch changes on your site". The redirect and the frontend links start
 
 == Changelog ==
 
-= 1.0.2 =
-* Changes made after the second WordPress.org review. Hatch no longer creates or deletes users, or creates Application Passwords. Deploy asks for the user name and an Application Password of a low-privilege account you create yourself, and refuses accounts that can edit other people's posts or manage the site.
-* Frontend sign-in and registration are now off by default. Switch on Frontend accounts (Hatch, Content) to use them. Registration also follows WordPress's "Anyone can register" setting.
-* The frontend no longer ships a `_headers` file. Its cache rule is sent with the Cloudflare upload settings instead.
-* Removed Partytown and its remote script.
-* Frontend sign-in refuses staff accounts (anyone who can edit posts or manage the site) and ignores their tokens; staff sign in at wp-admin. Comment posting now also rejects tokens ended by logout or a password change.
-* The frontend account is checked again on every Application Password sign-in, so promoting it later stops the frontend instead of widening its access. Accounts that can manage users or plugins are refused too.
-* Registration rejects user names that WordPress would change or does not allow, and is refused when the New User Default Role can edit posts or manage the site.
-* Leftover Hatch Reader settings and the old cleanup event are removed on upgrade; the Hatch Reader role is removed on uninstall.
-
-= 1.0.1 =
-* Changes made after the WordPress.org review. Hatch no longer installs or switches a theme: a plain plugin redirect sends visitors of the raw WordPress address to your frontend instead.
-* Admin notices now appear only on Hatch's own screens, and Hatch no longer hides notices from other plugins.
-* The frontend no longer accepts raw code snippets. Only a Google Tag Manager container ID and validated site-verification tags are supported.
-* REST routes now name a permission callback. Routes that return a signed-in user's data require a verified session.
-* Fixes: unsanitized request data in the forms bridge, escaping of the frontend address in rewritten content, and the text domain now matches the plugin slug.
-
-= 1.0.0 =
-* First stable release for WordPress.org. Audited against the WordPress.org Plugin Check tool: no code changes were required, every flagged line is either a documented external service (see "External services" above) or standard WordPress API usage on a custom table and a taxonomy filter.
-* Removed two unused frontend routes left over from a retired hosted-deploy flow. Nothing in the codebase called them.
-
-= 0.8.1 =
-* Disconnect now fully lets go: the Connection tab stops showing your frontend as live, and Hatch stops pointing permalinks, sitemap entries and robots.txt at it. Disconnect never contacts Cloudflare.
-* Deployment history on the Connection tab, with a plain-language message for every attempt.
-* Hatch now cleans up after itself: the helper file it may add to `mu-plugins` is removed on deactivate and uninstall. Another plugin's file with the same name is never touched.
-* Fixes found in a security review: the Cloudflare proxy no longer follows addresses that start with `//`, stored form entries are no longer exposed through the block route, an Application Password can no longer be swapped for a full sign-in session, logout now ends the WordPress session too, and the "Changes need an Application Password" option no longer blocks editing in the WordPress dashboard.
-* Visitors behind Cloudflare are now counted by their real address for sign-in lockouts and form entries.
-* Sign-in and register pages only follow a `redirect_to` link that stays on your own site.
-* `robots.txt` now lists the sitemap on your frontend's address, not your WordPress address.
-* The docs design shows its sidebar, breadcrumbs and post meta correctly, and the frontend now follows your site name, logo and colours.
-* Easier first run: a "Before you start" checklist, a step-by-step Cloudflare token guide, clear errors, keyboard focus outlines, and a layout that works on phones.
-* The plugin and its zip folder are now named `hatch`.
-* Settings screen polish: the "unsaved changes" count and Discard now follow what is really saved, the comments switch reflects your current WordPress setting, Plugins tab icons are visible, and switches that Slim down controls are locked while it is on.
-
-= 0.8.0 =
-* Adds a Disconnect button to the Connection tab. It asks first, then removes the Hatch Reader user and its Application Passwords (Hatch Reader removed in 1.0.2) and puts your earlier theme back. The frontend stays online at Cloudflare until you delete it there.
-* Fixes a PHP 8.1+ deprecation notice on the setup screen (`strip_tags()` received null).
-* If your Cloudflare account has no workers.dev address yet, the deploy stops before uploading anything and says how to create one.
-* Tested end to end against a real Cloudflare account: token check, consent, deploy, live frontend, Disconnect.
-* Licensed GPL-2.0-or-later. The plugin is named Hatch.
-* Deploys to Cloudflare Workers directly from your site with a token you supply. The token is stored encrypted.
-* Removed the hosted deploy service, the VPS agent, the Netlify and Vercel deploy paths and the plugin's own updater. Updates come from WordPress.org.
-* Removed all outbound telemetry and the phone-home connection check.
-* Cloudflare errors now say what went wrong: invalid token, missing permission, rate limit, Cloudflare outage, or an unreadable reply.
-* Turnstile is checked with a short timeout and fails open, so a Cloudflare outage cannot lock you out.
-* Removed the AI helper and the Blocks tab from this release. The block editor works as normal.
-* The Application Password over plain HTTP override now applies to local development sites only.
-* Clearer uninstall: secrets and connection state are always removed, settings and submissions are kept unless you opt in to remove them.
-* Hardening writes to `uploads/.htaccess` inside a marked block instead of overwriting the file.
-* The login form stays at the standard `/wp-login.php` address. Hatch does not move or hide it.
-* Added a read-only Hatch Reader user and role for the frontend, replacing use of the administrator's account. Disconnect removes it. (Removed in 1.0.2: you now create the account yourself.)
-* Deploy now needs your explicit consent before it changes the theme, permalinks or creates the Application Password.
-* Frontend sign-in: tokens are tied to the user's password and are revoked on logout or password change. Sessions from earlier versions are invalidated.
-* Comments and store product routes no longer return draft, private, password-protected or withheld items, and comment replies must belong to the same post.
-* When "Hide usernames" is on, author slugs in Hatch responses no longer reveal the login name.
-* The locked REST API keeps the public frontend routes (`auth`, `store`, `design`, `integrations`) reachable for signed-out visitors.
-* Form submissions older than 90 days are deleted automatically.
-* The readable source of the Cloudflare frontend is public in the `astro-starter` folder of the Hatch GitHub repository.
-* Code standards: WordPress Coding Standards (WordPress-Extra) clean and escaped output. Every route that changes data is protected by a capability check, a nonce or a signed token, or is a public form, comment or login route with its own spam and lockout controls.
-
-= 0.7.6.1 =
-* The image proxy allows same-origin fetches, which fixes broken image thumbnails on Cloudflare deploys.
+= 0.2 =
+* First public release on WordPress.org.
+* Deploys an Astro frontend to your own Cloudflare account from your dashboard, with a Cloudflare token you supply. The token is stored encrypted. Disconnect undoes the WordPress side.
+* The frontend reads WordPress over REST with the user name and Application Password of a low-privilege account you create yourself. Accounts that can edit other people's posts or manage users, plugins or the site are refused, and the check runs again on every Application Password sign-in.
+* Hatch never creates or deletes users, never creates Application Passwords, and never installs or switches a theme.
+* Frontend sign-in and registration are off by default. Switch on Frontend accounts (Hatch, Content) to use them. Registration also follows WordPress's "Anyone can register" setting and is refused when the New User Default Role can edit posts or manage the site. Staff accounts sign in at wp-admin.
+* No remote scripts are bundled, and the frontend ships no `_headers` file. Every external request is listed under External services.
+* Brand and border colour settings accept only hex colours.
 
 == Upgrade Notice ==
 
-= 1.0.2 =
-Your live frontend keeps working. Your next Redeploy asks for a Subscriber account and Application Password you create. If your frontend uses sign-in, switch on Frontend accounts. Delete the old Hatch Reader user only after that Redeploy.
-
-= 1.0.0 =
-First stable release. No functional changes beyond removing two unused, uncalled frontend routes.
-
-= 0.8.1 =
-Security and stability fixes for the Cloudflare proxy, sign-in and the block route, plus an easier setup guide. Redeploy once from the Connection tab after updating so your frontend gets the fixes.
-
-= 0.8.0 =
-Deploys now run inside your site with your own Cloudflare token. The hosted deploy service, VPS agent, Netlify and Vercel paths are removed. Redeploy from the setup screen after updating. Signed-in frontend visitors will need to log in again.
+= 0.2 =
+First public release.

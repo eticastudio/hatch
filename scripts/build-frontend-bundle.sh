@@ -55,7 +55,7 @@ sed -i.bak "s#, default: 'https://hatch.adityaarsharma.com'##" astro.config.mjs 
   echo "PUBLIC_SITE_URL=$PH_SITE_URL"
   echo "PUBLIC_HATCH_WP_ORIGIN=$PH_WP_ORIGIN"
 } > .env
-env -i PATH="$PATH" HOME="$HOME" HATCH_TARGET=cf npx astro build
+env -i PATH="$PATH" HOME="$HOME" HATCH_TARGET=cf PUBLIC_SITE_URL="$PH_SITE_URL" npx astro build
 
 SERVER="$WORK/astro/dist/server"
 CLIENT="$WORK/astro/dist/client"

@@ -17,7 +17,7 @@
  * frontend instead of handing it more power.
  *
  * @package Hatch
- * @since   1.0.0
+ * @since   0.2
  */
 
 defined( 'ABSPATH' ) || exit;

@@ -11,7 +11,7 @@
  * canonical and Open Graph URLs, and redirect Location headers.
  *
  * @package Hatch
- * @since   1.0.0
+ * @since   0.2
  */
 
 defined( 'ABSPATH' ) || exit;

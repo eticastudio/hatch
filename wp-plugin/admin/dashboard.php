@@ -1400,6 +1400,20 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 			if ( 0 === strpos( $path, $prefix ) ) {
 				$sub   = substr( $path, strlen( $prefix ) );
 				$store = $load_agg( $opt_key );
+				// Colour fields reach the frontend stylesheet, so they must be
+				// a hex colour. Anything else keeps the stored value.
+				if ( ( 'hatch_design_brand' === $opt_key && in_array( $sub, array( 'primary', 'secondary', 'accent', 'background', 'fg' ), true ) )
+					|| ( 'hatch_design_borders' === $opt_key && 'color' === $sub ) ) {
+					$hex = sanitize_hex_color( (string) $value );
+					if ( empty( $hex ) ) {
+						$applied[ $path ] = isset( $store[ $sub ] ) ? $store[ $sub ] : '';
+						continue 2;
+					}
+					$store[ $sub ] = $hex;
+					$mark_agg( $opt_key, $store );
+					$applied[ $path ] = $hex;
+					continue 2;
+				}
 				if ( is_bool( $value ) ) {
 					$store[ $sub ] = (bool) $value;
 				} elseif ( is_int( $value ) || is_float( $value ) ) {
@@ -1571,7 +1585,7 @@ function hatch_react_status_snapshot(): array {
 					'type'  => get_option( 'hatch_security_block_user_enum' ) ? 'on' : 'off',
 				),
 				array(
-					'label' => __( 'Hide this site from search engines', 'hatch-connect' ),
+					'label' => __( 'Hide the WordPress address from search engines', 'hatch-connect' ),
 					'type'  => get_option( 'hatch_security_force_noindex' ) ? 'on' : 'off',
 				),
 			),
@@ -1609,7 +1623,7 @@ function hatch_react_status_snapshot(): array {
 		'label' => __( 'Plugin connections', 'hatch-connect' ),
 		'rows'  => array(
 			array(
-				'label' => __( 'Supported plugins found', 'hatch-connect' ),
+				'label' => __( 'Plugin integrations found', 'hatch-connect' ),
 				'value' => count( $detected ) . ' / ' . count( $bridge ),
 				'type'  => count( $detected ) > 0 ? 'num' : 'warn',
 			),

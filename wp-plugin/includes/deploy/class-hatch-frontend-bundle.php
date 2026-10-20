@@ -14,7 +14,7 @@
  * This class only reads and validates those files. It never executes them.
  *
  * @package Hatch
- * @since   1.0.0
+ * @since   0.2
  */
 
 defined( 'ABSPATH' ) || exit;
