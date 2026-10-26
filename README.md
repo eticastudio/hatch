@@ -6,6 +6,8 @@
 
 You keep writing in the normal block editor. Hatch serves your content over the WordPress REST API, hardens the WordPress side, and deploys the Astro frontend with no Hatch server, no Hatch account and no third-party deploy service.
 
+**Version 1.0.0** · WordPress.org plugin name *Hatch Connect - Astro Headless for Cloudflare* · slug `hatch-connect`
+
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL_v2%2B-b91c1c?style=flat-square)](LICENSE)
 [![Astro](https://img.shields.io/badge/Astro-frontend-ff5e1f?style=flat-square)](https://astro.build)
 [![WordPress 6.4+](https://img.shields.io/badge/WordPress-6.4+-21759b?style=flat-square)](https://wordpress.org)
@@ -78,7 +80,7 @@ Nothing phones home. The plugin sends no usage data and does not check a Hatch s
 | API | WordPress REST API, namespace `hatch/v1` |
 | PHP quality tools | PHPUnit 9.6, PHPStan (WordPress and deprecation rules), PHP_CodeSniffer with WordPress Coding Standards and PHPCompatibility |
 | Browser tests | Playwright |
-| Local stack | Docker Compose: WordPress, MySQL 8.0, Astro on Node 22, Next.js on Node 20 |
+| Local stack | Docker Compose: WordPress, MySQL 8.0, Astro on Node 22 |
 
 ## Prerequisites
 
@@ -115,7 +117,6 @@ docker compose up -d
 | WordPress with the plugin mounted | `hatch_wp` | http://localhost:8810 |
 | MySQL 8.0 | `hatch_db` | internal only |
 | Astro starter (dev server) | `hatch_astro` | http://localhost:4321 |
-| Next.js starter (experimental) | `hatch_nextjs` | http://localhost:3000 |
 
 The local WordPress admin is http://localhost:8810/wp-admin with user `admin` and password `admin`. This is a seed value for the local container only.
 
@@ -157,7 +158,6 @@ hatch/
 │   ├── optional-mu-plugin/    hatch-url-rewrite.php (local or temporary addresses only)
 │   └── readme.txt             WordPress.org readme
 ├── astro-starter/             Astro frontend source (pages, components, lib, styles)
-├── nextjs-starter/            Experimental Next.js frontend, not in the plugin release
 ├── tests/                     PHPUnit tests
 ├── test/                      Playwright specs and configs
 ├── scripts/                   build-zip.sh, build-frontend-bundle.sh, hatch-static-scan.sh
@@ -288,7 +288,7 @@ Never commit `.env`. The starter also reads `HATCH_TARGET` (`cf` or `node`), `HA
 ## Testing
 
 ```bash
-composer qa                       # phpcs, phpstan, phpunit (195 tests at v1.0.0)
+composer qa                       # phpcs, phpstan, phpunit (202 tests, 505 assertions at v1.0.0)
 bash .claude/check.sh             # integration smoke against the running stack
 
 cd test
@@ -296,7 +296,7 @@ npx playwright test --config=playwright.frontend.config.ts --workers=1   # front
 npx playwright test --config=playwright.config.ts                          # admin specs
 ```
 
-Run the PHP suite twice before calling it stable. Admin specs `01`, `02`, `03` to `06`, `08`, `10`, `11` and `12` assert the pre-1.0 admin and are known to fail; they are not part of the release gate. [NEED: update or retire them.]
+Run the PHP suite twice before calling it stable. Admin specs `01`, `02`, `03` to `06`, `08`, `10`, `11` and `12` assert the pre-1.0 admin and are known to fail; they are not part of the release gate. Specs prefixed with `_` are one-off debug scripts.
 
 PHPUnit tests live in `tests/unit`. Playwright specs live in `test/e2e`; frontend specs are numbered 20 to 24, one per frontend behaviour.
 
@@ -304,13 +304,14 @@ PHPUnit tests live in `tests/unit`. Playwright specs live in `test/e2e`; fronten
 
 ```bash
 cd wp-plugin && npm run build && cd ..
-bash scripts/build-zip.sh                   # build/hatch-connect.zip, includes source/
-HATCH_ZIP_SOURCE=0 bash scripts/build-zip.sh  # same zip without source/
+bash scripts/build-zip.sh                   # build/hatch-connect.zip, no source/ (default)
+HATCH_ZIP_SOURCE=1 bash scripts/build-zip.sh  # same zip with source/ included
+bash scripts/svn-stage.sh                   # stage a WordPress.org SVN copy in build/svn, never commits
 ```
 
-Both modes write `build/hatch-connect.zip` and clear other zips in `build/`, so rename the first result before building the second. `source/` holds the git-tracked `astro-starter` (without `.env*`) and `scripts/build-frontend-bundle.sh`, so the compiled `frontend-bundle/` can be reviewed. WordPress.org requires readable source for compiled code.
+Both modes write `build/hatch-connect.zip` and clear other zips in `build/`, so rename the first result before building the second. `source/` holds the git-tracked `astro-starter` (without `.env*`) and `scripts/build-frontend-bundle.sh`, so the compiled `frontend-bundle/` can be reviewed. By default the zip leaves it out and `readme.txt` points to the public repository (github.com/eticastudio/hatch) for source, which WordPress.org accepts.
 
-Before submitting to WordPress.org, run the plugin release gate on the extracted zip and keep `Stable tag` in `wp-plugin/readme.txt` equal to `Version` in `hatch.php`.
+`build-zip.sh` also runs the WordPress.org release gate (Plugin Check in the Docker lab). Keep `Stable tag` in `wp-plugin/readme.txt` equal to `Version` in `hatch.php`. `svn-stage.sh` puts the zip in `trunk/` and `tags/<version>/` and the store images from `.wordpress-org/` in `assets/`; the owner then runs the `svn ci` it prints.
 
 ## Deployment
 
@@ -334,8 +335,8 @@ Docker Desktop can desync the bind mount so the container sees a truncated file 
 
 ```bash
 wc -c wp-plugin/includes/class-security.php
-docker exec hatch_wp wc -c /var/www/html/wp-content/plugins/hatch/includes/class-security.php
-docker exec hatch_wp php -l /var/www/html/wp-content/plugins/hatch/includes/class-security.php
+docker exec hatch_wp wc -c /var/www/html/wp-content/plugins/hatch-connect/includes/class-security.php
+docker exec hatch_wp php -l /var/www/html/wp-content/plugins/hatch-connect/includes/class-security.php
 ```
 
 Different byte counts, or a parse error only in the container, mean desync. Fix with `docker restart hatch_wp`. Do this before trusting any failing test or toggle.

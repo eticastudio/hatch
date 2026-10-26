@@ -84,7 +84,7 @@ const fmt = (iso: string) =>
       {count === 0 && (
         <p class="hatch-comments__empty text-[13.5px] text-hatch-fg-muted">Be the first to comment.</p>
       )}
-      <a href="#reply" class="text-[12.5px] text-hatch-primary hover:underline whitespace-nowrap">Write a comment</a>
+      <a href="#reply" class="text-[12.5px] text-hatch-primary-text hover:underline whitespace-nowrap">Write a comment</a>
     </header>
 
     {comments.length > 0 && (
@@ -96,7 +96,7 @@ const fmt = (iso: string) =>
               <div class="flex items-baseline gap-2 flex-wrap">
                 <span class="font-semibold text-[13.5px] text-hatch-fg">{c.author}</span>
                 {c.is_author && (
-                  <span class="text-[9.5px] uppercase tracking-wider font-medium text-hatch-primary border border-hatch-primary/40 rounded px-1.5 py-0.5">Author</span>
+                  <span class="text-[9.5px] uppercase tracking-wider font-medium text-hatch-primary-text border border-hatch-primary/40 rounded px-1.5 py-0.5">Author</span>
                 )}
                 <span class="text-[11.5px] text-hatch-fg-subtle">{fmt(c.date_gmt)}</span>
               </div>
@@ -142,7 +142,7 @@ const fmt = (iso: string) =>
             class="px-3 py-2 rounded-md border border-hatch-border bg-hatch-bg focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none text-[14px]"
             autocomplete="name"
           />
-          <p class="text-[12px] text-red-600 dark:text-red-400 hidden" data-hatch-field-error="author"></p>
+          <p class="text-[12px] text-red-600 hidden" data-hatch-field-error="author"></p>
         </label>
         <label class="flex flex-col gap-1.5">
           <span class="text-[12.5px] font-medium text-hatch-fg-muted">Email <span class="text-hatch-fg-subtle">(never shown)</span></span>
@@ -154,7 +154,7 @@ const fmt = (iso: string) =>
             class="px-3 py-2 rounded-md border border-hatch-border bg-hatch-bg focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none text-[14px]"
             autocomplete="email"
           />
-          <p class="text-[12px] text-red-600 dark:text-red-400 hidden" data-hatch-field-error="email"></p>
+          <p class="text-[12px] text-red-600 hidden" data-hatch-field-error="email"></p>
         </label>
       </div>
       <label class="flex flex-col gap-1.5">
@@ -167,11 +167,11 @@ const fmt = (iso: string) =>
           data-hatch-field="content"
           class="px-3 py-2 rounded-md border border-hatch-border bg-hatch-bg focus:border-hatch-primary focus:ring-2 focus:ring-hatch-primary/15 outline-none text-[14px] resize-y font-sans"
         ></textarea>
-        <p class="text-[12px] text-red-600 dark:text-red-400 hidden" data-hatch-field-error="content"></p>
+        <p class="text-[12px] text-red-600 hidden" data-hatch-field-error="content"></p>
       </label>
 
       {turnstileOn && (
-        <div class="cf-turnstile" data-sitekey={siteKey} data-theme="auto"></div>
+        <div class="cf-turnstile" data-sitekey={siteKey} data-theme="light"></div>
       )}
 
       <div class="flex items-center gap-3">
@@ -267,14 +267,14 @@ const fmt = (iso: string) =>
               const msg = (body && body.message) || 'Could not post comment.';
               if (status) {
                 status.textContent = msg;
-                status.className = 'text-[13px] text-red-600 dark:text-red-400';
+                status.className = 'text-[13px] text-red-600';
               }
               return;
             }
-            const wasApproved = body.status === 'approved' || body.approved === true;
+            const wasApproved = body.status === 'approved';
             if (status) {
               status.textContent = wasApproved ? 'Comment posted.' : 'Held for moderation.';
-              status.className = 'text-[13px] text-green-600 dark:text-green-400';
+              status.className = 'text-[13px] text-green-600';
             }
             if (wasApproved) appendComment(author, content);
             form.reset();
@@ -282,7 +282,7 @@ const fmt = (iso: string) =>
           } catch (err) {
             if (status) {
               status.textContent = (err && err.message) || 'Could not reach the server.';
-              status.className = 'text-[13px] text-red-600 dark:text-red-400';
+              status.className = 'text-[13px] text-red-600';
             }
           } finally {
             if (submitBtn) submitBtn.disabled = false;

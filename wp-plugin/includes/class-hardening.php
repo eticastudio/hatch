@@ -286,7 +286,7 @@ class Hatch_Hardening {
 
 	/**
 	 * OWASP-baseline security headers for the WP origin. Independent from
-	 * the legacy `hatch_security_send_headers` toggle - this is the
+	 * the `hatch_security_send_headers` toggle - this is the
 	 * fortress-branded emitter and adds one extra header (Cross-Origin-
 	 * Opener-Policy) recommended by the OWASP Secure Headers Project.
 	 *

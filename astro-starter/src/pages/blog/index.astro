@@ -27,11 +27,9 @@ const showCategoryTabs = hasFeature(features, 'category_tabs');
 const tmpl = features.design?.templates;
 const blogIdx = features.aesthetic.blog_index;
 const aGrid = String(blogIdx.archive_grid || tmpl?.archive_grid || '3');
-const archiveGridClass =
-  aGrid === '1' ? 'grid-cols-1' :
-  aGrid === '2' ? 'grid-cols-1 md:grid-cols-2' :
-  aGrid === '4' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' :
-                  'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
+// The grid value is the most columns the owner wants. Columns fall back to
+// fewer, wider cards when the chosen max width leaves less than 240px each.
+const archiveCols = Math.min(4, Math.max(1, parseInt(aGrid, 10) || 3));
 const showExcerpt = tmpl?.archive_excerpt !== 'false';
 const showHero    = blogIdx.show_hero;
 const showTopics  = blogIdx.show_topics;
@@ -45,6 +43,16 @@ const { posts, total, hasMore } = await getPosts({
   perPage: 12,
   category: activeCategory?.id ?? null,
 });
+
+// A page past the end (for example an old WordPress /page/2/ link) goes to the
+// last page that has posts instead of showing an empty list.
+if (page > 1 && posts.length === 0 && total > 0) {
+  const lastPage = Math.max(1, Math.ceil(total / 12));
+  const target = new URL(url);
+  if (lastPage > 1) target.searchParams.set('page', String(lastPage));
+  else target.searchParams.delete('page');
+  return Astro.redirect(target.pathname + target.search, 302);
+}
 
 const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
 ---
@@ -110,8 +118,8 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL;
             <PostCard post={posts[0]} variant="feature" />
           </div>
         )}
-        <div class={`grid ${archiveGridClass} gap-x-7 gap-y-12`}>
-          {(showHero && page === 1 && !activeCategory ? posts.slice(1) : posts).map((post) => <PostCard post={post} showExcerpt={showExcerpt} headingLevel={2} />)}
+        <div class="grid gap-x-7 gap-y-12" style={`--cols: ${archiveCols}; grid-template-columns: repeat(auto-fill, minmax(max(240px, calc((100% - (var(--cols) - 1) * 1.75rem) / var(--cols))), 1fr));`}>
+          {(showHero && page === 1 && !activeCategory ? posts.slice(1) : posts).map((post, i) => <PostCard post={post} showExcerpt={showExcerpt} headingLevel={2} priority={i < 3} />)}
         </div>
       </>
     )}

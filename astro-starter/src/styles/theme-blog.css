@@ -33,7 +33,7 @@
 	--hatch-bg:           var(--hatch-bg-design, #fdfaf3);
 	--hatch-fg:           var(--hatch-fg-design, #0e0f10);
 	/* v0.5.3 — theme default disabled; Design tab tokens win: --hatch-primary: #c2410c (saffron) */
-	--hatch-primary-fg:   #fdfaf3;
+	--hatch-primary-fg:   #071222;
 	--hatch-accent:       #5b5547;  /* warm slate (for eyebrows / dividers) */
 
 	/* Surface ramp — derived from --hatch-bg toward --hatch-fg. */
@@ -48,15 +48,6 @@
 	/* Borders — warm hairlines, not cool gray. */
 	--hatch-border:        color-mix(in oklab, var(--hatch-bg) 78%, var(--hatch-fg));
 	--hatch-border-strong: color-mix(in oklab, var(--hatch-bg) 62%, var(--hatch-fg));
-}
-
-/* Dark mode flips the paper to ink, keeps the saffron warm. */
-[data-hatch-theme="blog"][data-hatch-mode="dark"] {
-	--hatch-bg:         #0e0d0a;
-	--hatch-fg:         #f4efe3;
-	--hatch-primary:    #f59e0b;
-	--hatch-primary-fg: #0e0d0a;
-	--hatch-accent:     #d6c7a8;
 }
 
 /* === Base typography ============================================== */
@@ -107,6 +98,8 @@
 	letter-spacing: -0.02em;
 	text-align: center;
 	color: var(--hatch-fg);
+	flex: 0 0 auto;
+	white-space: nowrap;
 }
 
 @media (max-width: 1023px) {
@@ -165,6 +158,7 @@
 	background-position: 0 100%;
 	background-size: 0% 1.5px;
 	padding-bottom: 2px;
+	white-space: nowrap;
 	transition:
 		color 180ms cubic-bezier(0.16, 1, 0.3, 1),
 		background-size 180ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -173,7 +167,7 @@
 [data-hatch-theme="blog"] .hatch-blog-navrow a:hover,
 [data-hatch-theme="blog"] .hatch-blog-navrow a:focus-visible,
 [data-hatch-theme="blog"] .hatch-blog-navrow a.is-active {
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 	background-size: 100% 1.5px;
 }
 
@@ -245,7 +239,7 @@
 	font-size: 11px;
 	letter-spacing: 0.16em;
 	text-transform: uppercase;
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 	margin-bottom: 8px;
 }
 
@@ -282,7 +276,7 @@
 	float: left;
 	line-height: 0.85;
 	margin: 0.08em 0.08em 0 -0.04em;
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 	font-weight: 500;
 }
 
@@ -357,7 +351,7 @@
 }
 
 [data-hatch-theme="blog"] .hatch-footer-links a:hover {
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 }
 
 [data-hatch-theme="blog"] .hatch-footer-meta {
@@ -450,7 +444,7 @@
 	font-size: 11.5px;
 	letter-spacing: 0.18em;
 	text-transform: uppercase;
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 }
 
 [data-hatch-theme="blog"] .hatch-blog-feature-title {
@@ -468,7 +462,7 @@
 }
 
 [data-hatch-theme="blog"] .hatch-blog-feature-title a:hover {
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 }
 
 [data-hatch-theme="blog"] .hatch-blog-feature-lede {
@@ -517,7 +511,7 @@
 }
 
 [data-hatch-theme="blog"] .hatch-blog-latest-head a:hover {
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 }
 
 [data-hatch-theme="blog"] .hatch-blog-grid {
@@ -675,7 +669,7 @@
 	padding: 0.08em 0.12em 0 0;
 	margin-right: 0.06em;
 	font-weight: 500;
-	color: var(--color-hatch-primary);
+	color: var(--color-hatch-primary-text);
 }
 
 /* Blockquote: subtle left-rule + italic serif, warm hairline colour. */
@@ -690,14 +684,4 @@
 	font-size: 1.15em;
 	line-height: 1.55;
 	color: var(--color-hatch-fg-muted);
-}
-
-/* Warm charcoal (not pure black) in dark mode — serif retained. */
-[data-hatch-theme="blog"][data-hatch-mode="dark"] {
-	--hatch-bg: #17140f;
-	--hatch-fg: #f0e9d8;
-}
-[data-hatch-theme="blog"][data-hatch-mode="dark"] .hatch-prose blockquote,
-[data-hatch-theme="blog"][data-hatch-mode="dark"] article blockquote {
-	color: color-mix(in oklab, var(--color-hatch-fg) 80%, var(--color-hatch-bg));
 }

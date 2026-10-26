@@ -272,14 +272,6 @@ class Hatch_Headless_Comments {
 				'ok'         => true,
 				'comment_id' => $comment_id,
 				'status'     => $status_out,
-				// Legacy keys the current frontend script reads. Kept alongside
-				// the new keys so we do not break the deployed page while the
-				// component upgrades.
-				'id'         => $comment_id,
-				'approved'   => $approved,
-				'message'    => $approved
-					? __( 'Comment posted.', 'hatch-connect' )
-					: __( 'Held for moderation.', 'hatch-connect' ),
 			),
 			201
 		);

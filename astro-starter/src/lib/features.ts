@@ -125,7 +125,7 @@ export interface HatchDesign {
   layout: {
     density: 'compact' | 'comfortable' | 'spacious';
     rounded: 'sharp' | 'smooth' | 'extra';
-    max_width: '720' | '1080' | '1280';
+    max_width: '720' | '1160' | '1320';
   };
   voice: {
     tone: 'professional' | 'casual' | 'playful';
@@ -161,7 +161,6 @@ export interface HatchAesthetic {
   header: {
     sticky: 'sticky' | 'static' | 'hide_on_scroll';
     blur: boolean;
-    color_mode_button: boolean;
     brand_mark: 'icon_text' | 'text' | 'initial';
     /** v0.50.31 — Logo / Text / Both / Auto. Drives SiteHeader brand cell. */
     brand_display: 'auto' | 'logo' | 'text' | 'both';
@@ -258,7 +257,7 @@ const INTEGRATIONS_FALLBACK: HatchIntegrations = {
 const DESIGN_FALLBACK: HatchDesign = {
   brand: {
     name: '',
-    primary: '#ff6b35',
+    primary: '#7ebc11',
     accent: '#0a0a0a',
     fg: '#0a0a0a',
     bg: '#ffffff',
@@ -267,7 +266,7 @@ const DESIGN_FALLBACK: HatchDesign = {
     font_mono: 'JetBrains Mono',
     mode: 'auto',
   },
-  layout: { density: 'comfortable', rounded: 'smooth', max_width: '1080' },
+  layout: { density: 'comfortable', rounded: 'smooth', max_width: '1160' },
   voice: { tone: 'professional', pronouns: 'we' },
   templates: {
     single_sidebar: 'right',
@@ -282,7 +281,7 @@ const DESIGN_FALLBACK: HatchDesign = {
 
 const AESTHETIC_FALLBACK: HatchAesthetic = {
   share: { x: true, linkedin: true, whatsapp: true, copy: true, facebook: false, reddit: false, email: false, position: 'inline' },
-  header: { sticky: 'sticky', blur: true, color_mode_button: true, brand_mark: 'icon_text', brand_display: 'auto' },
+  header: { sticky: 'sticky', blur: true, brand_mark: 'icon_text', brand_display: 'auto' },
   reading: { date_format: 'long', reading_time_label: 'min_read', breadcrumb_separator: 'slash', toc_depth: 'h2_h3', toc_label: 'On this page', author_avatar_shape: 'circle', progress_bar_position: 'top', progress_bar_color: 'primary', heading_anchors: false },
   images: { lightbox: true, lazy_load: true, hover_zoom: true, fallback_gradient: true, retina_2x: true, aspect_ratio: '2_1' },
   animation: { page_transitions: true, respect_reduced_motion: true },

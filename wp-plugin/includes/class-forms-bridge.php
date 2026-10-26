@@ -3,7 +3,7 @@
  * Forms Bridge: WPForms / Fluent Forms / Gravity / CF7.
  *
  * Contract (Hatch rule): Zero plugin CSS or JS ships to the frontend.
- * WP normalizes each provider's form into `{fields[], submit_endpoint, nonce}`.
+ * WP normalizes each provider's form into `{fields[], submit, nonce}`.
  * Astro renders its own <HatchForm> using Hatch tokens and POSTs values here.
  * WP replays the plugin's own submission pipeline (validation, spam, notify).
  *
@@ -561,17 +561,15 @@ class Hatch_Forms_Bridge {
 		// rewrites the URL to same-origin /api/hatch-form/{provider}/{id}/submit).
 		return new WP_REST_Response(
 			array(
-				'ok'              => true,
-				'provider'        => $provider,
-				'id'              => $id,
-				'title'           => $title,
-				'fields'          => $fields,
-				'submit'          => array(
+				'ok'       => true,
+				'provider' => $provider,
+				'id'       => $id,
+				'title'    => $title,
+				'fields'   => $fields,
+				'submit'   => array(
 					'url'    => rest_url( 'hatch/v1/forms/' . $provider . '/' . $id . '/submit' ),
 					'method' => 'POST',
 				),
-				// Kept for backwards-compat with any existing consumers.
-				'submit_endpoint' => rest_url( 'hatch/v1/forms/' . $provider . '/' . $id . '/submit' ),
 			),
 			200
 		);

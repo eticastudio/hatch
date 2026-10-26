@@ -13,7 +13,7 @@ interface Props {
   dateLabel: string; updatedLabel: string; canonical: string; bodyHtml: string; flags: any;
 }
 const { post, features, toc, adjacent, dateLabel, updatedLabel, canonical, bodyHtml, flags } = Astro.props;
-// v0.50.31 — Sidebar position is the dominant control (see SingleBase.astro).
+// v0.50.31 — Sidebar position is the dominant control.
 const showSidebar = flags.sidebarSide !== "none" && toc.length > 0;
 ---
 <article class="mx-auto px-5 sm:px-8 py-10 sm:py-14" style="max-width: var(--hatch-max-width, 1160px);">
@@ -50,7 +50,7 @@ const showSidebar = flags.sidebarSide !== "none" && toc.length > 0;
           <div class="text-[11px] uppercase tracking-widest text-hatch-fg-subtle mb-3">// {features.aesthetic.reading.toc_label}</div>
           <nav class="flex flex-col gap-1 text-[12.5px]" aria-label="Table of Contents">
             {toc.map((item: any) => (
-              <a href={`#${item.id}`} class={`hover:text-hatch-primary transition-colors text-hatch-fg-muted ${item.level === 3 ? 'pl-3' : ''}`}>{item.text}</a>
+              <a href={`#${item.id}`} class={`hover:text-hatch-primary-text transition-colors text-hatch-fg-muted ${item.level === 3 ? 'pl-3' : ''}`}>{item.text}</a>
             ))}
           </nav>
         </div>
@@ -68,8 +68,8 @@ const showSidebar = flags.sidebarSide !== "none" && toc.length > 0;
     <div class="max-w-3xl mt-12 p-5 border border-hatch-border rounded-md bg-hatch-bg-2 flex gap-4 items-start" style="font-family: var(--hatch-font-mono, ui-monospace, monospace); font-size: 13px;">
       {post.author.avatar && <img src={post.author.avatar} alt={post.author.name} width="40" height="40" class={`${flags.avatarShape} flex-shrink-0`} loading="lazy" />}
       <div class="min-w-0">
-        <div class="text-hatch-primary">// author</div>
-        <a href={`/blog/author/${post.author.slug}`} class="text-hatch-fg hover:text-hatch-primary">{post.author.name}</a>
+        <div class="text-hatch-primary-text">// author</div>
+        <a href={`/blog/author/${post.author.slug}`} class="text-hatch-fg hover:text-hatch-primary-text">{post.author.name}</a>
         <p class="text-hatch-fg-muted mt-1 leading-relaxed">{post.author.description}</p>
       </div>
     </div>
@@ -79,14 +79,14 @@ const showSidebar = flags.sidebarSide !== "none" && toc.length > 0;
     <nav class="max-w-3xl mt-12 pt-8 border-t border-hatch-border grid grid-cols-1 sm:grid-cols-2 gap-3" style="font-family: var(--hatch-font-mono, ui-monospace, monospace);" aria-label="Post navigation">
       {adjacent.prev && (
         <a href={`/blog/${adjacent.prev.slug}`} class="group p-4 rounded-md border border-hatch-border hover:border-hatch-primary transition-colors text-[13px]">
-          <span class="text-hatch-primary">← prev</span>
-          <div class="mt-1 text-hatch-fg group-hover:text-hatch-primary line-clamp-2">{adjacent.prev.title}</div>
+          <span class="text-hatch-primary-text">← prev</span>
+          <div class="mt-1 text-hatch-fg group-hover:text-hatch-primary-text line-clamp-2">{adjacent.prev.title}</div>
         </a>
       )}
       {adjacent.next && (
         <a href={`/blog/${adjacent.next.slug}`} class="group p-4 rounded-md border border-hatch-border hover:border-hatch-primary transition-colors text-[13px] sm:text-right">
-          <span class="text-hatch-primary">next →</span>
-          <div class="mt-1 text-hatch-fg group-hover:text-hatch-primary line-clamp-2">{adjacent.next.title}</div>
+          <span class="text-hatch-primary-text">next →</span>
+          <div class="mt-1 text-hatch-fg group-hover:text-hatch-primary-text line-clamp-2">{adjacent.next.title}</div>
         </a>
       )}
     </nav>

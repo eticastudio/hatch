@@ -61,13 +61,13 @@ astro-starter/
 │   ├── components/
 │   │   ├── SiteHeader.astro, SiteFooter.astro, Sidebar.astro, PostCard.astro, HatchForm.astro, HatchComments.astro, HatchImage.astro, HatchSchema.astro
 │   │   ├── hatch-blocks/           Gutenberg block renderers
-│   │   └── theme/                  Breadcrumb, PostMeta, ShareRow, SingleBase, and per-design folders (astronano, astrowind, docs, tech)
+│   │   └── theme/                  Breadcrumb, PostMeta, ShareRow, and per-design folders (astronano, astrowind, docs, tech)
 │   ├── layouts/
 │   │   └── PageLayout.astro        Base HTML, head injection
 │   └── lib/
 │       ├── hatch.ts                REST API client
 │       ├── features.ts, design.ts, blocks.ts, posts.ts, woo.ts, site.ts
-│       └── cache.ts, url-builder.ts, form-validator.ts, code-snippets.ts, theme-dispatch.ts
+│       └── cache.ts, url-builder.ts, code-snippets.ts, theme-dispatch.ts
 └── tsconfig.json
 ```
 

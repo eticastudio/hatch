@@ -6,6 +6,10 @@
  */
 @import "tailwindcss";
 
+:root {
+  color-scheme: light;
+}
+
 /*
  * Base token defaults — theme CSS files override --hatch-* on [data-hatch-theme="..."].
  * The @theme block references these so ALL Tailwind utilities (bg-hatch-bg, text-hatch-fg,
@@ -14,15 +18,17 @@
  * utility classes stay at their compile-time fallback values.
  */
 :root {
-	--hatch-primary:      #ff6b00;
-	--hatch-primary-soft: #fff3e8;
-	--hatch-primary-fg:   #ffffff;
+	--hatch-primary:      #7ebc11;
+	--hatch-primary-soft: #f1f8e3;
+	--hatch-primary-fg:   #071222;
+	/* Brand colour darkened for use as TEXT on light backgrounds (lime itself is 2.3:1 on white). */
+	--hatch-primary-text: color-mix(in oklab, var(--hatch-primary) 58%, #000);
 	--hatch-bg:           #ffffff;
 	--hatch-bg-2:         #fafafa;
 	--hatch-bg-3:         #f4f4f5;
 	--hatch-fg:           #0a0a0a;
 	--hatch-fg-muted:     #525252;
-	--hatch-fg-subtle:    #737373;
+	--hatch-fg-subtle:    #666666;
 	--hatch-border:       #e5e5e5;
 	--hatch-border-2:     #d4d4d4;
 }
@@ -32,6 +38,7 @@
 	--color-hatch-primary:      var(--hatch-primary);
 	--color-hatch-primary-soft: var(--hatch-primary-soft);
 	--color-hatch-primary-fg:   var(--hatch-primary-fg);
+	--color-hatch-primary-text: var(--hatch-primary-text);
 	--color-hatch-bg:           var(--hatch-bg);
 	--color-hatch-bg-2:         var(--hatch-bg-2);
 	--color-hatch-bg-3:         var(--hatch-bg-3);
@@ -117,11 +124,11 @@ body {
 }
 .hatch-prose p { margin: 1em 0; }
 .hatch-prose a {
-	color: var(--color-hatch-primary);
+	color: var(--color-hatch-primary-text);
 	text-decoration: underline;
 	text-underline-offset: 3px;
 	text-decoration-thickness: 1.5px;
-	text-decoration-color: rgba(255, 107, 0, 0.4);
+	text-decoration-color: rgba(126, 188, 17, 0.5);
 	transition: text-decoration-color 0.15s ease;
 }
 .hatch-prose a:hover { text-decoration-color: var(--color-hatch-primary); }
@@ -223,21 +230,6 @@ code, kbd, samp, output,
 img, video, picture {
 	outline: 1px solid rgba(0, 0, 0, 0.1);
 	outline-offset: -1px;
-}
-@media (prefers-color-scheme: dark) {
-	img, video, picture {
-		outline-color: rgba(255, 255, 255, 0.1);
-	}
-}
-[data-hatch-mode="dark"] img,
-[data-hatch-mode="dark"] video,
-[data-hatch-mode="dark"] picture {
-	outline-color: rgba(255, 255, 255, 0.1);
-}
-[data-hatch-mode="light"] img,
-[data-hatch-mode="light"] video,
-[data-hatch-mode="light"] picture {
-	outline-color: rgba(0, 0, 0, 0.1);
 }
 /* Scale-on-press on every button. Tactile 0.96 (per skill: below 0.95
    feels exaggerated, at or above 0.96 feels right). Transition on
@@ -382,7 +374,7 @@ summary:focus-visible,
 	font-weight: 400;
 	margin-right: 0.5rem;
 }
-.hatch-product-card__now { color: var(--color-hatch-primary); }
+.hatch-product-card__now { color: var(--color-hatch-primary-text); }
 .hatch-product-card__oos {
 	margin: 0.25rem 0 0; font-size: 0.8rem;
 	color: var(--color-hatch-muted);
@@ -522,7 +514,7 @@ button.hatch-btn.hatch-btn--primary,
 	margin: 0;
 }
 .hatch-checkout__back { color: var(--color-hatch-muted); text-decoration: none; font-size: 0.9rem; }
-.hatch-checkout__back:hover { color: var(--color-hatch-primary); }
+.hatch-checkout__back:hover { color: var(--color-hatch-primary-text); }
 .hatch-checkout__error, .hatch-checkout__empty,
 .hatch-order__error {
 	padding: 3rem 1rem; text-align: center;
@@ -657,7 +649,7 @@ button.hatch-btn.hatch-btn--primary,
 .hatch-order__totals dt { color: var(--color-hatch-muted); font-weight: 400; }
 .hatch-order__totals dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
 .hatch-order__grand { padding-top: 0.75rem; margin-top: 0.5rem; border-top: 1px solid var(--color-hatch-border); font-size: 1.15rem; }
-.hatch-order__grand dd { font-size: 1.35rem; color: var(--color-hatch-primary); }
+.hatch-order__grand dd { font-size: 1.35rem; color: var(--color-hatch-primary-text); }
 .hatch-order__address { font-style: normal; line-height: 1.6; }
 .hatch-order__actions { margin-top: 2rem; display: flex; justify-content: center; }
 
@@ -884,24 +876,6 @@ img, video, picture, canvas {
 }
 
 
-/*
- * Dark-mode legibility for the brand colour.
- * The Design tab writes --hatch-primary inline on <html>, which beats every
- * theme dark block. A mid-tone brand colour (e.g. #c2410c) then measures about
- * 3.5:1 on a dark surface, under the 4.5:1 WCAG AA floor for small text such as
- * category eyebrows and links. In dark mode the brand colour is lifted 30% toward
- * white (oklab), which clears 4.5:1 on the dark surfaces every theme uses.
- * Light mode keeps the exact brand colour.
- */
-[data-hatch-mode="dark"] {
-	color-scheme: dark;
-	--hatch-primary: color-mix(in oklab, var(--hatch-primary-brand, #ff6b00) 70%, white) !important;
-	/* Label colour for solid primary surfaces, chosen against the lifted colour
-	   in lib/design.ts (darkPrimaryForeground). Falls back to near-black. */
-	--hatch-primary-fg: var(--hatch-primary-fg-dark, #0b0d10) !important;
-}
-
-
 /* Footer links: give every link a 24px-tall hit area (WCAG 2.5.8) on all themes. */
 .hatch-footer-links a {
 	display: inline-flex;
@@ -909,19 +883,9 @@ img, video, picture, canvas {
 	min-height: 24px;
 }
 
-/* Colour-mode toggle icon: show the icon of the mode a click switches to (sun in
-   dark mode, moon otherwise). Pure CSS so it is right on first paint. */
-.hatch-color-mode-toggle .hatch-cm-sun { display: none; }
-.hatch-color-mode-toggle .hatch-cm-moon { display: block; }
-[data-hatch-mode="dark"] .hatch-color-mode-toggle .hatch-cm-sun { display: block; }
-[data-hatch-mode="dark"] .hatch-color-mode-toggle .hatch-cm-moon { display: none; }
-
 /* Below the desktop breakpoint the colour-mode toggle sits inline, just left of the
    hamburger, instead of floating over the top-right corner above it. */
 @media (max-width: 1023px) {
-  .hatch-color-mode-toggle { top: 22px !important; right: 68px !important; }
-  [data-hatch-theme="tech"] .hatch-color-mode-toggle { top: 16px !important; }
-  [data-hatch-theme="blog"] .hatch-color-mode-toggle { top: 20px !important; }
   /* Keep the brand clear of the toggle, and pin the hamburger to the top row so
      it stays level with the toggle when a long site name wraps. */
   .hatch-header-inner > a:first-child { margin-right: 48px; }

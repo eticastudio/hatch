@@ -20,11 +20,10 @@
  *     font_heading: "Outfit"
  *     font_body: "Inter"
  *     font_mono: "JetBrains Mono"
- *     mode: light | dark | auto
  *   layout:
  *     density: compact | comfortable | spacious
  *     rounded: sharp | smooth | extra
- *     max_width: 720 | 1080 | 1280
+ *     max_width: 720 | 1160 | 1320
  *   voice:
  *     tone: professional | casual | playful
  *     pronouns: we | I | you
@@ -50,10 +49,9 @@ class Hatch_Design_Loader {
 	 */
 	public static function allowed(): array {
 		return array(
-			'brand.mode'                   => array( 'light', 'dark', 'auto' ),
 			'layout.density'               => array( 'compact', 'comfortable', 'spacious' ),
 			'layout.rounded'               => array( 'sharp', 'smooth', 'extra' ),
-			'layout.max_width'             => array( '720', '1080', '1280' ),
+			'layout.max_width'             => array( '720', '1160', '1320' ),
 			'voice.tone'                   => array( 'professional', 'casual', 'playful' ),
 			'voice.pronouns'               => array( 'we', 'I', 'you' ),
 			// Templates - layout control per page type.
@@ -76,19 +74,18 @@ class Hatch_Design_Loader {
 		return array(
 			'brand'     => array(
 				'name'         => '',
-				'primary'      => '#ff6b35',
+				'primary'      => '#7ebc11',
 				'accent'       => '#0a0a0a',
 				'fg'           => '#0a0a0a',
 				'bg'           => '#ffffff',
 				'font_heading' => 'Inter',
 				'font_body'    => 'Inter',
 				'font_mono'    => 'JetBrains Mono',
-				'mode'         => 'auto',
 			),
 			'layout'    => array(
 				'density'   => 'comfortable',
 				'rounded'   => 'smooth',
-				'max_width' => '1080',
+				'max_width' => '1160',
 			),
 			'voice'     => array(
 				'tone'     => 'professional',
@@ -98,7 +95,7 @@ class Hatch_Design_Loader {
 				'single_sidebar'     => 'right',
 				'single_hero'        => 'featured',
 				'single_width'       => 'medium',
-				'archive_grid'       => '2',
+				'archive_grid'       => '3',
 				'archive_card_style' => 'default',
 				'archive_excerpt'    => 'true',
 				'not_found_search'   => 'true',
@@ -148,12 +145,25 @@ class Hatch_Design_Loader {
 		}
 
 		update_option( self::OPTION_KEY, $raw_md, false );
+
+		// A file with no settings is kept as written, but it must not reset the
+		// colors, fonts and layout the site already uses back to the defaults.
+		if ( empty( $parsed['has_settings'] ) ) {
+			return array(
+				'ok'           => true,
+				'parsed'       => array(),
+				'errors'       => array(),
+				'has_settings' => false,
+			);
+		}
+
 		update_option( self::OPTION_PARSED, $parsed['data'], false );
 
 		return array(
-			'ok'     => true,
-			'parsed' => $parsed['data'],
-			'errors' => array(),
+			'ok'           => true,
+			'parsed'       => $parsed['data'],
+			'errors'       => array(),
+			'has_settings' => true,
 		);
 	}
 
@@ -194,11 +204,16 @@ class Hatch_Design_Loader {
 		if ( preg_match( '/^---\s*\n(.*?)\n---\s*\n?(.*)$/s', $md, $m ) ) {
 			$front = $m[1];
 			$body  = trim( $m[2] );
+		} elseif ( preg_match( '/^\s*(brand|layout|voice|name|primary|accent|fg|bg|font_heading|font_body|font_mono|density|rounded|max_width|tone|pronouns)\s*:/mi', $md ) ) {
+			// Settings written without the --- lines: read the whole file as settings.
+			$front = $md;
+			$body  = '';
 		} else {
 			// No frontmatter → treat the whole thing as body, run with defaults.
 			return array(
-				'data'   => array_merge( self::defaults(), array( 'body' => trim( $md ) ) ),
-				'errors' => array(),
+				'data'         => array_merge( self::defaults(), array( 'body' => trim( $md ) ) ),
+				'errors'       => array(),
+				'has_settings' => false,
 			);
 		}
 
@@ -224,8 +239,9 @@ class Hatch_Design_Loader {
 
 		$data['body'] = $body;
 		return array(
-			'data'   => $data,
-			'errors' => $errors,
+			'data'         => $data,
+			'errors'       => $errors,
+			'has_settings' => true,
 		);
 	}
 
@@ -312,6 +328,15 @@ class Hatch_Design_Loader {
 			return substr( sanitize_text_field( $value ), 0, 60 );
 		}
 
+		// Older design.md files used 1080 and 1280 for the two wider layouts.
+		if ( 'layout.max_width' === $dotted ) {
+			$legacy = array(
+				'1080' => '1160',
+				'1280' => '1320',
+			);
+			$value  = $legacy[ $value ] ?? $value;
+		}
+
 		// Enum tokens - must match allowed list.
 		$allowed = self::allowed();
 		if ( isset( $allowed[ $dotted ] ) ) {
@@ -325,6 +350,100 @@ class Hatch_Design_Loader {
 		// Anything else: drop.
 		$errors[] = sprintf( 'Unknown key: %s', $dotted );
 		return null;
+	}
+
+	/**
+	 * The Design tab stores Secondary (text) and Background; the frontend
+	 * reads brand.fg and brand.bg. Map one onto the other and drop the
+	 * admin-only keys so every consumer sees one set of colour names.
+	 *
+	 * @param array $brand Brand group as stored by the admin or parsed from design.md.
+	 * @return array
+	 */
+	public static function normalize_brand( array $brand ): array {
+		$map = array(
+			'secondary'  => 'fg',
+			'background' => 'bg',
+		);
+		foreach ( $map as $admin_key => $token ) {
+			if ( isset( $brand[ $admin_key ] ) && '' !== $brand[ $admin_key ] ) {
+				$brand[ $token ] = $brand[ $admin_key ];
+			}
+			unset( $brand[ $admin_key ] );
+		}
+		return $brand;
+	}
+
+	/**
+	 * Brand colours as the Design tab shows them: the loader defaults (what
+	 * the frontend renders before anything is saved) under the admin names.
+	 *
+	 * @param array $stored Value of the hatch_design_brand option.
+	 * @return array
+	 */
+	public static function admin_brand( array $stored ): array {
+		$defaults = self::defaults()['brand'];
+		$stored   = self::normalize_brand( $stored );
+		$brand    = array_merge( $defaults, $stored );
+		return array_merge(
+			$brand,
+			array(
+				'secondary'  => $brand['fg'],
+				'background' => $brand['bg'],
+			)
+		);
+	}
+
+	/**
+	 * Copy a parsed design.md into the scattered options the admin controls
+	 * read, so the admin, /features and /design all show the same design.
+	 *
+	 * @param array $parsed Parsed design (as returned by save()).
+	 * @return array Map of admin path => value that was written.
+	 */
+	public static function hydrate_options( array $parsed ): array {
+		$out = array();
+
+		if ( ! empty( $parsed['brand'] ) && is_array( $parsed['brand'] ) ) {
+			$stored = (array) get_option( 'hatch_design_brand', array() );
+			$brand  = $parsed['brand'];
+			foreach ( array( 'primary', 'accent', 'name' ) as $k ) {
+				if ( isset( $brand[ $k ] ) ) {
+					$stored[ $k ]               = $brand[ $k ];
+					$out[ "design.brand.{$k}" ] = $brand[ $k ];
+				}
+			}
+			if ( isset( $brand['fg'] ) ) {
+				$stored['secondary']           = $brand['fg'];
+				$out['design.brand.secondary'] = $brand['fg'];
+			}
+			if ( isset( $brand['bg'] ) ) {
+				$stored['background']           = $brand['bg'];
+				$out['design.brand.background'] = $brand['bg'];
+			}
+			update_option( 'hatch_design_brand', $stored, false );
+
+			foreach ( array( 'heading', 'body', 'mono' ) as $f ) {
+				if ( ! empty( $brand[ "font_{$f}" ] ) ) {
+					update_option( "hatch_design_font_{$f}", $brand[ "font_{$f}" ], false );
+					$out[ "design.font_{$f}" ] = $brand[ "font_{$f}" ];
+				}
+			}
+		}
+
+		foreach ( array( 'layout', 'voice', 'templates' ) as $grp ) {
+			if ( empty( $parsed[ $grp ] ) || ! is_array( $parsed[ $grp ] ) ) {
+				continue;
+			}
+			$stored = (array) get_option( "hatch_design_{$grp}", array() );
+			foreach ( $parsed[ $grp ] as $k => $v ) {
+				$stored[ $k ]                = $v;
+				$out[ "design.{$grp}.{$k}" ] = $v;
+			}
+			update_option( "hatch_design_{$grp}", $stored, false );
+		}
+
+		return $out;
 	}
 
 	private static function merge_with_defaults( array $parsed ): array {

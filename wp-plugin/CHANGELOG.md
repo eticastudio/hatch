@@ -1,8 +1,12 @@
 # Hatch WordPress Plugin — Changelog
 
-## 0.2 (2026-10-20)
+## 1.0.0 (2026-10-25)
 
-First public WordPress.org release. Renumbered from the internal 1.0.2 build so that 1.0 is kept for a later milestone. The code is the 1.0.2 build below; the 1.0.x and 0.8.x numbers were never published.
+First public WordPress.org release. Version 1.0.0 supersedes the 0.2 numbering used during review: the 0.2 label was only ever a submission number and was never published. Plugin name is now "Hatch Connect" with no WordPress trademark in the title; lowercase hatch wordmark, lime and ink palette, four step setup, Astro only.
+
+## 0.2 (2026-10-20, submission build, not published)
+
+Renumbered from the internal 1.0.2 build for the first WordPress.org submission.
 
 ## 1.0.2 (2026-10-20, internal, shipped as 0.2)
 
@@ -56,7 +60,7 @@ Fixed
 - Forms bridge no longer merges `$_REQUEST`.
 - The frontend URL is passed through `esc_url_raw()` before it reaches page output.
 
-## 1.0.0 (2026-10-01)
+## 1.0.0-internal (2026-10-01, internal build, never published)
 
 First stable release for WordPress.org.
 

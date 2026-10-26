@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name:       Hatch Connect
- * Description:       Show your WordPress site through a fast frontend hosted on your own Cloudflare account. Set up from wp-admin in a few minutes, and undo it any time.
- * Version:           0.2
+ * Plugin Name:       Hatch Connect - Astro Headless for Cloudflare
+ * Description:       Deploy a fast Astro frontend to your own Cloudflare account from your dashboard. No servers to run, and you can undo it any time.
+ * Version:           1.0.0
  * Requires at least: 6.4
  * Requires PHP:      7.4
  * Author:            Aditya Sharma
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'HATCH_VERSION', '0.2' );
+define( 'HATCH_VERSION', '1.0.0' );
 define( 'HATCH_PLUGIN_FILE', __FILE__ );
 define( 'HATCH_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'HATCH_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -230,7 +230,7 @@ add_action(
 /**
  * v0.50.18 - Sync Hatch design tokens to the WordPress frontend so the
  * active WP theme respects the user's picks (max width, brand colors,
- * fonts, color mode). Without this, a user who installs Hatch but doesn't
+ * fonts). Without this, a user who installs Hatch but doesn't
  * connect a frontend would see WordPress render with the theme's
  * own width / colors, ignoring everything they set in the Hatch admin -
  * exactly the "no conflict between Hatch + WP theme" guarantee the user
@@ -247,16 +247,17 @@ add_action(
  */
 add_action( 'wp_enqueue_scripts', 'hatch_sync_design_tokens_to_wp_frontend', 5 );
 function hatch_sync_design_tokens_to_wp_frontend(): void {
-	$brand  = (array) get_option( 'hatch_design_brand', array() );
+	$brand  = class_exists( 'Hatch_Design_Loader' )
+		? Hatch_Design_Loader::admin_brand( (array) get_option( 'hatch_design_brand', array() ) )
+		: (array) get_option( 'hatch_design_brand', array() );
 	$layout = (array) get_option( 'hatch_design_layout', array() );
-	$mode   = (string) get_option( 'hatch_design_mode', 'auto' );
 
-	$primary = hatch_css_color( $brand['primary'] ?? '', '#ff6b00' );
-	$accent  = hatch_css_color( $brand['accent'] ?? ( $brand['secondary'] ?? '' ), '#6366f1' );
+	// Same defaults as the frontend, so a WP-rendered page matches the deployed site.
+	$primary = hatch_css_color( $brand['primary'] ?? '', '#7ebc11' );
+	$accent  = hatch_css_color( $brand['accent'] ?? '', '#0a0a0a' );
 	$bg      = hatch_css_color( $brand['background'] ?? '', '#ffffff' );
 	$font_h  = hatch_css_font_name( (string) get_option( 'hatch_design_font_heading', 'Inter' ) );
 	$font_b  = hatch_css_font_name( (string) get_option( 'hatch_design_font_body', 'Inter' ) );
-	$mode    = in_array( $mode, array( 'light', 'dark' ), true ) ? $mode : 'auto';
 
 	// Width normalisation: tolerate legacy "1320px" or canonical "1320".
 	$max_raw = $layout['max_width'] ?? ( $layout['maxWidth'] ?? '1160' );
@@ -310,9 +311,8 @@ function hatch_sync_design_tokens_to_wp_frontend(): void {
 		$css .= 'main.wp-block-group,article.post,article.page,.hatch-post-container{';
 		$css .= 'max-width:var(--hatch-max-width,1160px);margin-left:auto;margin-right:auto;}';
 	}
-	if ( 'auto' !== $mode ) {
-		$css .= 'html{color-scheme:' . $mode . ';}';
-	}
+	// Light mode only. Form controls and scrollbars always use light colours.
+	$css .= 'html{color-scheme:light;}';
 
 	wp_register_style( 'hatch-design-tokens', false, array(), HATCH_VERSION );
 	wp_enqueue_style( 'hatch-design-tokens' );

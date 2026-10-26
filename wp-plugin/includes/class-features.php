@@ -392,27 +392,28 @@ class Hatch_Features {
 			// pattern already used for borders + breakpoints above.
 			foreach ( array( 'layout', 'brand', 'voice', 'templates' ) as $grp ) {
 				$stored = (array) get_option( "hatch_design_{$grp}", array() );
+				if ( 'brand' === $grp ) {
+					// Secondary and Background are admin names for fg and bg.
+					$stored = Hatch_Design_Loader::normalize_brand( $stored );
+				}
 				if ( ! empty( $stored ) && isset( $design[ $grp ] ) && is_array( $design[ $grp ] ) ) {
 					$design[ $grp ] = array_merge( $design[ $grp ], $stored );
 				}
 			}
-			// Top-level font + mode scalars live outside the grouped
+			// Top-level font scalars live outside the grouped
 			// options (React writes them as hatch_design_font_heading /
-			// _body / _mono / _mode) - mirror admin/dashboard.php's
+			// _body / _mono) - mirror admin/dashboard.php's
 			// hatch_regenerate_design_artifacts so the payload reflects
 			// them without waiting for a React save to rebuild the cache.
 			$font_heading = get_option( 'hatch_design_font_heading', null );
 			$font_body    = get_option( 'hatch_design_font_body', null );
 			$font_mono    = get_option( 'hatch_design_font_mono', null );
-			$design_mode  = get_option( 'hatch_design_mode', null );
 			if ( null !== $font_heading ) {
 				$design['brand']['font_heading'] = (string) $font_heading; }
 			if ( null !== $font_body ) {
 				$design['brand']['font_body'] = (string) $font_body;    }
 			if ( null !== $font_mono ) {
 				$design['brand']['font_mono'] = (string) $font_mono;    }
-			if ( null !== $design_mode ) {
-				$design['brand']['mode'] = (string) $design_mode;  }
 		}
 
 		// v0.50.15 - Aesthetic option groups. Pure key-value pass-through:
@@ -431,12 +432,11 @@ class Hatch_Features {
 				'position' => 'inline',
 			),
 			'header'          => array(
-				'sticky'            => 'sticky',
-				'blur'              => true,
-				'color_mode_button' => true,
-				'brand_mark'        => 'icon_text',
+				'sticky'        => 'sticky',
+				'blur'          => true,
+				'brand_mark'    => 'icon_text',
 				// v0.50.31 - logo / text / both / auto. SiteHeader.astro reads this.
-				'brand_display'     => 'auto',
+				'brand_display' => 'auto',
 			),
 			'reading'         => array(
 				'date_format'           => 'long',
@@ -528,7 +528,7 @@ class Hatch_Features {
 					'icon_url'    => function_exists( 'get_site_icon_url' ) ? get_site_icon_url() : '',
 					// v0.41 - WP Site Identity → Logo (Customizer custom-logo). Resolves to the
 					// uploaded image URL. Used by the Astro SiteHeader to render a logo image
-					// when set; falls back to text + 🐣 mark when empty.
+					// when set; falls back to the hatch wordmark when empty.
 					'logo_url'    => ( function () {
 						$id = (int) get_theme_mod( 'custom_logo', 0 );
 						if ( ! $id ) {

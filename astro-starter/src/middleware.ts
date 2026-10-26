@@ -221,7 +221,9 @@ const CSP = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://challenges.cloudflare.com https://static.cloudflareinsights.com https://js.stripe.com https://www.paypal.com https://www.paypalobjects.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: https:",
+  // `https:` covers production media. In dev the local WP serves media over
+  // plain http, so its origin is allowed there only (empty string in prod).
+  `img-src 'self' data: https:${ import.meta.env.DEV ? ' http://localhost:8810' : '' }`,
   // v0.3.2 allow the Hatch WP origin so the blocks runtime can fetch
   // /hatch/v1/content/list, /hatch/v1/forms/{provider}/{id}, etc.
   // Backlog #154 — localhost origins must not leak into a production CSP.

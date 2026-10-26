@@ -37,7 +37,7 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
       <h1 class="text-3xl font-semibold tracking-tight">Sign in</h1>
       {accountGate.content?.registration_open && (
         <p class="mt-2 text-[14px] text-hatch-fg-muted">
-          No account? <a href={`/register?redirect_to=${encodeURIComponent(redirectTo)}`} class="text-hatch-primary hover:underline">Create one</a>.
+          No account? <a href={`/register?redirect_to=${encodeURIComponent(redirectTo)}`} class="text-hatch-primary-text hover:underline">Create one</a>.
         </p>
       )}
     </header>
@@ -124,7 +124,7 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
                     : 'Sign-in failed. Please try again.');
               throw new Error(msg);
             }
-            if (status) { status.textContent = 'Signed in. Redirecting.'; status.className = 'text-[13px] text-green-600 dark:text-green-400'; }
+            if (status) { status.textContent = 'Signed in. Redirecting.'; status.className = 'text-[13px] text-green-600'; }
             window.location.href = redirect;
           } catch (err) {
             const msg = (err && err.message) || 'Sign-in failed. Please try again.';

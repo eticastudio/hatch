@@ -52,7 +52,7 @@ const tsKey = ts && ts.enabled && ts.site_key ? String(ts.site_key) : '';
     // one origin and hides the private docker WP hostname.
     const schemaUrl = (provider, id) => `/api/hatch-form/${provider}/${id}`;
 
-    // ---- native validator (mirror of src/lib/form-validator.ts) ----------
+    // ---- native validator ----------
     // Inlined because this file is <script is:inline>: Astro's bundler
     // does not run on inline scripts, so we cannot `import`. Kept in sync
     // manually; both surfaces have unit tests around the same rule shapes.

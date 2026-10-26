@@ -32,7 +32,7 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
     <header class="mb-8">
       <h1 class="text-3xl font-semibold tracking-tight">Create an account</h1>
       <p class="mt-2 text-[14px] text-hatch-fg-muted">
-        Already registered? <a href={`/login?redirect_to=${encodeURIComponent(redirectTo)}`} class="text-hatch-primary hover:underline">Sign in</a>.
+        Already registered? <a href={`/login?redirect_to=${encodeURIComponent(redirectTo)}`} class="text-hatch-primary-text hover:underline">Sign in</a>.
       </p>
     </header>
 
@@ -94,10 +94,10 @@ const SITE = features.site.url || import.meta.env.PUBLIC_SITE_URL || '';
             });
             const body = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(body.message || 'Registration failed');
-            if (status) { status.textContent = 'Account created. Redirecting...'; status.className = 'text-[13px] text-green-600 dark:text-green-400'; }
+            if (status) { status.textContent = 'Account created. Redirecting...'; status.className = 'text-[13px] text-green-600'; }
             window.location.href = redirect;
           } catch (err) {
-            if (status) { status.textContent = (err && err.message) || 'Registration failed'; status.className = 'text-[13px] text-red-600 dark:text-red-400'; }
+            if (status) { status.textContent = (err && err.message) || 'Registration failed'; status.className = 'text-[13px] text-red-600'; }
             if (btn) btn.disabled = false;
           }
         });

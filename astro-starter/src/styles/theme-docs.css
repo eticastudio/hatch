@@ -30,7 +30,7 @@
 	--hatch-bg:           var(--hatch-bg-design, #fafbfc);
 	--hatch-fg:           var(--hatch-fg-design, #0f1115);
 	--hatch-primary:      #4f46e5;
-	--hatch-primary-fg:   #ffffff;
+	--hatch-primary-fg:   #071222;
 	--hatch-accent:       #16a34a;  /* "OK" green for inline status chips */
 
 	/* Surface ramp — cool gray, panel-friendly. */
@@ -43,24 +43,6 @@
 
 	--hatch-border:        #e3e6eb;
 	--hatch-border-strong: #cdd2da;
-}
-
-[data-hatch-theme="docs"][data-hatch-mode="dark"] {
-	--hatch-bg:         #0f1115;
-	--hatch-fg:         #e8eaef;
-	--hatch-primary:    #818cf8;
-	--hatch-primary-fg: #0f1115;
-	--hatch-accent:     #34d399;
-
-	--hatch-bg-2:       #161922;
-	--hatch-bg-3:       #1e222d;
-	--hatch-bg-4:       #2a2f3c;
-
-	--hatch-fg-muted:   #a8aeba;
-	--hatch-fg-subtle:  #8b92a0;
-
-	--hatch-border:        #232733;
-	--hatch-border-strong: #353b4a;
 }
 
 /* === Base typography ============================================== */
@@ -273,7 +255,7 @@
 	padding: 2px 8px;
 	border-radius: 999px;
 	background: color-mix(in oklab, var(--hatch-primary) 14%, var(--hatch-bg));
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 	font-family: var(--hatch-font-mono);
 	font-size: 11px;
 	margin-bottom: 12px;
@@ -318,7 +300,7 @@
 }
 
 [data-hatch-theme="docs"] .hatch-prose a {
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 	text-decoration: underline;
 	text-decoration-thickness: 1px;
 	text-underline-offset: 3px;
@@ -390,7 +372,7 @@
 }
 
 [data-hatch-theme="docs"] .hatch-footer-links a:hover {
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 }
 
 [data-hatch-theme="docs"] .hatch-footer-meta {
@@ -519,7 +501,7 @@
 }
 
 [data-hatch-theme="docs"] .hatch-docs-list-title:hover {
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 }
 
 [data-hatch-theme="docs"] .hatch-docs-list-cat {
@@ -673,7 +655,7 @@
 [data-hatch-theme="docs"] .hatch-sidebar a[aria-current="page"],
 [data-hatch-theme="docs"] .hatch-sidebar a.is-active,
 [data-hatch-theme="docs"] .hatch-docs-sidebar a[aria-current="page"] {
-	color: var(--color-hatch-primary);
+	color: var(--color-hatch-primary-text);
 	background: color-mix(in oklab, var(--color-hatch-primary) 8%, transparent);
 	font-weight: 500;
 }
@@ -715,8 +697,8 @@
 	line-height: 1.6;
 }
 [data-hatch-theme="docs"] .hatch-callout[data-kind="warning"] {
-	border-left-color: #d97706;
-	background: color-mix(in oklab, #d97706 8%, var(--color-hatch-bg));
+	border-left-color: #8a6d00;
+	background: color-mix(in oklab, #8a6d00 8%, var(--color-hatch-bg));
 }
 [data-hatch-theme="docs"] .hatch-callout[data-kind="tip"] {
 	border-left-color: #059669;
@@ -725,10 +707,4 @@
 [data-hatch-theme="docs"] .hatch-callout[data-kind="danger"] {
 	border-left-color: #dc2626;
 	background: color-mix(in oklab, #dc2626 8%, var(--color-hatch-bg));
-}
-
-/* Cool gray dark mode — calm, not inky. */
-[data-hatch-theme="docs"][data-hatch-mode="dark"] {
-	--hatch-bg: #0e1116;
-	--hatch-fg: #e6e9ef;
 }

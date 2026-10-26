@@ -36,7 +36,8 @@ const HEART = {
 	good: { color: 'var(--hx-success)', badge: 'green', label: () => __('Healthy', 'hatch-connect') },
 	warn: { color: 'var(--hx-warning)', badge: 'yellow', label: () => __('Slow', 'hatch-connect') },
 	bad: { color: 'var(--hx-danger)', badge: 'red', label: () => __('Down', 'hatch-connect') },
-	muted: { color: 'var(--hx-subtle)', badge: 'neutral', label: () => __('Pending', 'hatch-connect') },
+	muted: { color: 'var(--hx-text-subtle)', badge: 'neutral', label: () => __('Pending', 'hatch-connect') },
+	stale: { color: 'var(--hx-text-subtle)', badge: 'neutral', label: () => __('Not checked recently', 'hatch-connect') },
 };
 
 /**
@@ -453,7 +454,7 @@ export default function Connection({ state }) {
 			<HxCard>
 				<HxHead
 					iconChildren={isLive ? ICON.link : ICON.offline}
-					iconColor={isLive ? 'var(--hx-success)' : 'var(--hx-muted)'}
+					iconColor={isLive ? 'var(--hx-success)' : 'var(--hx-text-muted)'}
 					title={isLive ? __('Your frontend is live', 'hatch-connect') : __('Not deployed yet', 'hatch-connect')}
 					desc={
 						isLive
@@ -469,7 +470,7 @@ export default function Connection({ state }) {
 							{url ? (
 								<a href={url} target="_blank" rel="noopener noreferrer" className="hx-link" style={{ overflowWrap: 'anywhere' }}>{prettyUrl}</a>
 							) : (
-								<span className="hx-desc" style={{ color: 'var(--hx-subtle)' }}>{__('Not available', 'hatch-connect')}</span>
+								<span className="hx-desc" style={{ color: 'var(--hx-text-subtle)' }}>{__('Not available', 'hatch-connect')}</span>
 							)}
 						</HxRow>
 
@@ -518,7 +519,7 @@ export default function Connection({ state }) {
 									<HxIcon size={13} color="currentColor">{ICON.external}</HxIcon>
 								</HxBtn>
 							) : (
-								<span className="hx-desc" style={{ color: 'var(--hx-subtle)' }}>{__('Not available', 'hatch-connect')}</span>
+								<span className="hx-desc" style={{ color: 'var(--hx-text-subtle)' }}>{__('Not available', 'hatch-connect')}</span>
 							)}
 						</HxRow>
 
@@ -613,7 +614,7 @@ export default function Connection({ state }) {
 									)}
 									<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
 										<HxBtn type="submit" variant="brand" size="sm" disabled={deploy.phase === 'running'}>
-											{deploy.phase === 'running' && deployHere('domain') ? __('Redeploying', 'hatch-connect') : __('Redeploy', 'hatch-connect')}
+											{deploy.phase === 'running' && deployHere('domain') ? __('Moving', 'hatch-connect') : __('Move to this domain', 'hatch-connect')}
 										</HxBtn>
 										<HxBtn variant="ghost" size="sm" onClick={() => closePanel('domain')} disabled={deploy.phase === 'running'}>
 											{__('Cancel', 'hatch-connect')}
@@ -727,7 +728,7 @@ export default function Connection({ state }) {
 							<HxRow stack
 								tone="danger"
 								label={__('Disconnect', 'hatch-connect')}
-								desc={__('Stops WordPress from feeding the frontend and puts your earlier theme back. The frontend stays online at Cloudflare until you delete it there.', 'hatch-connect')}
+								desc={__('Stops WordPress from feeding the frontend and sends visitors to your WordPress site again. Your theme is never changed. The frontend stays online at Cloudflare until you delete it there.', 'hatch-connect')}
 								last
 							>
 								<HxBtn
@@ -750,10 +751,10 @@ export default function Connection({ state }) {
 									onKeyDown={(ev) => { if (ev.key === 'Escape' && disc.phase !== 'running') closePanel('disc'); }}
 									style={{ marginTop: 6, padding: 16, border: '1px solid var(--hx-danger-edge)', borderRadius: 10, background: 'var(--hx-danger-soft)' }}
 								>
-									<div id="hatch-disc-title" className="hx-label" style={{ color: 'var(--hx-fg)' }}>
+									<div id="hatch-disc-title" className="hx-label" style={{ color: 'var(--hx-text)' }}>
 										{__('Disconnect this site from the frontend?', 'hatch-connect')}
 									</div>
-									<p className="hx-desc" style={{ margin: '4px 0 12px', color: 'var(--hx-fg)' }}>
+									<p className="hx-desc" style={{ margin: '4px 0 12px', color: 'var(--hx-text)' }}>
 										{__('Hatch forgets the saved WordPress account and application password and the saved Cloudflare token. Hatch did not create that application password, so you revoke it yourself in your profile afterwards. This cannot be undone from here. You would run the setup again to reconnect.', 'hatch-connect')}
 									</p>
 									<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -791,7 +792,7 @@ export default function Connection({ state }) {
 				<HxCard>
 					<HxHead
 						iconChildren={ICON.history}
-						iconColor="var(--hx-muted)"
+						iconColor="var(--hx-text-muted)"
 						title={__('Deployment history', 'hatch-connect')}
 						desc={__('The latest deploys from this site. Cache refreshes are not listed.', 'hatch-connect')}
 						mb={14}
@@ -898,12 +899,12 @@ function CheckRow({ check: c, last }) {
 				<HxIcon size={14} color={fg} sw={kind === 'warn' ? 2 : 2.5}>{icon}</HxIcon>
 			</div>
 			<div style={{ flex: 1, minWidth: 0 }}>
-				<div className="hx-label" style={{ color: 'var(--hx-fg)' }}>
+				<div className="hx-label" style={{ color: 'var(--hx-text)' }}>
 					<span className="screen-reader-text">{word}: </span>
 					{c.label || c.l}
 				</div>
 				{c.note && (
-					<div className="hx-help" style={{ color: 'var(--hx-subtle)', marginTop: 3 }}>{c.note}</div>
+					<div className="hx-help" style={{ color: 'var(--hx-text-subtle)', marginTop: 3 }}>{c.note}</div>
 				)}
 			</div>
 		</div>

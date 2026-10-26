@@ -15,12 +15,12 @@ import { IC } from '../icons';
 const getBloatItems = () => [
 	{ slug: 'emoji',          label: __('Emoji script', 'hatch-connect'),                desc: __('Removes a small script WordPress adds to draw emoji. Browsers already show emoji on their own.', 'hatch-connect') },
 	{ slug: 'embed',          label: __('Embed script', 'hatch-connect'),             desc: __('Removes the script that lets other sites embed your posts. Your frontend does not need it.', 'hatch-connect') },
-	{ slug: 'xmlrpc',         label: __('Old remote access and pingbacks', 'hatch-connect'),       desc: __('Turns off XML-RPC, an old WordPress feature that attackers like to try for password guessing, and the pingback notices that go with it.', 'hatch-connect') },
-	{ slug: 'head_cruft',     label: __('Extra page header tags', 'hatch-connect'), desc: __('Removes hidden tags WordPress adds to the top of every page, such as the version number, short links and feed links.', 'hatch-connect') },
+	{ slug: 'xmlrpc',         label: __('Old remote access closed', 'hatch-connect'),       desc: __('Turns off XML-RPC, an old WordPress feature that attackers like to try for password guessing, and the pingback notices that go with it.', 'hatch-connect') },
+	{ slug: 'head_cruft',     label: __('Extra page header tags', 'hatch-connect'), desc: __('Removes hidden tags WordPress adds to the top of every page, such as short links and feed links.', 'hatch-connect') },
 	{ slug: 'block_css',      label: __('Block styles', 'hatch-connect'),           desc: __('Stops WordPress from loading its block styling on the WordPress site itself. Your frontend has its own.', 'hatch-connect') },
 	{ slug: 'jquery_migrate', label: __('Old-plugin helper (public pages)', 'hatch-connect'), desc: __('Removes a compatibility script for very old plugins from public pages. The dashboard keeps it, so nothing breaks there.', 'hatch-connect') },
 	{ slug: 'oembed',         label: __('Embed discovery', 'hatch-connect'),            desc: __('Removes the links that let other sites find and embed your posts. Your frontend does not use them.', 'hatch-connect') },
-	{ slug: 'rest_users',     label: __('Hide the user list', 'hatch-connect'),   desc: __('Visitors must sign in to see a list of users, so they cannot look up author names.', 'hatch-connect') },
+	{ slug: 'rest_users',     label: __('Usernames hidden', 'hatch-connect'),   desc: __('Visitors must sign in to see a list of users, so they cannot look up author names.', 'hatch-connect') },
 	{ slug: 'self_pingback',  label: __('Self-pingbacks', 'hatch-connect'),              desc: __('Stops WordPress from sending a notice to itself when your posts link to each other.', 'hatch-connect') },
 	{ slug: 'feeds',          label: __('WordPress feeds', 'hatch-connect'),             desc: __('Sends WordPress feed addresses to the feed on your frontend. Without a frontend address they show a "gone" page. This stays off unless you turn it on.', 'hatch-connect') },
 ];
@@ -51,8 +51,15 @@ export default function Performance({ state, onDirty, setSetting }) {
 				<HxRow
 					label={__('Slim down and protect WordPress', 'hatch-connect')}
 					desc={master
-						? __('On. WordPress pages are lighter and no longer show the WordPress version.', 'hatch-connect')
-						: __('Removes extra tags, scripts and styles from pages that WordPress serves itself.', 'hatch-connect')}
+						? __('On. WordPress pages are lighter and carry fewer extra tags, scripts and styles.', 'hatch-connect')
+						: activeCount > 0
+							? sprintf(
+								/* translators: 1: number of items turned on, 2: total number of items. */
+								__('Partly on: %1$d of %2$d items. Turn this on to use all of them.', 'hatch-connect'),
+								activeCount,
+								bloatItems.length
+							)
+							: __('Removes extra tags, scripts and styles from pages that WordPress serves itself.', 'hatch-connect')}
 					last
 				>
 					<HxToggle on={master} onChange={onToggle('performance.bloat_kill')} ariaLabel={__('Remove extra WordPress weight', 'hatch-connect')} />

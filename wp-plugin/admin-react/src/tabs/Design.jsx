@@ -41,7 +41,7 @@ const FeatureToggle = ({ slug, last = false }) => {
 	);
 };
 
-export default function Design({ state, onDirty, setSetting }) {
+export default function Design({ state, onDirty, setSetting, pendingPaths = [], saveNotes = [] }) {
 	// v0.50.25 - Themes are sourced from boot state (state.themes) so the
 	// authoritative label and description come from
 	// PHP Hatch_Features::themes(). Local map adds the SVG previewKey + chip
@@ -67,13 +67,12 @@ export default function Design({ state, onDirty, setSetting }) {
 	const layout = state.design?.layout || { density: 'comfortable', rounded: 'smooth', max_width: '1160', button_style: 'pill' };
 	const fontHead = state.design?.font_heading || 'Inter';
 	const fontBody = state.design?.font_body || 'Inter';
-	const mode = state.design?.mode || 'auto';
 
 	const templates = state.templates || {
 		single_sidebar: 'right',
 		single_hero: 'featured',
 		single_width: 'medium',
-		archive_grid: '2',
+		archive_grid: '3',
 		archive_excerpt: true,
 		not_found_search: true,
 	};
@@ -86,7 +85,7 @@ export default function Design({ state, onDirty, setSetting }) {
 	// v0.50.15 - Aesthetic option groups. Defaults mirror PHP so the UI stays
 	// fully usable even before the first save reaches the dispatcher.
 	const share = state.share || { x: true, linkedin: true, whatsapp: true, copy: true, facebook: false, reddit: false, email: false, position: 'inline' };
-	const header = state.header || { sticky: 'sticky', blur: true, color_mode_button: true, brand_mark: 'icon_text' };
+	const header = state.header || { sticky: 'sticky', blur: true, brand_mark: 'icon_text' };
 	const reading = state.reading || { date_format: 'long', reading_time_label: 'min_read', breadcrumb_separator: 'slash', toc_depth: 'h2_h3', toc_label: 'On this page', author_avatar_shape: 'circle', progress_bar_position: 'top', progress_bar_color: 'primary', heading_anchors: false };
 	const images = state.images || { lightbox: true, lazy_load: true, hover_zoom: true, fallback_gradient: true, retina_2x: true, aspect_ratio: '2_1' };
 	const animation = state.animation || { page_transitions: true, respect_reduced_motion: true };
@@ -97,7 +96,7 @@ export default function Design({ state, onDirty, setSetting }) {
 	const onToggle = (path) => (v) => { setSetting(path, v); onDirty(); };
 	const onChip   = (path, id) => () => { setSetting(path, id); onDirty(); };
 
-	const colorInputStyle = { width: 36, height: 36, borderRadius: 8, border: '1px solid var(--hx-border-2)', cursor: 'pointer', padding: 2, background: 'var(--hx-surface)' };
+	const colorInputStyle = { width: 36, height: 36, borderRadius: 8, border: '1px solid var(--hx-border-strong)', cursor: 'pointer', padding: 2, background: 'var(--hx-surface)' };
 
 	const ctxValue = { onChip, features, featureCatalog, setSetting, onDirty };
 
@@ -110,7 +109,7 @@ export default function Design({ state, onDirty, setSetting }) {
 			<HxCard>
 				<HxHead
 					iconChildren={IC.palette}
-					iconColor="#ff6b00"
+					iconColor="#7ebc11"
 					title={__( 'Frontend design', 'hatch-connect' )}
 					desc={__( 'Choose the look of your frontend. You can change fonts, colors and layout below.', 'hatch-connect' )}
 				/>
@@ -143,17 +142,13 @@ export default function Design({ state, onDirty, setSetting }) {
 									{TP[t.previewKey] || TP.Blog}
 								</div>
 								<div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6, marginBottom: 2 }}>
-									<div className="hx-desc" style={{ fontWeight: 700, color: 'var(--hx-fg)' }}>{t.name}</div>
+									<div className="hx-desc" style={{ fontWeight: 700, color: 'var(--hx-text)' }}>{t.name}</div>
 								</div>
 								<div
 									className="hx-help"
 									style={{
-										color: 'var(--hx-subtle)',
+										color: 'var(--hx-text-subtle)',
 										lineHeight: 1.5,
-										display: '-webkit-box',
-										WebkitLineClamp: 2,
-										WebkitBoxOrient: 'vertical',
-										overflow: 'hidden',
 										minHeight: 36,
 									}}
 									title={t.desc}
@@ -180,14 +175,14 @@ export default function Design({ state, onDirty, setSetting }) {
 				/>
 			</HxCard>
 
-			{/* v0.50.16. Brand colors + color mode + typography + layout in one
+			{/* v0.50.16. Brand colors + typography + layout in one
 			    card, with a design.md upload row at the bottom so users who
 			    already have a token file can drop it in and skip every
 			    individual picker. */}
 			<HxCard>
 				<HxHead
 					iconChildren={IC.slidersHorizontal}
-					iconColor="#ff6b00"
+					iconColor="#7ebc11"
 					title={__( 'Typography, colors and layout', 'hatch-connect' )}
 					desc={__( 'Set your brand colors, fonts, spacing and borders. Upload a design.md file to fill them all in at once, or change each one below.', 'hatch-connect' )}
 					mb={16}
@@ -210,6 +205,7 @@ export default function Design({ state, onDirty, setSetting }) {
 							key={k}
 							label={label}
 							desc={null}
+							last={k === 'background'}
 						>
 							<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
 								<input
@@ -227,18 +223,6 @@ export default function Design({ state, onDirty, setSetting }) {
 						</HxRow>
 					);
 				})}
-				<ChipRow
-					label={__( 'Color mode', 'hatch-connect' )}
-					desc={__( 'Light or Dark keeps the site in one look. Auto follows each visitor\'s device setting.', 'hatch-connect' )}
-					path="design.mode"
-					current={mode}
-					options={[
-						{ id: 'light', label: __( 'Light', 'hatch-connect' ) },
-						{ id: 'dark',  label: __( 'Dark', 'hatch-connect' ) },
-						{ id: 'auto',  label: __( 'Auto', 'hatch-connect' ) },
-					]}
-					last
-				/>
 
 				<HxGL>{__( 'Typography', 'hatch-connect' )}</HxGL>
 				<HxRow label={__( 'Heading font', 'hatch-connect' )} desc={__( 'Used for headings across the site.', 'hatch-connect' )}>
@@ -369,10 +353,14 @@ export default function Design({ state, onDirty, setSetting }) {
 						flexWrap: 'wrap',
 					}}
 				>
-					<div className="hx-desc" style={{ color: 'var(--hx-fg)' }}>
-						{__( 'Import all of these settings from a design.md file.', 'hatch-connect' )}
-						<span className="hx-help" style={{ marginInlineStart: 8, color: 'var(--hx-subtle)' }}>
-							{state.design_md ? __( 'A design.md file is saved.', 'hatch-connect' ) : __( 'No design.md file uploaded.', 'hatch-connect' )}
+					<div className="hx-desc" style={{ color: 'var(--hx-text)' }}>
+						{__( 'Import all of these settings from a design.md file. Put each setting under a section: brand, layout or voice. Anything the file leaves out goes back to its default.', 'hatch-connect' )}
+						<span className="hx-help" style={{ display: 'block', marginTop: 4, color: 'var(--hx-text-subtle)' }}>
+							{pendingPaths.includes('design.md')
+								? __( 'A new design.md file is chosen but not saved yet. Press Save changes to apply it.', 'hatch-connect' )
+								: saveNotes.some((n) => /was not applied/.test(n))
+								? __( 'The file you chose was not applied. Your earlier design.md stays in use.', 'hatch-connect' )
+								: ( state.design_md ? __( 'A design.md file is saved.', 'hatch-connect' ) : __( 'No design.md file uploaded.', 'hatch-connect' ) )}
 						</span>
 					</div>
 					<HxBtn
@@ -413,7 +401,7 @@ export default function Design({ state, onDirty, setSetting }) {
 					iconChildren={IC.panelsTopBottom}
 					iconColor="#2563eb"
 					title={__( 'Header & footer', 'hatch-connect' )}
-					desc={__( 'The header and footer shown on every page: how the header behaves when scrolling, the light and dark button, and your brand name or logo.', 'hatch-connect' )}
+					desc={__( 'The header and footer shown on every page: how the header behaves when scrolling, and your brand name or logo.', 'hatch-connect' )}
 					mb={16}
 				/>
 				<HxGL>{__( 'Header', 'hatch-connect' )}</HxGL>
@@ -457,13 +445,10 @@ export default function Design({ state, onDirty, setSetting }) {
 				/>
 				{/* v0.50.21 - Blur is meaningless on a static (non-overlapping) header. */}
 				{header.sticky !== 'static' && (
-					<HxRow label={__( 'Blurred header background', 'hatch-connect' )} desc={__( 'Lets the page show through the header as a soft blur.', 'hatch-connect' )}>
+					<HxRow label={__( 'Blurred header background', 'hatch-connect' )} desc={__( 'Lets the page show through the header as a soft blur.', 'hatch-connect' )} last>
 						<HxToggle ariaLabel={__( 'Blurred header background', 'hatch-connect' )} on={!!header.blur} onChange={onToggle('header.blur')} />
 					</HxRow>
 				)}
-				<HxRow label={__( 'Light and dark button', 'hatch-connect' )} desc={__( 'Adds a sun and moon button to the header so visitors can switch between light and dark.', 'hatch-connect' )} last>
-					<HxToggle ariaLabel={__( 'Light and dark button', 'hatch-connect' )} on={!!header.color_mode_button} onChange={onToggle('header.color_mode_button')} />
-				</HxRow>
 
 				<HxGL>{__( 'Footer', 'hatch-connect' )}</HxGL>
 				<FeatureToggle slug="built_by_hatch" last />

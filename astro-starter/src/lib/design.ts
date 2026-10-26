@@ -77,19 +77,6 @@ function fromOklab([L, a, b]: [number, number, number]): [number, number, number
   return [fromLin(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s), fromLin(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s), fromLin(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s)];
 }
 const relLum = ([r, g, b]: [number, number, number]) => 0.2126 * toLin(r) + 0.7152 * toLin(g) + 0.0722 * toLin(b);
-/** Text colour (near-black or white) with the higher contrast on the lifted dark-mode primary. */
-export function darkPrimaryForeground(primary: string): string | null {
-  const rgb = hexToRgb(primary);
-  if (!rgb) return null;
-  const [L, a, b] = toOklab(rgb);
-  const [wl, wa, wb] = toOklab([255, 255, 255]);
-  const lifted = fromOklab([L * 0.7 + wl * 0.3, a * 0.7 + wa * 0.3, b * 0.7 + wb * 0.3]);
-  const lum = relLum(lifted);
-  const onWhite = 1.05 / (lum + 0.05);
-  const onDark = (lum + 0.05) / (relLum([11, 13, 16]) + 0.05);
-  return onDark >= onWhite ? '#0b0d10' : '#ffffff';
-}
-
 /**
  * The Design tab bg/fg pair feeds the themes' LIGHT-mode surface. A preset that
  * stores a dark pair (the Terminal preset does) would otherwise paint a dark
@@ -160,13 +147,9 @@ export function designToCssVars(design: any | null | undefined): string {
   // shadow, border-color, breakpoints) stay inline because themes don't
   // currently redefine them and we still want Design-tab control there.
   //
-  // User customization of theme-owned tokens (custom font, custom max-width)
-  // is v0.8 scope: add a "user override" flag per token; inline when set.
+  // A font the owner changed from the Design-tab default is inlined below.
   const vars: Record<string, string> = {
     '--hatch-primary': isDarkFirst(b.bg, b.fg) ? readableOnLight(b.primary) : b.primary,
-    // Untouched brand colour, so dark mode can derive a legible variant from it.
-    '--hatch-primary-brand': b.primary,
-    ...(darkPrimaryForeground(b.primary) ? { '--hatch-primary-fg-dark': darkPrimaryForeground(b.primary) as string } : {}),
     '--hatch-accent': b.accent,
     ...lightSurfacePair(b.bg, b.fg),
     '--hatch-density': density,
@@ -182,6 +165,20 @@ export function designToCssVars(design: any | null | undefined): string {
     '--hatch-bp-tablet':  `${bpTablet}px`,
     '--hatch-bp-desktop': `${bpDesktop}px`,
   };
+
+  // A font the owner picked in the Design tab wins over the theme's own. The
+  // Design-tab default leaves each theme with its signature font.
+  const fontVars: Array<[string, unknown, string, string]> = [
+    ['--hatch-font-heading', b.font_heading, 'Inter', 'ui-sans-serif, system-ui, sans-serif'],
+    ['--hatch-font-body', b.font_body, 'Inter', 'ui-sans-serif, system-ui, sans-serif'],
+    ['--hatch-font-mono', b.font_mono, 'JetBrains Mono', 'ui-monospace, SFMono-Regular, Menlo, monospace'],
+  ];
+  for (const [name, picked, fallbackDefault, stack] of fontVars) {
+    const family = String(picked ?? '').replace(/[^A-Za-z0-9 _-]/g, '').trim();
+    if (family && family !== fallbackDefault && family.toLowerCase() !== 'system-ui') {
+      vars[name] = `'${family}', ${stack}`;
+    }
+  }
 
   return Object.entries(vars)
     .map(([k, v]) => `${k}: ${v};`)

@@ -33,7 +33,7 @@ const getFortressChips = () => [
 	{
 		key: 'block_xmlrpc',
 		label: __( 'Old remote access closed', 'hatch-connect' ),
-		title: __( 'Blocks XML-RPC, an old WordPress feature that attackers like to try. Apps that still use it will stop working.', 'hatch-connect' ),
+		title: __( 'Blocks XML-RPC, an old WordPress feature that attackers like to try, and the pingback notices that go with it. Apps that still use it will stop working.', 'hatch-connect' ),
 	},
 	{
 		key: 'disable_rest_users',
@@ -43,7 +43,7 @@ const getFortressChips = () => [
 	{
 		key: 'disable_file_edit',
 		label: __( 'Code editors and updates locked', 'hatch-connect' ),
-		title: __( 'Turns off the theme and plugin code editors, and blocks installing or updating plugins and themes from the dashboard.', 'hatch-connect' ),
+		title: __( 'Turns off the theme and plugin code editors, filters raw script code out of posts, and blocks installing or updating plugins and themes from the dashboard.', 'hatch-connect' ),
 	},
 	{
 		key: 'app_password_only',
@@ -53,12 +53,12 @@ const getFortressChips = () => [
 	{
 		key: 'headers',
 		label: __( 'Security headers', 'hatch-connect' ),
-		title: __( 'Adds extra safety instructions that browsers follow on your WordPress pages and login page, such as forcing https and blocking other sites from framing your pages.', 'hatch-connect' ),
+		title: __( 'Adds extra safety instructions that browsers follow on your WordPress pages and login page, such as forcing https and blocking other sites from framing your pages. On Apache servers it also stops program files in your uploads folder from running.', 'hatch-connect' ),
 	},
 	{
 		key: 'hide_wp_version',
 		label: __( 'WordPress version hidden', 'hatch-connect' ),
-		title: __( 'Stops WordPress from telling the world which version you run, so attackers cannot target known weaknesses.', 'hatch-connect' ),
+		title: __( 'Stops WordPress from telling the world which version you run, in page source and in file addresses, so attackers cannot target known weaknesses.', 'hatch-connect' ),
 	},
 	{
 		key: 'disable_directory_browsing',
@@ -72,35 +72,36 @@ export default function Security({ state, onDirty, setSetting }) {
 	const ts  = state.turnstile || {};
 	const fortressChips = useMemo( () => getFortressChips(), [] );
 	const hasTsKeys = !!(ts.site_key && ts.secret_key);
+	const [tsNeedKeys, setTsNeedKeys] = useState('');
 
-	const fortressOn = !!sec.fortress_mode;
-	const anyAdvancedDivergent = useMemo(
-		() => fortressOn && FORTRESS_KEYS.some((k) => !sec['fortress_' + k]),
-		[fortressOn, sec]
-	);
+	// The server reports what is really in force: the older twin options and
+	// the master switch are already folded in, so one answer is shown here.
+	const onCount    = FORTRESS_KEYS.filter((k) => !!sec['fortress_' + k]).length;
+	const fortressOn = onCount === FORTRESS_KEYS.length;
 
 	const toggleFortress = (v) => {
 		setSetting('security.fortress_mode', v);
-		if (v) {
-			FORTRESS_KEYS.forEach((k) => setSetting('security.fortress_' + k, true));
+		FORTRESS_KEYS.forEach((k) => setSetting('security.fortress_' + k, v));
+		onDirty();
+	};
+
+	// Turning one protection off while the master switch holds the rest on
+	// drops the master and keeps the others on, so nothing else changes.
+	const toggleOne = (key) => (v) => {
+		if (!v && sec.fortress_mode) {
+			setSetting('security.fortress_mode', false);
+		}
+		setSetting('security.fortress_' + key, v);
+		// Every protection back on means the master switch is on again too.
+		if (v && FORTRESS_KEYS.every((k) => k === key || !!sec['fortress_' + k])) {
+			setSetting('security.fortress_mode', true);
 		}
 		onDirty();
 	};
 
-	// When the user tries to flip a Turnstile-gated toggle without
-	// keys, deep-link to the Content tab and flash the key inputs so it is
-	// obvious where to go next.
-	const flashTurnstileKeys = () => {
-		window.location.hash = '#content';
-		setTimeout(() => {
-			const el = document.getElementById('hatch-turnstile-keys');
-			if (!el) return;
-			el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-			el.classList.remove('hatch-flash');
-			void el.offsetWidth;
-			el.classList.add('hatch-flash');
-		}, 200);
-	};
+	// Turnstile switches need keys first. Staying on this tab and saying so
+	// is clearer than jumping away; the link below leads to the key fields.
+	const flashTurnstileKeys = (row) => setTsNeedKeys(row);
 
 	const onToggle = (path) => (v) => { setSetting(path, v); onDirty(); };
 	const onText   = (path) => (e) => { setSetting(path, e.target.value); onDirty(); };
@@ -121,16 +122,22 @@ export default function Security({ state, onDirty, setSetting }) {
 					iconChildren={IC.shieldCheck}
 					iconColor={fortressOn ? '#16a34a' : '#737373'}
 					title={ __( 'Fortress Mode', 'hatch-connect' ) }
-						desc={ __( 'One switch turns on every protection below. Your visitors use the frontend, so WordPress can close the doors it no longer needs.', 'hatch-connect' ) }
+						desc={ __( 'One switch turns on the seven protections listed here. The other WordPress protections have their own switches further down. Your visitors use the frontend, so WordPress can close the doors it no longer needs.', 'hatch-connect' ) }
 					mb={16}
 					action={
 						<div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-							<HxBadge color={fortressOn ? 'green' : 'neutral'}>
-								{fortressOn ? __( 'Active', 'hatch-connect' ) : __( 'Off', 'hatch-connect' )}
+							<HxBadge color={fortressOn ? 'green' : onCount > 0 ? 'yellow' : 'neutral'}>
+								{fortressOn
+									? __( 'Active', 'hatch-connect' )
+									: onCount > 0
+										? sprintf(
+											/* translators: 1: number of protections that are on, 2: total number of protections. */
+											__( '%1$d of %2$d on', 'hatch-connect' ),
+											onCount,
+											FORTRESS_KEYS.length
+										)
+										: __( 'Off', 'hatch-connect' )}
 							</HxBadge>
-							{anyAdvancedDivergent && (
-								<HxBadge color="yellow">{ __( 'Custom choices', 'hatch-connect' ) }</HxBadge>
-							)}
 							<HxToggle on={fortressOn} onChange={toggleFortress} ariaLabel={ __( 'Enable Fortress Mode', 'hatch-connect' ) } />
 						</div>
 					}
@@ -145,7 +152,7 @@ export default function Security({ state, onDirty, setSetting }) {
 					style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}
 				>
 					{fortressChips.map((chip) => {
-						const on = fortressOn && !!sec['fortress_' + chip.key];
+						const on = !!sec['fortress_' + chip.key];
 						return (
 							<span key={chip.key} role="listitem" title={chip.title}>
 								<Chip label={chip.label} active={on} readOnly />
@@ -167,7 +174,7 @@ export default function Security({ state, onDirty, setSetting }) {
 								>
 									<HxToggle
 										on={!!sec['fortress_' + chip.key]}
-										onChange={(v) => { setSetting('security.fortress_' + chip.key, v); onDirty(); }}
+										onChange={toggleOne(chip.key)}
 									/>
 								</HxRow>
 							))}
@@ -181,25 +188,13 @@ export default function Security({ state, onDirty, setSetting }) {
 					iconChildren={IC.shield}
 					iconColor="#2563eb"
 					title={ __( 'WordPress doors to close', 'hatch-connect' ) }
-					desc={ __( 'Close the access points WordPress opens by default that your site does not need.', 'hatch-connect' ) }
+					desc={ __( 'Close the access points WordPress opens by default that your site does not need. Old remote access, usernames, code editors and security headers are in the Fortress Mode card above.', 'hatch-connect' ) }
 				/>
 				<HxRow
-					label={ __( 'Lock the WordPress data feed', 'hatch-connect' ) }
+					label={ __( 'Lock the REST API', 'hatch-connect' ) }
 					desc={ __( 'Signed-out visitors cannot read your WordPress data directly. A short list of routes your frontend needs stays open, and apps that sign in with an Application Password still work.', 'hatch-connect' ) }
 				>
 					<HxToggle on={!!sec.block_rest} onChange={onToggle('security.block_rest')} />
-				</HxRow>
-				<HxRow
-					label={ __( 'Close the old remote access (XML-RPC)', 'hatch-connect' ) }
-					desc={ __( 'Attackers often use it to try many passwords in one request. Most sites do not need it.', 'hatch-connect' ) }
-				>
-					<HxToggle on={!!sec.disable_xmlrpc} onChange={onToggle('security.disable_xmlrpc')} />
-				</HxRow>
-				<HxRow
-					label={ __( 'Hide usernames', 'hatch-connect' ) }
-					desc={ __( 'Hides your usernames from signed-out visitors, which makes it harder to guess a login.', 'hatch-connect' ) }
-				>
-					<HxToggle on={!!sec.block_enum} onChange={onToggle('security.block_enum')} />
 				</HxRow>
 				<HxRow
 					label={ __( 'Keep this site out of search results', 'hatch-connect' ) }
@@ -276,30 +271,34 @@ export default function Security({ state, onDirty, setSetting }) {
 				/>
 				<HxRow
 					label={ __( 'Protect the WordPress sign-in page', 'hatch-connect' ) }
-					desc={ __( 'Adds a Turnstile check to the sign-in form, so bots are stopped before any password is tried.', 'hatch-connect' ) }
+					desc={ 'login' === tsNeedKeys && !hasTsKeys
+						? __( 'Add your Turnstile keys in the Content tab first, then turn this on.', 'hatch-connect' )
+						: __( 'Adds a Turnstile check to the sign-in form, so bots are stopped before any password is tried.', 'hatch-connect' ) }
 				>
 					<HxToggle
 						on={!!sec.turnstile_login && hasTsKeys}
 						onChange={(v) => {
-							if (v && !hasTsKeys) { flashTurnstileKeys(); return; }
+							if (v && !hasTsKeys) { flashTurnstileKeys('login'); return; }
 							setSetting('security.turnstile_login', v); onDirty();
 						}}
 					/>
 				</HxRow>
 				<HxRow
 					label={ __( 'Protect the WordPress comment form', 'hatch-connect' ) }
-					desc={ __( 'Adds a Turnstile check to the comment form built into WordPress. Most sites leave this off because comments are posted from the frontend, which you protect in the Content tab.', 'hatch-connect' ) }
+					desc={ 'comments' === tsNeedKeys && !hasTsKeys
+						? __( 'Add your Turnstile keys in the Content tab first, then turn this on.', 'hatch-connect' )
+						: __( 'Adds a Turnstile check to the comment form built into WordPress. Most sites leave this off because comments are posted from the frontend, which you protect in the Content tab.', 'hatch-connect' ) }
 					last
 				>
 					<HxToggle
 						on={!!sec.turnstile_comments && hasTsKeys}
 						onChange={(v) => {
-							if (v && !hasTsKeys) { flashTurnstileKeys(); return; }
+							if (v && !hasTsKeys) { flashTurnstileKeys('comments'); return; }
 							setSetting('security.turnstile_comments', v); onDirty();
 						}}
 					/>
 				</HxRow>
-				<div className="hx-help" style={{ paddingTop: 10, color: 'var(--hx-subtle)', display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }}>
+				<div className="hx-help" style={{ paddingTop: 10, color: 'var(--hx-text-subtle)', display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }}>
 						<a href="https://dash.cloudflare.com/?to=/:account/turnstile" target="_blank" rel="noopener noreferrer" className="hx-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{ __( 'Get your keys in Cloudflare', 'hatch-connect' ) }<HxIcon size={12}>{IC.externalLink}</HxIcon></a>
 						<a href="?page=hatch#content" className="hx-link">{ __( 'Enter keys in Content, Third-party keys', 'hatch-connect' ) }</a>
 					</div>
@@ -310,21 +309,9 @@ export default function Security({ state, onDirty, setSetting }) {
 				<HxHead
 					iconChildren={IC.shieldCheck}
 					iconColor="#737373"
-					title={ __( 'Extra protection on your server', 'hatch-connect' ) }
+					title={ __( 'Two-factor sign-in', 'hatch-connect' ) }
 					desc={ __( 'These run on your WordPress server. Visitors do not see them.', 'hatch-connect' ) }
 				/>
-				<HxRow
-					label={ __( 'Lock the code editors', 'hatch-connect' ) }
-					desc={ __( 'Turns off the theme and plugin code editors, and filters raw script code out of posts.', 'hatch-connect' ) }
-				>
-					<HxToggle on={!!sec.disallow_file_edit} onChange={onToggle('security.disallow_file_edit')} />
-				</HxRow>
-				<HxRow
-					label={ __( 'Security headers', 'hatch-connect' ) }
-					desc={ __( 'Adds extra safety instructions that browsers follow on your WordPress pages. On Apache servers it also stops program files in your uploads folder from running.', 'hatch-connect' ) }
-				>
-					<HxToggle on={!!sec.send_headers} onChange={onToggle('security.send_headers')} />
-				</HxRow>
 				<HxRow
 					label={ __( 'Remind admins to use two-factor sign-in', 'hatch-connect' ) }
 					desc={
@@ -360,7 +347,7 @@ export default function Security({ state, onDirty, setSetting }) {
 					iconChildren={IC.keyRound}
 					iconColor="#6366f1"
 					title={ __( 'Application password', 'hatch-connect' ) }
-					desc={ __( 'When you deploy, Hatch makes an application password named "Hatch (Cloudflare deploy)" (a separate password for one job) so your frontend can read this site. To replace it, deploy again from the Connection tab. To remove it right now, use your profile page. The frontend stops working until you deploy again.', 'hatch-connect' ) }
+					desc={ __( 'Your frontend reads this site with the Application Password you created yourself for a low-privilege account. Hatch never creates or deletes it. To replace it, enter a new one in the setup guide. To remove it right now, use that user\'s profile page. The frontend stops working until you enter a new one.', 'hatch-connect' ) }
 					mb={16}
 				/>
 				<HxBtn href={setup.disclosure && setup.disclosure.appPasswordsUrl ? setup.disclosure.appPasswordsUrl : '#'} variant="ghost">

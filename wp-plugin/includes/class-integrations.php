@@ -176,45 +176,7 @@ class Hatch_Integrations {
 		);
 	}
 
-	/**
-	 * Deprecated as of v0.30 - FluentCRM is no longer a first-class integration.
-	 * Use Fluent Forms' native CRM connector instead. Kept as a stub so any
-	 * downstream code that still calls it doesn't fatal.
-	 *
-	 * @return bool
-	 */
-	public static function has_fluentcrm(): bool {
-		return false;
-	}
 
-	/**
-	 * Deprecated as of v0.30 - see has_fluentcrm() note.
-	 *
-	 * @return array<int,string>
-	 */
-	public static function fluentcrm_lists(): array {
-		return array();
-	}
-
-	/**
-	 * Get Fluent Forms forms.
-	 *
-	 * @return array<int,string>
-	 */
-	public static function fluent_forms_list(): array {
-		global $wpdb;
-		$table = $wpdb->prefix . 'fluentform_forms';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads another plugin's table; there is no API for a bare form list.
-		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, title FROM %i WHERE status = %s ORDER BY id DESC LIMIT 50', $table, 'published' ) );
-		if ( ! $rows ) {
-			return array();
-		}
-		$out = array();
-		foreach ( $rows as $r ) {
-			$out[ (int) $r->id ] = (string) $r->title;
-		}
-		return $out;
-	}
 
 	/* ----------------------------------------------------------------
 	 * REST

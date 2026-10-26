@@ -25,7 +25,7 @@
 	--hatch-bg:           var(--hatch-bg-design, #f7f8fa);
 	--hatch-fg:           var(--hatch-fg-design, #0b0d10);
 	/* v0.5.3 — theme default disabled; Design tab tokens win: --hatch-primary: #0891b2 (cyan) */
-	--hatch-primary-fg:   #ffffff;
+	--hatch-primary-fg:   #071222;
 	--hatch-accent:       #a855f7;  /* keyword-purple — code-tag accent */
 
 	/* Surface ramp — slate-leaning, NOT warm. Distinguishes from blog. */
@@ -38,28 +38,6 @@
 
 	--hatch-border:        #d8dde4;
 	--hatch-border-strong: #aab3bf;
-}
-
-/* Dark mode flips to deep terminal background — the signature look. */
-[data-hatch-theme="tech"][data-hatch-mode="dark"] {
-	--hatch-bg:         #0b0d10;
-	--hatch-fg:         #e6e9ee;
-	/* v0.5.3 — theme default disabled; Design tab tokens win: --hatch-primary: #22d3ee (dark cyan) */
-	--hatch-primary-fg: #0b0d10;
-	--hatch-accent:     #c084fc;
-
-	--hatch-bg-2:       #11141a;
-	--hatch-bg-3:       #1a1f27;
-	--hatch-bg-4:       color-mix(in oklab, var(--hatch-fg) 14%, var(--hatch-bg));
-
-	/* Muted, subtle and border ramps are derived from FG mixed into BG.
-	   They were previously derived from BG mixed with black, which yields
-	   near-black text on a near-black page (contrast under 1.3:1). */
-	--hatch-fg-muted:   color-mix(in oklab, var(--hatch-fg) 72%, var(--hatch-bg));
-	--hatch-fg-subtle:  color-mix(in oklab, var(--hatch-fg) 56%, var(--hatch-bg));
-
-	--hatch-border:        color-mix(in oklab, var(--hatch-fg) 16%, var(--hatch-bg));
-	--hatch-border-strong: color-mix(in oklab, var(--hatch-fg) 28%, var(--hatch-bg));
 }
 
 /* === Base typography ============================================== */
@@ -107,7 +85,7 @@
 
 [data-hatch-theme="tech"] .hatch-tech-brand::before {
 	content: '~/';
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 	font-weight: 500;
 }
 
@@ -172,7 +150,7 @@
 
 [data-hatch-theme="tech"] .hatch-tech-hero-prompt::before {
 	content: '$ ';
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 }
 
 [data-hatch-theme="tech"] .hatch-tech-hero h1 {
@@ -182,7 +160,7 @@
 }
 
 [data-hatch-theme="tech"] .hatch-tech-hero h1 .tok-keyword { color: var(--hatch-accent); }
-[data-hatch-theme="tech"] .hatch-tech-hero h1 .tok-string  { color: var(--hatch-primary); }
+[data-hatch-theme="tech"] .hatch-tech-hero h1 .tok-string  { color: var(--hatch-primary-text); }
 
 [data-hatch-theme="tech"] .hatch-tech-hero-lede {
 	font-size: 16px;
@@ -228,7 +206,7 @@
 [data-hatch-theme="tech"] .hatch-post-card-eyebrow {
 	font-family: var(--hatch-font-mono);
 	font-size: 11.5px;
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 	margin-bottom: 8px;
 }
 
@@ -273,7 +251,7 @@
 
 [data-hatch-theme="tech"] .hatch-prose h2::before {
 	content: '#';
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 	margin-right: 10px;
 	opacity: 0.7;
 }
@@ -286,13 +264,13 @@
 
 [data-hatch-theme="tech"] .hatch-prose h3::before {
 	content: '##';
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 	margin-right: 8px;
 	opacity: 0.55;
 }
 
 [data-hatch-theme="tech"] .hatch-prose a {
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 	text-decoration: underline;
 	text-decoration-thickness: 1px;
 	text-underline-offset: 3px;
@@ -347,7 +325,7 @@
 
 [data-hatch-theme="tech"] .hatch-footer-prompt::before {
 	content: '~ $ ';
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 	font-weight: 500;
 }
 
@@ -373,7 +351,7 @@
 }
 
 [data-hatch-theme="tech"] .hatch-footer-links a:hover {
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 }
 
 [data-hatch-theme="tech"] .hatch-footer-meta {
@@ -403,7 +381,7 @@
 [data-hatch-theme="tech"] .hatch-button::before,
 [data-hatch-theme="tech"] .hatch-btn::before {
 	content: '> ';
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 }
 
 [data-hatch-theme="tech"] .hatch-button:hover,
@@ -487,7 +465,7 @@
 	display: inline-block;
 	font-family: var(--hatch-font-mono);
 	font-size: 11px;
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 	margin-bottom: 8px;
 	letter-spacing: 0;
 }
@@ -511,7 +489,7 @@
 }
 
 [data-hatch-theme="tech"] .hatch-tech-card-title a:hover {
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 }
 
 [data-hatch-theme="tech"] .hatch-tech-card-excerpt {
@@ -591,7 +569,7 @@
 [data-hatch-theme="tech"] .hatch-newsletter__title {
 	font-family: var(--hatch-font-mono);
 	font-size: 1.1rem;
-	color: var(--color-hatch-primary);
+	color: var(--color-hatch-primary-text);
 }
 [data-hatch-theme="tech"] .hatch-newsletter__title::before { content: "$ "; opacity: 0.5; }
 [data-hatch-theme="tech"] .hatch-shop__chip {
@@ -629,7 +607,7 @@
 	font-size: 10px;
 	letter-spacing: 0.2em;
 	text-transform: uppercase;
-	color: var(--color-hatch-primary);
+	color: var(--color-hatch-primary-text);
 	font-weight: 600;
 }
 
@@ -664,45 +642,4 @@
 [data-hatch-theme="tech"] .hatch-panel,
 [data-hatch-theme="tech"] .wp-block-post {
 	border-radius: 6px;
-}
-
-/* Near-black + saturated primary in dark mode. */
-[data-hatch-theme="tech"][data-hatch-mode="dark"] {
-	--hatch-bg: #060709;
-	--hatch-fg: #eef2f6;
-}
-[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-prose pre,
-[data-hatch-theme="tech"][data-hatch-mode="dark"] .wp-block-code {
-	background: #0d1015;
-	border-color: color-mix(in oklab, var(--color-hatch-fg) 12%, transparent);
-}
-
-/* v0.7.6 (2026-08-13): HatchComments visibility in tech dark mode.
-   The Tailwind utility classes on the comment block resolved to bg-white / text-slate-950
-   in dark mode because the tech theme's dark tokens were not being read by the form inputs.
-   Force fg + bg + border to the theme tokens so text, textarea, and inputs stay readable. */
-[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments,
-[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comment-body,
-[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments h2,
-[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments h3,
-[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments p,
-[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments label span {
-	color: var(--hatch-fg);
-}
-[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments input[type="text"],
-[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments input[type="email"],
-[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments input[type="url"],
-[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments textarea {
-	color: var(--hatch-fg);
-	background: #0d1015;
-	border-color: color-mix(in oklab, var(--hatch-fg) 18%, transparent);
-}
-[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments input::placeholder,
-[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments textarea::placeholder {
-	color: color-mix(in oklab, var(--hatch-fg) 55%, transparent);
-}
-[data-hatch-theme="tech"][data-hatch-mode="dark"] .hatch-comments button[type="submit"] {
-	color: var(--hatch-primary-fg);
-	background: color-mix(in oklab, var(--hatch-primary) 85%, black);
-	border-color: var(--hatch-primary);
 }

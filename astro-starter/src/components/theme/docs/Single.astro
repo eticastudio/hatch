@@ -72,7 +72,7 @@ const gridCols = !showSidebar
       <div class="mt-10 p-5 rounded-md border border-hatch-border bg-hatch-bg-2 flex gap-4 items-start">
         {post.author.avatar && <img src={post.author.avatar} alt={post.author.name} width="44" height="44" class={`${flags.avatarShape} flex-shrink-0`} loading="lazy" />}
         <div class="min-w-0">
-          <a href={`/blog/author/${post.author.slug}`} class="font-semibold text-hatch-fg hover:text-hatch-primary text-[14px]">{post.author.name}</a>
+          <a href={`/blog/author/${post.author.slug}`} class="font-semibold text-hatch-fg hover:text-hatch-primary-text text-[14px]">{post.author.name}</a>
           <p class="text-[13.5px] text-hatch-fg-muted mt-1 leading-relaxed">{post.author.description}</p>
         </div>
       </div>
@@ -82,14 +82,14 @@ const gridCols = !showSidebar
       <nav class="mt-10 pt-6 border-t border-hatch-border grid grid-cols-1 sm:grid-cols-2 gap-3" aria-label="Doc navigation">
         {adjacent.prev && (
           <a href={`/blog/${adjacent.prev.slug}`} class="group p-4 rounded-md border border-hatch-border hover:border-hatch-primary transition-colors">
-            <span class="text-[11px] uppercase tracking-wider text-hatch-primary">← Previous</span>
-            <div class="mt-1 text-[14px] text-hatch-fg group-hover:text-hatch-primary line-clamp-2">{adjacent.prev.title}</div>
+            <span class="text-[11px] uppercase tracking-wider text-hatch-primary-text">← Previous</span>
+            <div class="mt-1 text-[14px] text-hatch-fg group-hover:text-hatch-primary-text line-clamp-2">{adjacent.prev.title}</div>
           </a>
         )}
         {adjacent.next && (
           <a href={`/blog/${adjacent.next.slug}`} class="group p-4 rounded-md border border-hatch-border hover:border-hatch-primary transition-colors sm:text-right">
-            <span class="text-[11px] uppercase tracking-wider text-hatch-primary">Next →</span>
-            <div class="mt-1 text-[14px] text-hatch-fg group-hover:text-hatch-primary line-clamp-2">{adjacent.next.title}</div>
+            <span class="text-[11px] uppercase tracking-wider text-hatch-primary-text">Next →</span>
+            <div class="mt-1 text-[14px] text-hatch-fg group-hover:text-hatch-primary-text line-clamp-2">{adjacent.next.title}</div>
           </a>
         )}
       </nav>

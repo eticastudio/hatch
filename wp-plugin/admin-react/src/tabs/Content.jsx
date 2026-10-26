@@ -1,4 +1,4 @@
-import { createInterpolateElement } from '@wordpress/element';
+import { createInterpolateElement, useState } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { HxCard, HxHead, HxRow, HxToggle, HxBadge, HxInp, HxGL, HxField, HxIcon, HxSelect, HxTag, HxCode } from '../components.jsx';
 import { IC } from '../icons';
@@ -27,7 +27,7 @@ function MenuSelect({ value, options, onChange, ariaLabel }) {
 		</HxSelect>
 	);
 }
-function CoreSync({ data, content, core, setSetting, onDirty, guardTurnstile }) {
+function CoreSync({ data, content, core, setSetting, onDirty, guardTurnstile, tsNeedKeys }) {
 	if (!data) return null;
 	const { site, permalink, homepage, menus, all_menus, discussion, reading, privacy, post_types, taxonomies, languages, roles, authors } = data;
 	const assignedCount = menus.filter(m => m.assigned_id > 0).length;
@@ -106,7 +106,7 @@ function CoreSync({ data, content, core, setSetting, onDirty, guardTurnstile }) 
 			<HxRow
 				label={ __( 'Search engine visibility', 'hatch-connect' ) }
 				desc={reading.blog_public
-					? __( 'WordPress allows search engines to index this site.', 'hatch-connect' )
+					? __( 'WordPress is not asking search engines to skip this site. To hide only your WordPress address, use the Security tab.', 'hatch-connect' )
 					: __( 'WordPress is asking search engines to skip this site. That can keep your frontend out of search results too.', 'hatch-connect' )}
 				last
 			>
@@ -169,7 +169,9 @@ function CoreSync({ data, content, core, setSetting, onDirty, guardTurnstile }) 
 			</HxRow>
 			<HxRow
 				label={ __( 'Block comment spam', 'hatch-connect' ) }
-				desc={ __( 'Runs a Cloudflare Turnstile check before a comment is posted from your frontend. Needs Turnstile keys, which you enter below.', 'hatch-connect' ) }
+				desc={ tsNeedKeys
+					? __( 'Add your Turnstile site key and secret key in the Cloudflare Turnstile box below first, then turn this on.', 'hatch-connect' )
+					: __( 'Runs a Cloudflare Turnstile check before a comment is posted from your frontend. Needs Turnstile keys, which you enter below.', 'hatch-connect' ) }
 			>
 				<HxToggle on={!!content.comments_turnstile} onChange={guardTurnstile('content.comments_turnstile')} />
 			</HxRow>
@@ -335,8 +337,10 @@ export default function Content({ state, onDirty, setSetting }) {
 	// the flip, scroll to the key inputs, and flash the section so it is obvious
 	// where to go next.
 	const hasKeys = !!(ts.site_key && ts.secret_key);
+	const [tsNeedKeys, setTsNeedKeys] = useState(false);
 	const guardTurnstile = (path) => (v) => {
 		if (v && !hasKeys) {
+			setTsNeedKeys(true);
 			const el = document.getElementById('hatch-turnstile-keys');
 			if (el) {
 				el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -367,6 +371,7 @@ export default function Content({ state, onDirty, setSetting }) {
 				setSetting={setSetting}
 				onDirty={onDirty}
 				guardTurnstile={guardTurnstile}
+				tsNeedKeys={tsNeedKeys && !hasKeys}
 			/>
 
 			{/* Third-party keys and services. Google Tag Manager only: GA4,
@@ -398,13 +403,18 @@ export default function Content({ state, onDirty, setSetting }) {
 				<HxGL>{ __( 'Cloudflare Turnstile (spam protection)', 'hatch-connect' ) }</HxGL>
 				<div id="hatch-turnstile-keys" style={{ padding: '12px 0', borderRadius: 10, transition: 'box-shadow .2s var(--hx-ease), background .2s var(--hx-ease)' }}>
 					<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
-						<div className="hx-help" style={{ color: 'var(--hx-subtle)' }}>
+						<div className="hx-desc" style={{ color: 'var(--hx-text-subtle)' }}>
 							{ __( 'One pair of keys covers every place Turnstile is turned on: frontend comments, the WordPress sign-in page and the WordPress comment form.', 'hatch-connect' ) }
 						</div>
 						<HxBadge color={hasKeys ? 'green' : 'yellow'}>
 							{hasKeys ? __( 'Configured', 'hatch-connect' ) : __( 'Keys missing', 'hatch-connect' )}
 						</HxBadge>
 					</div>
+					{tsNeedKeys && !hasKeys && (
+						<p role="status" className="hx-help" style={{ color: 'var(--hx-warning)', margin: '0 0 10px' }}>
+							{ __( 'Add both keys below, then turn Turnstile on.', 'hatch-connect' ) }
+						</p>
+					)}
 					<div className="hx-grid-cols-2">
 						<HxField label={ __( 'Site key', 'hatch-connect' ) }>
 							<HxInp placeholder="0x4AAAA..." mono value={ts.site_key || ''} onChange={onText('turnstile.site_key')} autoComplete="off" />
@@ -413,7 +423,7 @@ export default function Content({ state, onDirty, setSetting }) {
 							<HxInp placeholder="0x4AAAA..." type="password" value={ts.secret_key || ''} onChange={onText('turnstile.secret_key')} autoComplete="off" />
 						</HxField>
 					</div>
-					<div className="hx-help" style={{ color: 'var(--hx-subtle)', marginTop: 8 }}>
+					<div className="hx-help" style={{ color: 'var(--hx-text-subtle)', marginTop: 8 }}>
 						<a href="https://dash.cloudflare.com/?to=/:account/turnstile" target="_blank" rel="noopener noreferrer" className="hx-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{ __( 'Get your keys in Cloudflare', 'hatch-connect' ) }<HxIcon size={12} sw={2}>{IC.externalLink}</HxIcon></a>
 					</div>
 				</div>

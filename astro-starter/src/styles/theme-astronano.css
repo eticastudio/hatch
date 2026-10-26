@@ -34,24 +34,7 @@
 	--hatch-border:       color-mix( in oklab, var(--hatch-fg) 10%, var(--hatch-bg) );
 	--hatch-border-2:     color-mix( in oklab, var(--hatch-fg) 18%, var(--hatch-bg) );
 	--hatch-primary-soft: color-mix( in oklab, var(--hatch-primary) 5%, transparent );
-	--hatch-primary-fg:   var(--hatch-bg);
-}
-
-[data-hatch-theme="astronano"][data-hatch-mode="dark"] {
-	--hatch-bg:           #0c0c0c;
-	--hatch-fg:           #f5f5f4;
-	--hatch-primary:      #f5f5f4;
-	--hatch-accent:       #a8a29e;
-	--hatch-secondary:    #a8a29e;
-}
-@media (prefers-color-scheme: dark) {
-	:root[data-hatch-theme="astronano"][data-hatch-mode="auto"] {
-		--hatch-bg:           #0c0c0c;
-		--hatch-fg:           #f5f5f4;
-		--hatch-primary:      #f5f5f4;
-		--hatch-accent:       #a8a29e;
-		--hatch-secondary:    #a8a29e;
-	}
+	--hatch-primary-fg:   #071222;
 }
 
 [data-hatch-theme="astronano"] body {

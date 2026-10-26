@@ -37,15 +37,7 @@
 	--hatch-border:       color-mix( in oklab, var(--hatch-fg) 85%, var(--hatch-bg) );
 	--hatch-border-2:     color-mix( in oklab, var(--hatch-fg) 65%, var(--hatch-bg) );
 	--hatch-primary-soft: color-mix( in oklab, var(--hatch-primary) 6%, transparent );
-	--hatch-primary-fg:   var(--hatch-bg);
-}
-
-[data-hatch-theme="astropaper"][data-hatch-mode="dark"] {
-	--hatch-bg:           #100e0a;
-	--hatch-fg:           #f1ebda;
-	--hatch-primary:      #f1ebda;
-	--hatch-accent:       #e07b7b;
-	--hatch-secondary:    #b8afa0;
+	--hatch-primary-fg:   #071222;
 }
 
 [data-hatch-theme="astropaper"] body {

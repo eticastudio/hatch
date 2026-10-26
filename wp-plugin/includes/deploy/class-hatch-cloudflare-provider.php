@@ -90,13 +90,15 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 	/**
 	 * Permission names, as shown in the Cloudflare "Create Custom Token" screen.
 	 *
-	 * @return array<int,array{scope:string,permission:string,access:string,required:bool,reason:string}>
+	 * @return array<int,array{key:string,type:string,scope:string,permission:string,access:string,required:bool,reason:string}>
 	 */
 	public function get_required_permissions(): array {
 		return array(
 			array(
 				'scope'      => 'Account',
 				'permission' => 'Workers Scripts',
+				'key'        => 'workers_scripts',
+				'type'       => 'edit',
 				'access'     => 'Edit',
 				'required'   => true,
 				'reason'     => __( 'Uploads the frontend Worker and its static files.', 'hatch-connect' ),
@@ -104,6 +106,8 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 			array(
 				'scope'      => 'Account',
 				'permission' => 'Account Settings',
+				'key'        => 'account_settings',
+				'type'       => 'read',
 				'access'     => 'Read',
 				'required'   => false,
 				'reason'     => __( 'Lets Hatch find your Cloudflare account automatically.', 'hatch-connect' ),
@@ -111,6 +115,8 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 			array(
 				'scope'      => 'Zone',
 				'permission' => 'Zone',
+				'key'        => 'zone',
+				'type'       => 'read',
 				'access'     => 'Read',
 				'required'   => false,
 				'reason'     => __( 'Only for a custom domain: finds the domain in your account.', 'hatch-connect' ),
@@ -118,10 +124,42 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 			array(
 				'scope'      => 'Zone',
 				'permission' => 'Workers Routes',
+				'key'        => 'workers_routes',
+				'type'       => 'edit',
 				'access'     => 'Edit',
 				'required'   => false,
 				'reason'     => __( 'Only for a custom domain: routes the domain to the Worker.', 'hatch-connect' ),
 			),
+		);
+	}
+
+	/**
+	 * Cloudflare's token form, opened with the permissions from get_required_permissions() already set.
+	 *
+	 * Query format from Cloudflare's token template docs:
+	 * https://developers.cloudflare.com/fundamentals/api/how-to/account-owned-token-template/
+	 *
+	 * @return string
+	 */
+	public function token_template_url(): string {
+		$groups = array();
+		foreach ( $this->get_required_permissions() as $permission ) {
+			$groups[] = array(
+				'key'  => $permission['key'],
+				'type' => $permission['type'],
+			);
+		}
+		// phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- A link the administrator opens to create a token, nothing is loaded.
+		return 'https://dash.cloudflare.com/profile/api-tokens?' . http_build_query(
+			array(
+				'permissionGroupKeys' => wp_json_encode( $groups ),
+				'accountId'           => '*',
+				'zoneId'              => 'all',
+				'name'                => 'Hatch',
+			),
+			'',
+			'&',
+			PHP_QUERY_RFC3986
 		);
 	}
 

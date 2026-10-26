@@ -161,6 +161,7 @@ function hatch_react_boot_state(): array {
 		'setupUrl'     => admin_url( 'admin.php?page=hatch-setup' ),
 		'adminPostUrl' => admin_url( 'admin-post.php' ),
 		'pluginUrl'    => plugins_url( '/', HATCH_PLUGIN_FILE ),
+		'brandLogoUrl' => plugins_url( 'assets/brand/hatch-lockup-horizontal.svg', HATCH_PLUGIN_FILE ),
 		'version'      => HATCH_VERSION,
 		'page'         => $page,
 		'siteHost'     => $home_host,
@@ -199,15 +200,11 @@ function hatch_react_boot_state(): array {
 			// ALWAYS merge in now; user-saved keys win.
 			'design'          => array(
 				'theme'        => class_exists( 'Hatch_Features' ) ? (string) Hatch_Features::get_theme() : '',
-				'brand'        => wp_parse_args(
-					(array) get_option( 'hatch_design_brand', array() ),
-					array(
-						'primary'    => '#ff6b00',
-						'secondary'  => '#0a0a0a',
-						'accent'     => '#6366f1',
-						'background' => '#fafafa',
-					)
-				),
+				// Defaults come from the design loader, so the pickers show the
+				// colours the frontend actually renders before anything is saved.
+				'brand'        => class_exists( 'Hatch_Design_Loader' )
+					? Hatch_Design_Loader::admin_brand( (array) get_option( 'hatch_design_brand', array() ) )
+					: (array) get_option( 'hatch_design_brand', array() ),
 				// v0.50.14: canonical lowercase IDs. The React UI writes these
 				// directly via setSetting() and the Astro frontend reads them
 				// verbatim. Pretty display labels live in the JSX.
@@ -223,7 +220,6 @@ function hatch_react_boot_state(): array {
 				'font_heading' => (string) get_option( 'hatch_design_font_heading', 'Inter' ),
 				'font_body'    => (string) get_option( 'hatch_design_font_body', 'Inter' ),
 				'font_mono'    => (string) get_option( 'hatch_design_font_mono', 'JetBrains Mono' ),
-				'mode'         => (string) get_option( 'hatch_design_mode', 'auto' ),
 			),
 			'voice'           => wp_parse_args(
 				(array) get_option( 'hatch_design_voice', array() ),
@@ -248,7 +244,7 @@ function hatch_react_boot_state(): array {
 					'single_sidebar'   => 'right',
 					'single_hero'      => 'featured',
 					'single_width'     => 'medium',
-					'archive_grid'     => '2',
+					'archive_grid'     => '3',
 					'archive_excerpt'  => true,
 					'not_found_search' => true,
 				)
@@ -293,11 +289,10 @@ function hatch_react_boot_state(): array {
 			'header'          => wp_parse_args(
 				(array) get_option( 'hatch_design_header', array() ),
 				array(
-					'sticky'            => 'sticky', // sticky | static | hide_on_scroll
-					'blur'              => true,
-					'color_mode_button' => true,
-					'brand_mark'        => 'icon_text', // icon_text | text | initial
-					'brand_display'     => 'auto', // auto | logo | text | both
+					'sticky'        => 'sticky', // sticky | static | hide_on_scroll
+					'blur'          => true,
+					'brand_mark'    => 'icon_text', // icon_text | text | initial
+					'brand_display' => 'auto', // auto | logo | text | both
 				)
 			),
 			'reading'         => wp_parse_args(
@@ -542,7 +537,11 @@ function hatch_react_core_sync(): array {
 
 	// PRIVACY (Settings → Privacy)
 	$privacy_id = (int) get_option( 'wp_page_for_privacy_policy', 0 );
-	$privacy    = array(
+	if ( $privacy_id && ! get_post( $privacy_id ) ) {
+		// The saved page was deleted, so treat the setting as empty.
+		$privacy_id = 0;
+	}
+	$privacy = array(
 		'page_id'    => $privacy_id,
 		'page_title' => $privacy_id ? (string) get_the_title( $privacy_id ) : '',
 		'admin_url'  => admin_url( 'options-privacy.php' ),
@@ -801,7 +800,7 @@ function hatch_react_plugin_bridge(): array {
 		array(
 			'feature'   => 'SEO + Sitemap',
 			'providers' => array(
-				'RankMath'  => array( 'seo-by-rank-math/rank-math.php' ),
+				'Rank Math' => array( 'seo-by-rank-math/rank-math.php' ),
 				'Yoast SEO' => array( 'wordpress-seo/wp-seo.php', 'wordpress-seo-premium/wp-seo-premium.php' ),
 				'AIOSEO'    => array( 'all-in-one-seo-pack/all_in_one_seo_pack.php', 'all-in-one-seo-pack-pro/all_in_one_seo_pack.php' ),
 			),
@@ -809,7 +808,7 @@ function hatch_react_plugin_bridge(): array {
 		array(
 			'feature'   => 'Redirects',
 			'providers' => array(
-				'RankMath'          => array( 'seo-by-rank-math/rank-math.php' ),
+				'Rank Math'         => array( 'seo-by-rank-math/rank-math.php' ),
 				'Yoast SEO Premium' => array( 'wordpress-seo-premium/wp-seo-premium.php' ),
 				'Redirection'       => array( 'redirection/redirection.php' ),
 			),
@@ -942,6 +941,11 @@ function hatch_react_plugin_bridge(): array {
  */
 function hatch_react_perf_state(): array {
 	$perf = (array) get_option( 'hatch_perf', array() );
+	// Partytown was removed in 0.2; drop the leftover key once.
+	if ( array_key_exists( 'partytown_enabled', $perf ) ) {
+		unset( $perf['partytown_enabled'] );
+		update_option( 'hatch_perf', $perf );
+	}
 	return array(
 		'image_proxy'        => (bool) get_option( 'hatch_image_proxy_url', '' ),
 		'image_proxy_url'    => (string) get_option( 'hatch_image_proxy_url', '' ),
@@ -954,8 +958,24 @@ function hatch_react_perf_state(): array {
 		'compress_html'      => (bool) ( $perf['compress_html'] ?? false ),
 		'telemetry'          => (bool) ( $perf['telemetry'] ?? false ),
 		'bloat_kill'         => (bool) get_option( 'hatch_perf_bloat_kill', false ),
-		'bloat'              => class_exists( 'Hatch_Performance_Bloat' ) ? Hatch_Performance_Bloat::state() : array(),
+		'bloat'              => hatch_react_bloat_state(),
 	);
+}
+
+/**
+ * Clean-up switches as the Performance tab shows them: the two that are also
+ * security protections read the same answer as the Security tab.
+ *
+ * @return array<string,bool>
+ */
+function hatch_react_bloat_state(): array {
+	if ( ! class_exists( 'Hatch_Performance_Bloat' ) ) {
+		return array();
+	}
+	$state               = Hatch_Performance_Bloat::state();
+	$state['xmlrpc']     = hatch_fortress_effective( 'block_xmlrpc' );
+	$state['rest_users'] = hatch_fortress_effective( 'disable_rest_users' );
+	return $state;
 }
 
 /**
@@ -968,8 +988,8 @@ function hatch_react_perf_state(): array {
 function hatch_react_security_state(): array {
 	return array(
 		'block_rest'                          => (bool) get_option( 'hatch_security_harden_rest', false ),
-		'disable_xmlrpc'                      => (bool) get_option( 'hatch_security_disable_xmlrpc', false ),
-		'block_enum'                          => (bool) get_option( 'hatch_security_block_user_enum', false ),
+		'disable_xmlrpc'                      => hatch_fortress_effective( 'block_xmlrpc' ),
+		'block_enum'                          => hatch_fortress_effective( 'disable_rest_users' ),
 		'noindex_cms'                         => (bool) get_option( 'hatch_security_force_noindex', false ),
 		'role_guard'                          => (bool) get_option( 'hatch_login_role_guard_enabled', false ),
 		'allowed_roles'                       => (string) get_option( 'hatch_login_allowed_roles', 'administrator, editor, author' ),
@@ -977,8 +997,8 @@ function hatch_react_security_state(): array {
 		'bf_window'                           => (int) get_option( 'hatch_brute_force_window', 30 ),
 		'remove_on_uninstall'                 => (bool) get_option( 'hatch_uninstall_remove_all_data', false ),
 		// v0.50.11: Fortress mode toggles (Hatch_Hardening class).
-		'disallow_file_edit'                  => (bool) get_option( 'hatch_security_disallow_file_edit', false ),
-		'send_headers'                        => (bool) get_option( 'hatch_security_send_headers', false ),
+		'disallow_file_edit'                  => hatch_fortress_effective( 'disable_file_edit' ),
+		'send_headers'                        => hatch_fortress_effective( 'headers' ),
 		// v0.50.31: Per-surface Turnstile gates.
 		'turnstile_login'                     => (bool) get_option( 'hatch_security_turnstile_login', false ),
 		'turnstile_comments'                  => (bool) get_option( 'hatch_security_turnstile_comments', false ),
@@ -988,13 +1008,13 @@ function hatch_react_security_state(): array {
 		'twofa_user_configured'               => class_exists( 'Hatch_Hardening' ) ? (bool) Hatch_Hardening::user_has_2fa_configured() : false,
 		// v0.50.32: Fortress Mode master + sub-toggles.
 		'fortress_mode'                       => (bool) get_option( 'hatch_fortress_mode', false ),
-		'fortress_block_xmlrpc'               => (bool) get_option( 'hatch_fortress_block_xmlrpc', false ),
-		'fortress_disable_rest_users'         => (bool) get_option( 'hatch_fortress_disable_rest_users', false ),
-		'fortress_disable_file_edit'          => (bool) get_option( 'hatch_fortress_disable_file_edit', false ),
-		'fortress_app_password_only'          => (bool) get_option( 'hatch_fortress_app_password_only', false ),
-		'fortress_headers'                    => (bool) get_option( 'hatch_fortress_headers', false ),
-		'fortress_hide_wp_version'            => (bool) get_option( 'hatch_fortress_hide_wp_version', false ),
-		'fortress_disable_directory_browsing' => (bool) get_option( 'hatch_fortress_disable_directory_browsing', false ),
+		'fortress_block_xmlrpc'               => hatch_fortress_effective( 'block_xmlrpc' ),
+		'fortress_disable_rest_users'         => hatch_fortress_effective( 'disable_rest_users' ),
+		'fortress_disable_file_edit'          => hatch_fortress_effective( 'disable_file_edit' ),
+		'fortress_app_password_only'          => hatch_fortress_effective( 'app_password_only' ),
+		'fortress_headers'                    => hatch_fortress_effective( 'headers' ),
+		'fortress_hide_wp_version'            => hatch_fortress_effective( 'hide_wp_version' ),
+		'fortress_disable_directory_browsing' => hatch_fortress_effective( 'disable_directory_browsing' ),
 	);
 }
 
@@ -1039,9 +1059,11 @@ function hatch_react_setup_state(): array {
 			'appPasswordsUrl'   => admin_url( 'profile.php#application-passwords-section' ),
 			'newUserUrl'        => admin_url( 'user-new.php' ),
 		),
-		'skipUrl'     => wp_nonce_url( admin_url( 'admin.php?page=hatch-setup&hatch_skip_setup=1' ), 'hatch_skip_setup' ),
-		'completeUrl' => wp_nonce_url( admin_url( 'admin.php?page=hatch-setup&hatch_complete_setup=1' ), 'hatch_complete_setup' ),
-		'cfTokenUrl'  => 'https://dash.cloudflare.com/profile/api-tokens', // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- A link the administrator opens to create a token, nothing is loaded.
+		// wp_nonce_url() returns an HTML-escaped URL (&amp;). These go to a JS
+		// href, so decode them or PHP never sees the second query argument.
+		'skipUrl'     => wp_specialchars_decode( wp_nonce_url( admin_url( 'admin.php?page=hatch-setup&hatch_skip_setup=1' ), 'hatch_skip_setup' ), ENT_QUOTES ),
+		'completeUrl' => wp_specialchars_decode( wp_nonce_url( admin_url( 'admin.php?page=hatch-setup&hatch_complete_setup=1' ), 'hatch_complete_setup' ), ENT_QUOTES ),
+		'cfTokenUrl'  => ( new Hatch_Cloudflare_Provider() )->token_template_url(),
 	);
 }
 
@@ -1067,6 +1089,106 @@ function hatch_register_react_options_route(): void {
 }
 
 /**
+ * Protections that exist under more than one name. The Security tab keeps one
+ * row for each; the older options stay in step so either code path agrees.
+ *
+ * @return array<string,array{fortress:string,opts:string[],bloat:string,paths:string[]}>
+ */
+function hatch_twin_groups(): array {
+	return array(
+		'block_xmlrpc'       => array(
+			'fortress' => 'block_xmlrpc',
+			'opts'     => array( 'hatch_security_disable_xmlrpc' ),
+			'bloat'    => 'xmlrpc',
+			'paths'    => array( 'security.fortress_block_xmlrpc', 'security.disable_xmlrpc', 'performance.bloat.xmlrpc' ),
+		),
+		'disable_rest_users' => array(
+			'fortress' => 'disable_rest_users',
+			'opts'     => array( 'hatch_security_block_user_enum' ),
+			'bloat'    => 'rest_users',
+			'paths'    => array( 'security.fortress_disable_rest_users', 'security.block_enum', 'performance.bloat.rest_users' ),
+		),
+		'disable_file_edit'  => array(
+			'fortress' => 'disable_file_edit',
+			'opts'     => array( 'hatch_security_disallow_file_edit' ),
+			'bloat'    => '',
+			'paths'    => array( 'security.fortress_disable_file_edit', 'security.disallow_file_edit' ),
+		),
+		'headers'            => array(
+			'fortress' => 'headers',
+			'opts'     => array( 'hatch_security_send_headers' ),
+			'bloat'    => '',
+			'paths'    => array( 'security.fortress_headers', 'security.send_headers' ),
+		),
+	);
+}
+
+/**
+ * The seven Fortress protections.
+ *
+ * @return string[]
+ */
+function hatch_fortress_keys(): array {
+	return array( 'block_xmlrpc', 'disable_rest_users', 'disable_file_edit', 'app_password_only', 'headers', 'hide_wp_version', 'disable_directory_browsing' );
+}
+
+/**
+ * Whether a Fortress protection is really in force, counting its older twin
+ * options, the Fortress master switch and the Performance clean-up switch.
+ *
+ * @param string $key One of hatch_fortress_keys().
+ */
+function hatch_fortress_effective( string $key ): bool {
+	if ( (bool) get_option( 'hatch_fortress_mode', false ) || (bool) get_option( 'hatch_fortress_' . $key, false ) ) {
+		return true;
+	}
+	$groups = hatch_twin_groups();
+	if ( isset( $groups[ $key ] ) ) {
+		foreach ( $groups[ $key ]['opts'] as $opt ) {
+			if ( get_option( $opt, false ) ) {
+				return true;
+			}
+		}
+		if ( '' !== $groups[ $key ]['bloat'] && class_exists( 'Hatch_Performance_Bloat' ) ) {
+			$bloat = Hatch_Performance_Bloat::state();
+			return ! empty( $bloat[ $groups[ $key ]['bloat'] ] );
+		}
+	}
+	return false;
+}
+
+/**
+ * Write one protection to every name it has. Turning one off while a master
+ * switch is what holds it on keeps the other protections on, then drops the
+ * master.
+ *
+ * @param string $key      Fortress key from hatch_twin_groups().
+ * @param bool   $value    New state.
+ * @param array  $hydrated Paths the server changed beyond what was sent.
+ */
+function hatch_twin_write( string $key, bool $value, array &$hydrated ): void {
+	$group = hatch_twin_groups()[ $key ];
+	update_option( 'hatch_fortress_' . $group['fortress'], $value ? 1 : 0 );
+	foreach ( $group['opts'] as $opt ) {
+		update_option( $opt, $value ? 1 : 0 );
+	}
+	if ( '' === $group['bloat'] || ! class_exists( 'Hatch_Performance_Bloat' ) ) {
+		return;
+	}
+	$items = (array) get_option( Hatch_Performance_Bloat::OPT_ITEMS, array() );
+	if ( ! $value && get_option( Hatch_Performance_Bloat::OPT_MASTER, false ) ) {
+		$items = array_map( 'intval', Hatch_Performance_Bloat::state() );
+		update_option( Hatch_Performance_Bloat::OPT_MASTER, 0 );
+		$hydrated['performance.bloat_kill'] = false;
+		foreach ( $items as $slug => $on ) {
+			$hydrated[ 'performance.bloat.' . $slug ] = (bool) $on;
+		}
+	}
+	$items[ $group['bloat'] ] = $value ? 1 : 0;
+	update_option( Hatch_Performance_Bloat::OPT_ITEMS, $items );
+}
+
+/**
  * Batch save handler. Routes each dot-path to its canonical option key (the
  * same key the existing admin-post handlers + enforcement code already use).
  *
@@ -1078,7 +1200,14 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 	if ( ! is_array( $body ) ) {
 		$body = $req->get_params();
 	}
-	$applied = array();
+	$applied         = array();
+	$fortress_before = array();
+	$mode_before     = (bool) get_option( 'hatch_fortress_mode', false );
+	foreach ( hatch_fortress_keys() as $fk ) {
+		$fortress_before[ $fk ] = hatch_fortress_effective( $fk );
+	}
+	$notes    = array(); // path => plain-language message the admin shows after saving.
+	$hydrated = array(); // path => value the server changed beyond what was sent (design.md).
 
 	// Stand-alone boolean options.
 	$bool_options = array(
@@ -1119,7 +1248,6 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 		'design.font_heading'    => 'hatch_design_font_heading',
 		'design.font_body'       => 'hatch_design_font_body',
 		'design.font_mono'       => 'hatch_design_font_mono',
-		'design.mode'            => 'hatch_design_mode',
 	);
 	$int_options  = array(
 		'security.bf_threshold' => 'hatch_brute_force_limit',
@@ -1207,7 +1335,23 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 				'ok'     => (bool) $result['ok'],
 				'errors' => isset( $result['errors'] ) ? $result['errors'] : array(),
 			);
-			$GLOBALS['hatch_design_md_uploaded_this_request'] = true;
+			if ( ! empty( $result['ok'] ) ) {
+				// Copy the parsed values into the options the controls read, so the
+				// admin, /features and /design all show the same design.
+				if ( empty( $result['has_settings'] ) ) {
+					$notes[ $path ]                                   = __( 'The design.md file was saved as written, but it has no settings to apply, so your colors, fonts and layout are unchanged. Add sections such as "brand:" or "layout:" to change them.', 'hatch-connect' );
+					$GLOBALS['hatch_design_md_uploaded_this_request'] = true;
+					continue;
+				}
+				$hydrated = array_merge( $hydrated, Hatch_Design_Loader::hydrate_options( $result['parsed'] ) );
+				$GLOBALS['hatch_design_md_uploaded_this_request'] = true;
+			} else {
+				$notes[ $path ] = sprintf(
+					/* translators: %s: list of problems found in the design.md file. */
+					__( 'The design.md file was not applied. %s', 'hatch-connect' ),
+					rtrim( implode( '; ', array_map( 'strval', (array) $result['errors'] ) ), ". \t\n" ) . '. ' . __( 'Put each key under its section, for example a line "brand:" followed by an indented line "primary: #ff0000". Accepted: brand (name, primary, accent, fg for Secondary, bg for Background, font_heading, font_body, font_mono), layout (density, rounded, max_width) and voice (tone, pronouns).', 'hatch-connect' )
+				);
+			}
 			continue;
 		}
 
@@ -1221,11 +1365,13 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 
 		// Code snippets: the Google Tag Manager container id and nothing else.
 		if ( 'snippets.gtm_id' === $path ) {
-			$gtm_id = strtoupper( trim( sanitize_text_field( (string) $value ) ) );
+			$gtm_id   = strtoupper( trim( sanitize_text_field( (string) $value ) ) );
+			$snippets = $load_agg( 'hatch_code_snippets' );
 			if ( '' !== $gtm_id && 1 !== preg_match( '/^GTM-[A-Z0-9]{4,12}$/', $gtm_id ) ) {
-				$gtm_id = '';
+				// Keep what was saved and say why, instead of blanking it silently.
+				$gtm_id         = isset( $snippets['gtm_id'] ) ? (string) $snippets['gtm_id'] : '';
+				$notes[ $path ] = __( 'The Google Tag Manager ID was not saved because it is not valid. A container ID starts with GTM and a dash, then letters and numbers.', 'hatch-connect' );
 			}
-			$snippets           = $load_agg( 'hatch_code_snippets' );
 			$snippets['gtm_id'] = $gtm_id;
 			$mark_agg( 'hatch_code_snippets', $snippets );
 			$applied[ $path ] = $gtm_id;
@@ -1280,15 +1426,29 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 
 		// String WP options.
 		if ( isset( $str_options[ $path ] ) ) {
-			update_option( $str_options[ $path ], sanitize_text_field( (string) $value ), false );
-			$applied[ $path ] = sanitize_text_field( (string) $value );
+			$clean = sanitize_text_field( (string) $value );
+			if ( 'security.allowed_roles' === $path ) {
+				// register_setting() callbacks never run on this route, so clean here.
+				$clean = hatch_sanitize_roles_csv( $clean );
+			}
+			update_option( $str_options[ $path ], $clean, false );
+			$applied[ $path ] = $clean;
 			continue;
 		}
 
 		// Integer WP options.
 		if ( isset( $int_options[ $path ] ) ) {
-			update_option( $int_options[ $path ], (int) $value, false );
-			$applied[ $path ] = (int) $value;
+			// register_setting() callbacks never run on this route, so clamp here.
+			$clean = 'security.bf_threshold' === $path ? hatch_sanitize_bf_limit( $value ) : hatch_sanitize_bf_window( $value );
+			if ( $clean !== (int) $value ) {
+				$notes[ $path ] = 'security.bf_threshold' === $path
+					/* translators: %d: the number of failed attempts that was kept. */
+					? sprintf( __( 'Failed attempts must be between 3 and 20, so Hatch used %d.', 'hatch-connect' ), $clean )
+					/* translators: %d: the lockout window in minutes that was kept. */
+					: sprintf( __( 'The lockout window must be between 5 and 240 minutes, so Hatch used %d.', 'hatch-connect' ), $clean );
+			}
+			update_option( $int_options[ $path ], $clean, false );
+			$applied[ $path ] = $clean;
 			continue;
 		}
 
@@ -1402,7 +1562,7 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 				$store = $load_agg( $opt_key );
 				// Colour fields reach the frontend stylesheet, so they must be
 				// a hex colour. Anything else keeps the stored value.
-				if ( ( 'hatch_design_brand' === $opt_key && in_array( $sub, array( 'primary', 'secondary', 'accent', 'background', 'fg' ), true ) )
+				if ( ( 'hatch_design_brand' === $opt_key && in_array( $sub, array( 'primary', 'secondary', 'accent', 'background', 'fg', 'bg' ), true ) )
 					|| ( 'hatch_design_borders' === $opt_key && 'color' === $sub ) ) {
 					$hex = sanitize_hex_color( (string) $value );
 					if ( empty( $hex ) ) {
@@ -1428,6 +1588,44 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 		}
 	}
 
+	// One protection, one answer: write every name a protection has, and when
+	// Fortress Mode was what held the others on, keep them on.
+	$twin_values = array();
+	foreach ( hatch_twin_groups() as $fk => $group ) {
+		foreach ( $group['paths'] as $tp ) {
+			if ( array_key_exists( $tp, $body ) ) {
+				$twin_values[ $fk ] = rest_sanitize_boolean( $body[ $tp ] );
+			}
+		}
+	}
+	foreach ( $twin_values as $fk => $tv ) {
+		hatch_twin_write( $fk, $tv, $hydrated );
+	}
+	$sent_off = false;
+	$sent_key = array();
+	foreach ( hatch_fortress_keys() as $fk ) {
+		$fp = 'security.fortress_' . $fk;
+		if ( array_key_exists( $fp, $body ) || isset( $twin_values[ $fk ] ) ) {
+			$sent_key[ $fk ] = true;
+			$fv              = isset( $twin_values[ $fk ] ) ? $twin_values[ $fk ] : rest_sanitize_boolean( $body[ $fp ] );
+			if ( ! $fv ) {
+				$sent_off = true;
+			}
+		}
+	}
+	if ( get_option( 'hatch_fortress_mode', false ) && $sent_off && ! array_key_exists( 'security.fortress_mode', $body ) ) {
+		update_option( 'hatch_fortress_mode', 0 );
+		$hydrated['security.fortress_mode'] = false;
+	}
+	if ( $mode_before && ! get_option( 'hatch_fortress_mode', false ) ) {
+		foreach ( hatch_fortress_keys() as $fk ) {
+			if ( empty( $sent_key[ $fk ] ) && ! empty( $fortress_before[ $fk ] ) && ! get_option( 'hatch_fortress_' . $fk, false ) ) {
+				update_option( 'hatch_fortress_' . $fk, 1 );
+				$hydrated[ 'security.fortress_' . $fk ] = true;
+			}
+		}
+	}
+
 	// v0.5.7: Flush deferred aggregate writes. One update_option per touched
 	// option key, regardless of how many sub-keys the React admin sent.
 	foreach ( $aggregate_dirty as $opt_key => $_true ) {
@@ -1435,7 +1633,7 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 	}
 
 	// v0.50.11: CRITICAL: every React save writes to scattered new option keys
-	// (hatch_design_brand, hatch_design_mode, hatch_design_voice, etc.) but the
+	// (hatch_design_brand, hatch_design_voice, etc.) but the
 	// Astro frontend reads from the consolidated `hatch_design_parsed` + the
 	// YAML `hatch_design_md`. Without this regeneration step the dashboard
 	// shows the save but the frontend never picks it up.
@@ -1465,8 +1663,10 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 
 	return new WP_REST_Response(
 		array(
-			'ok'      => true,
-			'applied' => $applied,
+			'ok'       => true,
+			'applied'  => $applied,
+			'notes'    => $notes,
+			'hydrated' => $hydrated,
 		),
 		200
 	);
@@ -1495,7 +1695,9 @@ function hatch_regenerate_design_artifacts(): void {
 	$brand['font_heading'] = (string) get_option( 'hatch_design_font_heading', 'Inter' );
 	$brand['font_body']    = (string) get_option( 'hatch_design_font_body', 'Inter' );
 	$brand['font_mono']    = (string) get_option( 'hatch_design_font_mono', 'JetBrains Mono' );
-	$brand['mode']         = (string) get_option( 'hatch_design_mode', 'auto' );
+
+	// The Design tab stores Secondary and Background; the frontend reads fg and bg.
+	$brand = Hatch_Design_Loader::normalize_brand( $brand );
 
 	$parsed = array(
 		'brand'     => array_merge( $defaults['brand'], $brand ),
@@ -1573,19 +1775,19 @@ function hatch_react_status_snapshot(): array {
 			'label' => __( 'Security', 'hatch-connect' ),
 			'rows'  => array(
 				array(
-					'label' => __( 'REST API hardening', 'hatch-connect' ),
+					'label' => __( 'Lock the REST API', 'hatch-connect' ),
 					'type'  => get_option( 'hatch_security_harden_rest' ) ? 'on' : 'off',
 				),
 				array(
-					'label' => __( 'XML-RPC disabled', 'hatch-connect' ),
-					'type'  => get_option( 'hatch_security_disable_xmlrpc' ) ? 'on' : 'off',
+					'label' => __( 'Old remote access closed', 'hatch-connect' ),
+					'type'  => hatch_fortress_effective( 'block_xmlrpc' ) ? 'on' : 'off',
 				),
 				array(
-					'label' => __( 'User name lookups blocked', 'hatch-connect' ),
-					'type'  => get_option( 'hatch_security_block_user_enum' ) ? 'on' : 'off',
+					'label' => __( 'Usernames hidden', 'hatch-connect' ),
+					'type'  => hatch_fortress_effective( 'disable_rest_users' ) ? 'on' : 'off',
 				),
 				array(
-					'label' => __( 'Hide the WordPress address from search engines', 'hatch-connect' ),
+					'label' => __( 'Keep this site out of search results', 'hatch-connect' ),
 					'type'  => get_option( 'hatch_security_force_noindex' ) ? 'on' : 'off',
 				),
 			),
@@ -1612,20 +1814,25 @@ function hatch_react_status_snapshot(): array {
 		),
 	);
 
-	$bridge     = hatch_react_plugin_bridge();
-	$detected   = array_filter(
+	$bridge   = hatch_react_plugin_bridge();
+	$detected = array_filter(
 		$bridge,
 		static function ( $b ) {
 			return ! empty( $b['detected'] );
 		}
 	);
+	$found    = array();
+	foreach ( $detected as $b ) {
+		$found[] = (string) ( isset( $b['providerName'] ) ? $b['providerName'] : '' );
+	}
+	$found      = array_values( array_filter( array_unique( $found ) ) );
 	$sections[] = array(
 		'label' => __( 'Plugin connections', 'hatch-connect' ),
 		'rows'  => array(
 			array(
-				'label' => __( 'Plugin integrations found', 'hatch-connect' ),
-				'value' => count( $detected ) . ' / ' . count( $bridge ),
-				'type'  => count( $detected ) > 0 ? 'num' : 'warn',
+				'label' => __( 'Plugins Hatch is using', 'hatch-connect' ),
+				'value' => $found ? implode( ', ', $found ) : __( 'None found', 'hatch-connect' ),
+				'type'  => $found ? 'text' : 'warn',
 			),
 		),
 	);
@@ -1664,8 +1871,8 @@ function hatch_react_status_snapshot(): array {
  * @return void
  */
 function hatch_register_admin_menu(): void {
-	// A dashicon follows every admin colour scheme, including hover and active.
-	$icon_svg = 'dashicons-cloud-upload';
+	// The hatch mark as a single-colour SVG data URI; WordPress recolours it for every admin colour scheme.
+	$icon_svg = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIj48ZyBmaWxsPSIjYTdhYWFkIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLjQwIDEuMDkpIHNjYWxlKDAuMDQ1NTcpIHRyYW5zbGF0ZSgtMjA4LjcgLTEyNS43KSI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMjU2LjAwIDUxNi4xN0MyNDcuMTEgNTE0Ljk4IDIzNi4yMiA1MTAuNTcgMjI5Ljg1IDUwNS41NkMyMTguOTYgNDk3LjAwIDIxMi40OSA0ODYuMzggMjA5LjYyIDQ3Mi4zM0wyMDguODMgNDY4LjUwTDIwOC44MyAzOTQuMDBMMjA4LjgzIDMxOS41MEwyMDkuNjEgMzE2LjE3QzIxMi42NiAzMDMuMDQgMjE4LjkwIDI5Mi42NiAyMjguMjUgMjg1LjE3QzIzNS45MCAyNzkuMDQgMjQyLjU1IDI3NS44NSAyNTIuMzMgMjczLjYzTDI1NS44MyAyNzIuODNMMjkxLjUwIDI3Mi44M0wzMjcuMTcgMjcyLjgzTDMyOS4zMyAyNzMuNDJDMzM3Ljg0IDI3NS43NCAzNDMuNjAgMjgxLjYyIDM0NS40NiAyODkuOTBMMzQ2LjAwIDI5Mi4zMEwzNDYuMDAgMzE5Ljg0TDM0Ni4wMCAzNDcuMzlMMzQ2LjY5IDM1MC4wOEMzNDkuMDEgMzU5LjE3IDM1NC45MiAzNjUuNTggMzYzLjk4IDM2OC44MUwzNjYuODMgMzY5LjgzTDQyMC4xNyAzNjkuOTJMNDczLjUwIDM3MC4wMUw0NzUuODkgMzY5LjUyQzQ4NS45MCAzNjcuNDUgNDk0LjIyIDM1OC45NCA0OTYuMTcgMzQ4Ljc5TDQ5Ni42NyAzNDYuMTdMNDk2LjY3IDMxOS4yOUw0OTYuNjcgMjkyLjQxTDQ5Ny40NSAyODkuMzlMNDk4LjIzIDI4Ni4zOEw0OTkuNjggMjgzLjg1QzUwMi41MCAyNzguOTIgNTA2LjQ5IDI3NS42NSA1MTIuMTkgMjczLjU4TDUxNS4xNyAyNzIuNTBMNTQ2LjgzIDI3Mi40MEw1NzguNTAgMjcyLjI5TDU4Mi4xNCAyNzIuNjZDNTk0LjE0IDI3My44OSA2MDMuNDIgMjc3Ljg2IDYxMi40MSAyODUuNjJDNjE2Ljc2IDI4OS4zOCA2MTguNTAgMjkxLjMwIDYyMS4wNiAyOTUuMTZDNjI1LjQyIDMwMS43MyA2MjguMTYgMzA4LjU1IDYyOS41MSAzMTYuMTdMNjMwLjA0IDMxOS4xN0w2MzAuMDAgMzkzLjMwTDYyOS45NyA0NjcuNDJMNjI5LjMzIDQ3MS4xM0M2MjcuNTYgNDgxLjM4IDYyMi40NSA0OTEuNDQgNjE1LjE3IDQ5OC45NkM2MDUuMTkgNTA5LjI3IDU5My44NyA1MTQuOTEgNTgwLjI2IDUxNi4zM0w1NzcuMDMgNTE2LjY3TDQxOC4xMCA1MTYuNjNMMjU5LjE3IDUxNi41OUwyNTYuMDAgNTE2LjE3WiIvPjxwYXRoIGQ9Ik0zNzcuNzEgMjY5LjY2QzM3Ni45MiAyNjkuNDkgMzc2LjA5IDI2OS4yMiAzNzUuODggMjY5LjA1QzM3NS42NyAyNjguODkgMzc0LjkwIDI2OC41NiAzNzQuMTcgMjY4LjMzQzM2OC42NSAyNjYuNTggMzYxLjY5IDI1OS45NCAzNTkuODIgMjU0LjYzQzM1OS41OCAyNTMuOTQgMzU5LjE1IDI1My4wMyAzNTguODcgMjUyLjYwQzM1OC41OSAyNTIuMTcgMzU4LjE5IDI1MS4wMCAzNTcuOTkgMjUwLjAwQzM1Ny43OCAyNDguOTkgMzU3LjI1IDI0Ny4wNiAzNTYuODEgMjQ1LjcxQzM1Ni4zNiAyNDQuMzYgMzU2LjAwIDI0My4wNCAzNTYuMDAgMjQyLjc3QzM1Ni4wMCAyNDIuNTAgMzU1LjY0IDI0MS4yMCAzNTUuMTkgMjM5Ljg5QzM1NC43NSAyMzguNTggMzU0LjIxIDIzNi42MCAzNTMuOTkgMjM1LjUwQzM1My43NyAyMzQuNDAgMzUzLjMxIDIzMi44NiAzNTIuOTUgMjMyLjA3QzM1Mi42MCAyMzEuMjkgMzUyLjE1IDIyOS43OSAzNTEuOTYgMjI4Ljc1QzM1MS43NiAyMjcuNzEgMzUxLjMzIDIyNi4zMiAzNTEuMDAgMjI1LjY2QzM1MC42NiAyMjUuMDAgMzUwLjIxIDIyMy41MSAzNTAuMDAgMjIyLjMzQzM0OS43OSAyMjEuMTYgMzQ5LjM1IDIxOS42NyAzNDkuMDIgMjE5LjAyQzM0OC42OSAyMTguMzcgMzQ4LjIzIDIxNy4wMSAzNDguMDAgMjE2LjAwQzM0Ny43NyAyMTQuOTkgMzQ3LjM3IDIxMy43NiAzNDcuMTIgMjEzLjI2QzM0Ni44NyAyMTIuNzcgMzQ2LjQ0IDIxMS4zMCAzNDYuMTcgMjEwLjAwQzM0NS44OSAyMDguNzAgMzQ1LjQ2IDIwNy4yMyAzNDUuMjAgMjA2LjcyQzM0NC45NCAyMDYuMjIgMzQ0LjQ4IDIwNC42NCAzNDQuMTggMjAzLjIwQzM0My44OSAyMDEuNzcgMzQzLjQxIDIwMC4xNCAzNDMuMTIgMTk5LjU4QzM0MS4zOSAxOTYuMjQgMzQwLjg1IDE4Ny40MSAzNDIuMDMgMTgxLjg4QzM0NC4yMCAxNzEuNjggMzUyLjg0IDE2My4wNSAzNjMuNTAgMTYwLjQ0QzM2NC42MCAxNjAuMTYgMzY2LjE4IDE1OS43MiAzNjcuMDAgMTU5LjQ1QzM2Ny44MiAxNTkuMTcgMzY5LjkzIDE1OC42MSAzNzEuNjcgMTU4LjIwQzM3My40MSAxNTcuNzkgMzc1LjE0IDE1Ny4yOSAzNzUuNTEgMTU3LjA5QzM3NS44OSAxNTYuODkgMzc3LjMxIDE1Ni40MiAzNzguNjggMTU2LjA0QzM4MC4wNSAxNTUuNjcgMzgyLjEwIDE1NS4wNiAzODMuMjUgMTU0LjY5QzM4NC40MCAxNTQuMzEgMzg2LjI3IDE1My42OSAzODcuNDIgMTUzLjMxQzM4OC41NiAxNTIuOTQgMzkwLjYyIDE1Mi40MCAzOTEuOTggMTUyLjEyQzM5My4zNCAxNTEuODUgMzk0Ljg3IDE1MS40MCAzOTUuMzggMTUxLjE0QzM5NS44OCAxNTAuODggMzk3LjQ3IDE1MC4zOCAzOTguOTAgMTUwLjAyQzQwMS40MCAxNDkuMzkgNDA0LjE0IDE0OC41NiA0MDcuMzMgMTQ3LjQ2QzQwOC4xNiAxNDcuMTcgNDEwLjI2IDE0Ni41MiA0MTIuMDAgMTQ2LjAwQzQxMy43NCAxNDUuNDggNDE1Ljc3IDE0NC44MyA0MTYuNTAgMTQ0LjU1QzQxNy4yMyAxNDQuMjYgNDE4LjI4IDE0NC4wMiA0MTguODMgMTQ0LjAxQzQxOS4zOCAxNDQuMDAgNDIwLjYwIDE0My42NCA0MjEuNTMgMTQzLjIwQzQyMi40NyAxNDIuNzcgNDI0LjAyIDE0Mi4yNCA0MjQuOTcgMTQyLjA0QzQyNS45MyAxNDEuODMgNDI3LjM3IDE0MS4zNiA0MjguMTkgMTQwLjk5QzQyOS4wMCAxNDAuNjIgNDMwLjQyIDE0MC4xNyA0MzEuMzMgMTQwLjAwQzQzMi4yNSAxMzkuODMgNDMzLjQ5IDEzOS40MyA0MzQuMDggMTM5LjEyQzQzNS4xNiAxMzguNTUgNDM4LjQxIDEzNy41OCA0NDMuNDQgMTM2LjMyQzQ0NC44NyAxMzUuOTYgNDQ2LjQ3IDEzNS40NCA0NDcuMDEgMTM1LjE2QzQ0Ny41NCAxMzQuODkgNDQ5LjAzIDEzNC40NCA0NTAuMzMgMTM0LjE3QzQ1MS42MiAxMzMuOTAgNDUzLjI1IDEzMy4zOSA0NTMuOTMgMTMzLjAzQzQ1NC42MiAxMzIuNjggNDU2LjA0IDEzMi4yNCA0NTcuMDggMTMyLjA0QzQ1OC4xMiAxMzEuODUgNDU5LjU1IDEzMS40MCA0NjAuMjUgMTMxLjA0QzQ2MC45NSAxMzAuNjkgNDYyLjM0IDEzMC4yNCA0NjMuMzQgMTMwLjA2QzQ2NC4zNSAxMjkuODcgNDY1Ljk5IDEyOS4zMyA0NjcuMDAgMTI4Ljg2QzQ2OC4wMSAxMjguMzkgNDY5LjMwIDEyOC4wMSA0NjkuODcgMTI4LjAwQzQ3MC40NCAxMjguMDAgNDcyLjI3IDEyNy41NSA0NzMuOTIgMTI3LjAxQzQ3OS41OSAxMjUuMTQgNDg2LjU1IDEyNS4yOCA0OTEuMjAgMTI3LjM1QzQ5Ni4wNiAxMjkuNTAgNDk3LjEyIDEzMC4xOSA1MDAuMTQgMTMzLjE3QzUwNC4zMCAxMzcuMjYgNTA3LjQwIDE0Mi43NCA1MDguMDEgMTQ3LjA4QzUwOC4xOSAxNDguMzQgNTA4LjYzIDE0OS45NCA1MDguOTkgMTUwLjY0QzUwOS4zNSAxNTEuMzQgNTA5Ljc4IDE1Mi44MiA1MDkuOTYgMTUzLjkzQzUxMC4xNCAxNTUuMDMgNTEwLjU5IDE1Ni41MyA1MTAuOTYgMTU3LjI2QzUxMS4zMyAxNTcuOTkgNTExLjc5IDE1OS41MyA1MTEuOTggMTYwLjY4QzUxMi4xNiAxNjEuODMgNTEyLjYxIDE2My41NCA1MTIuOTYgMTY0LjQ3QzUxMy4zMiAxNjUuNDAgNTEzLjkyIDE2Ny4zNyA1MTQuMjggMTY4LjgzQzUxNC42NSAxNzAuMzAgNTE1LjM5IDE3My4wOCA1MTUuOTMgMTc1LjAwQzUxNi40NyAxNzYuOTIgNTE3LjE4IDE3OS41NSA1MTcuNTEgMTgwLjgzQzUxNy44MyAxODIuMTIgNTE4LjUzIDE4NC40NyA1MTkuMDUgMTg2LjA1QzUxOS41NyAxODcuNjQgNTIwLjAwIDE4OS40NCA1MjAuMDEgMTkwLjA1QzUyMC4wMSAxOTAuNjcgNTIwLjI5IDE5MS43OCA1MjAuNjQgMTkyLjU0QzUyMC45OCAxOTMuMjkgNTIxLjUxIDE5NS4wMCA1MjEuODEgMTk2LjMzQzUyMi4xMSAxOTcuNjYgNTIyLjU5IDE5OS4yMCA1MjIuODggMTk5Ljc1QzUyMy41MCAyMDAuOTUgNTI0LjY3IDIwNy40NSA1MjQuNjcgMjA5LjcxQzUyNC42NyAyMTIuNzUgNTIzLjY5IDIxOC4wNyA1MjIuODYgMjE5LjQ5QzUyMi40NCAyMjAuMjMgNTIxLjk3IDIyMS4yMSA1MjEuODMgMjIxLjY3QzUyMS4zMSAyMjMuMzkgNTE3LjI4IDIyOC45OCA1MTUuNzIgMjMwLjEzQzUxNC44NyAyMzAuNzcgNTEzLjQ5IDIzMS44MCA1MTIuNjcgMjMyLjQxQzUxMC40NSAyMzQuMDYgNTA2LjQwIDIzNS45MCA1MDQuNTAgMjM2LjEyQzUwMy41OCAyMzYuMjIgNTAxLjkzIDIzNi42OSA1MDAuODMgMjM3LjE1QzQ5OS43MyAyMzcuNjEgNDk4LjUzIDIzNy45OSA0OTguMTYgMjM3Ljk5QzQ5Ny44MCAyMzguMDAgNDk2LjE3IDIzOC40NSA0OTQuNTUgMjM5LjAwQzQ5Mi45NCAyMzkuNTUgNDkxLjIxIDI0MC4wMSA0OTAuNzIgMjQwLjAxQzQ5MC4yMyAyNDAuMDIgNDg5LjIzIDI0MC4yNiA0ODguNTAgMjQwLjU0QzQ4Ny43NyAyNDAuODMgNDg1LjgyIDI0MS40MCA0ODQuMTcgMjQxLjgyQzQ4Mi41MiAyNDIuMjQgNDgwLjY0IDI0Mi44MiA0ODAuMDAgMjQzLjEwQzQ3OS4zNSAyNDMuMzggNDc3Ljg2IDI0My43OCA0NzYuNjggMjQ0LjAwQzQ3NS41MCAyNDQuMjEgNDc0LjAwIDI0NC42NiA0NzMuMzUgMjQ0Ljk5QzQ3Mi43MCAyNDUuMzIgNDcxLjI5IDI0NS43NyA0NzAuMjMgMjQ1Ljk5QzQ2OS4xNiAyNDYuMjEgNDY3LjY2IDI0Ni42NyA0NjYuOTAgMjQ3LjAwQzQ2Ni4xMyAyNDcuMzQgNDY0LjU2IDI0Ny43OCA0NjMuNDEgMjQ3Ljk5QzQ2Mi4yNSAyNDguMjAgNDYwLjY1IDI0OC42NSA0NTkuODMgMjQ5LjAwQzQ1OS4wMiAyNDkuMzUgNDU3LjQxIDI0OS43OSA0NTYuMjYgMjQ5Ljk5QzQ1NS4xMSAyNTAuMTkgNDUzLjU0IDI1MC41OCA0NTIuNzcgMjUwLjg2QzQ1Mi4wMCAyNTEuMTUgNDUwLjI3IDI1MS42NSA0NDguOTMgMjUxLjk5QzQ0Ny41OSAyNTIuMzIgNDQ1LjY0IDI1Mi45MSA0NDQuNTkgMjUzLjMwQzQ0My41NCAyNTMuNjggNDQyLjMwIDI1NC4wMCA0NDEuODMgMjU0LjAwQzQ0MS4zNiAyNTQuMDAgNDQwLjEwIDI1NC4zNyA0MzkuMDMgMjU0LjgyQzQzNy45NiAyNTUuMjcgNDM2LjA3IDI1NS44MCA0MzQuODMgMjU2LjAwQzQzMy42MCAyNTYuMjAgNDMyLjEyIDI1Ni42MCA0MzEuNTYgMjU2Ljg5QzQzMS4wMCAyNTcuMTggNDI5LjMzIDI1Ny43NiA0MjcuODUgMjU4LjE4QzQyNi4zOCAyNTguNTkgNDI0LjU3IDI1OS4xNyA0MjMuODMgMjU5LjQ1QzQyMy4xMCAyNTkuNzQgNDIyLjE3IDI1OS45OCA0MjEuNzYgMjU5Ljk5QzQyMS4zNSAyNTkuOTkgNDIwLjA0IDI2MC4zNyA0MTguODQgMjYwLjgyQzQxNy42NCAyNjEuMjcgNDE1LjczIDI2MS44MSA0MTQuNjAgMjYyLjAxQzQxMy40NiAyNjIuMjIgNDEyLjE1IDI2Mi41OCA0MTEuNjggMjYyLjgxQzQxMS4yMSAyNjMuMDUgNDA5LjcxIDI2My41MSA0MDguMzMgMjYzLjgzQzQwNi45NiAyNjQuMTYgNDA1LjQzIDI2NC42MyA0MDQuOTMgMjY0Ljg4QzQwNC40MyAyNjUuMTMgNDAzLjAxIDI2NS41NiA0MDEuNzYgMjY1LjgzQzQwMC41MiAyNjYuMDkgMzk4LjQ1IDI2Ni42OSAzOTcuMTcgMjY3LjE1QzM5NS44OCAyNjcuNjEgMzk0LjQ5IDI2Ny45OSAzOTQuMDggMjY3Ljk5QzM5My42NiAyNjguMDAgMzkyLjM5IDI2OC4zOSAzOTEuMjQgMjY4Ljg4TDM4OS4xNyAyNjkuNzVMMzg0LjE3IDI2OS44NkMzODEuNDIgMjY5LjkyIDM3OC41MSAyNjkuODMgMzc3LjcxIDI2OS42NloiLz48L2c+PC9zdmc+';
 	add_menu_page(
 		__( 'Hatch', 'hatch-connect' ),
 		__( 'Hatch', 'hatch-connect' ),
@@ -1673,9 +1880,25 @@ function hatch_register_admin_menu(): void {
 		'hatch',
 		'hatch_render_admin_page',
 		$icon_svg,
-		80 // Next to Settings, so it does not push core menus around.
+		3 // Directly under Dashboard.
 	);
 }
+
+/**
+ * Keep the Hatch menu item highlighted on the hidden setup guide page.
+ *
+ * The guide is a hidden page under options.php, and WordPress picks the parent
+ * menu from that registration after the parent_file filter has run. The mapping
+ * is set on the page load hook, which fires after the access check, so the page
+ * stays reachable only for people who may open it.
+ *
+ * @return void
+ */
+function hatch_setup_menu_parent(): void {
+	global $_wp_real_parent_file;
+	$_wp_real_parent_file['options.php'] = 'hatch'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- WordPress menu parent mapping.
+}
+add_action( 'load-admin_page_hatch-setup', 'hatch_setup_menu_parent' );
 
 /**
  * Add a Settings link to the Hatch row on the Plugins screen.
@@ -1865,7 +2088,7 @@ function hatch_sanitize_roles_csv( $value ): string {
 function hatch_sanitize_bf_limit( $value ): int {
 	$v = (int) $value;
 	if ( $v < 3 ) {
-		return 5;
+		return 3;
 	}
 	if ( $v > 20 ) {
 		return 20;
@@ -1875,7 +2098,7 @@ function hatch_sanitize_bf_limit( $value ): int {
 function hatch_sanitize_bf_window( $value ): int {
 	$v = (int) $value;
 	if ( $v < 5 ) {
-		return 30;
+		return 5;
 	}
 	if ( $v > 240 ) {
 		return 240;

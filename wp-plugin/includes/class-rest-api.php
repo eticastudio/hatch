@@ -568,7 +568,7 @@ class Hatch_Rest_Api {
 				$author = array(
 					'id'     => (int) $au->ID,
 					'name'   => $au->display_name,
-					'slug'   => get_option( 'hatch_security_block_user_enum', 0 ) ? 'author-' . (int) $au->ID : $au->user_nicename,
+					'slug'   => Hatch_Frontend_Redirect::author_slug( (int) $au->ID, (string) $au->user_nicename ),
 					'bio'    => get_user_meta( $au->ID, 'description', true ),
 					'avatar' => get_avatar_url( $au->ID, array( 'size' => 128 ) ),
 				);
@@ -614,7 +614,7 @@ class Hatch_Rest_Api {
 						// form shortcodes to <div class="hatch-form-mount"> BEFORE
 						// the_content runs so the plugin's shortcode callback is
 						// never invoked. HatchForm.astro then hydrates the mounts
-						// with native .hatch-form-* markup + form-validator.ts.
+						// with native .hatch-form-* markup.
 						$raw = apply_filters( 'hatch_content_html', $raw, null );
 						return apply_filters( 'the_content', $raw ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core filter, applied so shortcodes and blocks render.
 					} )( $post->post_content ),

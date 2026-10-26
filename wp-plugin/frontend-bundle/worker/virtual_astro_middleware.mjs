@@ -134,7 +134,7 @@ var CSP = [
 	"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://challenges.cloudflare.com https://static.cloudflareinsights.com https://js.stripe.com https://www.paypal.com https://www.paypalobjects.com",
 	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
 	"font-src 'self' https://fonts.gstatic.com",
-	"img-src 'self' data: https:",
+	`img-src 'self' data: https:`,
 	`connect-src 'self' https://www.google-analytics.com https://*.analytics.google.com https://api.stripe.com https://www.paypal.com ${(() => {
 		try {
 			return WP_API ? new URL(WP_API).origin : "";

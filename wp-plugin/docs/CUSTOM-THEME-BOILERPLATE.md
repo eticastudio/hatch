@@ -10,7 +10,7 @@ Hatch ships with three themes: **Editorial** (`blog`), **Terminal** (`tech`), **
 
 A Hatch theme is one CSS file (`theme-<name>.css`) that lives inside `astro-starter/src/styles/` in the frontend build. When a visitor loads a page:
 
-1. The Astro layout sets `<html data-hatch-theme="<name>" data-hatch-mode="light|dark|auto">` — see [PageLayout.astro:105](../astro-starter/src/layouts/PageLayout.astro).
+1. The Astro layout sets `<html data-hatch-theme="<name>">` — see [PageLayout.astro:105](../astro-starter/src/layouts/PageLayout.astro).
 2. It injects the user's Design-tab picks (brand color, fonts, density, radius, max-width) as inline CSS variables on that same `<html>` element — [lib/design.ts:71](../astro-starter/src/lib/design.ts).
 3. It loads the shared `core-blocks.css` (base rules for every `.wp-block-*` selector inside `.hatch-prose`).
 4. It loads your theme file, which owns the visual language.
@@ -131,7 +131,7 @@ You do not need to invent new preset names. Ship one preset — reuse `.hatch-he
 Below is the whole shape of a Hatch page. Your theme has to look good against this exact HTML.
 
 ```html
-<html data-hatch-theme="mytheme" data-hatch-mode="light" style="--hatch-primary: #c2410c; --hatch-density: 1; --hatch-radius: 10px; --hatch-button-radius: 9999px; --hatch-max-width: 1160px; --hatch-font-heading: 'Fraunces', serif; --hatch-font-body: 'Inter', sans-serif;">
+<html data-hatch-theme="mytheme" style="--hatch-primary: #c2410c; --hatch-density: 1; --hatch-radius: 10px; --hatch-button-radius: 9999px; --hatch-max-width: 1160px; --hatch-font-heading: 'Fraunces', serif; --hatch-font-body: 'Inter', sans-serif;">
   <body>
     <header class="hatch-header hatch-header-mytheme">
       <div class="hatch-header-inner">
@@ -202,28 +202,7 @@ For values not on the scale — e.g. custom header padding — wrap the raw valu
 
 ---
 
-## 6. Dark mode
-
-The Astro layout writes `data-hatch-mode="dark"` on `<html>` when the user (or their OS) requests dark. Your theme derives its dark palette from the user's brand background using perceptually uniform `color-mix(in oklab, …)`:
-
-```css
-[data-hatch-theme="mytheme"][data-hatch-mode="dark"] {
-  --hatch-bg:            color-mix(in oklab, var(--hatch-bg-design, #fdfaf3)  8%, #000);
-  --hatch-fg:            color-mix(in oklab, var(--hatch-bg-design, #fdfaf3) 90%, #fff);
-  --hatch-bg-2:          color-mix(in oklab, var(--hatch-bg-design, #fdfaf3) 12%, #000);
-  --hatch-bg-3:          color-mix(in oklab, var(--hatch-bg-design, #fdfaf3) 18%, #000);
-  --hatch-fg-muted:      color-mix(in oklab, var(--hatch-bg-design, #fdfaf3) 65%, #000);
-  --hatch-fg-subtle:     color-mix(in oklab, var(--hatch-bg-design, #fdfaf3) 45%, #000);
-  --hatch-border:        color-mix(in oklab, var(--hatch-bg-design, #fdfaf3) 18%, #000);
-  --hatch-border-strong: color-mix(in oklab, var(--hatch-bg-design, #fdfaf3) 28%, #000);
-}
-```
-
-This way a user who picks warm cream gets a **warm** dark; a user who picks cool white gets a neutral black. You never hardcode the dark palette — the user's brand tint stays present in dark mode. Every surface (`--hatch-bg-2`, borders, muted text) re-derives automatically because they read `--hatch-bg` in the shared file.
-
----
-
-## 7. Rules of engagement
+## 6. Rules of engagement
 
 - **Do not create Gutenberg blocks.** Hatch is a bridge — WordPress core blocks in, styled HTML out. Custom blocks are unsupported and will trigger an editor warning.
 - **Do not import external CSS at runtime.** Fonts are loaded by the layout via `<link>` from the user's Design pick — see `designFontHref` in [lib/design.ts:105](../astro-starter/src/lib/design.ts). Your theme's font stack lists the family names as strings; the layout preloads them.
@@ -234,7 +213,7 @@ This way a user who picks warm cream gets a **warm** dark; a user who picks cool
 
 ---
 
-## 8. Layout primitives
+## 7. Layout primitives
 
 **Header.** The starter emits three preset shapes today (`blog`, `tech`, `docs`). The blog shape is a wordmark + nav + optional actions row separated by a hairline rule. The tech shape is a mono-brand + inline nav. The docs shape is a centered wordmark + version chip + sidebar toggle. Pick whichever your palette fits, or add `.hatch-header-<yourname>` and style it fresh. `.hatch-header-inner` is always the flex container.
 
@@ -248,7 +227,7 @@ This way a user who picks warm cream gets a **warm** dark; a user who picks cool
 
 ---
 
-## 9. How to package and distribute
+## 8. How to package and distribute
 
 Three options, from simplest to most portable:
 
@@ -262,7 +241,7 @@ Future versions of Hatch will support the fourth "Custom" wizard tile pointing a
 
 ---
 
-## 10. Minimal working boilerplate
+## 9. Minimal working boilerplate
 
 Copy this whole block to `theme-boilerplate.css`. Replace `boilerplate` with your theme name, swap the two default hexes, and you have a working theme.
 
@@ -299,17 +278,6 @@ Copy this whole block to `theme-boilerplate.css`. Replace `boilerplate` with you
   --hatch-border-strong: color-mix(in oklab, var(--hatch-bg) 65%, var(--hatch-fg));
 }
 
-/* Dark mode — auto-derived from brand bg */
-[data-hatch-theme="boilerplate"][data-hatch-mode="dark"] {
-  --hatch-bg:            color-mix(in oklab, var(--hatch-bg-design, #ffffff)  8%, #000);
-  --hatch-fg:            color-mix(in oklab, var(--hatch-bg-design, #ffffff) 92%, #fff);
-  --hatch-bg-2:          color-mix(in oklab, var(--hatch-bg-design, #ffffff) 12%, #000);
-  --hatch-bg-3:          color-mix(in oklab, var(--hatch-bg-design, #ffffff) 18%, #000);
-  --hatch-fg-muted:      color-mix(in oklab, var(--hatch-bg-design, #ffffff) 66%, #000);
-  --hatch-fg-subtle:     color-mix(in oklab, var(--hatch-bg-design, #ffffff) 46%, #000);
-  --hatch-border:        color-mix(in oklab, var(--hatch-bg-design, #ffffff) 20%, #000);
-  --hatch-border-strong: color-mix(in oklab, var(--hatch-bg-design, #ffffff) 30%, #000);
-}
 
 /* --- Body typography --- */
 [data-hatch-theme="boilerplate"] body {

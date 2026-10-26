@@ -34,8 +34,8 @@ content-type: text/html
 ERR_ROUTE_NOT_FOUND: The path you requested has no handler.`}</pre>
     <p class="mt-6 text-[13px] text-hatch-fg-muted">Try one of these instead:</p>
     <div class="mt-3 flex flex-wrap gap-2" style="font-family: var(--hatch-font-mono, ui-monospace, monospace);">
-      <a href="/" class="px-3 py-1.5 rounded-md border border-hatch-border text-[12.5px] hover:border-hatch-primary text-hatch-fg-muted hover:text-hatch-primary transition-colors">cd /</a>
-      <a href="/blog" class="px-3 py-1.5 rounded-md border border-hatch-border text-[12.5px] hover:border-hatch-primary text-hatch-fg-muted hover:text-hatch-primary transition-colors">ls /blog</a>
+      <a href="/" class="px-3 py-1.5 rounded-md border border-hatch-border text-[12.5px] hover:border-hatch-primary text-hatch-fg-muted hover:text-hatch-primary-text transition-colors">cd /</a>
+      <a href="/blog" class="px-3 py-1.5 rounded-md border border-hatch-border text-[12.5px] hover:border-hatch-primary text-hatch-fg-muted hover:text-hatch-primary-text transition-colors">ls /blog</a>
     </div>
     {showSearch && (
       <form action="/search" method="get" class="mt-6 flex gap-2 max-w-md" style="font-family: var(--hatch-font-mono, ui-monospace, monospace);">
@@ -62,7 +62,7 @@ ERR_ROUTE_NOT_FOUND: The path you requested has no handler.`}</pre>
         <h2 class="text-[13px] font-semibold uppercase tracking-wider text-hatch-fg-subtle mb-4">Recently published</h2>
         <ul class="flex flex-col">{recent.map((p) => (
           <li><a href={`/blog/${p.slug}`} class="flex items-center justify-between gap-3 py-2.5 border-b border-hatch-border last:border-0 group">
-            <span class="text-[14px] text-hatch-fg group-hover:text-hatch-primary transition-colors">{p.title}</span>
+            <span class="text-[14px] text-hatch-fg group-hover:text-hatch-primary-text transition-colors">{p.title}</span>
             <span class="text-[12px] text-hatch-fg-subtle shrink-0">{new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
           </a></li>
         ))}</ul>
@@ -77,10 +77,10 @@ ERR_ROUTE_NOT_FOUND: The path you requested has no handler.`}</pre>
     <h1 class="text-5xl sm:text-6xl font-bold tracking-tight leading-[1.05]">Lost & Found</h1>
     <p class="mt-5 text-[16px] italic text-hatch-fg-muted leading-relaxed">The article you were looking for has gone to print — but never landed in the archive. Perhaps it was retracted, or the URL was misset.</p>
     <div class="mt-10 mb-10 flex justify-center gap-6 text-[12px] uppercase tracking-widest" style="border-top: 1px solid var(--hatch-fg); border-bottom: 1px solid var(--hatch-fg); padding-block: 16px;">
-      <a href="/" class="hover:text-hatch-primary transition-colors">Front Page</a>
+      <a href="/" class="hover:text-hatch-primary-text transition-colors">Front Page</a>
       <span class="text-hatch-fg-subtle">·</span>
-      <a href="/blog" class="hover:text-hatch-primary transition-colors">Archives</a>
-      {showSearch && <><span class="text-hatch-fg-subtle">·</span><a href="/search" class="hover:text-hatch-primary transition-colors">Search</a></>}
+      <a href="/blog" class="hover:text-hatch-primary-text transition-colors">Archives</a>
+      {showSearch && <><span class="text-hatch-fg-subtle">·</span><a href="/search" class="hover:text-hatch-primary-text transition-colors">Search</a></>}
     </div>
   </main>
 )}
@@ -137,7 +137,7 @@ ERR_ROUTE_NOT_FOUND: The path you requested has no handler.`}</pre>
         <h2 class="text-lg font-semibold tracking-tight mb-6">Recent posts</h2>
         <ul class="flex flex-col gap-3">{recent.map((p) => (
           <li><a href={`/blog/${p.slug}`} class="block py-2 group">
-            <h3 class="text-[15px] font-medium leading-snug group-hover:text-hatch-primary transition-colors line-clamp-1">{p.title}</h3>
+            <h3 class="text-[15px] font-medium leading-snug group-hover:text-hatch-primary-text transition-colors line-clamp-1">{p.title}</h3>
             <p class="mt-1 text-[12.5px] text-hatch-fg-subtle">{new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}{p.category && <> · {p.category}</>}</p>
           </a></li>
         ))}</ul>

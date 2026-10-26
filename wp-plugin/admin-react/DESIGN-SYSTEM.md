@@ -12,19 +12,19 @@ builds the next tab. Designers and engineers both read from this doc.
 ## 1. Tokens
 
 OKLCH-ish neutrals tinted toward the brand hue. Light surface, monochrome
-chrome, orange used **only** as the accent (under 10% of total color).
+chrome, lime used **only** as the accent (under 10% of total color).
 
 ```css
 --hx-bg:        #fafafa;   /* page canvas */
 --hx-surface:   #ffffff;   /* card / panel */
 --hx-surface-2: #f4f4f5;   /* inset / pill bg */
---hx-fg:        #0a0a0a;   /* primary text */
---hx-muted:     #525252;   /* secondary text */
---hx-subtle:    #737373;   /* tertiary, captions */
+--hx-text:      #0a0a0a;   /* primary text */
+--hx-text-muted:#525252;   /* secondary text */
+--hx-text-subtle:#737373;   /* tertiary, captions */
 --hx-border:    #e5e5e5;   /* standard separation */
---hx-border-2:  #d4d4d4;   /* hover / emphasis */
---hx-primary:   #ff6b00;   /* orange — sparingly */
---hx-primary-3: #fff3e8;   /* soft orange — selected bg */
+--hx-border-strong:#d4d4d4;   /* hover / emphasis */
+--hx-primary:   #7ebc11;   /* lime — sparingly */
+--hx-primary-3: #f1f8e3;   /* soft lime — selected bg */
 --hx-success:   #16a34a;
 --hx-warning:   #d97706;
 --hx-danger:    #b91c1c;
@@ -33,8 +33,8 @@ chrome, orange used **only** as the accent (under 10% of total color).
 ```
 
 **Save bar override:** `#18181b` (warm dark zinc-900) — not pure black, never
-`var(--hx-fg)`. Pure black under heavy box-shadow looks harsh; the warm dark
-softens the contrast against the orange Save button.
+`var(--hx-text)`. Pure black under heavy box-shadow looks harsh; the warm dark
+softens the contrast against the lime Save button.
 
 ---
 
@@ -50,15 +50,15 @@ prop or inherits from parent. Size 12–22px depending on context (12 inline,
 
 ### HxToggle
 - 40 × 24 pill
-- **ON = `--hx-fg` (black). OFF = `--hx-border-2` (grey).**
-- **NEVER orange.** That's the absolute ban. Orange is for accents, not state.
+- **ON = `--hx-text` (black). OFF = `--hx-border-strong` (grey).**
+- **NEVER lime.** That's the absolute ban. Lime is for accents, not state.
 - White thumb 18 × 18, 1px shadow.
 - 180ms transition on `--hx-ease`.
 
 ### HxBtn
 Pill, `border-radius: 999px`.
 - **Default**: black bg, white fg. The "carry the surface" button.
-- **Brand**: orange bg, **black fg** (not white — 6.4:1 contrast). One per surface max.
+- **Brand**: lime bg, **black fg** (not white — 6.4:1 contrast). One per surface max.
 - **Ghost**: white bg, 1px border, black fg, font-weight 500 (quiet).
 - **Danger**: red bg, white fg.
 
@@ -67,7 +67,7 @@ Hover: opacity 0.84 + translateY(-1px). Easing on `--hx-ease`.
 
 ### HxBadge
 Pill, 12px font, 600 weight, `3px 10px` padding. Color variants:
-neutral / orange / green / yellow / red / blue / mono.
+neutral / lime / green / yellow / red / blue / mono.
 
 ### HxCard
 - 14px radius, 22px padding, 1px hx-border.
@@ -102,8 +102,8 @@ option with 1.5px black border. Selected weight 600.
 inside cards as a "sub-section" divider.
 
 ### HxInp
-36px height, 8px radius, 1px hx-border-2, 13px font. Border colour shifts to
-`--hx-fg` on focus. `mono` prop = monospaced (for IDs, slugs, hex).
+36px height, 8px radius, 1px hx-border-strong, 13px font. Border colour shifts to
+`--hx-text` on focus. `mono` prop = monospaced (for IDs, slugs, hex).
 
 ### Chip
 Pill, 13px, 500 weight. Active = black bg + white fg + 1.5px black border.
@@ -119,7 +119,7 @@ maps brand colours to their soft companions:
 
 ```js
 const IBGS = {
-  '#ff6b00': '#fff3e8',  // brand orange → soft orange
+  '#7ebc11': '#f1f8e3',  // brand lime → soft lime
   '#2563eb': '#eff6ff',  // info blue
   '#16a34a': '#f0fdf4',  // success green
   '#d97706': '#fffbeb',  // warning amber
@@ -145,7 +145,7 @@ system; the map keeps tints harmonised.
 1px border + 4px padding wrapping `border-radius: 999`. Active tab = white bg
 + subtle shadow + black text. Inactive = transparent + subtle text.
 
-Badge: orange/amber pulse dot in the top-right of a pill when that tab needs
+Badge: lime/amber pulse dot in the top-right of a pill when that tab needs
 attention (e.g. Security with hardening disabled).
 
 ---
@@ -154,7 +154,7 @@ attention (e.g. Security with hardening disabled).
 
 Fixed bottom-centre pill, 24px from the bottom. Three states:
 - **Dirty**: `#18181b` warm dark, white text at varying opacity. Includes
-  `⌘S` keyboard hint badge. Discard (ghost) + Save (orange).
+  `⌘S` keyboard hint badge. Discard (ghost) + Save (lime).
 - **Saving**: same dark surface, spinner + "Saving…".
 - **Saved**: green tint (`#f0fdf4` bg, `#bbf7d0` border), 2.2s auto-dismiss.
 
@@ -227,7 +227,7 @@ actual visual style:
 - **Blog**: image header + article rows (blue)
 - **Tech**: dark editor with code lines (violet)
 - **Data**: sidebar + content grid (teal)
-- **AstroPaper**: minimal centered (orange)
+- **AstroPaper**: minimal centered (lime)
 - **AstroWind**: marketing hero + feature cards (blue)
 - **Astro Nano**: pure text column (neutral)
 
@@ -261,7 +261,7 @@ Match-and-refuse list. If a PR contains any of these, it gets rejected:
 4. **Hero metric template** — Big stat + small label + accent stripe. SaaS cliché.
 5. **Identical card grids** — Same-size icon+heading+text cards repeated 6+ times in a row.
 6. **Modal as first thought** — Use inline or progressive disclosure before reaching for a modal.
-7. **Orange toggles**. ON = black, OFF = grey-2. Period.
+7. **Lime toggles**. ON = black, OFF = grey-2. Period.
 8. **Pure `#fff` or `#000` in code** — always use the token. Tinting toward the brand hue is what makes the palette feel cohesive.
 
 ---

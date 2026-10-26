@@ -59,17 +59,6 @@ class Hatch_Mu_Plugin {
 	const MULTISITE_SCAN_LIMIT = 100;
 
 	/**
-	 * md5 of the copies Hatch 0.4.x to 0.8.0 wrote before the file carried a marker.
-	 *
-	 * @var string[]
-	 */
-	const LEGACY_HASHES = array(
-		'8e22fd1643eff9f587e29ce22a6a85eb',
-		'08dfd074c61cf53b166b6412bd77893b',
-		'8de8877144efbc2d21fea4572f514fb5',
-	);
-
-	/**
 	 * Hooks that keep the file in step with the connection and show failures.
 	 *
 	 * @return void
@@ -174,7 +163,11 @@ class Hatch_Mu_Plugin {
 			$action = 'remove';
 		}
 
-		if ( is_wp_error( $result ) && 'hatch_mu_foreign' !== $result->get_error_code() ) {
+		// A foreign file is left alone on purpose, and a site that turned file changes off
+		// (Hatch's own Fortress "disable file edit" switch, or DISALLOW_FILE_MODS) made that
+		// choice deliberately, so neither is reported as a failure.
+		$quiet = array( 'hatch_mu_foreign', 'hatch_mu_file_mods_disabled' );
+		if ( is_wp_error( $result ) && ! in_array( $result->get_error_code(), $quiet, true ) ) {
 			self::remember_issue( $action, $result->get_error_code() );
 			return;
 		}
@@ -286,10 +279,7 @@ class Hatch_Mu_Plugin {
 	 * @return bool
 	 */
 	public static function is_managed_contents( string $contents ): bool {
-		if ( false !== strpos( substr( $contents, 0, self::MARKER_WINDOW ), self::MARKER ) ) {
-			return true;
-		}
-		return in_array( md5( $contents ), self::LEGACY_HASHES, true );
+		return false !== strpos( substr( $contents, 0, self::MARKER_WINDOW ), self::MARKER );
 	}
 
 	/**
@@ -307,9 +297,6 @@ class Hatch_Mu_Plugin {
 		}
 		if ( null !== $md5 && $md5 === $source_md5 ) {
 			return 'current';
-		}
-		if ( null !== $md5 && in_array( $md5, self::LEGACY_HASHES, true ) ) {
-			return 'managed';
 		}
 		if ( null !== $contents && self::is_managed_contents( $contents ) ) {
 			return 'managed';

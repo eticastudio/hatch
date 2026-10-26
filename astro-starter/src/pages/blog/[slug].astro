@@ -380,7 +380,7 @@ const tk = themeKey(features);
       <div class="max-w-3xl mt-12 p-6 rounded-xl border border-hatch-border bg-hatch-bg-2 flex gap-4 items-start">
         {post.author.avatar && <img src={post.author.avatar} alt={post.author.name} width="48" height="48" class={`${avatarShape} flex-shrink-0`} loading="lazy" />}
         <div class="min-w-0">
-          <a href={`/blog/author/${post.author.slug}`} class="font-semibold text-hatch-fg hover:text-hatch-primary transition-colors">{post.author.name}</a>
+          <a href={`/blog/author/${post.author.slug}`} class="font-semibold text-hatch-fg hover:text-hatch-primary-text transition-colors">{post.author.name}</a>
           <p class="text-[14px] text-hatch-fg-muted mt-1 leading-relaxed">{post.author.description}</p>
         </div>
       </div>
@@ -392,13 +392,13 @@ const tk = themeKey(features);
         {adjacent.prev ? (
           <a href={`/blog/${adjacent.prev.slug}`} rel="prev" class="hatch-post-nav__prev group p-4 rounded-lg border border-hatch-border hover:border-hatch-fg transition-colors">
             <span class="block text-[11px] uppercase tracking-wider text-hatch-fg-subtle mb-1">Previous</span>
-            <span class="block font-medium leading-snug line-clamp-2 group-hover:text-hatch-primary transition-colors">{adjacent.prev.title}</span>
+            <span class="block font-medium leading-snug line-clamp-2 group-hover:text-hatch-primary-text transition-colors">{adjacent.prev.title}</span>
           </a>
         ) : <div />}
         {adjacent.next ? (
           <a href={`/blog/${adjacent.next.slug}`} rel="next" class="hatch-post-nav__next group p-4 rounded-lg border border-hatch-border hover:border-hatch-fg transition-colors sm:text-right">
             <span class="block text-[11px] uppercase tracking-wider text-hatch-fg-subtle mb-1">Next</span>
-            <span class="block font-medium leading-snug line-clamp-2 group-hover:text-hatch-primary transition-colors">{adjacent.next.title}</span>
+            <span class="block font-medium leading-snug line-clamp-2 group-hover:text-hatch-primary-text transition-colors">{adjacent.next.title}</span>
           </a>
         ) : <div />}
       </nav>
@@ -408,7 +408,7 @@ const tk = themeKey(features);
     {showRelated && related.length > 0 && (
       <section class="mt-20 pt-12 border-t border-hatch-border">
         <h2 class="text-xl font-semibold tracking-tight mb-8">
-          More in <span class="text-hatch-primary">{post.category}</span>
+          More in <span class="text-hatch-primary-text">{post.category}</span>
         </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-7 gap-y-12">
           {related.map((entry) => <PostCard post={entry} />)}
@@ -548,7 +548,7 @@ const tk = themeKey(features);
             a.textContent = '#';
             a.setAttribute('aria-label', 'Permalink');
             a.setAttribute('data-hatch-anchor', '');
-            a.className = 'ml-2 text-hatch-fg-subtle hover:text-hatch-primary opacity-0 group-hover:opacity-100 transition-opacity';
+            a.className = 'ml-2 text-hatch-fg-subtle hover:text-hatch-primary-text opacity-0 group-hover:opacity-100 transition-opacity';
             h.classList.add('group');
             h.appendChild(a);
           });

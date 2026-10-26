@@ -8,7 +8,7 @@
 .hatch-accordion-item summary::-webkit-details-marker { display: none; }
 .hatch-accordion-item summary::after { content: '+'; font-size: 1.4em; line-height: 1; color: var( --hatch-muted, #737373 ); transition: transform 0.2s; }
 .hatch-accordion-item[open] summary::after { content: '−'; }
-.hatch-accordion-item summary:hover { color: var( --hatch-primary, #ff6b35 ); }
+.hatch-accordion-item summary:hover { color: var(--hatch-primary-text, #56810b); }
 .hatch-accordion-body { padding: 0 0 1em; color: var( --hatch-fg, #0a0a0a ); }
 
 /* === button === */
@@ -138,7 +138,7 @@
 .hatch-divider-c-border  { border-color: var( --hatch-border,  #e5e5e5 ); }
 .hatch-divider-c-fg      { border-color: var( --hatch-fg,      #0a0a0a ); }
 .hatch-divider-c-muted   { border-color: var( --hatch-muted,   #737373 ); }
-.hatch-divider-c-primary { border-color: var( --hatch-primary, #ff6b35 ); }
+.hatch-divider-c-primary { border-color: var( --hatch-primary, #7ebc11 ); }
 .hatch-divider-c-accent  { border-color: var( --hatch-accent,  #0a0a0a ); }
 
 /* Width */
@@ -240,9 +240,9 @@
 
 /* Custom markers: check / arrow — use ::marker for native browsers */
 .hatch-list-check  { list-style: none; padding-left: 1.75em; }
-.hatch-list-check  li::before { content: '✓'; color: var( --hatch-primary, #ff6b35 ); position: absolute; transform: translateX( -1.5em ); font-weight: 600; }
+.hatch-list-check  li::before { content: '✓'; color: var(--hatch-primary-text, #56810b); position: absolute; transform: translateX( -1.5em ); font-weight: 600; }
 .hatch-list-arrow  { list-style: none; padding-left: 1.75em; }
-.hatch-list-arrow  li::before { content: '→'; color: var( --hatch-primary, #ff6b35 ); position: absolute; transform: translateX( -1.5em ); font-weight: 600; }
+.hatch-list-arrow  li::before { content: '→'; color: var(--hatch-primary-text, #56810b); position: absolute; transform: translateX( -1.5em ); font-weight: 600; }
 .hatch-list-check li, .hatch-list-arrow li { position: relative; }
 
 /* === posts === */
@@ -269,7 +269,7 @@
 .hatch-posts .hatch-post-card-body { padding: 0.75em 0; }
 .hatch-posts .hatch-post-card-title { font-weight: 600; font-size: 1.05em; margin: 0 0 0.4em; }
 .hatch-posts .hatch-post-card-excerpt { color: var( --hatch-muted, #525252 ); font-size: 0.92em; margin: 0; }
-.hatch-posts .hatch-post-card-meta { font-size: 0.82em; color: var( --hatch-subtle, #737373 ); margin-top: 0.4em; }
+.hatch-posts .hatch-post-card-meta { font-size: 0.82em; color: var( --hatch-subtle, #666666 ); margin-top: 0.4em; }
 
 /* === quote === */
 .hatch-quote { margin: var( --hatch-spacing, 1rem ) 0; padding: 0 0 0 1.25em; border-left: 3px solid var( --hatch-accent, #0a0a0a ); color: var( --hatch-fg, #0a0a0a ); font-style: italic; }
@@ -291,9 +291,9 @@
 /* === search === */
 .hatch-search { display: flex; gap: 0.5rem; margin: var( --hatch-spacing, 1rem ) 0; align-items: center; max-width: 100%; }
 .hatch-search input { flex: 1; padding: 0.6em 0.9em; border: 1px solid var( --hatch-border, #e5e5e5 ); border-radius: var( --hatch-radius, 6px ); font: inherit; background: var( --hatch-bg, #fff ); color: var( --hatch-fg, #0a0a0a ); }
-.hatch-search input:focus { outline: 2px solid var( --hatch-primary, #ff6b35 ); outline-offset: 2px; }
+.hatch-search input:focus { outline: 2px solid var( --hatch-primary, #7ebc11 ); outline-offset: 2px; }
 .hatch-search button { padding: 0.6em 1.1em; border: 0; border-radius: var( --hatch-radius, 6px ); background: var( --hatch-fg, #0a0a0a ); color: var( --hatch-bg, #fff ); cursor: pointer; font: inherit; font-weight: 500; }
-.hatch-search button:hover { background: var( --hatch-primary, #ff6b35 ); }
+.hatch-search button:hover { background: var( --hatch-primary, #7ebc11 ); }
 
 /* Variants */
 .hatch-search-pill input, .hatch-search-pill button { border-radius: 999px; }
@@ -629,7 +629,7 @@ h3.hatch-heading { font-size: 1.25rem; font-weight: 600; }
 .hatch-button:focus-visible { outline: 2px solid var( --hatch-primary, #6366f1 ); outline-offset: 3px; }
 
 /* v0.3.11 — Restore button text colour when nested inside .hatch-prose.
-   Theme stylesheets set `.hatch-prose a { color: var(--hatch-primary);
+   Theme stylesheets set `.hatch-prose a { color: var(--hatch-primary-text, #56810b);
    text-decoration: underline }` for inline links — that wins (specificity
    31) over `.hatch-button` (specificity 10) and the button text disappears
    into its own background gradient. Element-anchor wins back the cascade

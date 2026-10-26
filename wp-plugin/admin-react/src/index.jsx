@@ -23,27 +23,6 @@ import './styles.css';
 
 import PluginBridge from './tabs/PluginBridge.jsx';
 
-/* Dark mode: resolve preference and apply BEFORE first paint so there is no
-   flash of light. Reads localStorage first, then prefers-color-scheme, then
-   falls back to light. The value lives on <html data-hx-theme="..."> AND on
-   <body> so WordPress admin chrome (which we cannot scope to .hatch-react)
-   can react through the [data-hx-theme="dark"] rules in styles.css. */
-const THEME_KEY = 'hx-theme';
-function resolveTheme() {
-	try {
-		const saved = window.localStorage.getItem(THEME_KEY);
-		if (saved === 'light' || saved === 'dark') return saved;
-	} catch (e) { /* privacy mode: fall through */ }
-	if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
-	return 'light';
-}
-function applyTheme(next) {
-	document.documentElement.setAttribute('data-hx-theme', next);
-	document.body.setAttribute('data-hx-theme', next);
-}
-/* Apply immediately on script load so first paint is correct. */
-applyTheme(resolveTheme());
-
 const TABS = [
 	{ id: 'connection',  label: () => __( 'Connection', 'hatch-connect' ),  Component: Connection },
 	{ id: 'design',      label: () => __( 'Design', 'hatch-connect' ),      Component: Design },
@@ -53,6 +32,33 @@ const TABS = [
 	{ id: 'security',    label: () => __( 'Security', 'hatch-connect' ),    Component: Security },
 	{ id: 'status',      label: () => __( 'Status', 'hatch-connect' ),      Component: Status },
 ];
+
+/* Protections that exist under more than one name. The first path is the one
+   that is sent; the others are kept in step on screen, and the server writes
+   every name. Mirrors hatch_twin_groups() in admin/dashboard.php. */
+const TWIN_GROUPS = [
+	['security.fortress_block_xmlrpc', 'security.disable_xmlrpc', 'performance.bloat.xmlrpc'],
+	['security.fortress_disable_rest_users', 'security.block_enum', 'performance.bloat.rest_users'],
+	['security.fortress_disable_file_edit', 'security.disallow_file_edit'],
+	['security.fortress_headers', 'security.send_headers'],
+];
+const twinsOf = (path) => TWIN_GROUPS.find((g) => g.includes(path)) || [path];
+
+const FORTRESS_PATHS = [
+	'block_xmlrpc', 'disable_rest_users', 'disable_file_edit', 'app_password_only',
+	'headers', 'hide_wp_version', 'disable_directory_browsing',
+].map((k) => 'security.fortress_' + k);
+
+const readPath = (obj, path) => path.split('.').reduce((node, key) => (node == null ? undefined : node[key]), obj);
+const writePath = (obj, path, value) => {
+	const keys = path.split('.');
+	let cursor = obj;
+	for (let i = 0; i < keys.length - 1; i++) {
+		cursor[keys[i]] = cursor[keys[i]] || {};
+		cursor = cursor[keys[i]];
+	}
+	cursor[keys[keys.length - 1]] = value;
+};
 
 function App() {
 	const boot = window.hatchBoot || {};
@@ -87,71 +93,49 @@ function App() {
 	});
 	const [phase, setPhase] = useState('idle'); // idle | saving | saved | error
 	const [lastSaved, setLastSaved] = useState(null);
+	const [, setClock] = useState(0);
+	// Re-render each 30 seconds so "Saved just now" does not go stale.
+	useEffect(() => {
+		const t = setInterval(() => setClock((n) => n + 1), 30000);
+		return () => clearInterval(t);
+	}, []);
 	const [saveError, setSaveError] = useState('');
+	const [saveNotes, setSaveNotes] = useState([]);
 	const tabRefs = useRef({});
 
-	/* Theme state: seeded from the same resolver used at boot so React and
-	   the DOM never disagree. Toggle flips DOM attribute + persists + updates
-	   React state so any tab reading `theme` from context/prop stays in sync. */
-	const [theme, setTheme] = useState(() => (
-		document.documentElement.getAttribute('data-hx-theme') || resolveTheme()
-	));
-	const toggleTheme = useCallback(() => {
-		const next = theme === 'dark' ? 'light' : 'dark';
-		applyTheme(next);
-		try { window.localStorage.setItem(THEME_KEY, next); } catch (e) { /* privacy mode */ }
-		setTheme(next);
-	}, [theme]);
-	/* Follow system changes only when the user has not made an explicit choice. */
-	useEffect(() => {
-		if (!window.matchMedia) return;
-		const mq = window.matchMedia('(prefers-color-scheme: dark)');
-		const onChange = (e) => {
-			let saved = null;
-			try { saved = window.localStorage.getItem(THEME_KEY); } catch (err) { /* privacy mode */ }
-			if (saved === 'light' || saved === 'dark') return;
-			const next = e.matches ? 'dark' : 'light';
-			applyTheme(next);
-			setTheme(next);
-		};
-		mq.addEventListener ? mq.addEventListener('change', onChange) : mq.addListener(onChange);
-		return () => {
-			mq.removeEventListener ? mq.removeEventListener('change', onChange) : mq.removeListener(onChange);
-		};
-	}, []);
 	const setupUrl = boot.setupUrl || 'admin.php?page=hatch-setup';
 	const openWizard = () => { window.location.href = setupUrl; };
 
 	/* Tabs that need a look get the amber dot (DESIGN-SYSTEM.md section 4).
 	   Security: the one-switch hardening is still off. */
 	const attention = {
-		security: !(state.security && state.security.fortress_mode),
+		security: !FORTRESS_PATHS.every((path) => !!readPath(state, path)),
 	};
 
-	const dirtyCount = useMemo(() => Object.keys(pending).length, [pending]);
+	/* The master Fortress switch moves together with the protections under it,
+	   so it is not counted as a second change. */
+	const dirtyCount = useMemo(() => {
+		return Object.keys(pending).filter((k) => 'security.fortress_mode' !== k).length;
+	}, [pending]);
 
 	const setSetting = useCallback((path, value) => {
-		const saved = path.split('.').reduce((node, key) => (node == null ? undefined : node[key]), baseline.current);
+		const group = twinsOf(path);
+		const sendPath = group[0];
+		const saved = readPath(baseline.current, sendPath);
 		setPending((p) => {
 			const next = { ...p };
 			/* A switch never saved before reads as off, so off is not a change. */
 			const same = typeof value === 'boolean' ? Boolean(saved) === value : JSON.stringify(saved) === JSON.stringify(value);
 			if (same) {
-				delete next[path];
+				delete next[sendPath];
 			} else {
-				next[path] = value;
+				next[sendPath] = value;
 			}
 			return next;
 		});
 		setState((s) => {
 			const next = structuredClone(s);
-			const keys = path.split('.');
-			let cursor = next;
-			for (let i = 0; i < keys.length - 1; i++) {
-				cursor[keys[i]] = cursor[keys[i]] || {};
-				cursor = cursor[keys[i]];
-			}
-			cursor[keys[keys.length - 1]] = value;
+			group.forEach((member) => writePath(next, member, value));
 			return next;
 		});
 	}, []);
@@ -163,22 +147,34 @@ function App() {
 		setPhase('saving');
 		setSaveError('');
 		try {
-			await hxFetch('options', { method: 'POST', body: JSON.stringify(pending) });
+			const res = await hxFetch('options', { method: 'POST', body: JSON.stringify(pending) });
+			const applied = (res && res.applied) || {};
+			const hydrated = (res && res.hydrated) || {};
+			const notes = (res && res.notes) || {};
 			const confirmed = structuredClone(baseline.current);
+			const shown = {};
 			Object.keys(pending).forEach((path) => {
-				const keys = path.split('.');
-				let cursor = confirmed;
-				for (let i = 0; i < keys.length - 1; i++) {
-					cursor[keys[i]] = cursor[keys[i]] || {};
-					cursor = cursor[keys[i]];
-				}
-				cursor[keys[keys.length - 1]] = pending[path];
+				/* The server may keep a different value than was typed (a number
+				   it clamped, an ID it rejected). What it kept is what is saved. */
+				const kept = Object.prototype.hasOwnProperty.call(notes, path) && Object.prototype.hasOwnProperty.call(applied, path) ? applied[path] : pending[path];
+				twinsOf(path).forEach((member) => writePath(confirmed, member, kept));
+				shown[path] = kept;
+			});
+			Object.keys(hydrated).forEach((path) => {
+				twinsOf(path).forEach((member) => writePath(confirmed, member, hydrated[path]));
+				shown[path] = hydrated[path];
 			});
 			baseline.current = confirmed;
+			setState((s) => {
+				const next = structuredClone(s);
+				Object.keys(shown).forEach((path) => twinsOf(path).forEach((member) => writePath(next, member, shown[path])));
+				return next;
+			});
 			setPending({});
+			setSaveNotes(Object.keys(notes).map((k) => notes[k]).filter(Boolean));
 			setPhase('saved');
 			setLastSaved(new Date());
-			setTimeout(() => setPhase('idle'), 2200);
+			setTimeout(() => setPhase('idle'), Object.keys(notes).length ? 8000 : 2200);
 		} catch (e) {
 			setSaveError(e && e.message ? e.message : '');
 			setPhase('error');
@@ -188,6 +184,7 @@ function App() {
 	const discard = useCallback(() => {
 		setPending({});
 		setState(baseline.current);
+		setSaveNotes([]);
 		setPhase('idle');
 	}, []);
 
@@ -239,10 +236,14 @@ function App() {
 		<div className="hatch-react" style={{ minHeight: '100vh', paddingBottom: 100, background: 'var(--hx-bg)' }}>
 			{/* Header */}
 			<div style={{ textAlign: 'center', padding: '32px 16px 0' }}>
-				<h1 style={{ fontSize: 24, fontWeight: 600, color: 'var(--hx-fg)', lineHeight: 1.2, margin: 0, padding: 0 }}>
-					{ __( 'Hatch', 'hatch-connect' ) }
+				<h1 style={{ fontSize: 24, fontWeight: 600, color: 'var(--hx-text)', lineHeight: 1.2, margin: 0, padding: 0 }}>
+					{ boot.brandLogoUrl ? (
+						<img src={ boot.brandLogoUrl } alt={ __( 'Hatch', 'hatch-connect' ) } style={{ display: 'block', height: 22, width: 'auto', margin: '0 auto' }} />
+					) : (
+						__( 'Hatch', 'hatch-connect' )
+					) }
 				</h1>
-				<p style={{ fontSize: 14, color: 'var(--hx-subtle)', margin: '6px 0 0' }}>
+				<p style={{ fontSize: 14, color: 'var(--hx-text-subtle)', margin: '6px 0 0' }}>
 					{ __( 'Connect this WordPress site to a fast frontend on Cloudflare.', 'hatch-connect' ) }
 				</p>
 
@@ -253,20 +254,11 @@ function App() {
 							borderRadius: 999,
 							border: '1px solid var(--hx-border)',
 							fontSize: 12,
-							color: 'var(--hx-subtle)',
+							color: 'var(--hx-text-subtle)',
 						}}
 					>
 						{ /* translators: %s: plugin version number, for example 1.0.0. */ sprintf( __( 'Version %s', 'hatch-connect' ), boot.version || '' ) }
 					</span>
-					<button
-						type="button"
-						className="hx-theme-toggle"
-						onClick={toggleTheme}
-						aria-label={ theme === 'dark' ? __( 'Switch to the light theme', 'hatch-connect' ) : __( 'Switch to the dark theme', 'hatch-connect' ) }
-						title={ theme === 'dark' ? __( 'Light theme', 'hatch-connect' ) : __( 'Dark theme', 'hatch-connect' ) }
-					>
-						<HxIcon size={14} sw={2}>{theme === 'dark' ? IC.sun : IC.moon}</HxIcon>
-					</button>
 				</div>
 			</div>
 
@@ -308,7 +300,7 @@ function App() {
 									border: '1.5px solid transparent',
 									boxShadow: active ? 'var(--hx-shadow-1)' : 'none',
 									background: active ? 'var(--hx-surface)' : 'transparent',
-									color: active ? 'var(--hx-fg)' : 'var(--hx-subtle)',
+									color: active ? 'var(--hx-text)' : 'var(--hx-text-subtle)',
 									fontWeight: active ? 600 : 500,
 									fontSize: 13,
 									cursor: 'pointer',
@@ -344,6 +336,8 @@ function App() {
 						onDirty={onDirty}
 						setSetting={setSetting}
 						onSetup={openWizard}
+						pendingPaths={Object.keys(pending)}
+						saveNotes={saveNotes}
 					/>
 				</div>
 			</div>
@@ -362,7 +356,7 @@ function App() {
 				}}
 			>
 				<a href={setupUrl} className="hatch-foot-link">{ __( 'Run the setup guide again', 'hatch-connect' ) }</a>
-				<span style={{ fontSize: 12, color: 'var(--hx-subtle)' }}>
+				<span style={{ fontSize: 12, color: 'var(--hx-text-subtle)' }}>
 					{ lastSaved ? /* translators: %s: how long ago, for example "2 minutes ago". */ sprintf( __( 'Saved %s', 'hatch-connect' ), fmtSaved( lastSaved ) ) : '' }
 				</span>
 			</div>
@@ -387,17 +381,22 @@ function App() {
 						justifyContent: 'center',
 						flexWrap: 'wrap',
 						gap: '8px 12px',
-						background: phase === 'saved' ? 'var(--hx-success-soft)' : 'var(--hx-bar)',
-						color: phase === 'saved' ? 'var(--hx-fg)' : 'var(--hx-bar-fg)',
-						border: `1px solid ${phase === 'saved' ? 'var(--hx-success-edge)' : 'var(--hx-bar-line)'}`,
+						background: phase === 'saved' ? (saveNotes.length ? 'var(--hx-warning-soft)' : 'var(--hx-success-soft)') : 'var(--hx-bar)',
+						color: phase === 'saved' ? 'var(--hx-text)' : 'var(--hx-bar-fg)',
+						border: `1px solid ${phase === 'saved' ? (saveNotes.length ? 'var(--hx-warning-edge)' : 'var(--hx-success-edge)') : 'var(--hx-bar-line)'}`,
 						padding: '8px 10px 8px 20px',
 						transition: 'background .2s var(--hx-ease), border-color .2s var(--hx-ease)',
 					}}
 				>
 					{phase === 'saved' && (
-						<span role="status" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, paddingInlineEnd: 10 }}>
-							<HxIcon size={16} color="var(--hx-success)" sw={2.5}>{IC.check}</HxIcon>
-							{ __( 'Saved.', 'hatch-connect' ) }
+						<span role="status" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, fontSize: 14, fontWeight: 600, paddingInlineEnd: 10, color: saveNotes.length ? 'var(--hx-warning)' : undefined }}>
+							{ saveNotes.length
+								? <HxIcon size={16} color="var(--hx-warning)" sw={2.5}>{IC.triangleAlert}</HxIcon>
+								: <HxIcon size={16} color="var(--hx-success)" sw={2.5}>{IC.check}</HxIcon> }
+							{ saveNotes.length ? __( 'Saved, with notes:', 'hatch-connect' ) : __( 'Saved.', 'hatch-connect' ) }
+							{ saveNotes.map((note) => (
+								<span key={note} style={{ fontWeight: 400, fontSize: 13, flexBasis: '100%' }}>{note}</span>
+							)) }
 						</span>
 					)}
 					{phase === 'saving' && (

@@ -109,9 +109,35 @@ class Hatch_Frontend_Redirect {
 			return;
 		}
 
+		$path = self::frontend_path( $path );
+
 		// The destination is the frontend URL an administrator saved, never visitor input.
 		wp_redirect( rtrim( $target, '/' ) . $path, 302, 'Hatch' ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- Owner-saved frontend URL, not request input.
 		exit;
+	}
+
+	/**
+	 * Translate WordPress archive paths into the routes the frontend serves.
+	 *
+	 * WordPress pages its blog at /page/2/ and names author archives by
+	 * username; the frontend pages at /blog?page=2 and knows authors by
+	 * their public slug.
+	 *
+	 * @param string $path Request path with optional query string.
+	 * @return string
+	 */
+	private static function frontend_path( string $path ): string {
+		$route = (string) strtok( $path, '?' );
+		if ( preg_match( '#^/page/(\d+)/?$#', $route, $m ) ) {
+			return '/blog?page=' . (int) $m[1];
+		}
+		if ( function_exists( 'is_author' ) && is_author() ) {
+			$author = get_queried_object();
+			if ( $author instanceof WP_User ) {
+				return '/blog/author/' . rawurlencode( self::author_slug( (int) $author->ID, (string) $author->user_nicename ) );
+			}
+		}
+		return $path;
 	}
 
 	/**
@@ -184,11 +210,23 @@ class Hatch_Frontend_Redirect {
 	 * @return string
 	 */
 	public static function rewrite_author_link( $url, $author_id, $author_nicename ) {
-		unset( $author_id );
 		$front = self::frontend_url();
 		if ( '' === $front || '' === (string) $author_nicename ) {
 			return $url;
 		}
-		return rtrim( $front, '/' ) . '/blog/author/' . rawurlencode( $author_nicename );
+		return rtrim( $front, '/' ) . '/blog/author/' . rawurlencode( self::author_slug( (int) $author_id, (string) $author_nicename ) );
+	}
+
+	/**
+	 * The author slug the frontend knows. With usernames hidden the frontend
+	 * only sees "author-{id}", never the login-derived nicename.
+	 *
+	 * @param int    $author_id       User ID.
+	 * @param string $author_nicename User nicename.
+	 * @return string
+	 */
+	public static function author_slug( int $author_id, string $author_nicename ): string {
+		$hidden = class_exists( 'Hatch_Hardening' ) ? Hatch_Hardening::is_on( 'disable_rest_users' ) : (bool) get_option( 'hatch_fortress_disable_rest_users', false );
+		return ( $hidden && $author_id > 0 ) ? 'author-' . $author_id : $author_nicename;
 	}
 }

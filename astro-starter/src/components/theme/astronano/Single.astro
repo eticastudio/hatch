@@ -64,7 +64,7 @@ const showSidebar = flags.sidebarSide !== 'none' && toc.length > 0;
 
   {flags.showAuthorBio && post.author?.description && (
     <div class="mt-8 text-[13px] text-hatch-fg-muted">
-      <a href={`/blog/author/${post.author.slug}`} class="text-hatch-fg hover:text-hatch-primary">{post.author.name}</a> · {post.author.description}
+      <a href={`/blog/author/${post.author.slug}`} class="text-hatch-fg hover:text-hatch-primary-text">{post.author.name}</a> · {post.author.description}
     </div>
   )}
 

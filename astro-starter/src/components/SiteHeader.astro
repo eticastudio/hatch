@@ -11,8 +11,8 @@
  *   docs  — centered wordmark + version chip stacked over a centered nav row.
  *
  * All three respect the shared aesthetic.header config (sticky, blur,
- * color_mode_button, brand_display) and pull the WP primary menu from
- * features. The mobile drawer + color-mode + hide-on-scroll JS at the
+ * brand_display) and pull the WP primary menu from
+ * features. The mobile drawer + hide-on-scroll JS at the
  * bottom is shared infrastructure.
  */
 import type { HatchFeatures } from '../lib/features';
@@ -36,7 +36,6 @@ const headerStickyClass =
   headerCfg.sticky === 'hide_on_scroll' ? 'sticky top-0 hatch-header-hide-on-scroll' :
   'sticky top-0';
 const headerBgClass = headerCfg.blur ? 'bg-hatch-bg/95 backdrop-blur' : 'bg-hatch-bg';
-const showColorModeBtn = headerCfg.color_mode_button;
 
 const brandDisplay = headerCfg.brand_display || 'auto';
 // The site name must never vanish: if the design says "logo" but no logo is
@@ -84,9 +83,6 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
   weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
 });
 
-// Inline SVG for the color-mode button — sun + moon. Repeated three times
-// so each theme branch can style its own button shell without a shared
-// component pulling in tailwind classes the theme CSS would have to fight.
 ---
 
 {/* ================================ BLOG ================================ */}
@@ -95,7 +91,7 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
     (serif Fraunces wordmark) + spacing, not by rearranging structure. */}
 {(theme === 'blog' || !['tech','docs'].includes(theme)) && (
 <header class={`hatch-header hatch-header-blog ${headerStickyClass} z-40 ${headerBgClass}`}>
-  <div class="mx-auto px-5 sm:px-8" style="max-width: var(--hatch-max-width, 1180px)">
+  <div class="mx-auto px-5 sm:px-8" style="max-width: max(var(--hatch-max-width, 1180px), 1100px)">
     <div class="hatch-header-inner">
       <a href="/" class="hatch-blog-wordmark">
         {showLogo && <img src={logoUrl} alt={siteName} class="h-8 w-auto max-w-[220px] inline-block align-middle" loading="eager" />}
@@ -125,7 +121,7 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
 {/* ================================ TECH ================================ */}
 {theme === 'tech' && (
 <header class={`hatch-header hatch-header-tech ${headerStickyClass} z-40 ${headerBgClass}`}>
-  <div class="mx-auto px-5 sm:px-8" style="max-width: var(--hatch-max-width, 1240px)">
+  <div class="mx-auto px-5 sm:px-8" style="max-width: max(var(--hatch-max-width, 1240px), 1100px)">
     <div class="hatch-header-inner">
       <a href="/" class="hatch-tech-brand">
         {showLogo && <img src={logoUrl} alt={siteName} class="h-5 w-auto max-w-[140px] mr-2" loading="eager" />}
@@ -152,7 +148,7 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
 {/* ================================ DOCS ================================ */}
 {theme === 'docs' && (
 <header class={`hatch-header hatch-header-docs ${headerStickyClass} z-40 ${headerBgClass}`}>
-  <div class="mx-auto px-5 sm:px-8" style="max-width: var(--hatch-max-width, 1180px)">
+  <div class="mx-auto px-5 sm:px-8" style="max-width: max(var(--hatch-max-width, 1180px), 1100px)">
     <div class="hatch-header-inner">
       <a href="/" class="hatch-docs-brand">
         {showLogo && <img src={logoUrl} alt={siteName} class="h-6 w-auto max-w-[160px]" loading="eager" />}
@@ -174,27 +170,6 @@ const editionDate = new Date().toLocaleDateString(features.site.language || 'en-
     </div>
   </div>
 </header>
-)}
-
-{/* v0.4.2 — Single canonical color-mode toggle, fixed top-right.
-    Previously each theme had its own button at a different position
-    (center-of-navrow / inline-with-separator / right-of-nav). One
-    floating button = consistent placement, easier to find, never blocks
-    content. Hidden on print + when admin disables the feature. */}
-{showColorModeBtn && (
-  <button
-    id="hatch-color-mode-btn"
-    type="button"
-    data-hatch-color-toggle
-    aria-label="Dark mode"
-    aria-pressed="false"
-    title="Switch to dark mode"
-    class="hatch-color-mode-toggle"
-    style="position: fixed; top: 14px; right: 14px; z-index: 60; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid var(--hatch-border); background: var(--hatch-bg); color: var(--hatch-fg-muted); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); cursor: pointer; transition: color 140ms ease, border-color 140ms ease;"
-  >
-    <svg class="hatch-cm-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-    <svg class="hatch-cm-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-  </button>
 )}
 
 {/* ============================ SHARED DRAWER =========================== */}

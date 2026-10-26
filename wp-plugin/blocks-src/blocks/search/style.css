@@ -1,8 +1,8 @@
 .hatch-search { display: flex; gap: 0.5rem; margin: var( --hatch-spacing, 1rem ) 0; align-items: center; max-width: 100%; }
 .hatch-search input { flex: 1; padding: 0.6em 0.9em; border: 1px solid var( --hatch-border, #e5e5e5 ); border-radius: var( --hatch-radius, 6px ); font: inherit; background: var( --hatch-bg, #fff ); color: var( --hatch-fg, #0a0a0a ); }
-.hatch-search input:focus { outline: 2px solid var( --hatch-primary, #ff6b35 ); outline-offset: 2px; }
+.hatch-search input:focus { outline: 2px solid var( --hatch-primary, #7ebc11 ); outline-offset: 2px; }
 .hatch-search button { padding: 0.6em 1.1em; border: 0; border-radius: var( --hatch-radius, 6px ); background: var( --hatch-fg, #0a0a0a ); color: var( --hatch-bg, #fff ); cursor: pointer; font: inherit; font-weight: 500; }
-.hatch-search button:hover { background: var( --hatch-primary, #ff6b35 ); }
+.hatch-search button:hover { background: var( --hatch-primary, #7ebc11 ); color: var( --hatch-primary-fg, #071222 ); }
 
 /* Variants */
 .hatch-search-pill input, .hatch-search-pill button { border-radius: 999px; }

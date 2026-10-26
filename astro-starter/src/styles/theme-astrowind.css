@@ -38,28 +38,11 @@
 	--hatch-border:       color-mix( in oklab, var(--hatch-fg) 11%, var(--hatch-bg) );
 	--hatch-border-2:     color-mix( in oklab, var(--hatch-fg) 20%, var(--hatch-bg) );
 	--hatch-primary-soft: color-mix( in oklab, var(--hatch-primary) 10%, transparent );
-	--hatch-primary-fg:   var(--hatch-bg);
+	--hatch-primary-fg:   #071222;
 
 	--hatch-grad: linear-gradient(135deg, var(--hatch-primary) 0%, var(--hatch-accent) 100%);
 	--hatch-grad-soft: radial-gradient(1200px 600px at 20% -10%, color-mix(in oklab, var(--hatch-primary) 14%, transparent), transparent 60%),
 	                   radial-gradient(900px 500px at 90% 0%, color-mix(in oklab, var(--hatch-accent) 12%, transparent), transparent 60%);
-}
-
-[data-hatch-theme="astrowind"][data-hatch-mode="dark"] {
-	--hatch-bg:           #050510;
-	--hatch-fg:           #f4f4f5;
-	--hatch-primary:      var(--hatch-primary);
-	--hatch-accent:       #f472b6;
-	--hatch-secondary:    #a1a1aa;
-}
-@media (prefers-color-scheme: dark) {
-	:root[data-hatch-theme="astrowind"][data-hatch-mode="auto"] {
-		--hatch-bg:           #050510;
-		--hatch-fg:           #f4f4f5;
-		--hatch-primary:      var(--hatch-primary);
-		--hatch-accent:       #f472b6;
-		--hatch-secondary:    #a1a1aa;
-	}
 }
 
 [data-hatch-theme="astrowind"] body {
@@ -130,7 +113,7 @@
 }
 [data-hatch-theme="astrowind"] .hatch-aw-nav-link.is-active {
 	background: var(--hatch-primary-soft);
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 }
 [data-hatch-theme="astrowind"] .hatch-aw-cta {
 	display: inline-flex;
@@ -187,14 +170,14 @@
 	max-width: 720px;
 }
 [data-hatch-theme="astrowind"] .hatch-prose a {
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 	text-decoration: none;
 	font-weight: 500;
 }
 [data-hatch-theme="astrowind"] .hatch-prose a:hover { text-decoration: underline; }
 [data-hatch-theme="astrowind"] .hatch-prose code {
 	background: var(--hatch-bg-3);
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 	padding: 2px 7px;
 	border-radius: 6px;
 	font-family: var(--hatch-font-mono);
@@ -274,7 +257,7 @@
 	font-size: 11px;
 	text-transform: uppercase;
 	letter-spacing: 0.14em;
-	color: var(--hatch-primary);
+	color: var(--hatch-primary-text);
 	margin-bottom: 0.5rem;
 }
 [data-hatch-theme="astrowind"] .hatch-aw-foot-cta-text h2 {
@@ -355,7 +338,7 @@
 	text-decoration: none;
 	transition: color .15s;
 }
-[data-hatch-theme="astrowind"] .hatch-aw-foot-nav a:hover { color: var(--hatch-primary); }
+[data-hatch-theme="astrowind"] .hatch-aw-foot-nav a:hover { color: var(--hatch-primary-text); }
 [data-hatch-theme="astrowind"] .hatch-aw-foot-bottom {
 	display: flex;
 	justify-content: space-between;

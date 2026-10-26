@@ -70,7 +70,6 @@ function hatch_uninstall_current_site() {
 	remove_role( 'hatch_reader' );
 	delete_option( 'hatch_reader_user_id' );
 	delete_option( 'hatch_app_pwd_retention_days' );
-	delete_option( 'hatch_legacy_reader_cleaned' );
 
 	// The Hatch block in uploads/.htaccess.
 	$hatch_uploads = wp_get_upload_dir();

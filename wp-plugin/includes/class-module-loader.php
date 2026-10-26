@@ -162,19 +162,8 @@ class Hatch_Module_Loader {
 	 * @return array<string, bool>
 	 */
 	private static function get_feature_flags(): array {
-		// v0.50.14 - `hatch_features` is stored as a native PHP array by
-		// `Hatch_Features::update()`, not a JSON string. The legacy decoder
-		// here would fatal on every load once a save happened. Be tolerant
-		// of both shapes so we don't break on rollback / partial deploys.
-		$raw = get_option( 'hatch_features', '' );
-		if ( is_array( $raw ) ) {
-			return $raw;
-		}
-		if ( ! $raw ) {
-			return array();
-		}
-		$decoded = json_decode( (string) $raw, true );
-		return is_array( $decoded ) ? $decoded : array();
+		$raw = get_option( 'hatch_features', array() );
+		return is_array( $raw ) ? $raw : array();
 	}
 
 	/**

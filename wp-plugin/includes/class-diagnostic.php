@@ -197,14 +197,15 @@ class Hatch_Diagnostic {
 	 * @return array
 	 */
 	private static function check_https(): array {
-		$home = home_url();
+		// The saved address, not home_url(): other code can filter home_url().
+		$home = (string) get_option( 'home', '' );
 		if ( 0 === strpos( $home, 'https://' ) ) {
 			return self::pass( 'https', __( 'HTTPS', 'hatch-connect' ), __( 'Site is served over HTTPS.', 'hatch-connect' ) );
 		}
 		return self::warn(
 			'https',
 			__( 'HTTPS', 'hatch-connect' ),
-			__( 'Site is not on HTTPS. Headless frontends will refuse to authenticate against an http:// API.', 'hatch-connect' ),
+			__( 'Your site address does not start with https. Sign-in from your frontend needs a secure address.', 'hatch-connect' ),
 			__( 'Enable HTTPS on your hosting (free with Cloudflare or Let\'s Encrypt). Then update Settings → General → WordPress Address.', 'hatch-connect' ),
 			admin_url( 'options-general.php' )
 		);
@@ -233,7 +234,7 @@ class Hatch_Diagnostic {
 				'rest_reachable',
 				__( 'REST API reachable', 'hatch-connect' ),
 				/* translators: 1: request URL, 2: HTTP status code. */
-				sprintf( __( 'GET %1$s dispatched in-process with HTTP %2$d. REST routing works.', 'hatch-connect' ), $url, (int) $internal->get_status() )
+				sprintf( __( 'The check request to %1$s succeeded (HTTP %2$d). The WordPress data feed responds.', 'hatch-connect' ), $url, (int) $internal->get_status() )
 			);
 		}
 
@@ -512,8 +513,13 @@ class Hatch_Diagnostic {
 			return self::pass( 'cpt_rest', __( 'Custom post types (n/a)', 'hatch-connect' ), __( 'No custom post types registered.', 'hatch-connect' ) );
 		}
 		if ( $status['hidden'] < 1 ) {
-			/* translators: %d: number of custom post types. */
-			return self::pass( 'cpt_rest', __( 'CPTs in REST', 'hatch-connect' ), sprintf( __( 'All %d CPTs are REST-accessible.', 'hatch-connect' ), (int) $status['total_custom'] ) );
+			$total = (int) $status['total_custom'];
+			return self::pass(
+				'cpt_rest',
+				__( 'Custom post types available to your frontend', 'hatch-connect' ),
+				/* translators: %d: number of custom post types. */
+				sprintf( _n( 'The %d custom post type is available to your frontend.', 'All %d custom post types are available to your frontend.', $total, 'hatch-connect' ), $total )
+			);
 		}
 		$names = array();
 		foreach ( $status['hidden_types'] as $t ) {
@@ -521,10 +527,10 @@ class Hatch_Diagnostic {
 		}
 		return self::fail(
 			'cpt_rest',
-			__( 'CPTs in REST', 'hatch-connect' ),
+			__( 'Custom post types available to your frontend', 'hatch-connect' ),
 			/* translators: %s: comma-separated post type names. */
-			sprintf( __( 'CPTs missing show_in_rest: %s', 'hatch-connect' ), implode( ', ', $names ) ),
-			__( 'Add `show_in_rest => true` in register_post_type() args. Open Health tab for details.', 'hatch-connect' ),
+			sprintf( __( 'These custom post types are hidden from your frontend: %s', 'hatch-connect' ), implode( ', ', $names ) ),
+			__( 'Turn on REST support for these post types (show_in_rest) in the plugin or theme that registers them, then check again.', 'hatch-connect' ),
 			admin_url( 'admin.php?page=hatch#status' )
 		);
 	}

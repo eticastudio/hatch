@@ -252,24 +252,4 @@ class Hatch_Acf_Bridge {
 		self::flush_cache();
 		return $value;
 	}
-
-
-
-	/**
-	 * Human-readable plugin label.
-	 *
-	 * @param string $key Plugin key.
-	 * @return string
-	 */
-	public static function plugin_label( string $key ): string {
-		$labels = array(
-			'acf'       => 'ACF',
-			'acf_pro'   => 'ACF Pro',
-			'secure_cf' => 'Secure Custom Fields',
-			'meta_box'  => 'Meta Box',
-			'pods'      => 'Pods',
-			'none'      => '',
-		);
-		return isset( $labels[ $key ] ) ? $labels[ $key ] : '';
-	}
 }

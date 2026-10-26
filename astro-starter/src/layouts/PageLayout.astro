@@ -38,7 +38,6 @@ import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import { getFeatures, isFallbackFeatures } from '../lib/features';
 import { siteName as resolveSiteName, siteDescription as resolveSiteDescription } from '../lib/site';
-import colorModeScript from '../scripts/color-mode.js?raw';
 import { getMenus } from '../lib/hatch';
 import { designToCssVars, designFontHref } from '../lib/design';
 import { edgeCache } from '../lib/cache';
@@ -79,7 +78,6 @@ const iconUrl = features.site.icon_url || '';
 const theme = features.theme || 'blog';
 const designCssVars = designToCssVars(features.design);
 const designFonts = designFontHref(features.design);
-const colorMode = features.design?.brand?.mode || 'auto';
 // v0.50.15 — toggleable Astro ClientRouter for page transitions.
 const usePageTransitions = features.aesthetic.animation.page_transitions;
 
@@ -107,13 +105,11 @@ if (isFallbackFeatures(features)) {
 ---
 
 <!doctype html>
-<html lang={lang} data-hatch-theme={theme} data-hatch-mode={colorMode} data-hatch-default-mode={colorMode} style={designCssVars}>
+<html lang={lang} data-hatch-theme={theme} style={designCssVars}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    {/* Blocking on purpose: sets the color mode before first paint and keeps
-        it correct across client-router navigations. See scripts/color-mode.js. */}
-    <script is:inline set:html={colorModeScript}></script>
+    <meta name="color-scheme" content="light" />
 
     {rawHead ? (
       <Fragment set:html={rawHead} />

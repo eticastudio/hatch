@@ -171,14 +171,12 @@ class Hatch_Performance_Bloat {
 
 	private static function kill_head_cruft(): void {
 		remove_action( 'wp_head', 'wlwmanifest_link' );
-		remove_action( 'wp_head', 'wp_generator' );
 		remove_action( 'wp_head', 'wp_shortlink_wp_head' );
 		remove_action( 'wp_head', 'adjacent_posts_rel_link_wp_head', 10 );
 		remove_action( 'wp_head', 'feed_links_extra', 3 );
 		remove_action( 'wp_head', 'rest_output_link_wp_head' );
 		remove_action( 'template_redirect', 'wp_shortlink_header', 11 );
-		// Also strip the "generator" meta from RSS/atom.
-		add_filter( 'the_generator', '__return_empty_string' );
+		// The generator tag is owned by the "Hide the WordPress version" switch.
 	}
 
 	private static function kill_block_library_css(): void {

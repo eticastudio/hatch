@@ -18,14 +18,14 @@ function Value({ v, type }) {
 		return (
 			<span style={{
 				fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace',
-				fontSize: 13, fontWeight: 600, color: 'var(--hx-fg)',
+				fontSize: 13, fontWeight: 600, color: 'var(--hx-text)',
 			}}>{v}</span>
 		);
 	}
 	return (
 		<span style={{
 			fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace',
-			fontSize: 12, color: 'var(--hx-muted)', wordBreak: 'break-all',
+			fontSize: 12, color: 'var(--hx-text-muted)', wordBreak: 'break-all',
 			maxWidth: 360, textAlign: 'end',
 		}}>{v || __( 'Not set', 'hatch-connect' )}</span>
 	);
@@ -60,7 +60,7 @@ export default function Status({ state }) {
 				})}
 
 				{sections.length === 0 && (
-					<div className="hx-desc" style={{ color: 'var(--hx-subtle)', padding: '24px 0', textAlign: 'center' }}>
+					<div className="hx-desc" style={{ color: 'var(--hx-text-subtle)', padding: '24px 0', textAlign: 'center' }}>
 						{ __( 'Nothing to show yet. Finish the setup and this fills in.', 'hatch-connect' ) }
 					</div>
 				)}

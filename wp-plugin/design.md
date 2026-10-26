@@ -17,8 +17,8 @@ landing page updates, mirror the change here.
 | `--bg-3` | `#f4f4f5` | Inset / pill background |
 | `--border` | `#e5e5e5` | Standard separation |
 | `--border-2` | `#d4d4d4` | Emphasis border, hover state |
-| `--primary` | `#ff6b00` | Brand action, links |
-| `--primary-soft` | `#fff3e8` | Selected / hover background |
+| `--primary` | `#7ebc11` | Brand action (lime), links |
+| `--primary-soft` | `#f1f8e3` | Selected / hover background |
 | `--primary-fg` | `#ffffff` | Text on primary background |
 | `--green` | `#16a34a` | Success, healthy heartbeat |
 | `--green-soft` | `#dcfce7` | Success background |
@@ -71,11 +71,11 @@ All buttons are **pills** — `border-radius: 999px`.
 ```
 
 **Default** = black-on-white (`--fg` background). Used for the most common CTA.
-**Primary** = orange (`--primary`). Used for the *single* destination action
+**Primary** = lime (`--primary`). Used for the *single* destination action
 (e.g. "Download Hatch").
 **Secondary** = white pill with border. Used for tertiary actions.
 
-Never put two `.btn.primary` orange buttons next to each other — only one
+Never put two `.btn.primary` lime buttons next to each other — only one
 primary action per surface.
 
 ## Surfaces
@@ -110,8 +110,8 @@ Reduced-motion users get a static dot.
 
 ## What changes vs. what doesn't
 
-- **The orange (`#ff6b00`)** — locked. It IS the brand.
-- **The black-on-white default button** — locked. Don't paint everything orange.
+- **The lime (`#7ebc11`)** — locked. It IS the brand.
+- **The black-on-white default button** — locked. Don't paint everything lime.
 - **Pill button shape** — locked. No rounded-rectangle buttons.
 - **Card radius 14px, feature 10px** — locked. No 8px or 16px outliers.
 - **Inter + ui-monospace fonts** — locked.

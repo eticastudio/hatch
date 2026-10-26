@@ -209,7 +209,20 @@ export async function getPosts(opts: {
   if (opts.author) params.set('author', String(opts.author));
 
   const res = await wpFetch(`/posts?${params.toString()}`);
-  if (!res.ok) return { posts: [], total: 0, hasMore: false };
+  if (!res.ok) {
+    // WordPress answers 400 for a page past the end. Ask for the total on
+    // page 1 so callers can send the visitor to the last real page.
+    if ((opts.page ?? 1) > 1) {
+      const first = new URLSearchParams(params);
+      first.set('page', '1');
+      first.set('per_page', '1');
+      const head = await wpFetch(`/posts?${first.toString()}`);
+      if (head.ok) {
+        return { posts: [], total: parseInt(head.headers.get('x-wp-total') || '0', 10), hasMore: false };
+      }
+    }
+    return { posts: [], total: 0, hasMore: false };
+  }
   const total = parseInt(res.headers.get('x-wp-total') || '0', 10);
   const totalPages = parseInt(res.headers.get('x-wp-totalpages') || '0', 10);
   const data = (await res.json()) as WpRawPost[];

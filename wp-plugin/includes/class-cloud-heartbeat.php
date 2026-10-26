@@ -254,14 +254,16 @@ class Hatch_Cloud_Heartbeat {
 	 * Health label for a record, used for the status dot colour.
 	 *
 	 * @param array<string,mixed>|null $record Record from get().
-	 * @return string "good", "warn", "bad" or "muted".
+	 * @return string "good", "warn", "bad", "stale" or "muted".
 	 */
 	public static function health( ?array $record ): string {
 		if ( ! $record || empty( $record['ts'] ) ) {
 			return 'muted';
 		}
 		if ( self::is_stale( $record ) ) {
-			return 'bad';
+			// WP-Cron only runs when the site gets traffic, so an old record
+			// means "not checked lately", not "the frontend is down".
+			return 'stale';
 		}
 		$status = (int) ( $record['status'] ?? 0 );
 		if ( $status >= 200 && $status < 400 ) {
@@ -289,7 +291,7 @@ class Hatch_Cloud_Heartbeat {
 		$age = human_time_diff( (int) $record['ts'] );
 		if ( self::is_stale( $record ) ) {
 			/* translators: %s: how long ago the last check ran, for example "3 hours". */
-			return sprintf( __( 'No recent check. The last one ran %s ago.', 'hatch-connect' ), $age );
+			return sprintf( __( 'Not checked recently. The last check ran %s ago. Press Check now for a fresh result.', 'hatch-connect' ), $age );
 		}
 		$status = (int) ( $record['status'] ?? 0 );
 		$rtt    = (int) ( $record['rtt_ms'] ?? 0 );

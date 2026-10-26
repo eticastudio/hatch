@@ -239,7 +239,8 @@ final class Hatch_Cloudflare_Api {
 			);
 		}
 
-		if ( 401 === $status ) {
+		// A pasted token with stray characters is answered with HTTP 400 and code 6003, not 401.
+		if ( 401 === $status || ( 400 === $status && 6003 === $cf_code ) ) {
 			return new WP_Error(
 				'hatch_cf_auth',
 				__( 'Cloudflare rejected the API token. Check that it was copied in full and has not been revoked or expired.', 'hatch-connect' ),

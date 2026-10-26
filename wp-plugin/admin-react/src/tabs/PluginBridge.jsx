@@ -90,8 +90,6 @@ const CATS = [
 			'/hatch/v1/seo-meta',
 			'/hatch/v1/schema?url={url}',
 			'/hatch/v1/menus/{location}',
-			'/llms.txt (RankReady)',
-			'/.well-known/mcp.json (RankReady)',
 		],
 		fieldFromFeatures: (ig) => ig?.seo?.detected?.slug || (ig?.plugins?.rankready ? 'rankready' : null),
 		plugins: [
@@ -216,7 +214,7 @@ const CATS = [
 		id: 'membership',
 		label: __('Memberships', 'hatch-connect'),
 		bridgeFeature: 'Memberships',
-		outcome: __('Hatch can see your membership plugin, but it does not yet hide members-only content on the frontend.', 'hatch-connect'),
+		outcome: __('Planned. Hatch can already read MemberPress, Restrict Content Pro and Paid Memberships Pro if you install one. Hiding members-only content on the frontend is not built yet.', 'hatch-connect'),
 		exposes: ['/hatch/v1/membership/check'],
 		comingSoon: true,
 		fieldFromFeatures: () => null,
@@ -272,8 +270,13 @@ function CategoryRow({ cat, detected, plugMap, frontendUrl, checking, first }) {
 
 	// When PHP reports a provider by name only, highlight the first roster entry
 	// whose label starts with that name.
-	const nameMatchIdx = !active && activeLabel
-		? cat.plugins.findIndex((p) => norm(p.label).startsWith(norm(activeLabel)))
+	// Prefer an entry that is actually installed, so an active Lite edition is
+	// not skipped for a Pro entry listed before it.
+	const nameMatches = !active && activeLabel
+		? cat.plugins.map((p, i) => ({ p, i })).filter(({ p }) => norm(p.label).startsWith(norm(activeLabel)))
+		: [];
+	const nameMatchIdx = nameMatches.length
+		? (nameMatches.find(({ p }) => !!plugMap[p.slug]) || nameMatches[0]).i
 		: -1;
 
 	const isChecking = checking && !isOn && !cat.comingSoon;
@@ -293,7 +296,7 @@ function CategoryRow({ cat, detected, plugMap, frontendUrl, checking, first }) {
 			<span title={statusTitle}>
 				<HxBadge color={statusColor}>{statusText}</HxBadge>
 			</span>
-			<HxIcon size={14} sw={2.2} color="var(--hx-muted)" style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .2s var(--hx-ease)' }}>{IC.chevronRight}</HxIcon>
+			<HxIcon size={14} sw={2.2} color="var(--hx-text-muted)" style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .2s var(--hx-ease)' }}>{IC.chevronRight}</HxIcon>
 		</div>
 	);
 
@@ -320,7 +323,7 @@ function CategoryRow({ cat, detected, plugMap, frontendUrl, checking, first }) {
 					cursor: 'pointer',
 					textAlign: 'start',
 					fontFamily: 'inherit',
-					color: 'var(--hx-fg)',
+					color: 'var(--hx-text)',
 				}}
 			>
 				<HxHead
@@ -353,23 +356,19 @@ function CategoryRow({ cat, detected, plugMap, frontendUrl, checking, first }) {
 								key={p.slug}
 								last={idx === cat.plugins.length - 1}
 								label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}><StatusDot state={dotState} />{p.label}</span>}
-								desc={installed || isActivePlugin
+								desc={isActivePlugin
 									? p.note
-									/* translators: %s: short description of a plugin. */
-									: sprintf(__('%s Not installed.', 'hatch-connect'), p.note)}
+									: installed
+										? (activeLabel
+											/* translators: %s: name of the plugin Hatch uses for this feature. */
+											? sprintf(__('Installed and active in WordPress. Hatch uses %s for this.', 'hatch-connect'), activeLabel)
+											: __('Installed and active in WordPress.', 'hatch-connect'))
+										/* translators: %s: short description of a plugin. */
+										: sprintf(__('%s Not installed.', 'hatch-connect'), p.note)}
 							>
 								<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-									{isActivePlugin && <HxBadge color="green">{__('Active', 'hatch-connect')}</HxBadge>}
-									{!isActivePlugin && installed && <HxBadge color="blue">{__('Installed', 'hatch-connect')}</HxBadge>}
-									{p.priority && (
-										<span
-											className="hx-help"
-											title={__('Check order. Hatch tries lower numbers first.', 'hatch-connect')}
-											style={{ color: 'var(--hx-subtle)' }}
-										>
-											{`#${p.priority}`}
-										</span>
-									)}
+									{isActivePlugin && <HxBadge color="green">{__('In use', 'hatch-connect')}</HxBadge>}
+									{!isActivePlugin && installed && <HxBadge color="blue">{__('Also installed', 'hatch-connect')}</HxBadge>}
 								</div>
 							</HxRow>
 						);
@@ -393,7 +392,7 @@ function CategoryRow({ cat, detected, plugMap, frontendUrl, checking, first }) {
 										? __('No published products yet. Add one in WooCommerce under Products.', 'hatch-connect')
 										: sprintf(
 											/* translators: %d: number of published products. */
-											_n('%d published product is available to Astro.', '%d published products are available to Astro.', probe.total, 'hatch-connect'),
+											_n('%d published product is available to your frontend.', '%d published products are available to your frontend.', probe.total, 'hatch-connect'),
 											probe.total
 										)}
 									{probe.sample && (
@@ -432,37 +431,17 @@ function CategoryRow({ cat, detected, plugMap, frontendUrl, checking, first }) {
  *
  * @since 0.7.5
  */
-function SupportedBlocksToggle({ initialOn, count, list }) {
-	const [on, setOn] = useState(!!initialOn);
-	const [expanded, setExpanded] = useState(false);
-	const [saving, setSaving] = useState(false);
-	const [err, setErr] = useState(null);
-	const boot = typeof window !== 'undefined' ? window.hatchBoot : null;
-	const restUrl = boot?.restUrl;
-	const nonce = boot?.nonce;
+/* Plain label for a block slug: "core/post-template" reads "Post template". */
+const BLOCK_ACRONYMS = { rss: 'RSS', html: 'HTML', rdf: 'RDF', url: 'URL', tv: 'TV' };
+const blockLabel = (slug) => {
+	const bare = String(slug).split('/').pop().replace(/[-_]+/g, ' ').trim();
+	if (!bare) return String(slug);
+	const words = bare.split(' ').map((w) => BLOCK_ACRONYMS[w.toLowerCase()] || w);
+	return /^[A-Z]/.test(words[0]) ? words.join(' ') : words.join(' ').replace(/^./, (c) => c.toUpperCase());
+};
 
-	const save = (next) => {
-		if (!restUrl) return;
-		setSaving(true);
-		setErr(null);
-		fetch(`${restUrl}options`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				...(nonce ? { 'X-WP-Nonce': nonce } : {}),
-			},
-			body: JSON.stringify({ 'blocks.disable_unsupported': !!next }),
-		})
-			.then((r) => (r.ok
-				? r.json()
-				: Promise.reject(new Error(
-					/* translators: %d: HTTP status code, for example 500. */
-					sprintf(__('The request failed with status %d.', 'hatch-connect'), r.status)
-				))))
-			.then(() => { setOn(!!next); })
-			.catch((e) => setErr(String(e.message || e)))
-			.finally(() => setSaving(false));
-	};
+function SupportedBlocksToggle({ on, count, list, onChange }) {
+	const [expanded, setExpanded] = useState(false);
 
 	const hasList = Array.isArray(list) && list.length > 0;
 	const total = hasList ? list.length : count;
@@ -483,19 +462,15 @@ function SupportedBlocksToggle({ initialOn, count, list }) {
 					),
 					total
 				)}
-				mb={err || hasList ? 14 : 0}
+				mb={hasList ? 14 : 0}
 				action={
 					<HxToggle
 						on={on}
-						disabled={saving}
-						onChange={(v) => save(v)}
+						onChange={onChange}
 						ariaLabel={__('Show only supported blocks in the editor', 'hatch-connect')}
 					/>
 				}
 			/>
-			{err && (
-				<HxNotice tone="error" title={__('Save failed', 'hatch-connect')}>{err}</HxNotice>
-			)}
 			{hasList && (
 				<HxDisclosure
 					open={expanded}
@@ -506,7 +481,7 @@ function SupportedBlocksToggle({ initialOn, count, list }) {
 				>
 					<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
 						{list.map((slug) => (
-							<HxBadge key={slug} color="mono">{slug}</HxBadge>
+							<HxBadge key={slug} color="mono">{blockLabel(slug)}</HxBadge>
 						))}
 					</div>
 				</HxDisclosure>
@@ -515,7 +490,7 @@ function SupportedBlocksToggle({ initialOn, count, list }) {
 	);
 }
 
-export default function PluginBridge({ state }) {
+export default function PluginBridge({ state, onDirty, setSetting }) {
 	// Boot state carries the PHP plugin list (`pluginBridge`) but not the
 	// integrations detail, so fetch /features once on mount for the "Active" and
 	// "Not detected" pills.
@@ -550,9 +525,10 @@ export default function PluginBridge({ state }) {
 	return (
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 			<SupportedBlocksToggle
-				initialOn={!!blocksState.disable_unsupported}
+				on={!!blocksState.disable_unsupported}
 				count={supportedCount}
 				list={supportedList}
+				onChange={(v) => { setSetting('blocks.disable_unsupported', v); onDirty(); }}
 			/>
 
 			<HxCard>
@@ -560,13 +536,13 @@ export default function PluginBridge({ state }) {
 					iconChildren={IC.link}
 					iconColor="#2563eb"
 					title={__('Plugin connections', 'hatch-connect')}
-					desc={__('These are the plugins Hatch can read from. Install one and Hatch finds it and passes its data to your frontend.', 'hatch-connect')}
+					desc={__('These are the plugins Hatch can read from. Install one and Hatch finds it and passes its data to your frontend. The count is kinds of plugin, so one plugin can cover two kinds, and custom post types need no plugin.', 'hatch-connect')}
 					mb={6}
 					action={
 						<HxBadge color={activeCount > 0 ? 'green' : 'neutral'}>
 							{sprintf(
-								/* translators: 1: number of connected plugins, 2: total number of plugin types. */
-								__('%1$d of %2$d connected', 'hatch-connect'),
+								/* translators: 1: number of connected plugins, 2: total number of kinds of plugin. */
+								__('%1$d of %2$d kinds of plugin connected', 'hatch-connect'),
 								activeCount,
 								CATS.length
 							)}

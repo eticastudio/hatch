@@ -12,7 +12,7 @@ import { IC } from './icons';
 // Maps each saturated icon colour to its soft companion. Every HxHead must
 // pass its colour through this so the palette stays harmonised.
 const IBGS = {
-	'#ff6b00': '#fff3e8',
+	'#7ebc11': '#f1f8e3',
 	'#2563eb': '#eff6ff',
 	'#16a34a': '#f0fdf4',
 	'#d97706': '#fffbeb',
@@ -23,8 +23,8 @@ const IBGS = {
 	'#10b981': '#ecfdf5',
 	'#ef4444': '#fef2f2',
 	'#737373': '#f5f5f5',
-	'var(--hx-muted)': 'var(--hx-surface-2)',
-	'var(--hx-subtle)': 'var(--hx-surface-2)',
+	'var(--hx-text-muted)': 'var(--hx-surface-2)',
+	'var(--hx-text-subtle)': 'var(--hx-surface-2)',
 	'var(--hx-success)': 'var(--hx-success-soft)',
 	'var(--hx-warning)': 'var(--hx-warning-soft)',
 	'var(--hx-danger)': 'var(--hx-danger-soft)',
@@ -71,7 +71,7 @@ const nameProps = (ariaLabel, ctx) => {
 };
 
 // ─── HxToggle ──────────────────────────────────────────────────────────────
-// ON = --hx-fg (black). OFF = --hx-border-2 (grey). NEVER orange.
+// ON = --hx-text (black). OFF = --hx-border-strong (grey). NEVER orange.
 export const HxToggle = ({ on, onChange, ariaLabel, disabled }) => {
 	const ctx = useContext(HxNameContext);
 	return (
@@ -89,7 +89,7 @@ export const HxToggle = ({ on, onChange, ariaLabel, disabled }) => {
 			border: 'none',
 			cursor: disabled ? 'not-allowed' : 'pointer',
 			opacity: disabled ? 0.5 : 1,
-			background: on ? 'var(--hx-fg)' : 'var(--hx-border-2)',
+			background: on ? 'var(--hx-text)' : 'var(--hx-border-strong)',
 			position: 'relative',
 			transition: 'background .18s var(--hx-ease)',
 			flexShrink: 0,
@@ -118,15 +118,15 @@ export const HxToggle = ({ on, onChange, ariaLabel, disabled }) => {
 // ─── HxBtn ─────────────────────────────────────────────────────────────────
 export const HxBtn = ({ children, variant = 'default', onClick, size = 'md', style: sx = {}, disabled, type = 'button', href, full, ariaLabel, external, ariaExpanded, ariaControls, btnRef }) => {
 	const [hov, setHov] = useState(false);
-	// v0.50.26. default variant used `bg: --hx-fg` (black in light, white in dark)
+	// v0.50.26. default variant used `bg: --hx-text` (black in light, white in dark)
 	// with a hard-coded `#fff` fg, so in dark mode the button rendered white-on-white
 	// (the "Visit live site" bug on the Connection tab). fg now uses --hx-surface so
 	// it inverts correctly: light gives black bg + white text, dark gives white bg + dark text.
 	const v = {
 		// A transparent border keeps the button's outline visible in forced-colors (high contrast) mode.
-		default: { bg: 'var(--hx-fg)', fg: 'var(--hx-surface)', bd: '1px solid transparent', wt: 600 },
+		default: { bg: 'var(--hx-text)', fg: 'var(--hx-surface)', bd: '1px solid transparent', wt: 600 },
 		brand:   { bg: 'var(--hx-primary)', fg: 'var(--hx-on-primary)', bd: '1px solid transparent', wt: 600 },
-		ghost:   { bg: 'var(--hx-surface)', fg: 'var(--hx-fg)', bd: '1px solid var(--hx-border-2)', wt: 500 },
+		ghost:   { bg: 'var(--hx-surface)', fg: 'var(--hx-text)', bd: '1px solid var(--hx-border-strong)', wt: 500 },
 		danger:  { bg: 'var(--hx-danger)', fg: 'var(--hx-on-danger)', bd: '1px solid transparent', wt: 600 },
 	}[variant] || {};
 	const pad = size === 'sm' ? '7px 14px' : '10px 20px';
@@ -216,7 +216,7 @@ export const HxBadge = ({ children, color = 'neutral' }) => {
 				fontWeight: 600,
 				lineHeight: 1.6,
 				background: c.bg,
-				color: 'var(--hx-fg)',
+				color: 'var(--hx-text)',
 				whiteSpace: 'nowrap',
 				fontFamily: c.mono ? 'ui-monospace,SFMono-Regular,Menlo,monospace' : 'inherit',
 			}}
@@ -277,9 +277,9 @@ export const HxRow = ({ label, desc, children, last, tone, stack }) => {
 		}}
 	>
 		<div style={{ flex: '1 1 160px', minWidth: 0 }}>
-			<div id={ctx.labelId} className="hx-label" style={{ color: tone === 'danger' ? 'var(--hx-danger)' : 'var(--hx-fg)' }}>{label}</div>
+			<div id={ctx.labelId} className="hx-label" style={{ color: tone === 'danger' ? 'var(--hx-danger)' : 'var(--hx-text)' }}>{label}</div>
 			{desc && (
-				<div id={ctx.descId} className="hx-desc" style={{ color: 'var(--hx-subtle)', marginTop: 2 }}>{desc}</div>
+				<div id={ctx.descId} className="hx-desc" style={{ color: 'var(--hx-text-subtle)', marginTop: 2 }}>{desc}</div>
 			)}
 		</div>
 		<div className="hx-row-ctl"><HxNameContext.Provider value={ctx}>{children}</HxNameContext.Provider></div>
@@ -289,7 +289,7 @@ export const HxRow = ({ label, desc, children, last, tone, stack }) => {
 
 // ─── HxHead ────────────────────────────────────────────────────────────────
 // Card header: 38×38 icon-box (tint via ibg) + title + desc. mb=20 standard.
-export const HxHead = ({ iconChildren, iconColor = 'var(--hx-muted)', title, desc, mb = 20, action, nowrap = false }) => (
+export const HxHead = ({ iconChildren, iconColor = 'var(--hx-text-muted)', title, desc, mb = 20, action, nowrap = false }) => (
 	<div style={{ display: 'flex', gap: '10px 14px', alignItems: 'flex-start', flexWrap: nowrap ? 'nowrap' : 'wrap', marginBottom: mb }}>
 		<div
 			className="hx-ibox"
@@ -308,9 +308,9 @@ export const HxHead = ({ iconChildren, iconColor = 'var(--hx-muted)', title, des
 			<HxIcon size={18} color={iconColor}>{iconChildren}</HxIcon>
 		</div>
 		<div style={{ flex: nowrap ? 1 : '1 1 190px', minWidth: 0, paddingTop: 1 }}>
-			<div className="hx-title" style={{ color: 'var(--hx-fg)' }}>{title}</div>
+			<div className="hx-title" style={{ color: 'var(--hx-text)' }}>{title}</div>
 			{desc && (
-				<div className="hx-byline" style={{ color: 'var(--hx-subtle)', marginTop: 3 }}>{desc}</div>
+				<div className="hx-byline" style={{ color: 'var(--hx-text-subtle)', marginTop: 3 }}>{desc}</div>
 			)}
 		</div>
 		{action && <div style={{ marginInlineStart: 'auto', flexShrink: 0 }}>{action}</div>}
@@ -341,9 +341,9 @@ export const HxSeg = ({ options, value, onChange }) => (
 						fontFamily: 'inherit',
 						fontSize: 13,
 						fontWeight: on ? 600 : 500,
-						border: on ? '1.5px solid var(--hx-fg)' : '1.5px solid transparent',
+						border: on ? '1.5px solid var(--hx-text)' : '1.5px solid transparent',
 						background: on ? 'var(--hx-surface)' : 'transparent',
-						color: on ? 'var(--hx-fg)' : 'var(--hx-subtle)',
+						color: on ? 'var(--hx-text)' : 'var(--hx-text-subtle)',
 						transition: 'background .2s var(--hx-ease), border-color .2s var(--hx-ease), color .2s var(--hx-ease)',
 						whiteSpace: 'nowrap',
 					}}
@@ -365,7 +365,7 @@ export const HxGL = ({ children, badge }) => (
 			gap: 10,
 			fontSize: 11,
 			fontWeight: 700,
-			color: 'var(--hx-subtle)',
+			color: 'var(--hx-text-subtle)',
 			textTransform: 'uppercase',
 			letterSpacing: '0.07em',
 			padding: '18px 0 6px',
@@ -407,17 +407,17 @@ export const HxInp = ({ placeholder, value, onChange, mono, type = 'text', full 
 			height: 36,
 			padding: '0 10px',
 			borderRadius: 8,
-			border: '1px solid var(--hx-border-2)',
+			border: '1px solid var(--hx-border-strong)',
 			fontSize: 13,
 			outline: 'none',
-			color: 'var(--hx-fg)',
+			color: 'var(--hx-text)',
 			background: 'var(--hx-surface)',
 			fontFamily: mono ? 'ui-monospace,SFMono-Regular,Menlo,monospace' : 'inherit',
 			transition: 'border-color .15s var(--hx-ease), box-shadow .15s var(--hx-ease)',
 			boxSizing: 'border-box',
 		}}
-		onFocus={(e) => { e.target.style.borderColor = 'var(--hx-fg)'; }}
-		onBlur={(e) => { e.target.style.borderColor = 'var(--hx-border-2)'; }}
+		onFocus={(e) => { e.target.style.borderColor = 'var(--hx-text)'; }}
+		onBlur={(e) => { e.target.style.borderColor = 'var(--hx-border-strong)'; }}
 	/>
 	);
 };
@@ -439,9 +439,9 @@ export const Chip = ({ label, active, onClick, readOnly }) => {
 		fontFamily: 'inherit',
 		fontSize: 13,
 		fontWeight: 500,
-		border: active ? '1.5px solid var(--hx-fg)' : '1.5px solid var(--hx-border-2)',
-		background: active ? 'var(--hx-fg)' : 'var(--hx-surface)',
-		color: active ? 'var(--hx-surface)' : 'var(--hx-muted)',
+		border: active ? '1.5px solid var(--hx-text)' : '1.5px solid var(--hx-border-strong)',
+		background: active ? 'var(--hx-text)' : 'var(--hx-surface)',
+		color: active ? 'var(--hx-surface)' : 'var(--hx-text-muted)',
 		transition: 'background .2s var(--hx-ease), border-color .2s var(--hx-ease), color .2s var(--hx-ease)',
 	};
 	if (readOnly) {
@@ -471,7 +471,7 @@ export const HxCode = ({ children, tone }) => (
 			padding: '2px 6px',
 			borderRadius: 6,
 			background: 'var(--hx-surface-2)',
-			color: tone === 'warning' ? 'var(--hx-warning)' : 'var(--hx-fg)',
+			color: tone === 'warning' ? 'var(--hx-warning)' : 'var(--hx-text)',
 		}}
 	>
 		{children}
@@ -504,10 +504,10 @@ export const HxSelect = ({ value, onChange, children, ariaLabel, id, name, disab
 				paddingInlineStart: 10,
 				paddingInlineEnd: 32,
 				borderRadius: 8,
-				border: '1px solid var(--hx-border-2)',
+				border: '1px solid var(--hx-border-strong)',
 				fontSize: 13,
 				outline: 'none',
-				color: 'var(--hx-fg)',
+				color: 'var(--hx-text)',
 				background: `var(--hx-surface) ${SELECT_CARET} no-repeat ${rtl ? 'left' : 'right'} 10px center`,
 				backgroundSize: '12px',
 				fontFamily: 'inherit',
@@ -529,14 +529,14 @@ export const HxTag = ({ children, count, href, title }) => {
 	const style = {
 		display: 'inline-flex', alignItems: 'center', gap: 6,
 		padding: '6px 14px', borderRadius: 999,
-		border: '1.5px solid var(--hx-border-2)', background: 'var(--hx-surface)',
-		color: 'var(--hx-fg)', fontSize: 13, fontWeight: 500, fontFamily: 'inherit',
+		border: '1.5px solid var(--hx-border-strong)', background: 'var(--hx-surface)',
+		color: 'var(--hx-text)', fontSize: 13, fontWeight: 500, fontFamily: 'inherit',
 		textDecoration: 'none', whiteSpace: 'nowrap',
 	};
 	const inner = (
 		<>
 			<span>{children}</span>
-			{count !== undefined && count !== null && <span style={{ color: 'var(--hx-subtle)', fontWeight: 500 }}>{count}</span>}
+			{count !== undefined && count !== null && <span style={{ color: 'var(--hx-text-subtle)', fontWeight: 500 }}>{count}</span>}
 		</>
 	);
 	return href
@@ -643,9 +643,9 @@ export const HxNotice = ({ tone = 'info', title, children, action, style: sx = {
 			}}
 		>
 			<HxIcon size={16} color={t.ink} style={{ marginTop: 2 }}>{t.icon}</HxIcon>
-			<div style={{ flex: '1 1 200px', minWidth: 0, color: 'var(--hx-fg)' }}>
+			<div style={{ flex: '1 1 200px', minWidth: 0, color: 'var(--hx-text)' }}>
 				{title && <div className="hx-label" style={{ fontWeight: 700, marginBottom: children ? 2 : 0 }}>{title}</div>}
-				{children && <div className="hx-desc" style={{ color: 'var(--hx-muted)' }}>{children}</div>}
+				{children && <div className="hx-desc" style={{ color: 'var(--hx-text-muted)' }}>{children}</div>}
 			</div>
 			{action && <div style={{ flexShrink: 0, alignSelf: 'center' }}>{action}</div>}
 		</div>
@@ -658,10 +658,10 @@ export const HxNotice = ({ tone = 'info', title, children, action, style: sx = {
 export const HxEmpty = ({ icon, title, children, action }) => (
 	<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 6, padding: '24px 16px' }}>
 		<div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--hx-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
-			<HxIcon size={18} color="var(--hx-subtle)">{icon || IC.circleDot}</HxIcon>
+			<HxIcon size={18} color="var(--hx-text-subtle)">{icon || IC.circleDot}</HxIcon>
 		</div>
 		<div className="hx-label">{title}</div>
-		{children && <div className="hx-desc" style={{ color: 'var(--hx-subtle)', maxWidth: 420 }}>{children}</div>}
+		{children && <div className="hx-desc" style={{ color: 'var(--hx-text-subtle)', maxWidth: 420 }}>{children}</div>}
 		{action && <div style={{ marginTop: 8 }}>{action}</div>}
 	</div>
 );
@@ -690,7 +690,7 @@ export const HxDisclosure = ({ label, children, defaultOpen = false, open, onTog
 					border: 'none',
 					padding: '4px 0',
 					cursor: 'pointer',
-					color: 'var(--hx-muted)',
+					color: 'var(--hx-text-muted)',
 					fontSize: 13,
 					fontWeight: 600,
 					fontFamily: 'inherit',
@@ -710,15 +710,15 @@ export const HxDisclosure = ({ label, children, defaultOpen = false, open, onTog
 
 // ─── HxSpinner ─────────────────────────────────────────────────────────────
 export const HxSpinner = ({ size = 16, label }) => (
-	<span role="status" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--hx-muted)' }}>
+	<span role="status" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--hx-text-muted)' }}>
 		<span
 			aria-hidden="true"
 			style={{
 				width: size,
 				height: size,
 				borderRadius: '50%',
-				border: '2px solid var(--hx-border-2)',
-				borderTopColor: 'var(--hx-fg)',
+				border: '2px solid var(--hx-border-strong)',
+				borderTopColor: 'var(--hx-text)',
 				animation: 'hxSpin 0.8s linear infinite',
 				display: 'inline-block',
 			}}
@@ -735,9 +735,9 @@ export const HxField = ({ label, htmlFor, help, children }) => {
 	const ctx = { labelId: uid + '-l', descId: help ? uid + '-d' : undefined };
 	return (
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-			<label id={ctx.labelId} htmlFor={htmlFor} className="hx-label" style={{ color: 'var(--hx-fg)' }}>{label}</label>
+			<label id={ctx.labelId} htmlFor={htmlFor} className="hx-label" style={{ color: 'var(--hx-text)' }}>{label}</label>
 			<HxNameContext.Provider value={ctx}>{children}</HxNameContext.Provider>
-			{help && <div id={ctx.descId} className="hx-desc" style={{ color: 'var(--hx-subtle)' }}>{help}</div>}
+			{help && <div id={ctx.descId} className="hx-desc" style={{ color: 'var(--hx-text-subtle)' }}>{help}</div>}
 		</div>
 	);
 };
@@ -875,7 +875,7 @@ export function hxErrorNode(e) {
 		<>
 			{message}
 			{detail && (
-				<span className="hx-help" style={{ display: 'block', marginTop: 4, color: 'var(--hx-subtle)', fontSize: 11 }}>{detail}</span>
+				<span className="hx-help" style={{ display: 'block', marginTop: 4, color: 'var(--hx-text-subtle)', fontSize: 11 }}>{detail}</span>
 			)}
 		</>
 	);
