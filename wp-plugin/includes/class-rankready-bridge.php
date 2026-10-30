@@ -31,7 +31,10 @@ class Hatch_RankReady_Bridge {
 	 * @return bool
 	 */
 	public static function is_active(): bool {
-		return Hatch_Detector::is_active( 'rankready' )
+		// RNRD_VERSION is defined by RankReady whatever its folder is called
+		// (manual zip uploads often rename it), so check it first.
+		return defined( 'RNRD_VERSION' )
+			|| Hatch_Detector::is_active( 'rankready' )
 			|| Hatch_Detector::is_active( 'rankready_dev' );
 	}
 
@@ -80,8 +83,8 @@ class Hatch_RankReady_Bridge {
 		$llms_enabled      = 'on' === get_option( 'rnrd_llms_enable', 'off' );
 		$llms_full_enabled = 'on' === get_option( 'rnrd_llms_full_enable', 'off' );
 
-		$version = '';
-		if ( function_exists( 'get_file_data' ) ) {
+		$version = defined( 'RNRD_VERSION' ) ? (string) RNRD_VERSION : '';
+		if ( '' === $version && function_exists( 'get_file_data' ) ) {
 			foreach ( array(
 				WP_PLUGIN_DIR . '/rankready-ai-llm-seo/rankready.php',
 				WP_PLUGIN_DIR . '/rankready/rankready.php',
