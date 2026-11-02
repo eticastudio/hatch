@@ -699,7 +699,7 @@ export default function Design({ state, onDirty, setSetting, pendingPaths = [], 
 			<HxCard>
 				<HxHead
 					iconChildren={IC.layoutGrid}
-					iconColor="#d97706"
+					iconColor="#737373"
 					title={__( 'Blog index & homepage', 'hatch-connect' )}
 					desc={__( 'How the list of posts looks: columns, page numbers, featured post and topics.', 'hatch-connect' )}
 					mb={16}

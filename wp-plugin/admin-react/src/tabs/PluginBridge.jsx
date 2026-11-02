@@ -301,8 +301,8 @@ function CategoryRow({ cat, detected, plugMap, frontendUrl, checking, first }) {
 	);
 
 	// Icon colour drives HxHead's ibg() tint: green when on, neutral when off,
-	// amber for a category that is coming soon.
-	const iconColor = cat.comingSoon ? '#d97706' : (isOn ? '#16a34a' : '#737373');
+	// neutral grey for a category that is coming soon (brand has no amber).
+	const iconColor = cat.comingSoon ? '#737373' : (isOn ? '#7ebc11' : '#737373');
 	const desc = isOn && activeLabel
 		/* translators: 1: plugin name, 2: sentence describing what the bridge does. */
 		? sprintf(__('Through %1$s. %2$s', 'hatch-connect'), activeLabel, cat.outcome)

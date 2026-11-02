@@ -2,6 +2,14 @@
 
 All notable changes to Hatch are recorded here. Format adheres loosely to [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.0.1] — 2026-11-02
+
+### Fixed
+
+- RankReady detection checks `RNRD_VERSION`, so renamed plugin folders are found, and `integrations.rankready` is exposed in the features response.
+- Memberships row icon (Plugins tab) and Blog index & homepage icon (Design tab) use neutral grey, not amber.
+- Readme no longer claims Yoast Premium redirects are carried over.
+
 ## [0.3.1] — 2026-05-29
 
 Hot-patch for v0.3.0 — the editor bundle was missing imports for all 18 new blocks.

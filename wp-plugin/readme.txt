@@ -4,7 +4,7 @@ Tags: headless, headless-cms, decoupled, astro, cloudflare
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -90,7 +90,7 @@ Hatch Connect detects the plugins you already use and passes their data to your 
 * **Custom fields:** Advanced Custom Fields (ACF and ACF Pro), Secure Custom Fields, Meta Box, Pods
   * Field values reach the frontend when the field group is set to show in REST.
 * **Custom post types:** Custom Post Type UI, JetEngine, Pods
-* **Redirects:** Redirection, Rank Math redirects, Yoast Premium redirects
+* **Redirects:** Redirection and Rank Math redirects
   * Your frontend follows your existing redirect rules.
 * **Email delivery (SMTP):** FluentSMTP, WP Mail SMTP, Post SMTP, Easy WP SMTP
   * Form entries from your frontend go out through the email plugin you already set up.
@@ -106,7 +106,7 @@ Hatch Connect detects the plugins you already use and passes their data to your 
 * Breadcrumb navigation
 * Clean, server-rendered HTML that search engines can read
 * `llms.txt` and `.well-known/mcp.json` for AI search and AI agents (with RankReady)
-* Redirects carried over from Redirection, Rank Math or Yoast Premium
+* Redirects carried over from Redirection or Rank Math
 * Option to keep your WordPress address out of search results, so only the frontend shows up
 
 ## Performance features
@@ -440,6 +440,11 @@ See "What Hatch changes on your site". The redirect and the frontend links start
 
 == Changelog ==
 
+= 1.0.1 =
+* Fixed: RankReady is now detected when its folder is renamed, and the Plugins tab and the features response report it correctly.
+* Fixed: the Memberships row (Plugins tab) and the Blog index & homepage card (Design tab) no longer use an amber icon colour.
+* Fixed: the readme no longer says Yoast Premium redirects carry over. Redirects are read from Redirection and Rank Math.
+
 = 1.0.0 =
 * First public release on WordPress.org.
 * Deploys an Astro frontend to your own Cloudflare account from your dashboard, with a Cloudflare token you supply. The token is stored encrypted. Disconnect undoes the WordPress side.
@@ -450,6 +455,9 @@ See "What Hatch changes on your site". The redirect and the frontend links start
 * Brand and border colour settings accept only hex colours.
 
 == Upgrade Notice ==
+
+= 1.0.1 =
+Bug-fix release. Safe to update.
 
 = 1.0.0 =
 First public release.
