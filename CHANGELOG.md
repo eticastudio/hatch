@@ -10,7 +10,7 @@ All notable changes to Hatch are recorded here. Format adheres loosely to [Keep 
 - Memberships row icon (Plugins tab) and Blog index & homepage icon (Design tab) use neutral grey, not amber.
 - `/hatch/v1/order/{id}` returns 404 instead of 500 when WooCommerce is not installed.
 - Wording: "fast/fastest" replaced with "easiest way" wording in the plugin description, readme and admin text (no speed claim).
-- Admin: short helper texts wrap evenly (no one- or two-word last lines).
+- Admin: helper texts, labels and paragraphs wrap evenly (no one- or two-word last lines, for example on the Design tab at 390px).
 - Readme no longer claims Yoast Premium redirects are carried over.
 
 ## [0.3.1] — 2026-05-29
