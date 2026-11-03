@@ -8,11 +8,11 @@ Stable tag: 1.0.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Headless WordPress with no migration and no host change. Deploy a fast Astro frontend to your own Cloudflare account. REST API, no GraphQL.
+Headless WordPress with no migration and no host change. Deploy an Astro frontend to your own Cloudflare account, the easy way. REST API, no GraphQL.
 
 == Description ==
 
-**Make your current WordPress site headless without moving it.** Hatch Connect gives the site you already run a fast, modern Astro frontend and puts it online in your own Cloudflare account, all from your dashboard.
+**Make your current WordPress site headless without moving it.** Hatch Connect gives the site you already run an easy-to-deploy, modern Astro frontend and puts it online in your own Cloudflare account, all from your dashboard.
 
 You keep your host, your plugins, your content and the block editor you know. Your visitors get a separate, lightweight site.
 
@@ -444,6 +444,7 @@ See "What Hatch changes on your site". The redirect and the frontend links start
 * Fixed: RankReady is now detected when its folder is renamed, and the Plugins tab and the features response report it correctly.
 * Fixed: the Memberships row (Plugins tab) and the Blog index & homepage card (Design tab) no longer use an amber icon colour.
 * Fixed: the order lookup route now returns 404, not a server error, when WooCommerce is not installed.
+* Changed: wording now says "easy" instead of "fast", with no speed claim.
 * Fixed: short helper texts in the admin wrap evenly, with no lone words on the last line.
 * Fixed: the readme no longer says Yoast Premium redirects carry over. Redirects are read from Redirection and Rank Math.
 

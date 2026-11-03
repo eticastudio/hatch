@@ -341,7 +341,7 @@ export default function SetupApp() {
 			<div className="hx-wiz">
 				<div className="hx-wiz-head">
 					<h1>{__('Set up Hatch', 'hatch-connect')}</h1>
-					<p>{__('Publish a fast frontend for this site on your own Cloudflare account. You can undo it from the Connection tab.', 'hatch-connect')}</p>
+					<p>{__('Publish an Astro frontend for this site on your own Cloudflare account. You can undo it from the Connection tab.', 'hatch-connect')}</p>
 					{stepperAt > 0 && <Stepper current={stepperAt} />}
 				</div>
 				<div className="hx-wiz-stack">{body}</div>
