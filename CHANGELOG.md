@@ -10,6 +10,12 @@ All notable changes to Hatch are recorded here. Format adheres loosely to [Keep 
 - Memberships row icon (Plugins tab) and Blog index & homepage icon (Design tab) use neutral grey, not amber.
 - `/hatch/v1/order/{id}` returns 404 instead of 500 when WooCommerce is not installed.
 - Wording: "fast/fastest" replaced with "easiest way" wording in the plugin description, readme and admin text (no speed claim).
+- Forms: Contact Form 7 forms can be read and submitted (`/forms/cf7/{id}` and `/submit`). The route pattern now accepts digits in the provider name, and submissions are sent to Contact Form 7 as multipart data.
+- Integrations: `/hatch/v1/integrations` reports Contact Form 7 as the detected forms plugin.
+- Multisite: network activation is switched off again and a notice explains why; per-site activation is unchanged.
+- Redirects: redirects from the Redirection plugin are now listed in `/hatch/v1/redirects` (the lookup used a module that has none).
+- Sign-in: a Subscriber frontend account no longer causes a memory error on sites with Yoast SEO (a capability check looped back into itself).
+- Setup guide: Check token warns, without blocking, when the token cannot list Workers (missing Workers Scripts, Edit).
 - WooCommerce: declares compatibility with High-Performance Order Storage.
 - Login hardening: uses wp_doing_cron() instead of the DOING_CRON constant.
 - Admin: helper texts, labels and paragraphs wrap evenly (no one- or two-word last lines, for example on the Design tab at 390px).

@@ -566,6 +566,34 @@ require_once HATCH_PLUGIN_DIR . 'includes/class-order-lookup.php';
 add_action( 'init', array( 'Hatch_Order_Lookup', 'boot' ), 5 );
 
 /**
+ * Hatch is activated one site at a time. If a network activation goes through
+ * anyway (core saves the network-active list after the plugin's own activation
+ * hook, which would undo a deactivation made there), switch it off again and
+ * show the notice.
+ */
+function hatch_block_network_activation(): void {
+	if ( ! is_multisite() || ! function_exists( 'is_plugin_active_for_network' ) ) {
+		return;
+	}
+	$basename = plugin_basename( HATCH_PLUGIN_FILE );
+	if ( is_plugin_active_for_network( $basename ) ) {
+		deactivate_plugins( $basename, true, true );
+		set_transient( 'hatch_network_activate_blocked', 1, MINUTE_IN_SECONDS * 5 );
+	}
+}
+add_action(
+	'activated_plugin',
+	static function ( $plugin, $network_wide = false ) {
+		if ( $network_wide && plugin_basename( HATCH_PLUGIN_FILE ) === $plugin ) {
+			hatch_block_network_activation();
+		}
+	},
+	10,
+	2
+);
+add_action( 'admin_init', 'hatch_block_network_activation' );
+
+/**
  * Declare compatibility with WooCommerce High-Performance Order Storage.
  * Hatch reads orders only through wc_get_order(), never from the posts table.
  */

@@ -169,6 +169,13 @@ class Hatch_Integrations {
 				'active' => true,
 			);
 		}
+		if ( defined( 'WPCF7_VERSION' ) || class_exists( 'WPCF7_ContactForm' ) ) {
+			return array(
+				'slug'   => 'cf7',
+				'label'  => 'Contact Form 7',
+				'active' => true,
+			);
+		}
 		return array(
 			'slug'   => 'none',
 			'label'  => 'None (Hatch built-in form)',

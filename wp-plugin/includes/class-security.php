@@ -156,7 +156,7 @@ class Hatch_Security {
 			'#^/hatch/v1/design$#',
 			'#^/hatch/v1/integrations$#',
 			'#^/hatch/v1/forms$#',
-			'#^/hatch/v1/forms/[a-z_]+/\d+(/submit)?$#',
+			'#^/hatch/v1/forms/[a-z0-9_]+/\d+(/submit)?$#',
 			'#^/hatch/v1/menus(/.+)?$#',
 			'#^/hatch/v1/features$#',
 			'#^/hatch/v1/seo-head$#',
