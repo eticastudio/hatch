@@ -564,6 +564,19 @@ add_action( 'init', array( 'Hatch_Cf_Seo', 'boot' ), 20 );
 // v0.7.6 - guest-safe order lookup so /order-summary works without Cart-Token.
 require_once HATCH_PLUGIN_DIR . 'includes/class-order-lookup.php';
 add_action( 'init', array( 'Hatch_Order_Lookup', 'boot' ), 5 );
+
+/**
+ * Declare compatibility with WooCommerce High-Performance Order Storage.
+ * Hatch reads orders only through wc_get_order(), never from the posts table.
+ */
+add_action(
+	'before_woocommerce_init',
+	static function () {
+		if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', HATCH_PLUGIN_FILE, true );
+		}
+	}
+);
 // V0.8 - WooCommerce read-only bridge (products / variations / categories).
 require_once HATCH_PLUGIN_DIR . 'includes/class-woocommerce-bridge.php';
 

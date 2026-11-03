@@ -445,6 +445,7 @@ See "What Hatch changes on your site". The redirect and the frontend links start
 * Fixed: the Memberships row (Plugins tab) and the Blog index & homepage card (Design tab) no longer use an amber icon colour.
 * Fixed: the order lookup route now returns 404, not a server error, when WooCommerce is not installed.
 * Changed: wording now says "easiest way" instead of "fast", with no speed claim. Headline: "The easiest way from WordPress to a modern Astro frontend."
+* New: declares compatibility with WooCommerce High-Performance Order Storage.
 * Fixed: short helper texts in the admin wrap evenly, with no lone words on the last line.
 * Fixed: the readme no longer says Yoast Premium redirects carry over. Redirects are read from Redirection and Rank Math.
 

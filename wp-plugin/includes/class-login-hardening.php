@@ -77,7 +77,7 @@ class Hatch_Login_Hardening {
 		if ( ! is_user_logged_in() ) {
 			return;
 		}
-		if ( wp_doing_ajax() || ( defined( 'DOING_CRON' ) && DOING_CRON ) ) {
+		if ( wp_doing_ajax() || wp_doing_cron() ) {
 			return;
 		}
 		// admin-post.php must remain reachable.
