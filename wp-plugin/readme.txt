@@ -4,7 +4,7 @@ Tags: headless, headless-cms, decoupled, astro, cloudflare
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.1
+Stable tag: 1.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -169,11 +169,13 @@ Faust.js, WPGraphQL, Next.js, Gatsby and headless CMS products are good tools, a
 
 = External services =
 
-This plugin connects to two Cloudflare services, and only after you set them up.
+This plugin connects to two Cloudflare services, and only after you set them up. The frontend it deploys also loads fonts from Google, described below.
 
 **[Cloudflare API](https://api.cloudflare.com)** deploys your frontend using the token you paste in. [Terms](https://www.cloudflare.com/terms/) and [Privacy policy](https://www.cloudflare.com/privacypolicy/)
 
 **[Cloudflare Turnstile](https://challenges.cloudflare.com)** is optional spam protection, off until you add your keys. [Terms](https://www.cloudflare.com/website-terms/) and [Privacy policy](https://www.cloudflare.com/privacypolicy/)
+
+**[Google Fonts](https://fonts.google.com)** The frontend that Hatch deploys loads its fonts from Google (`fonts.googleapis.com` and `fonts.gstatic.com`) in your visitors' browsers: Inter for the three designs, JetBrains Mono for Terminal, and any font you choose in the Design tab. Hatch itself does not contact Google. [Terms](https://policies.google.com/terms) and [Privacy policy](https://policies.google.com/privacy)
 
 = Source code =
 
@@ -440,6 +442,14 @@ See "What Hatch changes on your site". The redirect and the frontend links start
 
 == Changelog ==
 
+= 1.1.0 =
+* Changed: the deployed frontend asks WordPress for a page's content once instead of twice.
+* Changed: removed three unused designs (AstroPaper, AstroWind, Astro Nano) and their Google Fonts stylesheets from the frontend. Editorial, Terminal and Docs are unchanged.
+* Changed: Google Fonts are now listed under External services.
+* Fixed: WPForms and Gravity Forms lists no longer raise PHP warnings on a site with no forms.
+* Fixed: saving a setting with a list or object value no longer raises PHP notices.
+* Fixed: a token revoked or expired during a deploy now gives the "Cloudflare rejected the API token" message.
+
 = 1.0.1 =
 * Fixed: RankReady is now detected when its folder is renamed, and the Plugins tab and the features response report it correctly.
 * Fixed: the Memberships row (Plugins tab) and the Blog index & homepage card (Design tab) no longer use an amber icon colour.
@@ -465,6 +475,9 @@ See "What Hatch changes on your site". The redirect and the frontend links start
 * Brand and border colour settings accept only hex colours.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Fewer requests per page and a cleaner frontend bundle. Redeploy once from the Hatch screen to publish the new frontend. Safe to update.
 
 = 1.0.1 =
 Bug-fix release. Safe to update.

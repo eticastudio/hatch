@@ -2,6 +2,22 @@
 
 All notable changes to Hatch are recorded here. Format adheres loosely to [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.1.0] — 2026-11-04
+
+Builds on 1.0.1. No new features: fewer requests, fewer leftovers, more edge cases covered.
+
+### Changed
+
+- The frontend asks WordPress for a page's content once instead of twice (one request fewer on every page).
+- The three designs the Design tab never offered (AstroPaper, AstroWind, Astro Nano) are removed from the frontend bundle, with their Google Fonts stylesheets and preview art. Editorial, Terminal and Docs are unchanged.
+- readme.txt now lists Google Fonts under External services: the deployed frontend loads Inter (and JetBrains Mono for Terminal) from Google in visitors' browsers.
+
+### Fixed
+
+- WPForms and Gravity Forms: the forms list no longer raises PHP warnings when a site has no forms yet.
+- Saving a setting with a list or object value no longer raises PHP notices; the saved value is kept.
+- A token revoked or expired while a deploy is running now says "Cloudflare rejected the API token…" (it said "no permission").
+
 ## [1.0.1] — 2026-11-02
 
 ### Fixed

@@ -1559,6 +1559,11 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 			if ( 0 === strpos( $path, $prefix ) ) {
 				$sub   = substr( $path, strlen( $prefix ) );
 				$store = $load_agg( $opt_key );
+				// A list or object cannot be one of these settings. Keep what is saved.
+				if ( ! is_scalar( $value ) && null !== $value ) {
+					$applied[ $path ] = isset( $store[ $sub ] ) ? $store[ $sub ] : '';
+					continue 2;
+				}
 				// Colour fields reach the frontend stylesheet, so they must be
 				// a hex colour. Anything else keeps the stored value.
 				if ( ( 'hatch_design_brand' === $opt_key && in_array( $sub, array( 'primary', 'secondary', 'accent', 'background', 'fg', 'bg' ), true ) )

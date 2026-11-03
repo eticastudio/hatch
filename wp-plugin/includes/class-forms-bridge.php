@@ -202,7 +202,14 @@ class Hatch_Forms_Bridge {
 		}
 		$forms = wpforms()->form->get( '', array( 'orderby' => 'title' ) );
 		$out   = array();
-		foreach ( (array) $forms as $form ) {
+		// WPForms returns false, not an empty list, when no form exists yet.
+		if ( ! is_array( $forms ) ) {
+			return $out;
+		}
+		foreach ( $forms as $form ) {
+			if ( ! is_object( $form ) ) {
+				continue;
+			}
 			$out[] = array(
 				'id'       => (int) $form->ID,
 				'title'    => $form->post_title,
@@ -238,7 +245,13 @@ class Hatch_Forms_Bridge {
 		}
 		$forms = GFAPI::get_forms();
 		$out   = array();
-		foreach ( (array) $forms as $form ) {
+		if ( ! is_array( $forms ) ) {
+			return $out;
+		}
+		foreach ( $forms as $form ) {
+			if ( ! is_array( $form ) || ! isset( $form['id'] ) ) {
+				continue;
+			}
 			$out[] = array(
 				'id'       => (int) $form['id'],
 				'title'    => (string) $form['title'],

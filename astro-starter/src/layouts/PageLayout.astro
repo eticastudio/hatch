@@ -21,17 +21,11 @@ import '../styles/global.css';
 import themeBlogUrl       from '../styles/theme-blog.css?url';
 import themeTechUrl       from '../styles/theme-tech.css?url';
 import themeDocsUrl       from '../styles/theme-docs.css?url';
-import themeAstropaperUrl from '../styles/theme-astropaper.css?url';
-import themeAstrowindUrl  from '../styles/theme-astrowind.css?url';
-import themeAstronanoUrl  from '../styles/theme-astronano.css?url';
 
 const THEME_CSS_URL: Record<string, string> = {
   blog:       themeBlogUrl,
   tech:       themeTechUrl,
   docs:       themeDocsUrl,
-  astropaper: themeAstropaperUrl,
-  astrowind:  themeAstrowindUrl,
-  astronano:  themeAstronanoUrl,
 };
 import { ClientRouter } from 'astro:transitions';
 import SiteHeader from '../components/SiteHeader.astro';
@@ -141,19 +135,13 @@ if (isFallbackFeatures(features)) {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     {/* Per-theme Google Font — each theme loads only what it needs. */}
-    {theme === 'astronano' && (
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@400;500;600&display=swap" />
-    )}
-    {theme === 'astrowind' && (
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" />
-    )}
     {theme === 'tech' && (
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:ital,opsz,wght@0,14..32,400..700;1,14..32,400..700&display=swap" />
     )}
     {theme === 'docs' && (
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,300..700&display=swap" />
     )}
-    {(theme === 'astropaper' || theme === 'blog' || !['astronano','astrowind','tech','docs'].includes(theme)) && (
+    {(theme === 'blog' || !['tech','docs'].includes(theme)) && (
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,300..700&display=swap" />
     )}
     {designFonts && <link rel="stylesheet" href={designFonts} />}

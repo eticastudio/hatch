@@ -378,7 +378,24 @@ export interface HatchContent {
   seo?: HatchSeo;
   found?: boolean;
 }
-export async function getContentBySlug(slug: string): Promise<HatchContent | null> {
+// One page render can ask for the same slug more than once (route guards, then the page
+// itself). Share the request for 2 seconds so WordPress is asked once, not twice.
+const CONTENT_DEDUPE_MS = 2000;
+const contentInflight = new Map<string, { at: number; p: Promise<HatchContent | null> }>();
+
+export function getContentBySlug(slug: string): Promise<HatchContent | null> {
+  const now = Date.now();
+  const hit = contentInflight.get(slug);
+  if (hit && now - hit.at < CONTENT_DEDUPE_MS) return hit.p;
+  if (contentInflight.size > 50) {
+    for (const [k, v] of contentInflight) if (now - v.at >= CONTENT_DEDUPE_MS) contentInflight.delete(k);
+  }
+  const p = fetchContentBySlug(slug);
+  contentInflight.set(slug, { at: now, p });
+  return p;
+}
+
+async function fetchContentBySlug(slug: string): Promise<HatchContent | null> {
   if (!WP_API) return null;
   const origin = WP_API.replace(/\/wp-json\/wp\/v2\/?$/, '').replace(/\/$/, '');
   const url = usePlainPermalinks
