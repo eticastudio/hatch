@@ -396,7 +396,7 @@ Not in this version. Hatch deploys to Cloudflare only. The REST API works with a
 
 = Do I have to use the frontend Hatch deploys? =
 
-No. The `hatch/v1` REST API works with any frontend you build. The one Hatch deploys (built with Astro) is the quick way to get started.
+No. The `hatch/v1` REST API works with any frontend you build. The one Hatch deploys (built with Astro) is the easiest way to get started.
 
 = Can I change how the frontend looks? =
 
