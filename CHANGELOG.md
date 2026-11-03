@@ -8,6 +8,7 @@ All notable changes to Hatch are recorded here. Format adheres loosely to [Keep 
 
 - RankReady detection checks `RNRD_VERSION`, so renamed plugin folders are found, and `integrations.rankready` is exposed in the features response.
 - Memberships row icon (Plugins tab) and Blog index & homepage icon (Design tab) use neutral grey, not amber.
+- `/hatch/v1/order/{id}` returns 404 instead of 500 when WooCommerce is not installed.
 - Readme no longer claims Yoast Premium redirects are carried over.
 
 ## [0.3.1] — 2026-05-29

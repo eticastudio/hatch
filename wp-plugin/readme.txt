@@ -443,6 +443,7 @@ See "What Hatch changes on your site". The redirect and the frontend links start
 = 1.0.1 =
 * Fixed: RankReady is now detected when its folder is renamed, and the Plugins tab and the features response report it correctly.
 * Fixed: the Memberships row (Plugins tab) and the Blog index & homepage card (Design tab) no longer use an amber icon colour.
+* Fixed: the order lookup route now returns 404, not a server error, when WooCommerce is not installed.
 * Fixed: the readme no longer says Yoast Premium redirects carry over. Redirects are read from Redirection and Rank Math.
 
 = 1.0.0 =
