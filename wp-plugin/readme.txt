@@ -8,11 +8,11 @@ Stable tag: 1.0.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Headless WordPress with no migration and no host change. Deploy an Astro frontend to your own Cloudflare account, the easy way. REST API, no GraphQL.
+Headless WordPress with no migration and no host change. The easiest way to a modern Astro frontend on your own Cloudflare account.
 
 == Description ==
 
-**Make your current WordPress site headless without moving it.** Hatch Connect gives the site you already run an easy-to-deploy, modern Astro frontend and puts it online in your own Cloudflare account, all from your dashboard.
+**Make your current WordPress site headless without moving it.** Hatch Connect gives the site you already run the easiest way to a modern Astro frontend and puts it online in your own Cloudflare account, all from your dashboard.
 
 You keep your host, your plugins, your content and the block editor you know. Your visitors get a separate, lightweight site.
 
@@ -62,7 +62,7 @@ Every website has a body and a head. The body is the back end, where you write a
 
 ## What you get
 
-* **A faster, lighter site for your visitors**
+* **A lighter site for your visitors**
   * Zero plugin bloat on the frontend. Nothing from WordPress plugins loads on visitors' pages.
   * No framework JavaScript (no React or Vue) in the visitor's browser. Pages are plain HTML and CSS.
   * Served from Cloudflare's global network, close to your visitors.
@@ -444,7 +444,7 @@ See "What Hatch changes on your site". The redirect and the frontend links start
 * Fixed: RankReady is now detected when its folder is renamed, and the Plugins tab and the features response report it correctly.
 * Fixed: the Memberships row (Plugins tab) and the Blog index & homepage card (Design tab) no longer use an amber icon colour.
 * Fixed: the order lookup route now returns 404, not a server error, when WooCommerce is not installed.
-* Changed: wording now says "easy" instead of "fast", with no speed claim.
+* Changed: wording now says "easiest way" instead of "fast", with no speed claim. Headline: "The easiest way from WordPress to a modern Astro frontend."
 * Fixed: short helper texts in the admin wrap evenly, with no lone words on the last line.
 * Fixed: the readme no longer says Yoast Premium redirects carry over. Redirects are read from Redirection and Rank Math.
 
