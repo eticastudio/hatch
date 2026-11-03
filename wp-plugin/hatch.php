@@ -566,26 +566,37 @@ require_once HATCH_PLUGIN_DIR . 'includes/class-order-lookup.php';
 add_action( 'init', array( 'Hatch_Order_Lookup', 'boot' ), 5 );
 
 /**
- * Hatch is activated one site at a time. If a network activation goes through
- * anyway (core saves the network-active list after the plugin's own activation
- * hook, which would undo a deactivation made there), switch it off again and
- * show the notice.
+ * Hatch is activated one site at a time. Core saves the network-active list after
+ * the plugin's own activation hook, which would undo a deactivation made there, so
+ * the block runs on activated_plugin (and on admin_init for a list that is already
+ * wrong). The plugin is off for the next page, so a notice hook of its own would
+ * never load: a network activation from the browser ends with a message page.
+ *
+ * @return bool True when the plugin was network-active and has been switched off.
  */
-function hatch_block_network_activation(): void {
+function hatch_block_network_activation(): bool {
 	if ( ! is_multisite() || ! function_exists( 'is_plugin_active_for_network' ) ) {
-		return;
+		return false;
 	}
 	$basename = plugin_basename( HATCH_PLUGIN_FILE );
-	if ( is_plugin_active_for_network( $basename ) ) {
-		deactivate_plugins( $basename, true, true );
-		set_transient( 'hatch_network_activate_blocked', 1, MINUTE_IN_SECONDS * 5 );
+	if ( ! is_plugin_active_for_network( $basename ) ) {
+		return false;
 	}
+	deactivate_plugins( $basename, true, true );
+	return true;
 }
 add_action(
 	'activated_plugin',
 	static function ( $plugin, $network_wide = false ) {
-		if ( $network_wide && plugin_basename( HATCH_PLUGIN_FILE ) === $plugin ) {
-			hatch_block_network_activation();
+		if ( ! $network_wide || plugin_basename( HATCH_PLUGIN_FILE ) !== $plugin ) {
+			return;
+		}
+		if ( hatch_block_network_activation() ) {
+			wp_die(
+				esc_html__( 'Hatch cannot be network-activated. Each site has its own frontend address, saved token and theme, and sharing them across a network would mix them up. Activate it on individual sites instead.', 'hatch-connect' ),
+				'',
+				array( 'back_link' => true )
+			);
 		}
 	},
 	10,
