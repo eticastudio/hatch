@@ -3,7 +3,7 @@ globalThis.process.env ??= {};
 import { D as createAstro, _ as addAttribute, a as Fragment, d as renderTemplate, h as maybeRenderHead, i as renderComponent } from "./server_BrNLrt74.mjs";
 import { t as createComponent } from "./compiler_CLadzSv0.mjs";
 import { n as getFeatures } from "./features_CDtcubJM.mjs";
-import { t as $$HatchImage } from "./HatchImage_X9ZBI0zn.mjs";
+import { t as $$HatchImage } from "./HatchImage_1AhIUlW2.mjs";
 //#region src/components/PostCard.astro
 createAstro("https://hatch-site.invalid");
 var $$PostCard = createComponent(async ($$result, $$props, $$slots) => {
@@ -75,6 +75,6 @@ var $$PostCard = createComponent(async ($$result, $$props, $$slots) => {
 		"fetchpriority": priority ? "high" : void 0,
 		"class": `w-full h-full object-cover ${hoverClass}`
 	})}` : showFallback ? renderTemplate`<div class="w-full h-full hatch-card-placeholder"></div>` : null}</div>${post.category && renderTemplate`<span class="hatch-post-card-eyebrow inline-block self-start text-[11px] uppercase tracking-wider font-medium text-hatch-primary-text mb-2">${post.category}</span>`}${renderComponent($$result, "Title", Title, { "class": "hatch-post-card-title text-lg font-semibold leading-snug tracking-tight group-hover:text-hatch-primary-text transition-colors line-clamp-3" }, { "default": ($$result) => renderTemplate`${post.title}` })}${showExcerpt && post.excerpt && renderTemplate`<p class="hatch-post-card-excerpt mt-2 text-[14px] text-hatch-fg-muted line-clamp-2 leading-relaxed">${post.excerpt}</p>`}<div class="hatch-post-card-meta mt-auto pt-3 flex items-center gap-2 text-[13px] text-hatch-fg-subtle">${authorName && renderTemplate`${renderComponent($$result, "Fragment", Fragment, {}, { "default": ($$result) => renderTemplate`<span>${authorName}</span><span aria-hidden="true">·</span>` })}`}<time${addAttribute(post.publishedAt, "datetime")}>${dateLabel}</time>${showRtPill && post.readMinutes > 0 && renderTemplate`${renderComponent($$result, "Fragment", Fragment, {}, { "default": ($$result) => renderTemplate`<span aria-hidden="true">·</span><span>${rtText(post.readMinutes)}</span>` })}`}</div></a>`}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/PostCard.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/PostCard.astro", void 0);
 //#endregion
 export { $$PostCard as t };

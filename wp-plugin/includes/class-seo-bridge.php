@@ -525,6 +525,12 @@ class Hatch_Seo_Bridge {
 		 * @param string $internal Computed internal URL.
 		 * @param string $url      Original public URL.
 		 */
+		// Yoast and Rank Math only resolve the address WordPress itself uses. With a trailing slash
+		// permalink structure that means "/slug/", while the frontend asks for "/slug".
+		$structure = (string) get_option( 'permalink_structure', '' );
+		if ( '' !== $structure && '/' === substr( $structure, -1 ) && '' === pathinfo( $path, PATHINFO_EXTENSION ) ) {
+			$path = trailingslashit( $path );
+		}
 		return apply_filters( 'hatch_seo_internal_url', home_url( $path ), $url );
 	}
 

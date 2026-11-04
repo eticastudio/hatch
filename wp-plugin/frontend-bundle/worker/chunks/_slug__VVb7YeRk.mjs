@@ -3,16 +3,16 @@ globalThis.process.env ??= {};
 import { t as __exportAll } from "./rolldown-runtime_D7vh-g_o.mjs";
 import { D as createAstro, T as unescapeHTML, _ as addAttribute, a as Fragment, c as renderSlot, d as renderTemplate, h as maybeRenderHead, i as renderComponent } from "./server_BrNLrt74.mjs";
 import { t as createComponent } from "./compiler_CLadzSv0.mjs";
-import { t as $$PageLayout } from "./PageLayout_CYhINrkI.mjs";
+import { t as $$PageLayout } from "./PageLayout_D6FmTPaJ.mjs";
 import { i as WP_API_USER, n as WP_API_PASS } from "./server_BKSwzYCg.mjs";
-import { n as $$Image$1 } from "./_astro_assets_CXFxXc6q.mjs";
+import { n as $$Image$1 } from "./_astro_assets_Dg1Wm57x.mjs";
 import { n as getFeatures, o as rewriteContentImages, r as hasFeature, s as cleanSiteText } from "./features_CDtcubJM.mjs";
 import { d as getSchema, f as getSeoHead, s as getPostBySlug, t as getAdjacent, u as getRelatedPosts } from "./hatch__EBFJSVv.mjs";
 import { t as themeKey } from "./theme-dispatch_Bj-ZHGQx.mjs";
-import { t as $$DocsSidebar } from "./DocsSidebar_Dec9QxxJ.mjs";
-import { t as $$HatchImage } from "./HatchImage_X9ZBI0zn.mjs";
-import { t as $$PostCard } from "./PostCard_Dssf4cEg.mjs";
-import { t as $$Breadcrumb } from "./Breadcrumb_BvkPbZJu.mjs";
+import { t as $$DocsSidebar } from "./DocsSidebar_Bw0ektOz.mjs";
+import { t as $$HatchImage } from "./HatchImage_1AhIUlW2.mjs";
+import { t as $$PostCard } from "./PostCard_rRLnAA54.mjs";
+import { t as $$Breadcrumb } from "./Breadcrumb_BYjphNoS.mjs";
 //#region src/components/HatchComments.astro
 createAstro("https://hatch-site.invalid");
 var $$HatchComments = createComponent(async ($$result, $$props, $$slots) => {
@@ -136,7 +136,7 @@ var $$HatchComments = createComponent(async ($$result, $$props, $$slots) => {
         });
       })();
     <\/script></section>`}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/HatchComments.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/HatchComments.astro", void 0);
 //#endregion
 //#region src/components/HatchSchema.astro
 createAstro("https://hatch-site.invalid");
@@ -145,7 +145,7 @@ var $$HatchSchema = createComponent(($$result, $$props, $$slots) => {
 	Astro.self = $$HatchSchema;
 	const { schema } = Astro.props;
 	return renderTemplate`${schema.map((item) => renderTemplate`<script type="application/ld+json">${unescapeHTML(JSON.stringify(item))}<\/script>`)}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/HatchSchema.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/HatchSchema.astro", void 0);
 //#endregion
 //#region src/lib/blocks.ts
 var WP_API = "https://hatch-wp-api.invalid/wp-json/wp/v2";
@@ -153,7 +153,7 @@ var WP_USER = WP_API_USER || "";
 var WP_PASS = WP_API_PASS || "";
 async function fetchPostBlocks(postId, context = "view") {
 	if (!WP_API) return null;
-	const url = `${WP_API.replace(/\/wp-json\/?$/, "").replace(/\/$/, "")}/wp-json/hatch/v1/post/${postId}/blocks?context=${context}`;
+	const url = `${WP_API.replace(/\/wp-json(\/.*)?$/, "").replace(/\/$/, "")}/wp-json/hatch/v1/post/${postId}/blocks?context=${context}`;
 	const headers = { Accept: "application/json" };
 	if (context === "edit" && WP_USER && WP_PASS) headers.Authorization = `Basic ${Buffer.from(`${WP_USER}:${WP_PASS}`).toString("base64")}`;
 	try {
@@ -233,7 +233,7 @@ var $$Paragraph = createComponent(($$result, $$props, $$slots) => {
 	const text = stripOuterTag(block.innerHTML, "p");
 	const dropCap = a.dropCap === true;
 	return renderTemplate`${maybeRenderHead($$result)}<p${addAttribute([cls, { "has-drop-cap": dropCap }], "class:list")}${addAttribute(style || void 0, "style")}>${unescapeHTML(text)}</p>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Paragraph.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Paragraph.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Heading.astro
 createAstro("https://hatch-site.invalid");
@@ -253,7 +253,7 @@ var $$Heading = createComponent(($$result, $$props, $$slots) => {
 		"class": cls,
 		"style": style || void 0
 	}, { "default": ($$result) => renderTemplate`${unescapeHTML(text)}` })}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Heading.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Heading.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/List.astro
 createAstro("https://hatch-site.invalid");
@@ -264,7 +264,7 @@ var $$List = createComponent(($$result, $$props, $$slots) => {
 	const cls = blockClass(block);
 	const style = blockStyle(block);
 	return renderTemplate`${maybeRenderHead($$result)}<div${addAttribute(cls, "class")}${addAttribute(style || void 0, "style")}>${unescapeHTML(block.innerHTML)}</div>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/List.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/List.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Quote.astro
 createAstro("https://hatch-site.invalid");
@@ -277,7 +277,7 @@ var $$Quote = createComponent(($$result, $$props, $$slots) => {
 	const style = blockStyle(block);
 	const citation = typeof a.citation === "string" ? a.citation : "";
 	return renderTemplate`${maybeRenderHead($$result)}<blockquote${addAttribute(cls, "class")}${addAttribute(style || void 0, "style")}><div>${unescapeHTML(block.innerHTML)}</div>${citation && renderTemplate`<cite>${unescapeHTML(citation)}</cite>`}</blockquote>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Quote.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Quote.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Pullquote.astro
 createAstro("https://hatch-site.invalid");
@@ -288,7 +288,7 @@ var $$Pullquote = createComponent(($$result, $$props, $$slots) => {
 	const cls = blockClass(block, "wp-block-pullquote");
 	const style = blockStyle(block);
 	return renderTemplate`${maybeRenderHead($$result)}<figure${addAttribute(cls, "class")}${addAttribute(style || void 0, "style")}>${unescapeHTML(block.innerHTML)}</figure>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Pullquote.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Pullquote.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Code.astro
 createAstro("https://hatch-site.invalid");
@@ -300,7 +300,7 @@ var $$Code = createComponent(($$result, $$props, $$slots) => {
 	const style = blockStyle(block);
 	const inner = stripOuterTag(stripOuterTag(block.innerHTML, "pre"), "code");
 	return renderTemplate`${maybeRenderHead($$result)}<pre${addAttribute(cls, "class")}${addAttribute(style || void 0, "style")}><code>${unescapeHTML(inner)}</code></pre>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Code.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Code.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Preformatted.astro
 createAstro("https://hatch-site.invalid");
@@ -312,7 +312,7 @@ var $$Preformatted = createComponent(($$result, $$props, $$slots) => {
 	const style = blockStyle(block);
 	const text = stripOuterTag(block.innerHTML, "pre");
 	return renderTemplate`${maybeRenderHead($$result)}<pre${addAttribute(cls, "class")}${addAttribute(style || void 0, "style")}>${unescapeHTML(text)}</pre>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Preformatted.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Preformatted.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Verse.astro
 createAstro("https://hatch-site.invalid");
@@ -324,7 +324,7 @@ var $$Verse = createComponent(($$result, $$props, $$slots) => {
 	const style = blockStyle(block);
 	const text = stripOuterTag(block.innerHTML, "pre");
 	return renderTemplate`${maybeRenderHead($$result)}<pre${addAttribute(cls, "class")}${addAttribute(style || void 0, "style")}>${unescapeHTML(text)}</pre>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Verse.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Verse.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Image.astro
 createAstro("https://hatch-site.invalid");
@@ -357,7 +357,7 @@ var $$Image = createComponent(($$result, $$props, $$slots) => {
 		"loading": "lazy",
 		"decoding": "async"
 	})}` : renderTemplate`<img${addAttribute(url, "src")}${addAttribute(alt, "alt")} loading="lazy" decoding="async">`}${caption && renderTemplate`<figcaption>${unescapeHTML(caption)}</figcaption>`}</figure>`}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Image.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Image.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Gallery.astro
 createAstro("https://hatch-site.invalid");
@@ -375,7 +375,7 @@ var $$Gallery = createComponent(($$result, $$props, $$slots) => {
 		"blocks": [img],
 		"depth": depth + 1
 	})}</div>`)}</figure>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Gallery.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Gallery.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Video.astro
 createAstro("https://hatch-site.invalid");
@@ -396,7 +396,7 @@ var $$Video = createComponent(($$result, $$props, $$slots) => {
 	const cls = blockClass(block, "wp-block-video");
 	const style = blockStyle(block);
 	return renderTemplate`${src && renderTemplate`${maybeRenderHead($$result)}<figure${addAttribute(cls, "class")}${addAttribute(style || void 0, "style")}><video${addAttribute(src, "src")}${addAttribute(poster, "poster")}${addAttribute(controls, "controls")}${addAttribute(autoplay, "autoplay")}${addAttribute(loop, "loop")}${addAttribute(muted, "muted")}${addAttribute(playsInline, "playsinline")}${addAttribute(preload, "preload")}></video>${caption && renderTemplate`<figcaption>${unescapeHTML(caption)}</figcaption>`}</figure>`}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Video.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Video.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Audio.astro
 createAstro("https://hatch-site.invalid");
@@ -413,7 +413,7 @@ var $$Audio = createComponent(($$result, $$props, $$slots) => {
 	const cls = blockClass(block, "wp-block-audio");
 	const style = blockStyle(block);
 	return renderTemplate`${src && renderTemplate`${maybeRenderHead($$result)}<figure${addAttribute(cls, "class")}${addAttribute(style || void 0, "style")}><audio${addAttribute(src, "src")} controls${addAttribute(autoplay, "autoplay")}${addAttribute(loop, "loop")}${addAttribute(preload, "preload")}></audio>${caption && renderTemplate`<figcaption>${unescapeHTML(caption)}</figcaption>`}</figure>`}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Audio.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Audio.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Cover.astro
 createAstro("https://hatch-site.invalid");
@@ -457,7 +457,7 @@ var $$Cover = createComponent(($$result, $$props, $$slots) => {
 		"blocks": block.innerBlocks,
 		"depth": depth + 1
 	})}</div></div>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Cover.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Cover.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/MediaText.astro
 createAstro("https://hatch-site.invalid");
@@ -483,7 +483,7 @@ var $$MediaText = createComponent(($$result, $$props, $$slots) => {
 		"blocks": block.innerBlocks,
 		"depth": depth + 1
 	})}</div>${mediaPos === "right" && mediaUrl && renderTemplate`<figure class="wp-block-media-text__media"><img${addAttribute(mediaUrl, "src")}${addAttribute(mediaAlt, "alt")} loading="lazy" decoding="async"></figure>`}</div>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/MediaText.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/MediaText.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Group.astro
 createAstro("https://hatch-site.invalid");
@@ -503,7 +503,7 @@ var $$Group = createComponent(($$result, $$props, $$slots) => {
 		"blocks": block.innerBlocks,
 		"depth": depth + 1
 	})}` })}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Group.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Group.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Columns.astro
 createAstro("https://hatch-site.invalid");
@@ -524,7 +524,7 @@ var $$Columns = createComponent(($$result, $$props, $$slots) => {
 		"blocks": block.innerBlocks,
 		"depth": depth + 1
 	})}</div>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Columns.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Columns.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Column.astro
 createAstro("https://hatch-site.invalid");
@@ -541,7 +541,7 @@ var $$Column = createComponent(($$result, $$props, $$slots) => {
 		"blocks": block.innerBlocks,
 		"depth": depth + 1
 	})}</div>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Column.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Column.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Separator.astro
 createAstro("https://hatch-site.invalid");
@@ -552,7 +552,7 @@ var $$Separator = createComponent(($$result, $$props, $$slots) => {
 	const cls = blockClass(block, "wp-block-separator");
 	const style = blockStyle(block);
 	return renderTemplate`${maybeRenderHead($$result)}<hr${addAttribute(cls, "class")}${addAttribute(style || void 0, "style")}>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Separator.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Separator.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Spacer.astro
 createAstro("https://hatch-site.invalid");
@@ -564,7 +564,7 @@ var $$Spacer = createComponent(($$result, $$props, $$slots) => {
 	const height = typeof a.height === "string" ? a.height : "100px";
 	const cls = blockClass(block, "wp-block-spacer");
 	return renderTemplate`${maybeRenderHead($$result)}<div${addAttribute(cls, "class")} aria-hidden="true"${addAttribute(`height:${height};`, "style")}></div>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Spacer.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Spacer.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Buttons.astro
 createAstro("https://hatch-site.invalid");
@@ -589,7 +589,7 @@ var $$Buttons = createComponent(($$result, $$props, $$slots) => {
 		"blocks": block.innerBlocks,
 		"depth": depth + 1
 	})}</div>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Buttons.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Buttons.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Button.astro
 createAstro("https://hatch-site.invalid");
@@ -606,7 +606,7 @@ var $$Button = createComponent(($$result, $$props, $$slots) => {
 	const style = blockStyle(block);
 	const label = text || (block.innerHTML ? block.innerHTML.replace(/<[^>]+>/g, "").trim() : "Button");
 	return renderTemplate`${maybeRenderHead($$result)}<div${addAttribute(cls, "class")}${addAttribute(style || void 0, "style")}><a class="wp-block-button__link"${addAttribute(url, "href")}${addAttribute(linkTarget, "target")}${addAttribute(rel, "rel")}>${label}</a></div>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Button.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Button.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Details.astro
 createAstro("https://hatch-site.invalid");
@@ -623,7 +623,7 @@ var $$Details = createComponent(($$result, $$props, $$slots) => {
 		"blocks": block.innerBlocks,
 		"depth": depth + 1
 	})}</details>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Details.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Details.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Embed.astro
 createAstro("https://hatch-site.invalid");
@@ -645,7 +645,7 @@ var $$Embed = createComponent(($$result, $$props, $$slots) => {
 		return `<iframe loading="lazy" width="100%" height="100%"${attrs.replace(/\s(loading|width|height)="[^"]*"/gi, "")}>`;
 	});
 	return renderTemplate`${maybeRenderHead($$result)}<figure${addAttribute(cls, "class")}${addAttribute(wrap, "style")}><div class="wp-block-embed__wrapper" style="width:100%;height:100%;">${unescapeHTML(html)}</div></figure>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Embed.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Embed.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Html.astro
 createAstro("https://hatch-site.invalid");
@@ -654,7 +654,7 @@ var $$Html = createComponent(($$result, $$props, $$slots) => {
 	Astro.self = $$Html;
 	const { block } = Astro.props;
 	return renderTemplate`${maybeRenderHead($$result)}<div>${unescapeHTML(block.innerHTML)}</div>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Html.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Html.astro", void 0);
 //#endregion
 //#region src/components/blocks/core/Table.astro
 createAstro("https://hatch-site.invalid");
@@ -665,7 +665,7 @@ var $$Table = createComponent(($$result, $$props, $$slots) => {
 	const cls = blockClass(block, "wp-block-table");
 	const style = blockStyle(block);
 	return renderTemplate`${maybeRenderHead($$result)}<figure${addAttribute(cls, "class")}${addAttribute(style || void 0, "style")}>${unescapeHTML(block.innerHTML)}</figure>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/core/Table.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/core/Table.astro", void 0);
 //#endregion
 //#region src/components/hatch-blocks/HatchHero.astro
 createAstro("https://hatch-site.invalid");
@@ -690,7 +690,7 @@ var $$HatchHero = createComponent(($$result, $$props, $$slots) => {
 	].filter(Boolean).join(" ");
 	const style = backgroundStyle === "image" && backgroundImage?.url ? `background-image: url("${backgroundImage.url}")` : void 0;
 	return renderTemplate`${maybeRenderHead($$result)}<section${addAttribute(wrapClasses, "class")}${addAttribute(style, "style")}>${backgroundStyle === "image" && renderTemplate`<div class="absolute inset-0 bg-black/40 pointer-events-none" aria-hidden="true"></div>`}<div class="relative">${variant === "split" ? renderTemplate`<div class="grid lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto px-6 py-24 lg:py-32"><div class="flex flex-col gap-6">${eyebrow && renderTemplate`<span class="text-sm font-medium tracking-widest uppercase opacity-80">${eyebrow}</span>`}<h1 class="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">${unescapeHTML(heading)}</h1>${subhead && renderTemplate`<p class="text-lg md:text-xl opacity-90 max-w-2xl">${unescapeHTML(subhead)}</p>`}<div class="flex flex-wrap gap-3 mt-2">${primaryCtaText && renderTemplate`<a${addAttribute(primaryCtaUrl || "#", "href")} class="inline-flex items-center gap-2 rounded-lg bg-foreground text-background px-6 py-3 font-medium hover:opacity-90 transition">${primaryCtaText}</a>`}${secondaryCtaText && renderTemplate`<a${addAttribute(secondaryCtaUrl || "#", "href")} class="inline-flex items-center gap-2 rounded-lg border-2 border-current px-6 py-3 font-medium hover:bg-current hover:text-background transition">${secondaryCtaText}</a>`}</div></div>${backgroundImage?.url && renderTemplate`<img${addAttribute(backgroundImage.url, "src")}${addAttribute(backgroundImage.alt || "", "alt")} class="rounded-2xl shadow-2xl w-full h-auto">`}</div>` : renderTemplate`<div${addAttribute(variant === "left" ? "max-w-5xl mx-auto px-6 py-24 lg:py-32" : "max-w-4xl mx-auto px-6 py-24 lg:py-32", "class")}><div${addAttribute(`flex flex-col gap-6 ${variant === "left" ? "items-start text-left" : "items-center text-center"} max-w-2xl ${variant === "centered" ? "mx-auto" : ""}`, "class")}>${eyebrow && renderTemplate`<span class="text-sm font-medium tracking-widest uppercase opacity-80">${eyebrow}</span>`}<h1 class="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">${unescapeHTML(heading)}</h1>${subhead && renderTemplate`<p class="text-lg md:text-xl opacity-90 max-w-2xl">${unescapeHTML(subhead)}</p>`}<div${addAttribute(`flex flex-wrap gap-3 mt-2 ${variant === "centered" ? "justify-center" : ""}`, "class")}>${primaryCtaText && renderTemplate`<a${addAttribute(primaryCtaUrl || "#", "href")} class="inline-flex items-center gap-2 rounded-lg bg-foreground text-background px-6 py-3 font-medium hover:opacity-90 transition">${primaryCtaText}</a>`}${secondaryCtaText && renderTemplate`<a${addAttribute(secondaryCtaUrl || "#", "href")} class="inline-flex items-center gap-2 rounded-lg border-2 border-current px-6 py-3 font-medium hover:bg-current hover:text-background transition">${secondaryCtaText}</a>`}</div></div></div>`}</div></section>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/hatch-blocks/HatchHero.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/hatch-blocks/HatchHero.astro", void 0);
 //#endregion
 //#region src/components/hatch-blocks/HatchSection.astro
 createAstro("https://hatch-site.invalid");
@@ -707,7 +707,7 @@ var $$HatchSection = createComponent(($$result, $$props, $$slots) => {
 		extra
 	].filter(Boolean).join(" ");
 	return renderTemplate`${renderComponent($$result, "Tag", Tag, { "class": classes }, { "default": ($$result) => renderTemplate`${renderSlot($$result, $$slots["default"])}` })}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/hatch-blocks/HatchSection.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/hatch-blocks/HatchSection.astro", void 0);
 //#endregion
 //#region src/components/hatch-blocks/HatchContent.astro
 createAstro("https://hatch-site.invalid");
@@ -717,7 +717,7 @@ var $$HatchContent = createComponent(($$result, $$props, $$slots) => {
 	const { html, hydrateInteractive = true } = Astro.props;
 	const needsInteractive = hydrateInteractive && /hatch-shadow-code|data-hatch-interactive/.test(html);
 	return renderTemplate`${maybeRenderHead($$result)}<div class="hatch-content">${unescapeHTML(html)}</div>${needsInteractive && renderTemplate`<script type="module" src="/hatch-interactive.js"><\/script>`}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/hatch-blocks/HatchContent.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/hatch-blocks/HatchContent.astro", void 0);
 //#endregion
 //#region src/components/blocks/registry.ts
 /**
@@ -785,7 +785,7 @@ var $$BlockRenderer = createComponent(($$result, $$props, $$slots) => {
 			"depth": depth + 1
 		})}`}` })}`;
 	})}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/blocks/BlockRenderer.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/blocks/BlockRenderer.astro", void 0);
 //#endregion
 //#region src/components/theme/ShareRow.astro
 createAstro("https://hatch-site.invalid");
@@ -858,7 +858,7 @@ var $$ShareRow = createComponent(($$result, $$props, $$slots) => {
     });
   });
 <\/script>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/theme/ShareRow.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/theme/ShareRow.astro", void 0);
 //#endregion
 //#region src/components/theme/PostMeta.astro
 createAstro("https://hatch-site.invalid");
@@ -872,7 +872,7 @@ var $$PostMeta = createComponent(($$result, $$props, $$slots) => {
 		name: cleanSiteText(c.name)
 	})).filter((c) => c.name !== "");
 	return renderTemplate`${maybeRenderHead($$result)}<div${addAttribute(["hatch-meta", `hatch-meta--${variant}`], "class:list")} data-astro-cid-cvjt4mx3><ul class="hatch-meta__row" data-astro-cid-cvjt4mx3>${authorName && renderTemplate`<li class="hatch-meta__author" data-astro-cid-cvjt4mx3>${author?.slug ? renderTemplate`<a${addAttribute(`/blog/author/${author.slug}`, "href")} data-astro-cid-cvjt4mx3>${author.avatar && renderTemplate`<img${addAttribute(author.avatar, "src")} alt="" width="24" height="24"${addAttribute(avatarClass, "class")} loading="lazy" decoding="async" data-astro-cid-cvjt4mx3>`}<span data-astro-cid-cvjt4mx3>${authorName}</span></a>` : renderTemplate`<span data-astro-cid-cvjt4mx3>${authorName}</span>`}</li>`}${dateLabel && renderTemplate`<li data-astro-cid-cvjt4mx3><time${addAttribute(publishedAt, "datetime")} data-astro-cid-cvjt4mx3>${dateLabel}</time></li>`}${readingTime && renderTemplate`<li data-astro-cid-cvjt4mx3>${readingTime}</li>`}</ul>${cats.length > 0 && renderTemplate`<ul class="hatch-meta__cats" aria-label="Categories" data-astro-cid-cvjt4mx3>${cats.map((c) => renderTemplate`<li data-astro-cid-cvjt4mx3><a${addAttribute(`/blog/category/${c.slug}`, "href")} data-astro-cid-cvjt4mx3>${c.name}</a></li>`)}</ul>`}</div>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/theme/PostMeta.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/theme/PostMeta.astro", void 0);
 //#endregion
 //#region src/components/theme/tech/Single.astro
 createAstro("https://hatch-site.invalid");
@@ -919,7 +919,7 @@ var $$Single$1 = createComponent(($$result, $$props, $$slots) => {
 		"title": post.title,
 		"url": canonical
 	})}</div>`}${flags.showAuthorBio && post.author?.description && renderTemplate`<div class="max-w-3xl mt-12 p-5 border border-hatch-border rounded-md bg-hatch-bg-2 flex gap-4 items-start" style="font-family: var(--hatch-font-mono, ui-monospace, monospace); font-size: 13px;">${post.author.avatar && renderTemplate`<img${addAttribute(post.author.avatar, "src")}${addAttribute(post.author.name, "alt")} width="40" height="40"${addAttribute(`${flags.avatarShape} flex-shrink-0`, "class")} loading="lazy">`}<div class="min-w-0"><div class="text-hatch-primary-text">// author</div><a${addAttribute(`/blog/author/${post.author.slug}`, "href")} class="text-hatch-fg hover:text-hatch-primary-text">${post.author.name}</a><p class="text-hatch-fg-muted mt-1 leading-relaxed">${post.author.description}</p></div></div>`}${flags.showPrevNext && (adjacent.prev || adjacent.next) && renderTemplate`<nav class="max-w-3xl mt-12 pt-8 border-t border-hatch-border grid grid-cols-1 sm:grid-cols-2 gap-3" style="font-family: var(--hatch-font-mono, ui-monospace, monospace);" aria-label="Post navigation">${adjacent.prev && renderTemplate`<a${addAttribute(`/blog/${adjacent.prev.slug}`, "href")} class="group p-4 rounded-md border border-hatch-border hover:border-hatch-primary transition-colors text-[13px]"><span class="text-hatch-primary-text">← prev</span><div class="mt-1 text-hatch-fg group-hover:text-hatch-primary-text line-clamp-2">${adjacent.prev.title}</div></a>`}${adjacent.next && renderTemplate`<a${addAttribute(`/blog/${adjacent.next.slug}`, "href")} class="group p-4 rounded-md border border-hatch-border hover:border-hatch-primary transition-colors text-[13px] sm:text-right"><span class="text-hatch-primary-text">next →</span><div class="mt-1 text-hatch-fg group-hover:text-hatch-primary-text line-clamp-2">${adjacent.next.title}</div></a>`}</nav>`}${renderSlot($$result, $$slots["related"])}${renderSlot($$result, $$slots["comments"])}</article>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/theme/tech/Single.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/theme/tech/Single.astro", void 0);
 //#endregion
 //#region src/components/theme/docs/Single.astro
 createAstro("https://hatch-site.invalid");
@@ -963,7 +963,7 @@ var $$Single = createComponent(($$result, $$props, $$slots) => {
 		"title": post.title,
 		"url": canonical
 	})}</div>`}${flags.showAuthorBio && post.author?.description && renderTemplate`<div class="mt-10 p-5 rounded-md border border-hatch-border bg-hatch-bg-2 flex gap-4 items-start">${post.author.avatar && renderTemplate`<img${addAttribute(post.author.avatar, "src")}${addAttribute(post.author.name, "alt")} width="44" height="44"${addAttribute(`${flags.avatarShape} flex-shrink-0`, "class")} loading="lazy">`}<div class="min-w-0"><a${addAttribute(`/blog/author/${post.author.slug}`, "href")} class="font-semibold text-hatch-fg hover:text-hatch-primary-text text-[14px]">${post.author.name}</a><p class="text-[13.5px] text-hatch-fg-muted mt-1 leading-relaxed">${post.author.description}</p></div></div>`}${flags.showPrevNext && (adjacent.prev || adjacent.next) && renderTemplate`<nav class="mt-10 pt-6 border-t border-hatch-border grid grid-cols-1 sm:grid-cols-2 gap-3" aria-label="Doc navigation">${adjacent.prev && renderTemplate`<a${addAttribute(`/blog/${adjacent.prev.slug}`, "href")} class="group p-4 rounded-md border border-hatch-border hover:border-hatch-primary transition-colors"><span class="text-[11px] uppercase tracking-wider text-hatch-primary-text">← Previous</span><div class="mt-1 text-[14px] text-hatch-fg group-hover:text-hatch-primary-text line-clamp-2">${adjacent.prev.title}</div></a>`}${adjacent.next && renderTemplate`<a${addAttribute(`/blog/${adjacent.next.slug}`, "href")} class="group p-4 rounded-md border border-hatch-border hover:border-hatch-primary transition-colors sm:text-right"><span class="text-[11px] uppercase tracking-wider text-hatch-primary-text">Next →</span><div class="mt-1 text-[14px] text-hatch-fg group-hover:text-hatch-primary-text line-clamp-2">${adjacent.next.title}</div></a>`}</nav>`}${renderSlot($$result, $$slots["related"])}${renderSlot($$result, $$slots["comments"])}</article>${showSidebar && sidebarSide === "right" && renderTemplate`${renderComponent($$result, "DocsSidebar", $$DocsSidebar, { "activeCategorySlug": post.categorySlug || null })}`}</div>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/theme/docs/Single.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/theme/docs/Single.astro", void 0);
 //#endregion
 //#region src/pages/blog/[slug].astro
 var _slug__exports = /* @__PURE__ */ __exportAll({
@@ -1287,8 +1287,8 @@ var $$Slug = createComponent(async ($$result, $$props, $$slots) => {
       init();
     })();
   <\/script>` })}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/pages/blog/[slug].astro", void 0);
-var $$file = "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/pages/blog/[slug].astro";
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/pages/blog/[slug].astro", void 0);
+var $$file = "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/pages/blog/[slug].astro";
 var $$url = "/blog/[slug]";
 //#endregion
 //#region \0virtual:astro:page:src/pages/blog/[slug]@_@astro

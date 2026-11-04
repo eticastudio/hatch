@@ -3,11 +3,11 @@ globalThis.process.env ??= {};
 import { t as __exportAll } from "./rolldown-runtime_D7vh-g_o.mjs";
 import { _ as addAttribute, d as renderTemplate, h as maybeRenderHead, i as renderComponent } from "./server_BrNLrt74.mjs";
 import { t as createComponent } from "./compiler_CLadzSv0.mjs";
-import { t as $$PageLayout } from "./PageLayout_CYhINrkI.mjs";
+import { t as $$PageLayout } from "./PageLayout_D6FmTPaJ.mjs";
 import { d as siteName, n as getFeatures, u as siteDescription } from "./features_CDtcubJM.mjs";
 import { c as getPosts } from "./hatch__EBFJSVv.mjs";
-import { t as $$DocsShell } from "./DocsShell_DOlXAfCa.mjs";
-import { t as $$PostCard } from "./PostCard_Dssf4cEg.mjs";
+import { t as $$DocsShell } from "./DocsShell_jwBEtjei.mjs";
+import { t as $$PostCard } from "./PostCard_rRLnAA54.mjs";
 //#region src/pages/index.astro
 var pages_exports = /* @__PURE__ */ __exportAll({
 	default: () => $$Index,
@@ -32,8 +32,8 @@ var $$Index = createComponent(async ($$result, $$props, $$slots) => {
 		"post": post,
 		"priority": i < 3
 	})}`)}</div></section>`}${posts.length === 0 && renderTemplate`<p class="text-center text-hatch-fg-muted py-16">No posts published yet.</p>`}</main>` })}` })}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/pages/index.astro", void 0);
-var $$file = "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/pages/index.astro";
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/pages/index.astro", void 0);
+var $$file = "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/pages/index.astro";
 //#endregion
 //#region \0virtual:astro:page:src/pages/index@_@astro
 var page = () => pages_exports;

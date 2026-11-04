@@ -4,7 +4,7 @@ import { t as __exportAll } from "./rolldown-runtime_D7vh-g_o.mjs";
 import { c as isRemotePath } from "./path_BqUacSWD.mjs";
 import { a as fetchWithRedirects, d as isRemoteAllowed } from "./service_BxIRHiLo.mjs";
 import "./assets_jOFuz5RL.mjs";
-import { t as imageConfig } from "./_astro_assets_CXFxXc6q.mjs";
+import { t as imageConfig } from "./_astro_assets_Dg1Wm57x.mjs";
 import { env } from "cloudflare:workers";
 //#region node_modules/@astrojs/cloudflare/dist/entrypoints/image-passthrough-endpoint.js
 var image_passthrough_endpoint_exports = /* @__PURE__ */ __exportAll({

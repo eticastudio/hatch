@@ -3,12 +3,12 @@ globalThis.process.env ??= {};
 import { t as __exportAll } from "./rolldown-runtime_D7vh-g_o.mjs";
 import { D as createAstro, _ as addAttribute, d as renderTemplate, h as maybeRenderHead, i as renderComponent } from "./server_BrNLrt74.mjs";
 import { t as createComponent } from "./compiler_CLadzSv0.mjs";
-import { t as $$PageLayout } from "./PageLayout_CYhINrkI.mjs";
+import { t as $$PageLayout } from "./PageLayout_D6FmTPaJ.mjs";
 import { n as getFeatures } from "./features_CDtcubJM.mjs";
 import { c as getPosts } from "./hatch__EBFJSVv.mjs";
-import { t as $$DocsShell } from "./DocsShell_DOlXAfCa.mjs";
-import { t as $$PostCard } from "./PostCard_Dssf4cEg.mjs";
-import { t as $$Breadcrumb } from "./Breadcrumb_BvkPbZJu.mjs";
+import { t as $$DocsShell } from "./DocsShell_jwBEtjei.mjs";
+import { t as $$PostCard } from "./PostCard_rRLnAA54.mjs";
+import { t as $$Breadcrumb } from "./Breadcrumb_BYjphNoS.mjs";
 import { n as resolveCategoryBySlug } from "./posts_MbNriOdK.mjs";
 //#region src/pages/blog/category/[slug].astro
 var _slug__exports = /* @__PURE__ */ __exportAll({
@@ -57,8 +57,8 @@ var $$Slug = createComponent(async ($$result, $$props, $$slots) => {
 		"post": post,
 		"headingLevel": 2
 	})}`)}</div>`}${hasMore && renderTemplate`<div class="flex justify-center mt-14"><a${addAttribute(`/blog/category/${cat.slug}?page=${page + 1}`, "href")} class="px-6 py-2.5 rounded-md text-[13.5px] font-medium border border-hatch-border hover:border-hatch-fg hover:bg-hatch-bg-2 transition-colors">Load more</a></div>`}</main>` })}` })}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/pages/blog/category/[slug].astro", void 0);
-var $$file = "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/pages/blog/category/[slug].astro";
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/pages/blog/category/[slug].astro", void 0);
+var $$file = "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/pages/blog/category/[slug].astro";
 var $$url = "/blog/category/[slug]";
 //#endregion
 //#region \0virtual:astro:page:src/pages/blog/category/[slug]@_@astro

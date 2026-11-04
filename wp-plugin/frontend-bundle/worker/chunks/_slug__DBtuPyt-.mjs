@@ -16,8 +16,8 @@ var $$Slug = createComponent(($$result, $$props, $$slots) => {
 	const { slug } = Astro.params;
 	if (!slug) return Astro.redirect("/");
 	return Astro.rewrite(`/blog/category/${slug}`);
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/pages/category/[slug].astro", void 0);
-var $$file = "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/pages/category/[slug].astro";
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/pages/category/[slug].astro", void 0);
+var $$file = "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/pages/category/[slug].astro";
 var $$url = "/category/[slug]";
 //#endregion
 //#region \0virtual:astro:page:src/pages/category/[slug]@_@astro

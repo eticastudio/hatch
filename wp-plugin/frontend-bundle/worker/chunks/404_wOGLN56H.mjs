@@ -3,7 +3,7 @@ globalThis.process.env ??= {};
 import { t as __exportAll } from "./rolldown-runtime_D7vh-g_o.mjs";
 import { D as createAstro, _ as addAttribute, a as Fragment, d as renderTemplate, h as maybeRenderHead, i as renderComponent } from "./server_BrNLrt74.mjs";
 import { t as createComponent } from "./compiler_CLadzSv0.mjs";
-import { t as $$PageLayout } from "./PageLayout_CYhINrkI.mjs";
+import { t as $$PageLayout } from "./PageLayout_D6FmTPaJ.mjs";
 import { n as getFeatures } from "./features_CDtcubJM.mjs";
 import { c as getPosts } from "./hatch__EBFJSVv.mjs";
 import { t as themeKey } from "./theme-dispatch_Bj-ZHGQx.mjs";
@@ -42,8 +42,8 @@ ERR_ROUTE_NOT_FOUND: The path you requested has no handler.`}</pre><p class="mt-
 		day: "numeric",
 		year: "numeric"
 	})}${p.category && renderTemplate`${renderComponent($$result, "Fragment", Fragment, {}, { "default": ($$result) => renderTemplate` · ${p.category}` })}`}</p></a></li>`)}</ul></section>`}</main>`}` })}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/pages/404.astro", void 0);
-var $$file = "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/pages/404.astro";
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/pages/404.astro", void 0);
+var $$file = "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/pages/404.astro";
 var $$url = "/404";
 //#endregion
 //#region \0virtual:astro:page:src/pages/404@_@astro

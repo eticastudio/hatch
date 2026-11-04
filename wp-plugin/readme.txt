@@ -443,6 +443,8 @@ See "What Hatch changes on your site". The redirect and the frontend links start
 == Changelog ==
 
 = 1.1.0 =
+* Fixed: Yoast SEO and Rank Math head data is now found for pages the frontend asks for without a trailing slash, so their full head (not only Hatch's basic title and canonical) reaches the frontend.
+* Fixed: the deployed frontend no longer makes a failed request for the block data of each post (a doubled address path).
 * Fixed: the deployed frontend now really keeps public pages for 60 seconds in the Cloudflare cache. Before, every page view asked WordPress again, so pages were slow on a slow host. Pages with cookies, a query string, a cart or an account path are never cached.
 * Fixed: after uploading the zip, the "Activate Plugin" link on the result page now activates Hatch (it pointed at the bundled mu-plugin file and failed).
 * Fixed: the Performance tab no longer shows "Clean media URLs" as saved when there is no frontend address yet; it asks you to deploy first.

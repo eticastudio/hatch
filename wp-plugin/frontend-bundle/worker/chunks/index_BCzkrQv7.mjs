@@ -3,12 +3,12 @@ globalThis.process.env ??= {};
 import { t as __exportAll } from "./rolldown-runtime_D7vh-g_o.mjs";
 import { D as createAstro, _ as addAttribute, a as Fragment, d as renderTemplate, h as maybeRenderHead, i as renderComponent } from "./server_BrNLrt74.mjs";
 import { t as createComponent } from "./compiler_CLadzSv0.mjs";
-import { t as $$PageLayout } from "./PageLayout_CYhINrkI.mjs";
+import { t as $$PageLayout } from "./PageLayout_D6FmTPaJ.mjs";
 import { n as getFeatures, r as hasFeature } from "./features_CDtcubJM.mjs";
 import { c as getPosts, n as getCategories } from "./hatch__EBFJSVv.mjs";
-import { t as $$DocsShell } from "./DocsShell_DOlXAfCa.mjs";
-import { t as $$HatchForm } from "./HatchForm_CRKi5FFF.mjs";
-import { t as $$PostCard } from "./PostCard_Dssf4cEg.mjs";
+import { t as $$DocsShell } from "./DocsShell_jwBEtjei.mjs";
+import { t as $$HatchForm } from "./HatchForm_vMFlI2Fo.mjs";
+import { t as $$PostCard } from "./PostCard_rRLnAA54.mjs";
 //#region src/pages/blog/index.astro
 var blog_exports = /* @__PURE__ */ __exportAll({
 	default: () => $$Index,
@@ -78,8 +78,8 @@ var $$Index = createComponent(async ($$result, $$props, $$slots) => {
           io.observe(sentinel);
         })();
       <\/script>`}${hasFeature(features, "forms") && features.integrations?.forms?.default_form_id ? renderTemplate`<section class="hatch-newsletter"><h2 class="hatch-newsletter__title">Get new posts in your inbox</h2><p class="hatch-newsletter__desc">Occasional, never spammy. Unsubscribe with one click.</p><div class="hatch-form-mount"${addAttribute(features.integrations.forms.detected?.slug === "wpforms" ? "wpforms" : features.integrations.forms.detected?.slug === "gravity_forms" ? "gravity" : features.integrations.forms.detected?.slug === "cf7" ? "cf7" : "fluent", "data-hatch-form-provider")}${addAttribute(features.integrations.forms.default_form_id, "data-hatch-form-id")}></div>${renderComponent($$result3, "HatchForm", $$HatchForm, {})}</section>` : null}</div></main>` })}` })}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/pages/blog/index.astro", void 0);
-var $$file = "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/pages/blog/index.astro";
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/pages/blog/index.astro", void 0);
+var $$file = "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/pages/blog/index.astro";
 var $$url = "/blog";
 //#endregion
 //#region \0virtual:astro:page:src/pages/blog/index@_@astro

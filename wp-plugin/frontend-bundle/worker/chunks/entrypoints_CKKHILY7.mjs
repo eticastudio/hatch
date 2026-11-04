@@ -658,7 +658,7 @@ function deserializeActionResult(res) {
 			"PUBLIC_SITE_URL": "https://hatch-site.invalid",
 			"SITE": "https://hatch-site.invalid",
 			"SSR": true
-		}, { _: "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/node_modules/.bin/astro" })?.PROD) return {
+		}, { _: "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/node_modules/.bin/astro" })?.PROD) return {
 			error: ActionError.fromJson(json),
 			data: void 0
 		};
@@ -838,7 +838,7 @@ function serializeActionResult(res) {
 			"PUBLIC_SITE_URL": "https://hatch-site.invalid",
 			"SITE": "https://hatch-site.invalid",
 			"SSR": true
-		}, { _: "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/node_modules/.bin/astro" })?.DEV) actionResultErrorStack.set(res.error.stack);
+		}, { _: "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/node_modules/.bin/astro" })?.DEV) actionResultErrorStack.set(res.error.stack);
 		let body2;
 		if (res.error instanceof ActionInputError) body2 = {
 			type: res.error.type,

@@ -13,7 +13,7 @@ var $$DocsNavList = createComponent(($$result, $$props, $$slots) => {
 	const rowIdle = "text-hatch-fg-muted hover:text-hatch-fg hover:bg-hatch-bg-2";
 	const rowActive = "bg-hatch-bg-3 text-hatch-fg font-medium";
 	return renderTemplate`${maybeRenderHead($$result)}<nav${addAttribute(label, "aria-label")} class="flex flex-col gap-0.5"><a href="/blog"${addAttribute(!activeCategorySlug ? "page" : void 0, "aria-current")}${addAttribute([rowBase, !activeCategorySlug ? rowActive : rowIdle], "class:list")}><span>All posts</span></a>${categories.length > 0 && renderTemplate`${renderComponent($$result, "Fragment", Fragment, {}, { "default": ($$result) => renderTemplate`<div class="text-[10px] font-semibold uppercase tracking-widest text-hatch-fg-subtle mt-5 mb-2 px-3">Categories</div>${categories.map((cat) => renderTemplate`<a${addAttribute(`/blog/category/${cat.slug}`, "href")}${addAttribute(activeCategorySlug === cat.slug ? "page" : void 0, "aria-current")}${addAttribute([rowBase, activeCategorySlug === cat.slug ? rowActive : rowIdle], "class:list")}><span class="truncate">${cat.name}</span><span class="text-[11px] text-hatch-fg-subtle tabular-nums shrink-0">${cat.count}</span></a>`)}` })}`}${categories.length === 0 && renderTemplate`<p class="text-[12px] text-hatch-fg-subtle px-3 py-2">No categories yet. Posts will be grouped here once you add categories in WordPress.</p>`}</nav>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/DocsNavList.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/DocsNavList.astro", void 0);
 //#endregion
 //#region src/components/DocsSidebar.astro
 createAstro("https://hatch-site.invalid");
@@ -33,6 +33,6 @@ var $$DocsSidebar = createComponent(async ($$result, $$props, $$slots) => {
 		"label": "Topics",
 		"data-astro-cid-frcal5vn": true
 	})}</div></aside>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/DocsSidebar.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/components/DocsSidebar.astro", void 0);
 //#endregion
 export { $$DocsSidebar as t };

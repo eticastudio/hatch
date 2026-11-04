@@ -15,6 +15,8 @@ Builds on 1.0.1. No new features: fewer requests, fewer leftovers, more edge cas
 
 ### Fixed
 
+- SEO bridge: the Yoast and Rank Math head lookups returned 404 for every page the frontend asked for as `/slug` on a site with `/%postname%/` permalinks. The internal address now gets the trailing slash WordPress uses.
+- Frontend: the block-data request for each post used a doubled `/wp-json` path and returned 404. It now returns 200.
 - Frontend: public pages are now kept for 60 seconds in the Cloudflare cache of the Worker (the earlier cache headers had no effect on a Worker, so every view asked WordPress again). On a test site whose WordPress answers in about 1 second, a post page took about 16 seconds on every view. Cookies, query strings, cart, checkout, account, login and search paths are never cached.
 - Uploading the zip in wp-admin: the "Activate Plugin" link now activates Hatch. The bundled mu-plugin copy no longer carries a Plugin Name header, so WordPress no longer mistakes it for the plugin.
 - Performance tab: "Clean media URLs" asks you to deploy first instead of silently switching back off when no frontend address exists.

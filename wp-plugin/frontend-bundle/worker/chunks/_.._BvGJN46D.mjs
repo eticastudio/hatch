@@ -3,12 +3,12 @@ globalThis.process.env ??= {};
 import { t as __exportAll } from "./rolldown-runtime_D7vh-g_o.mjs";
 import { D as createAstro, T as unescapeHTML, _ as addAttribute, d as renderTemplate, h as maybeRenderHead, i as renderComponent } from "./server_BrNLrt74.mjs";
 import { t as createComponent } from "./compiler_CLadzSv0.mjs";
-import { a as wooRouteForPath, n as FALL_THROUGH_KEY, t as $$PageLayout } from "./PageLayout_CYhINrkI.mjs";
+import { a as wooRouteForPath, n as FALL_THROUGH_KEY, t as $$PageLayout } from "./PageLayout_D6FmTPaJ.mjs";
 import { n as getFeatures, o as rewriteContentImages } from "./features_CDtcubJM.mjs";
 import { a as getPageBySlug, r as getContentBySlug } from "./hatch__EBFJSVv.mjs";
-import { t as $$DocsShell } from "./DocsShell_DOlXAfCa.mjs";
-import { t as $$HatchImage } from "./HatchImage_X9ZBI0zn.mjs";
-import { t as $$HatchForm } from "./HatchForm_CRKi5FFF.mjs";
+import { t as $$DocsShell } from "./DocsShell_jwBEtjei.mjs";
+import { t as $$HatchImage } from "./HatchImage_1AhIUlW2.mjs";
+import { t as $$HatchForm } from "./HatchForm_vMFlI2Fo.mjs";
 //#region src/pages/[...slug].astro
 var ____slug__exports = /* @__PURE__ */ __exportAll({
 	default: () => $$Component,
@@ -69,8 +69,8 @@ var $$Component = createComponent(async ($$result, $$props, $$slots) => {
 		month: "long",
 		day: "numeric"
 	})}</time></p>`}</header><div class="hatch-prose" style="max-width: 100%;">${unescapeHTML(rewriteContentImages(page.content, features))}</div></article>` })}${renderComponent($$result, "HatchForm", $$HatchForm, {})}` })}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/pages/[...slug].astro", void 0);
-var $$file = "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/pages/[...slug].astro";
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/pages/[...slug].astro", void 0);
+var $$file = "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.pcBg9Q/astro/src/pages/[...slug].astro";
 var $$url = "/[...slug]";
 //#endregion
 //#region \0virtual:astro:page:src/pages/[...slug]@_@astro
