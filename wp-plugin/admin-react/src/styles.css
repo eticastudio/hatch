@@ -596,3 +596,6 @@ body.admin_page_hatch-setup #wpcontent { background: var(--hx-page-bg); }
 @media (max-width: 480px) {
 	.hx-stepper li:not([aria-current]) > span:last-child { display: none; }
 }
+
+/* 1.0.1: short helper texts wrap evenly so no 1-2 word fragment sits alone on the last line. */
+.hatch-react .hx-desc, .hatch-react .hx-help, .hatch-react .hx-byline, .hatch-react .hx-label, .hatch-react p, .hatch-react label, .hatch-react li { text-wrap: balance; }

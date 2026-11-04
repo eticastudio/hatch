@@ -220,7 +220,7 @@ export interface HatchPerf {
 }
 
 export interface HatchFeatures {
-  theme: 'blog' | 'tech' | 'docs' | 'astropaper' | 'astrowind' | 'astronano';
+  theme: 'blog' | 'tech' | 'docs';
   design: HatchDesign | null;
   aesthetic: HatchAesthetic;
   content?: { comments_enabled: boolean; comments_turnstile: boolean; accounts_enabled: boolean; registration_open: boolean };

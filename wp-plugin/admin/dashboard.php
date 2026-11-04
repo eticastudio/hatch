@@ -31,7 +31,6 @@ add_action( 'admin_notices', 'hatch_builder_block_warning' );
 add_action( 'admin_notices', 'hatch_plain_permalinks_warning' );
 // v0.50.7. admin notices for permalink auto-set + network-activate block + multisite tip.
 add_action( 'admin_notices', 'hatch_permalinks_auto_set_notice' );
-add_action( 'network_admin_notices', 'hatch_network_activate_blocked_notice' );
 add_action( 'admin_notices', 'hatch_multisite_subsite_tip' );
 
 /**
@@ -1560,6 +1559,11 @@ function hatch_react_options_save( WP_REST_Request $req ): WP_REST_Response {
 			if ( 0 === strpos( $path, $prefix ) ) {
 				$sub   = substr( $path, strlen( $prefix ) );
 				$store = $load_agg( $opt_key );
+				// A list or object cannot be one of these settings. Keep what is saved.
+				if ( ! is_scalar( $value ) && null !== $value ) {
+					$applied[ $path ] = isset( $store[ $sub ] ) ? $store[ $sub ] : '';
+					continue 2;
+				}
 				// Colour fields reach the frontend stylesheet, so they must be
 				// a hex colour. Anything else keeps the stored value.
 				if ( ( 'hatch_design_brand' === $opt_key && in_array( $sub, array( 'primary', 'secondary', 'accent', 'background', 'fg', 'bg' ), true ) )
@@ -2135,22 +2139,6 @@ function hatch_permalinks_auto_set_notice(): void {
 		),
 		esc_url( admin_url( 'options-permalink.php' ) )
 	);
-	echo '</p></div>';
-}
-
-/**
- * Network admin notice when someone tries to network-activate the plugin.
- * Each site keeps its own deploy settings, so it is per-site only.
- *
- * @return void
- */
-function hatch_network_activate_blocked_notice(): void {
-	if ( ! get_transient( 'hatch_network_activate_blocked' ) ) {
-		return;
-	}
-	delete_transient( 'hatch_network_activate_blocked' );
-	echo '<div class="notice notice-error"><p>';
-	esc_html_e( 'Hatch cannot be network-activated. Each site has its own frontend address, saved token and theme, and sharing them across a network would mix them up. Activate it on individual sites instead.', 'hatch-connect' );
 	echo '</p></div>';
 }
 

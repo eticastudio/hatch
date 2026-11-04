@@ -61,7 +61,7 @@ astro-starter/
 │   ├── components/
 │   │   ├── SiteHeader.astro, SiteFooter.astro, Sidebar.astro, PostCard.astro, HatchForm.astro, HatchComments.astro, HatchImage.astro, HatchSchema.astro
 │   │   ├── hatch-blocks/           Gutenberg block renderers
-│   │   └── theme/                  Breadcrumb, PostMeta, ShareRow, and per-design folders (astronano, astrowind, docs, tech)
+│   │   └── theme/                  Breadcrumb, PostMeta, ShareRow, and per-design folders (docs, tech)
 │   ├── layouts/
 │   │   └── PageLayout.astro        Base HTML, head injection
 │   └── lib/

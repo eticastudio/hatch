@@ -826,7 +826,7 @@ h3.hatch-heading { font-size: 1.25rem; font-weight: 600; }
 
 /* ==========================================================================
    v0.3.4 — Wide-block escape from reading column.
-   Themes (esp. blog/astronano/astropaper) cap .hatch-prose at ~680px for
+   Themes (esp. blog) cap .hatch-prose at ~680px for
    comfortable reading. That's correct for paragraphs and headings — wrong
    for full-bleed elements like Cover, Posts grids, Columns sections,
    Galleries. These bust out to the parent article's max-width so they look

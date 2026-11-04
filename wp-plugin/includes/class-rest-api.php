@@ -755,7 +755,8 @@ class Hatch_Rest_Api {
 
 		// Redirection plugin.
 		if ( Hatch_Detector::is_active( 'redirection' ) && class_exists( 'Red_Item' ) ) {
-			$items = Red_Item::get_all_for_module( 0 );
+			// Module 1 is the WordPress module, the one Redirection serves from the database.
+			$items = Red_Item::get_all_for_module( 1 );
 			foreach ( (array) $items as $item ) {
 				if ( ! is_object( $item ) ) {
 					continue;

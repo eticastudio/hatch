@@ -201,8 +201,47 @@ var onRequest$1 = defineMiddleware(async (context, next) => {
 			}
 		}
 	}
-	return attachSecurityHeaders(await next());
+	const cache2 = pageCache();
+	const cacheable = !!cache2 && context.request.method === "GET" && url.search === "" && !context.request.headers.has("cookie") && !context.request.headers.has("authorization") && !NO_CACHE_PATHS.test(url.pathname);
+	if (cacheable && cache2) try {
+		const hit = await cache2.match(url.origin + url.pathname);
+		if (hit) {
+			const at = Number(hit.headers.get("X-Hatch-Cached-At") || 0);
+			if (at && Date.now() - at < PAGE_TTL_MS) {
+				const h = new Headers(hit.headers);
+				h.set("X-Hatch-Cache", "HIT");
+				return new Response(hit.body, {
+					status: hit.status,
+					headers: h
+				});
+			}
+		}
+	} catch {}
+	const out = attachSecurityHeaders(await next());
+	if (cacheable && cache2 && out.status === 200 && !out.headers.has("set-cookie") && (out.headers.get("content-type") || "").includes("text/html") && !/no-store|private/i.test(out.headers.get("cache-control") || "") && out.headers.get("X-Hatch-Features") !== "fallback") {
+		try {
+			const copy = new Response(out.clone().body, {
+				status: 200,
+				headers: new Headers(out.headers)
+			});
+			copy.headers.set("X-Hatch-Cached-At", String(Date.now()));
+			copy.headers.set("Cache-Control", "public, max-age=60");
+			await cache2.put(url.origin + url.pathname, copy);
+		} catch {}
+		out.headers.set("X-Hatch-Cache", "MISS");
+	}
+	return out;
 });
+var PAGE_TTL_MS = 6e4;
+var NO_CACHE_PATHS = /^\/(api|cart|checkout|account|order|login|logout|register|search|wp-admin|wp-login)(\/|$)/i;
+function pageCache() {
+	try {
+		const c = globalThis.caches;
+		return c && c.default ? c.default : null;
+	} catch {
+		return null;
+	}
+}
 //#endregion
 //#region \0virtual:astro:middleware
 var onRequest = sequence(onRequest$1);

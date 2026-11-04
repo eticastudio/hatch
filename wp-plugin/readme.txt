@@ -4,15 +4,15 @@ Tags: headless, headless-cms, decoupled, astro, cloudflare
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Headless WordPress with no migration and no host change. Deploy a fast Astro frontend to your own Cloudflare account. REST API, no GraphQL.
+The easiest way to headless Astro. Keep WordPress, deploy a frontend to your own Cloudflare account. REST API, no GraphQL. Free.
 
 == Description ==
 
-**Make your current WordPress site headless without moving it.** Hatch Connect gives the site you already run a fast, modern Astro frontend and puts it online in your own Cloudflare account, all from your dashboard.
+**Make your current WordPress site headless without moving it.** Hatch Connect gives the site you already run the easiest way to a modern Astro frontend and puts it online in your own Cloudflare account, all from your dashboard.
 
 You keep your host, your plugins, your content and the block editor you know. Your visitors get a separate, lightweight site.
 
@@ -62,11 +62,11 @@ Every website has a body and a head. The body is the back end, where you write a
 
 ## What you get
 
-* **A faster, lighter site for your visitors**
+* **A lighter site for your visitors**
   * Zero plugin bloat on the frontend. Nothing from WordPress plugins loads on visitors' pages.
   * No framework JavaScript (no React or Vue) in the visitor's browser. Pages are plain HTML and CSS.
   * Served from Cloudflare's global network, close to your visitors.
-* **1-click deploy to Cloudflare**
+* **Deploy to Cloudflare from your dashboard**
   * Hatch uploads the frontend as a Cloudflare Worker and shows you the live address.
   * Use a free workers.dev address or your own domain.
   * Your Cloudflare account, your site, your control. Delete it any time.
@@ -90,7 +90,7 @@ Hatch Connect detects the plugins you already use and passes their data to your 
 * **Custom fields:** Advanced Custom Fields (ACF and ACF Pro), Secure Custom Fields, Meta Box, Pods
   * Field values reach the frontend when the field group is set to show in REST.
 * **Custom post types:** Custom Post Type UI, JetEngine, Pods
-* **Redirects:** Redirection, Rank Math redirects, Yoast Premium redirects
+* **Redirects:** Redirection and Rank Math redirects
   * Your frontend follows your existing redirect rules.
 * **Email delivery (SMTP):** FluentSMTP, WP Mail SMTP, Post SMTP, Easy WP SMTP
   * Form entries from your frontend go out through the email plugin you already set up.
@@ -106,7 +106,7 @@ Hatch Connect detects the plugins you already use and passes their data to your 
 * Breadcrumb navigation
 * Clean, server-rendered HTML that search engines can read
 * `llms.txt` and `.well-known/mcp.json` for AI search and AI agents (with RankReady)
-* Redirects carried over from Redirection, Rank Math or Yoast Premium
+* Redirects carried over from Redirection or Rank Math
 * Option to keep your WordPress address out of search results, so only the frontend shows up
 
 ## Performance features
@@ -169,11 +169,13 @@ Faust.js, WPGraphQL, Next.js, Gatsby and headless CMS products are good tools, a
 
 = External services =
 
-This plugin connects to two Cloudflare services, and only after you set them up.
+This plugin connects to two Cloudflare services, and only after you set them up. The frontend it deploys also loads fonts from Google, described below.
 
 **[Cloudflare API](https://api.cloudflare.com)** deploys your frontend using the token you paste in. [Terms](https://www.cloudflare.com/terms/) and [Privacy policy](https://www.cloudflare.com/privacypolicy/)
 
 **[Cloudflare Turnstile](https://challenges.cloudflare.com)** is optional spam protection, off until you add your keys. [Terms](https://www.cloudflare.com/website-terms/) and [Privacy policy](https://www.cloudflare.com/privacypolicy/)
+
+**[Google Fonts](https://fonts.google.com)** The frontend that Hatch deploys loads its fonts from Google (`fonts.googleapis.com` and `fonts.gstatic.com`) in your visitors' browsers: Inter for the three designs, JetBrains Mono for Terminal, and any font you choose in the Design tab. Hatch itself does not contact Google. [Terms](https://policies.google.com/terms) and [Privacy policy](https://policies.google.com/privacy)
 
 = Source code =
 
@@ -396,7 +398,7 @@ Not in this version. Hatch deploys to Cloudflare only. The REST API works with a
 
 = Do I have to use the frontend Hatch deploys? =
 
-No. The `hatch/v1` REST API works with any frontend you build. The one Hatch deploys (built with Astro) is the quick way to get started.
+No. The `hatch/v1` REST API works with any frontend you build. The one Hatch deploys (built with Astro) is the easiest way to get started.
 
 = Can I change how the frontend looks? =
 
@@ -440,6 +442,35 @@ See "What Hatch changes on your site". The redirect and the frontend links start
 
 == Changelog ==
 
+= 1.1.0 =
+* Fixed: Yoast SEO and Rank Math head data is now found for pages the frontend asks for without a trailing slash, so their full head (not only Hatch's basic title and canonical) reaches the frontend.
+* Fixed: the deployed frontend no longer makes a failed request for the block data of each post (a doubled address path).
+* Fixed: the deployed frontend now really keeps public pages for 60 seconds in the Cloudflare cache. Before, every page view asked WordPress again, so pages were slow on a slow host. Pages with cookies, a query string, a cart or an account path are never cached.
+* Fixed: after uploading the zip, the "Activate Plugin" link on the result page now activates Hatch (it pointed at the bundled mu-plugin file and failed).
+* Fixed: the Performance tab no longer shows "Clean media URLs" as saved when there is no frontend address yet; it asks you to deploy first.
+* Changed: short description and "What you get" use the headless and easiest wording, with no speed words.
+* Changed: the deployed frontend asks WordPress for a page's content once instead of twice.
+* Changed: removed three unused designs (AstroPaper, AstroWind, Astro Nano) and their Google Fonts stylesheets from the frontend. Editorial, Terminal and Docs are unchanged.
+* Changed: Google Fonts are now listed under External services.
+* Fixed: WPForms and Gravity Forms lists no longer raise PHP warnings on a site with no forms.
+* Fixed: saving a setting with a list or object value no longer raises PHP notices.
+* Fixed: a token revoked or expired during a deploy now gives the "Cloudflare rejected the API token" message.
+
+= 1.0.1 =
+* Fixed: RankReady is now detected when its folder is renamed, and the Plugins tab and the features response report it correctly.
+* Fixed: the Memberships row (Plugins tab) and the Blog index & homepage card (Design tab) no longer use an amber icon colour.
+* Fixed: the order lookup route now returns 404, not a server error, when WooCommerce is not installed.
+* Changed: wording now says "easiest way" instead of "fast", with no speed claim. Headline: "The easiest way from WordPress to a modern Astro frontend."
+* Fixed: Contact Form 7 forms can now be read and submitted through Hatch.
+* Fixed: the integrations list reports Contact Form 7 as the forms plugin.
+* Fixed: network activation on a multisite is switched off again, with a notice. Activate Hatch on each site.
+* Fixed: redirects from the Redirection plugin are now included for the frontend.
+* Fixed: a memory error when the frontend account signs in on a site with Yoast SEO.
+* New: the setup guide warns, without blocking, when the Cloudflare token cannot list Workers.
+* New: declares compatibility with WooCommerce High-Performance Order Storage.
+* Fixed: short helper texts in the admin wrap evenly, with no lone words on the last line.
+* Fixed: the readme no longer says Yoast Premium redirects carry over. Redirects are read from Redirection and Rank Math.
+
 = 1.0.0 =
 * First public release on WordPress.org.
 * Deploys an Astro frontend to your own Cloudflare account from your dashboard, with a Cloudflare token you supply. The token is stored encrypted. Disconnect undoes the WordPress side.
@@ -450,6 +481,12 @@ See "What Hatch changes on your site". The redirect and the frontend links start
 * Brand and border colour settings accept only hex colours.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Fewer requests per page and a cleaner frontend bundle. Redeploy once from the Hatch screen to publish the new frontend. Safe to update.
+
+= 1.0.1 =
+Bug-fix release. Safe to update.
 
 = 1.0.0 =
 First public release.

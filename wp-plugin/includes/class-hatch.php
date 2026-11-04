@@ -116,7 +116,6 @@ final class Hatch {
 		// would share encrypted tokens / deploy URLs across subsites, which is
 		// almost never what you want. Each subsite is its own headless project.
 		if ( is_multisite() && is_network_admin() ) {
-			set_transient( 'hatch_network_activate_blocked', 1, MINUTE_IN_SECONDS * 5 );
 			deactivate_plugins( plugin_basename( HATCH_PLUGIN_FILE ), true, true );
 			return;
 		}

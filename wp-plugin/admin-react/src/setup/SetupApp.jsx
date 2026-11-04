@@ -19,7 +19,7 @@ const ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/i;
 const STEP_COUNT = 4;
 
 const IDLE_DEPLOY = { phase: 'idle', error: '', message: '', warnings: [] };
-const IDLE_VERIFY = { phase: 'idle', error: '', code: '', accounts: [] };
+const IDLE_VERIFY = { phase: 'idle', error: '', code: '', accounts: [], workersAccess: null };
 
 /**
  * The address visitors use, from the saved deploy state.
@@ -253,7 +253,7 @@ export default function SetupApp() {
 		try {
 			const res = await hxFetch(`deploy/${PROVIDER}/verify`, { method: 'POST', body: JSON.stringify(tokenBody) });
 			const list = (res && res.accounts) || [];
-			setVerify({ phase: 'ok', error: '', code: '', accounts: list });
+			setVerify({ phase: 'ok', error: '', code: '', accounts: list, workersAccess: res && typeof res.workers_access === 'boolean' ? res.workers_access : null });
 			if (list.length === 1) setAccountId(list[0].id);
 			loadZones(tokenBody);
 		} catch (e) {
@@ -341,7 +341,7 @@ export default function SetupApp() {
 			<div className="hx-wiz">
 				<div className="hx-wiz-head">
 					<h1>{__('Set up Hatch', 'hatch-connect')}</h1>
-					<p>{__('Publish a fast frontend for this site on your own Cloudflare account. You can undo it from the Connection tab.', 'hatch-connect')}</p>
+					<p>{__('Publish an Astro frontend for this site on your own Cloudflare account. You can undo it from the Connection tab.', 'hatch-connect')}</p>
 					{stepperAt > 0 && <Stepper current={stepperAt} />}
 				</div>
 				<div className="hx-wiz-stack">{body}</div>
@@ -633,6 +633,14 @@ export default function SetupApp() {
 					<HxBtn size="sm" variant="ghost" onClick={() => { resetVerification(); setToken(''); }}>
 						{__('Use a different token', 'hatch-connect')}
 					</HxBtn>
+				</div>
+			)}
+
+			{verified && verify.workersAccess === false && (
+				<div style={{ marginTop: 12 }}>
+					<HxNotice tone="warning" title={__('This token may not be able to publish', 'hatch-connect')}>
+						{__('Cloudflare accepted the token, but it did not allow Hatch to list Workers. Add the permission Account, Workers Scripts, Edit to the token, or the deploy will stop with a permission error. You can still continue.', 'hatch-connect')}
+					</HxNotice>
 				</div>
 			)}
 

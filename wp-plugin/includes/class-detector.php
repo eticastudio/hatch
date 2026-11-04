@@ -201,7 +201,7 @@ class Hatch_Detector {
 			'custom_fields' => self::get_custom_fields_plugin(),
 			'cpt_manager'   => self::get_cpt_plugin(),
 			'i18n'          => self::get_i18n_plugin(),
-			'has_rankready' => self::is_active( 'rankready' ) || self::is_active( 'rankready_dev' ),
+			'has_rankready' => defined( 'RNRD_VERSION' ) || self::is_active( 'rankready' ) || self::is_active( 'rankready_dev' ),
 		);
 	}
 

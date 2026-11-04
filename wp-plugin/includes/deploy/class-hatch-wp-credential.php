@@ -110,11 +110,19 @@ final class Hatch_Wp_Credential {
 		if ( '' === $login || $login !== $user->user_login ) {
 			return;
 		}
-		$cap = self::forbidden_capability(
+		// Capability filters of other plugins (Yoast SEO, for one) can read the current user, which starts
+		// this same sign-in check again. Without a guard that loops until PHP runs out of memory.
+		static $running = false;
+		if ( $running ) {
+			return;
+		}
+		$running = true;
+		$cap     = self::forbidden_capability(
 			static function ( string $capability ) use ( $user ): bool {
 				return user_can( $user, $capability );
 			}
 		);
+		$running = false;
 		if ( '' !== $cap ) {
 			$error->add(
 				'hatch_frontend_account_privileged',

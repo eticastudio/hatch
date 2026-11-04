@@ -244,7 +244,7 @@ function App() {
 					) }
 				</h1>
 				<p style={{ fontSize: 14, color: 'var(--hx-text-subtle)', margin: '6px 0 0' }}>
-					{ __( 'Connect this WordPress site to a fast frontend on Cloudflare.', 'hatch-connect' ) }
+					{ __( 'Connect this WordPress site to an Astro frontend on Cloudflare, the easy way.', 'hatch-connect' ) }
 				</p>
 
 				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>

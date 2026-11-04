@@ -215,10 +215,23 @@ final class Hatch_Cloudflare_Provider implements Hatch_Deploy_Provider {
 			}
 		}
 
+		// Cheap, non-blocking probe: listing Workers needs the Workers Scripts permission that a deploy needs.
+		// true = allowed, false = Cloudflare refused it, null = not checked or inconclusive.
+		$workers_access = null;
+		if ( ! empty( $accounts ) ) {
+			$probe = $api->request( 'GET', '/accounts/' . rawurlencode( $accounts[0]['id'] ) . '/workers/scripts', array( 'query' => array( 'per_page' => 1 ) ) );
+			if ( ! is_wp_error( $probe ) ) {
+				$workers_access = true;
+			} elseif ( in_array( $probe->get_error_code(), array( 'hatch_cf_permission', 'hatch_cf_auth', 'hatch_cf_rejected' ), true ) ) {
+				$workers_access = false;
+			}
+		}
+
 		return array(
 			'status'         => 'active',
 			'accounts'       => $accounts,
 			'account_lookup' => $lookup,
+			'workers_access' => $workers_access,
 		);
 	}
 

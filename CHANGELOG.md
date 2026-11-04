@@ -2,6 +2,47 @@
 
 All notable changes to Hatch are recorded here. Format adheres loosely to [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.1.0] — 2026-11-04
+
+Builds on 1.0.1. No new features: fewer requests, fewer leftovers, more edge cases covered.
+
+### Changed
+
+- Wording: the short description, "What you get" and the plugin header use the headless and easiest wording, with no speed words. The landing page and docs say Redirection and Rank Math for redirects (Yoast Premium redirects are not read).
+- The frontend asks WordPress for a page's content once instead of twice (one request fewer on every page).
+- The three designs the Design tab never offered (AstroPaper, AstroWind, Astro Nano) are removed from the frontend bundle, with their Google Fonts stylesheets and preview art. Editorial, Terminal and Docs are unchanged.
+- readme.txt now lists Google Fonts under External services: the deployed frontend loads Inter (and JetBrains Mono for Terminal) from Google in visitors' browsers.
+
+### Fixed
+
+- SEO bridge: the Yoast and Rank Math head lookups returned 404 for every page the frontend asked for as `/slug` on a site with `/%postname%/` permalinks. The internal address now gets the trailing slash WordPress uses.
+- Frontend: the block-data request for each post used a doubled `/wp-json` path and returned 404. It now returns 200.
+- Frontend: public pages are now kept for 60 seconds in the Cloudflare cache of the Worker (the earlier cache headers had no effect on a Worker, so every view asked WordPress again). On a test site whose WordPress answers in about 1 second, a post page took about 16 seconds on every view. Cookies, query strings, cart, checkout, account, login and search paths are never cached.
+- Uploading the zip in wp-admin: the "Activate Plugin" link now activates Hatch. The bundled mu-plugin copy no longer carries a Plugin Name header, so WordPress no longer mistakes it for the plugin.
+- Performance tab: "Clean media URLs" asks you to deploy first instead of silently switching back off when no frontend address exists.
+- WPForms and Gravity Forms: the forms list no longer raises PHP warnings when a site has no forms yet.
+- Saving a setting with a list or object value no longer raises PHP notices; the saved value is kept.
+- A token revoked or expired while a deploy is running now says "Cloudflare rejected the API token…" (it said "no permission").
+
+## [1.0.1] — 2026-11-02
+
+### Fixed
+
+- RankReady detection checks `RNRD_VERSION`, so renamed plugin folders are found, and `integrations.rankready` is exposed in the features response.
+- Memberships row icon (Plugins tab) and Blog index & homepage icon (Design tab) use neutral grey, not amber.
+- `/hatch/v1/order/{id}` returns 404 instead of 500 when WooCommerce is not installed.
+- Wording: "fast/fastest" replaced with "easiest way" wording in the plugin description, readme and admin text (no speed claim).
+- Forms: Contact Form 7 forms can be read and submitted (`/forms/cf7/{id}` and `/submit`). The route pattern now accepts digits in the provider name, and submissions are sent to Contact Form 7 as multipart data.
+- Integrations: `/hatch/v1/integrations` reports Contact Form 7 as the detected forms plugin.
+- Multisite: network activation is switched off again and a message explains why; per-site activation is unchanged.
+- Redirects: redirects from the Redirection plugin are now listed in `/hatch/v1/redirects` (the lookup used a module that has none).
+- Sign-in: a Subscriber frontend account no longer causes a memory error on sites with Yoast SEO (a capability check looped back into itself).
+- Setup guide: Check token warns, without blocking, when the token cannot list Workers (missing Workers Scripts, Edit).
+- WooCommerce: declares compatibility with High-Performance Order Storage.
+- Login hardening: uses wp_doing_cron() instead of the DOING_CRON constant.
+- Admin: helper texts, labels and paragraphs wrap evenly (no one- or two-word last lines, for example on the Design tab at 390px).
+- Readme no longer claims Yoast Premium redirects are carried over.
+
 ## [0.3.1] — 2026-05-29
 
 Hot-patch for v0.3.0 — the editor bundle was missing imports for all 18 new blocks.

@@ -227,9 +227,6 @@ actual visual style:
 - **Blog**: image header + article rows (blue)
 - **Tech**: dark editor with code lines (violet)
 - **Data**: sidebar + content grid (teal)
-- **AstroPaper**: minimal centered (lime)
-- **AstroWind**: marketing hero + feature cards (blue)
-- **Astro Nano**: pure text column (neutral)
 
 These are inlined as React fragments in `TP` (theme previews) map.
 

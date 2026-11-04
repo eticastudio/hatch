@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name:       Hatch Connect - Astro Headless for Cloudflare
- * Description:       Deploy a fast Astro frontend to your own Cloudflare account from your dashboard. No servers to run, and you can undo it any time.
- * Version:           1.0.0
+ * Description:       The easiest way to headless Astro. Keep WordPress, deploy a frontend to your own Cloudflare account, from your dashboard. No servers to run, and you can undo it any time.
+ * Version:           1.1.0
  * Requires at least: 6.4
  * Requires PHP:      7.4
  * Author:            Aditya Sharma
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'HATCH_VERSION', '1.0.0' );
+define( 'HATCH_VERSION', '1.1.0' );
 define( 'HATCH_PLUGIN_FILE', __FILE__ );
 define( 'HATCH_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'HATCH_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -564,6 +564,58 @@ add_action( 'init', array( 'Hatch_Cf_Seo', 'boot' ), 20 );
 // v0.7.6 - guest-safe order lookup so /order-summary works without Cart-Token.
 require_once HATCH_PLUGIN_DIR . 'includes/class-order-lookup.php';
 add_action( 'init', array( 'Hatch_Order_Lookup', 'boot' ), 5 );
+
+/**
+ * Hatch is activated one site at a time. Core saves the network-active list after
+ * the plugin's own activation hook, which would undo a deactivation made there, so
+ * the block runs on activated_plugin (and on admin_init for a list that is already
+ * wrong). The plugin is off for the next page, so a notice hook of its own would
+ * never load: a network activation from the browser ends with a message page.
+ *
+ * @return bool True when the plugin was network-active and has been switched off.
+ */
+function hatch_block_network_activation(): bool {
+	if ( ! is_multisite() || ! function_exists( 'is_plugin_active_for_network' ) ) {
+		return false;
+	}
+	$basename = plugin_basename( HATCH_PLUGIN_FILE );
+	if ( ! is_plugin_active_for_network( $basename ) ) {
+		return false;
+	}
+	deactivate_plugins( $basename, true, true );
+	return true;
+}
+add_action(
+	'activated_plugin',
+	static function ( $plugin, $network_wide = false ) {
+		if ( ! $network_wide || plugin_basename( HATCH_PLUGIN_FILE ) !== $plugin ) {
+			return;
+		}
+		if ( hatch_block_network_activation() ) {
+			wp_die(
+				esc_html__( 'Hatch cannot be network-activated. Each site has its own frontend address, saved token and theme, and sharing them across a network would mix them up. Activate it on individual sites instead.', 'hatch-connect' ),
+				'',
+				array( 'back_link' => true )
+			);
+		}
+	},
+	10,
+	2
+);
+add_action( 'admin_init', 'hatch_block_network_activation' );
+
+/**
+ * Declare compatibility with WooCommerce High-Performance Order Storage.
+ * Hatch reads orders only through wc_get_order(), never from the posts table.
+ */
+add_action(
+	'before_woocommerce_init',
+	static function () {
+		if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', HATCH_PLUGIN_FILE, true );
+		}
+	}
+);
 // V0.8 - WooCommerce read-only bridge (products / variations / categories).
 require_once HATCH_PLUGIN_DIR . 'includes/class-woocommerce-bridge.php';
 

@@ -156,7 +156,7 @@ class Hatch_Forms_Bridge {
 
 		register_rest_route(
 			$ns,
-			'/forms/(?P<provider>[a-z_]+)/(?P<id>\d+)',
+			'/forms/(?P<provider>[a-z0-9_]+)/(?P<id>\d+)',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( __CLASS__, 'get_schema' ),
@@ -170,7 +170,7 @@ class Hatch_Forms_Bridge {
 
 		register_rest_route(
 			$ns,
-			'/forms/(?P<provider>[a-z_]+)/(?P<id>\d+)/submit',
+			'/forms/(?P<provider>[a-z0-9_]+)/(?P<id>\d+)/submit',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( __CLASS__, 'submit_form' ),
@@ -202,7 +202,14 @@ class Hatch_Forms_Bridge {
 		}
 		$forms = wpforms()->form->get( '', array( 'orderby' => 'title' ) );
 		$out   = array();
-		foreach ( (array) $forms as $form ) {
+		// WPForms returns false, not an empty list, when no form exists yet.
+		if ( ! is_array( $forms ) ) {
+			return $out;
+		}
+		foreach ( $forms as $form ) {
+			if ( ! is_object( $form ) ) {
+				continue;
+			}
 			$out[] = array(
 				'id'       => (int) $form->ID,
 				'title'    => $form->post_title,
@@ -238,7 +245,13 @@ class Hatch_Forms_Bridge {
 		}
 		$forms = GFAPI::get_forms();
 		$out   = array();
-		foreach ( (array) $forms as $form ) {
+		if ( ! is_array( $forms ) ) {
+			return $out;
+		}
+		foreach ( $forms as $form ) {
+			if ( ! is_array( $form ) || ! isset( $form['id'] ) ) {
+				continue;
+			}
 			$out[] = array(
 				'id'       => (int) $form['id'],
 				'title'    => (string) $form['title'],
@@ -904,12 +917,28 @@ class Hatch_Forms_Bridge {
 		foreach ( $fields as $k => $v ) {
 			$body[ $k ] = is_array( $v ) ? $v : (string) $v;
 		}
-		$res = wp_remote_post(
+		// Contact Form 7 6.x only accepts multipart/form-data and needs a unit tag.
+		$body['_wpcf7']          = (string) $id;
+		$body['_wpcf7_unit_tag'] = 'wpcf7-f' . $id . '-hatch';
+		$boundary                = 'hatch' . wp_generate_password( 24, false );
+		$payload                 = '';
+		foreach ( $body as $name => $value ) {
+			foreach ( is_array( $value ) ? array_values( $value ) : array( $value ) as $item ) {
+				$field_name = is_array( $value ) ? $name . '[]' : $name;
+				$field_name = str_replace( array( "\r", "\n", '"' ), '', (string) $field_name );
+				$payload   .= '--' . $boundary . "\r\n" . 'Content-Disposition: form-data; name="' . $field_name . '"' . "\r\n\r\n" . (string) ( is_array( $item ) ? '' : $item ) . "\r\n";
+			}
+		}
+		$payload .= '--' . $boundary . "--\r\n";
+		$res      = wp_remote_post(
 			$url,
 			array(
-				'body'    => $body,
+				'body'    => $payload,
 				'timeout' => 15,
-				'headers' => array( 'Accept' => 'application/json' ),
+				'headers' => array(
+					'Accept'       => 'application/json',
+					'Content-Type' => 'multipart/form-data; boundary=' . $boundary,
+				),
 			)
 		);
 		if ( is_wp_error( $res ) ) {

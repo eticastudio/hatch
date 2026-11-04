@@ -347,8 +347,10 @@ class Hatch_Features {
 					'fluent_forms'           => defined( 'FLUENTFORM' ),
 					'cf7'                    => defined( 'WPCF7_VERSION' ),
 					'fluent_smtp'            => defined( 'FLUENTMAIL' ),
-					'rankready'              => defined( 'RANKREADY_VERSION' ) || class_exists( 'RankReady' ),
+					'rankready'              => defined( 'RNRD_VERSION' ) || defined( 'RANKREADY_VERSION' ) || class_exists( 'RankReady' ),
 				),
+				// RankReady headless-mode status (see Hatch_RankReady_Bridge::status()).
+				'rankready'   => class_exists( 'Hatch_RankReady_Bridge' ) ? Hatch_RankReady_Bridge::status() : array( 'active' => false ),
 			);
 		}
 

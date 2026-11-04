@@ -12,9 +12,9 @@
  */
 import type { HatchFeatures } from './features';
 
-export type ThemeSlug = 'blog' | 'tech' | 'docs' | 'astropaper' | 'astrowind' | 'astronano';
+export type ThemeSlug = 'blog' | 'tech' | 'docs';
 
-const KNOWN: ThemeSlug[] = ['blog', 'tech', 'docs', 'astropaper', 'astrowind', 'astronano'];
+const KNOWN: ThemeSlug[] = ['blog', 'tech', 'docs'];
 
 export function themeKey(features: HatchFeatures | { theme?: string } | null | undefined): ThemeSlug {
   const t = String((features as any)?.theme || 'blog').toLowerCase() as ThemeSlug;

@@ -60,7 +60,7 @@ export async function fetchPostBlocks(
 	}
 
 	// Strip trailing /wp-json (so .env can store either the root or the API root).
-	const base = WP_API.replace( /\/wp-json\/?$/, '' ).replace( /\/$/, '' );
+	const base = WP_API.replace( /\/wp-json(\/.*)?$/, "" ).replace( /\/$/, "" );
 	const url  = `${ base }/wp-json/hatch/v1/post/${ postId }/blocks?context=${ context }`;
 
 	const headers: Record<string, string> = {

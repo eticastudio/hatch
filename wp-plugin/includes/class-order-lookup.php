@@ -121,7 +121,7 @@ class Hatch_Order_Lookup {
 
 	public static function get_order( WP_REST_Request $req ) {
 		if ( ! function_exists( 'wc_get_order' ) ) {
-			return new WP_Error( 'hatch_woo_missing', esc_html__( 'WooCommerce not active', 'hatch-connect' ), array( 'status' => 500 ) );
+			return new WP_Error( 'hatch_woo_missing', esc_html__( 'WooCommerce not active', 'hatch-connect' ), array( 'status' => 404 ) );
 		}
 
 		// Rate-limit BEFORE any DB work so an abuser cannot cheaply enumerate
