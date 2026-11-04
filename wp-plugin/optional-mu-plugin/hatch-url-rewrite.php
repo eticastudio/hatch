@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Hatch - public URL rewriter (mu-plugin)
+ * Name: Hatch - public URL rewriter (mu-plugin)
  * Description: Rewrites localhost / private-IP media URLs to the Hatch
  *              frontend origin's `/hatch-media/` proxy so headless demos
  *              serve images correctly whether WP runs on a bare docker

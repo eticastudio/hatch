@@ -443,6 +443,7 @@ See "What Hatch changes on your site". The redirect and the frontend links start
 == Changelog ==
 
 = 1.1.0 =
+* Fixed: after uploading the zip, the "Activate Plugin" link on the result page now activates Hatch (it pointed at the bundled mu-plugin file and failed).
 * Fixed: the Performance tab no longer shows "Clean media URLs" as saved when there is no frontend address yet; it asks you to deploy first.
 * Changed: short description and "What you get" use the headless and easiest wording, with no speed words.
 * Changed: the deployed frontend asks WordPress for a page's content once instead of twice.
