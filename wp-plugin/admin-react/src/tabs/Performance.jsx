@@ -7,8 +7,9 @@
  *   - The toggle shows the on/off state, so descriptions do not repeat it.
  *   - No numeric claims that are not measured on the site.
  */
+import { useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
-import { HxCard, HxHead, HxRow, HxToggle, HxDisclosure } from '../components.jsx';
+import { HxCard, HxHead, HxRow, HxToggle, HxDisclosure, HxNotice } from '../components.jsx';
 import { IC } from '../icons';
 
 // The slug is the stored key. Only label and desc are shown to the user.
@@ -30,6 +31,15 @@ export default function Performance({ state, onDirty, setSetting }) {
 	const bloat    = perf.bloat        || {};
 	const master   = !!perf.bloat_kill;
 	const onToggle = (path) => (v) => { setSetting(path, v); onDirty(); };
+	// Clean media URLs needs the frontend address to build its links. Without one the save is dropped, so say so instead.
+	const hasFrontend = !!(state && state.connection && state.connection.frontendUrl);
+	const [needFrontend, setNeedFrontend] = useState(false);
+	const onImageProxy = (v) => {
+		if (v && !hasFrontend) { setNeedFrontend(true); return; }
+		setNeedFrontend(false);
+		setSetting('performance.image_proxy', v);
+		onDirty();
+	};
 	const bloatItems = getBloatItems();
 
 	// Count individual killers currently on, for the summary line.
@@ -115,8 +125,11 @@ export default function Performance({ state, onDirty, setSetting }) {
 					label={__('Clean media URLs', 'hatch-connect')}
 					desc={__('Shortens image addresses and sends smaller image formats (WebP or AVIF) to browsers that support them.', 'hatch-connect')}
 				>
-					<HxToggle on={!!perf.image_proxy} onChange={onToggle('performance.image_proxy')} ariaLabel={__('Clean media URLs', 'hatch-connect')} />
+					<HxToggle on={!!perf.image_proxy} onChange={onImageProxy} ariaLabel={__('Clean media URLs', 'hatch-connect')} />
 				</HxRow>
+				{needFrontend && !hasFrontend && (
+					<HxNotice tone="warning">{__('Deploy your frontend first, then turn this on. It needs your frontend address.', 'hatch-connect')}</HxNotice>
+				)}
 
 				<HxRow
 					label={__('Instant navigation', 'hatch-connect')}

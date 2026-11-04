@@ -443,6 +443,7 @@ See "What Hatch changes on your site". The redirect and the frontend links start
 == Changelog ==
 
 = 1.1.0 =
+* Fixed: the Performance tab no longer shows "Clean media URLs" as saved when there is no frontend address yet; it asks you to deploy first.
 * Changed: short description and "What you get" use the headless and easiest wording, with no speed words.
 * Changed: the deployed frontend asks WordPress for a page's content once instead of twice.
 * Changed: removed three unused designs (AstroPaper, AstroWind, Astro Nano) and their Google Fonts stylesheets from the frontend. Editorial, Terminal and Docs are unchanged.

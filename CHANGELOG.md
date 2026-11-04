@@ -15,6 +15,7 @@ Builds on 1.0.1. No new features: fewer requests, fewer leftovers, more edge cas
 
 ### Fixed
 
+- Performance tab: "Clean media URLs" asks you to deploy first instead of silently switching back off when no frontend address exists.
 - WPForms and Gravity Forms: the forms list no longer raises PHP warnings when a site has no forms yet.
 - Saving a setting with a list or object value no longer raises PHP notices; the saved value is kept.
 - A token revoked or expired while a deploy is running now says "Cloudflare rejected the API token…" (it said "no permission").
