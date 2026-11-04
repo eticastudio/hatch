@@ -8,7 +8,7 @@ Stable tag: 1.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Headless WordPress with no migration and no host change. The easiest way to a modern Astro frontend on your own Cloudflare account.
+The easiest way to headless Astro. Keep WordPress, deploy a frontend to your own Cloudflare account. REST API, no GraphQL. Free.
 
 == Description ==
 
@@ -66,7 +66,7 @@ Every website has a body and a head. The body is the back end, where you write a
   * Zero plugin bloat on the frontend. Nothing from WordPress plugins loads on visitors' pages.
   * No framework JavaScript (no React or Vue) in the visitor's browser. Pages are plain HTML and CSS.
   * Served from Cloudflare's global network, close to your visitors.
-* **1-click deploy to Cloudflare**
+* **Deploy to Cloudflare from your dashboard**
   * Hatch uploads the frontend as a Cloudflare Worker and shows you the live address.
   * Use a free workers.dev address or your own domain.
   * Your Cloudflare account, your site, your control. Delete it any time.
@@ -443,6 +443,7 @@ See "What Hatch changes on your site". The redirect and the frontend links start
 == Changelog ==
 
 = 1.1.0 =
+* Changed: short description and "What you get" use the headless and easiest wording, with no speed words.
 * Changed: the deployed frontend asks WordPress for a page's content once instead of twice.
 * Changed: removed three unused designs (AstroPaper, AstroWind, Astro Nano) and their Google Fonts stylesheets from the frontend. Editorial, Terminal and Docs are unchanged.
 * Changed: Google Fonts are now listed under External services.

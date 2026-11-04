@@ -8,6 +8,7 @@ Builds on 1.0.1. No new features: fewer requests, fewer leftovers, more edge cas
 
 ### Changed
 
+- Wording: the short description, "What you get" and the plugin header use the headless and easiest wording, with no speed words. The landing page and docs say Redirection and Rank Math for redirects (Yoast Premium redirects are not read).
 - The frontend asks WordPress for a page's content once instead of twice (one request fewer on every page).
 - The three designs the Design tab never offered (AstroPaper, AstroWind, Astro Nano) are removed from the frontend bundle, with their Google Fonts stylesheets and preview art. Editorial, Terminal and Docs are unchanged.
 - readme.txt now lists Google Fonts under External services: the deployed frontend loads Inter (and JetBrains Mono for Terminal) from Google in visitors' browsers.

@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Hatch Connect - Astro Headless for Cloudflare
- * Description:       The easiest way to a modern Astro frontend on your own Cloudflare account, from your dashboard. No servers to run, and you can undo it any time.
+ * Description:       The easiest way to headless Astro. Keep WordPress, deploy a frontend to your own Cloudflare account, from your dashboard. No servers to run, and you can undo it any time.
  * Version:           1.1.0
  * Requires at least: 6.4
  * Requires PHP:      7.4
