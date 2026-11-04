@@ -37,8 +37,8 @@ var $$ClientRouter = createComponent(($$result, $$props, $$slots) => {
 	const Astro = $$result.createAstro($$props, $$slots);
 	Astro.self = $$ClientRouter;
 	const { fallback = "animate" } = Astro.props;
-	return renderTemplate`<meta name="astro-view-transitions-enabled" content="true"><meta name="astro-view-transitions-fallback"${addAttribute(fallback, "content")}>${renderScript($$result, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.W0zVt5/astro/node_modules/astro/components/ClientRouter.astro?astro&type=script&index=0&lang.ts")}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.W0zVt5/astro/node_modules/astro/components/ClientRouter.astro", void 0);
+	return renderTemplate`<meta name="astro-view-transitions-enabled" content="true"><meta name="astro-view-transitions-fallback"${addAttribute(fallback, "content")}>${renderScript($$result, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/node_modules/astro/components/ClientRouter.astro?astro&type=script&index=0&lang.ts")}`;
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/node_modules/astro/components/ClientRouter.astro", void 0);
 //#endregion
 //#region src/lib/woo.ts
 /** Built-in Astro route that renders each WooCommerce role. */
@@ -134,7 +134,7 @@ var $$StoreIcons = createComponent(($$result, $$props, $$slots) => {
 		return here === target || here.startsWith(target + "/");
 	};
 	return renderTemplate`${active && variant === "bar" && renderTemplate`${maybeRenderHead($$result)}<div class="hatch-store-icons hidden lg:inline-flex" data-astro-cid-7ks73qut><a${addAttribute(accountHref, "href")} class="hatch-store-icon" aria-label="Account" title="Account"${addAttribute(isHere(accountHref) ? "page" : void 0, "aria-current")} data-hatch-auth-link data-astro-cid-7ks73qut><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-astro-cid-7ks73qut><circle cx="12" cy="8" r="4" data-astro-cid-7ks73qut></circle><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" data-astro-cid-7ks73qut></path></svg></a><a${addAttribute(cartHref, "href")} class="hatch-store-icon" aria-label="Cart" title="Cart"${addAttribute(isHere(cartHref) ? "page" : void 0, "aria-current")} data-hatch-cart-link data-astro-cid-7ks73qut><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-astro-cid-7ks73qut><path d="M5 8h14l-1 12H6L5 8z" data-astro-cid-7ks73qut></path><path d="M9 8V6a3 3 0 0 1 6 0v2" data-astro-cid-7ks73qut></path></svg><span class="hatch-store-badge" data-hatch-cart-count hidden aria-hidden="true" data-astro-cid-7ks73qut></span></a></div>`}${active && variant === "drawer" && renderTemplate`${renderComponent($$result, "Fragment", Fragment, {}, { "default": ($$result) => renderTemplate`<a${addAttribute(accountHref, "href")} class="hatch-store-row"${addAttribute(isHere(accountHref) ? "page" : void 0, "aria-current")} data-hatch-auth-link data-astro-cid-7ks73qut><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-astro-cid-7ks73qut><circle cx="12" cy="8" r="4" data-astro-cid-7ks73qut></circle><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" data-astro-cid-7ks73qut></path></svg><span data-astro-cid-7ks73qut>Account</span></a><a${addAttribute(cartHref, "href")} class="hatch-store-row"${addAttribute(isHere(cartHref) ? "page" : void 0, "aria-current")} data-hatch-cart-link data-astro-cid-7ks73qut><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-astro-cid-7ks73qut><path d="M5 8h14l-1 12H6L5 8z" data-astro-cid-7ks73qut></path><path d="M9 8V6a3 3 0 0 1 6 0v2" data-astro-cid-7ks73qut></path></svg><span data-astro-cid-7ks73qut>Cart</span><span class="hatch-store-badge hatch-store-badge--inline" data-hatch-cart-count hidden aria-hidden="true" data-astro-cid-7ks73qut></span></a>` })}`}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.W0zVt5/astro/src/components/StoreIcons.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/StoreIcons.astro", void 0);
 //#endregion
 //#region src/components/SiteHeader.astro
 createAstro("https://hatch-site.invalid");
@@ -192,8 +192,8 @@ var $$SiteHeader = createComponent(($$result, $$props, $$slots) => {
 		"currentPath": currentPath,
 		"variant": "drawer",
 		"data-astro-cid-fzpbxy5g": true
-	})}</nav></div>${renderScript($$result, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.W0zVt5/astro/src/components/SiteHeader.astro?astro&type=script&index=0&lang.ts")}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.W0zVt5/astro/src/components/SiteHeader.astro", void 0);
+	})}</nav></div>${renderScript($$result, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/SiteHeader.astro?astro&type=script&index=0&lang.ts")}`;
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/SiteHeader.astro", void 0);
 //#endregion
 //#region src/components/HatchCredit.astro
 createAstro("https://hatch-site.invalid");
@@ -204,7 +204,7 @@ var $$HatchCredit = createComponent(($$result, $$props, $$slots) => {
 	const creditUrl = String("").trim();
 	const safeUrl = /^https:\/\//i.test(creditUrl) ? creditUrl : "";
 	return renderTemplate`${show && (safeUrl ? renderTemplate`${maybeRenderHead($$result)}<a${addAttribute(safeUrl, "href")} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-[12px] text-hatch-fg-subtle hover:text-hatch-fg transition-colors"><img src="/brand/hatch-symbol.svg" alt="" width="14" height="14" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" loading="lazy"><span>Built with <span class="text-hatch-fg-muted font-medium">hatch</span></span></a>` : renderTemplate`<span class="inline-flex items-center gap-1.5 text-[12px] text-hatch-fg-subtle"><img src="/brand/hatch-symbol.svg" alt="" width="14" height="14" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" loading="lazy">Built with <span class="text-hatch-fg-muted font-medium">hatch</span></span>`)}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.W0zVt5/astro/src/components/HatchCredit.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/HatchCredit.astro", void 0);
 //#endregion
 //#region src/components/SiteFooter.astro
 createAstro("https://hatch-site.invalid");
@@ -249,7 +249,7 @@ var $$SiteFooter = createComponent(($$result, $$props, $$slots) => {
 	const docsVersion = features?.version || features?.hatch_version || "v1";
 	`${(/* @__PURE__ */ new Date()).toISOString().split("T")[0]}${docsVersion}`;
 	return renderTemplate`${(theme === "blog" || !["tech", "docs"].includes(theme)) && renderTemplate`${maybeRenderHead($$result)}<footer class="hatch-footer"><div class="mx-auto px-5 sm:px-8" style="max-width: var(--hatch-max-width, 1180px)">${logoUrl ? renderTemplate`<a href="/" class="inline-block"><img${addAttribute(logoUrl, "src")}${addAttribute(siteName$2, "alt")} class="h-8 w-auto mx-auto opacity-90" loading="lazy"></a>` : renderTemplate`<h2 class="hatch-footer-wordmark">${siteName$2}</h2>`}${tagline && renderTemplate`<p class="hatch-footer-tagline">${tagline}</p>`}<nav class="hatch-footer-links" aria-label="Footer">${navLinks.map((link) => renderTemplate`<a${addAttribute(link.href, "href")}${addAttribute(link.target || void 0, "target")}>${link.label}</a>`)}</nav><div class="hatch-footer-meta">${`© ${year} · ${siteName$2}`}</div><div class="mt-2">${renderComponent($$result, "HatchCredit", $$HatchCredit, { "show": showBuiltBy })}</div></div></footer>`}${theme === "tech" && renderTemplate`<footer class="hatch-footer"><div class="mx-auto px-5 sm:px-8" style="max-width: var(--hatch-max-width, 1240px)"><div class="hatch-footer-prompt">${siteName$2.toLowerCase()}</div><nav class="hatch-footer-links" aria-label="Footer">${navLinks.map((link) => renderTemplate`<a${addAttribute(link.href, "href")}${addAttribute(link.target || void 0, "target")}>${link.label}</a>`)}</nav><div class="hatch-footer-meta">${`# © ${year}`}</div><div class="mt-2">${renderComponent($$result, "HatchCredit", $$HatchCredit, { "show": showBuiltBy })}</div></div></footer>`}${theme === "docs" && renderTemplate`<footer class="hatch-footer"><div class="mx-auto px-5 sm:px-8" style="max-width: var(--hatch-max-width, 1180px)"><div class="hatch-footer-brand">${siteName$2}</div><nav class="hatch-footer-links" aria-label="Footer">${navLinks.map((link) => renderTemplate`<a${addAttribute(link.href, "href")}${addAttribute(link.target || void 0, "target")}>${link.label}</a>`)}</nav><div class="hatch-footer-meta">© ${year} · ${siteName$2}</div><div class="mt-2">${renderComponent($$result, "HatchCredit", $$HatchCredit, { "show": showBuiltBy })}</div></div></footer>`}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.W0zVt5/astro/src/components/SiteFooter.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/SiteFooter.astro", void 0);
 //#endregion
 //#region src/lib/design.ts
 var DENSITY_SPACE = {
@@ -637,6 +637,6 @@ var $$PageLayout = createComponent(async ($$result, $$props, $$slots) => {
 	})}`}<script>(function(){${defineScriptVars({ wpBase: (features.site?.url || "").replace(/\/$/, "") })}
       window.HATCH_WP_BASE = wpBase;
     })();<\/script><script src="/hatch-blocks.js"><\/script></body></html>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.W0zVt5/astro/src/layouts/PageLayout.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/layouts/PageLayout.astro", void 0);
 //#endregion
 export { wooRouteForPath as a, isWooActive as i, FALL_THROUGH_KEY as n, fallThroughToPage as r, $$PageLayout as t };

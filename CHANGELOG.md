@@ -15,6 +15,7 @@ Builds on 1.0.1. No new features: fewer requests, fewer leftovers, more edge cas
 
 ### Fixed
 
+- Frontend: public pages are now kept for 60 seconds in the Cloudflare cache of the Worker (the earlier cache headers had no effect on a Worker, so every view asked WordPress again). On a test site whose WordPress answers in about 1 second, a post page took about 16 seconds on every view. Cookies, query strings, cart, checkout, account, login and search paths are never cached.
 - Uploading the zip in wp-admin: the "Activate Plugin" link now activates Hatch. The bundled mu-plugin copy no longer carries a Plugin Name header, so WordPress no longer mistakes it for the plugin.
 - Performance tab: "Clean media URLs" asks you to deploy first instead of silently switching back off when no frontend address exists.
 - WPForms and Gravity Forms: the forms list no longer raises PHP warnings when a site has no forms yet.

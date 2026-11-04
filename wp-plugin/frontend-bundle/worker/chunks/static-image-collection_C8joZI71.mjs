@@ -1,7 +1,7 @@
 globalThis.process ??= {};
 globalThis.process.env ??= {};
 import { d as removeBase, l as joinPaths, u as prependForwardSlash } from "./path_BqUacSWD.mjs";
-import { r as recordStaticImage } from "./entrypoints_CTqrcwBN.mjs";
+import { r as recordStaticImage } from "./entrypoints_CpvtgjrP.mjs";
 import { s as isESMImportedImage } from "./service_BxIRHiLo.mjs";
 import { n as propsToFilename, t as hashTransform } from "./assets_jOFuz5RL.mjs";
 //#region node_modules/@astrojs/cloudflare/dist/utils/static-image-collection.js

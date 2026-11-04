@@ -3,7 +3,7 @@ globalThis.process.env ??= {};
 import { t as __exportAll } from "./rolldown-runtime_D7vh-g_o.mjs";
 import { D as createAstro, _ as addAttribute, d as renderTemplate, h as maybeRenderHead, i as renderComponent } from "./server_BrNLrt74.mjs";
 import { t as createComponent } from "./compiler_CLadzSv0.mjs";
-import { i as isWooActive, r as fallThroughToPage, t as $$PageLayout } from "./PageLayout_w4jR3Czs.mjs";
+import { i as isWooActive, r as fallThroughToPage, t as $$PageLayout } from "./PageLayout_CYhINrkI.mjs";
 import { n as getFeatures } from "./features_CDtcubJM.mjs";
 import { t as safeRedirectPath } from "./url-builder_B-cXhIUn.mjs";
 //#region src/pages/register.astro
@@ -63,8 +63,8 @@ var $$Register = createComponent(async ($$result, $$props, $$slots) => {
         });
       })();
     <\/script></main>` })}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.W0zVt5/astro/src/pages/register.astro", void 0);
-var $$file = "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.W0zVt5/astro/src/pages/register.astro";
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/pages/register.astro", void 0);
+var $$file = "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/pages/register.astro";
 var $$url = "/register";
 //#endregion
 //#region \0virtual:astro:page:src/pages/register@_@astro

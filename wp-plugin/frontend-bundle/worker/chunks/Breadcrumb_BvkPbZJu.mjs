@@ -19,6 +19,6 @@ var $$Breadcrumb = createComponent(($$result, $$props, $$slots) => {
 		variant === "mono" && "hatch-crumbs--mono",
 		extra
 	], "class:list")} data-astro-cid-q4g25rac><ol data-astro-cid-q4g25rac>${crumbs.map((c, i) => renderTemplate`<li${addAttribute(i === lastIndex ? "hatch-crumbs__current" : void 0, "class")} data-astro-cid-q4g25rac>${i === lastIndex ? renderTemplate`<span aria-current="page"${addAttribute(c.label, "title")} data-astro-cid-q4g25rac>${c.label}</span>` : renderTemplate`${renderComponent($$result, "Fragment", Fragment, {}, { "default": ($$result) => renderTemplate`${c.href ? renderTemplate`<a${addAttribute(c.href, "href")}${addAttribute(c.ariaLabel, "aria-label")} data-astro-cid-q4g25rac>${c.label}</a>` : renderTemplate`<span data-astro-cid-q4g25rac>${c.label}</span>`}<span class="hatch-crumbs__sep" aria-hidden="true" data-astro-cid-q4g25rac>${sep}</span>` })}`}</li>`)}</ol></nav>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.W0zVt5/astro/src/components/theme/Breadcrumb.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/theme/Breadcrumb.astro", void 0);
 //#endregion
 export { $$Breadcrumb as t };

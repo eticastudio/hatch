@@ -30,7 +30,7 @@ var $$Image = createComponent(async ($$result, $$props, $$slots) => {
 		...image.attributes
 	};
 	return renderTemplate`${maybeRenderHead($$result)}<img${addAttribute(image.src, "src")}${spreadAttributes(attributes)}${addAttribute(className, "class")}>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.W0zVt5/astro/node_modules/astro/components/Image.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/node_modules/astro/components/Image.astro", void 0);
 //#endregion
 //#region node_modules/mrmime/index.mjs
 var mimes = {
@@ -544,7 +544,7 @@ var $$Picture = createComponent(async ($$result, $$props, $$slots) => {
 		const srcsetAttribute = props.densities || !props.densities && !props.widths && !useResponsive ? `${image.src}${image.srcSet.values.length > 0 ? ", " + image.srcSet.attribute : ""}` : image.srcSet.attribute;
 		return renderTemplate`<source${addAttribute(srcsetAttribute, "srcset")}${addAttribute(lookup(image.options.format ?? image.src) ?? `image/${image.options.format}`, "type")}${spreadAttributes(sourceAdditionalAttributes)}>`;
 	})}<img${addAttribute(fallbackImage.src, "src")}${spreadAttributes(attributes)}${addAttribute(className, "class")}></picture>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.W0zVt5/astro/node_modules/astro/components/Picture.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/node_modules/astro/components/Picture.astro", void 0);
 //#endregion
 //#region \0virtual:astro:assets/fonts/internal
 var componentDataByCssVariable = /* @__PURE__ */ new Map([]);
@@ -584,7 +584,7 @@ var $$Font = createComponent(($$result, $$props, $$slots) => {
 	});
 	const filteredPreloadData = filterPreloads(data.preloads, preload);
 	return renderTemplate`<style>${unescapeHTML(data.css)}</style>${filteredPreloadData?.map(({ url, type }) => renderTemplate`<link rel="preload"${addAttribute(url, "href")} as="font"${addAttribute(`font/${type}`, "type")} crossorigin>`)}`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.W0zVt5/astro/node_modules/astro/components/Font.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/node_modules/astro/components/Font.astro", void 0);
 //#endregion
 //#region node_modules/astro/dist/assets/fonts/infra/ssr-runtime-font-file-url-resolver.js
 var SsrRuntimeFontFileUrlResolver = class {

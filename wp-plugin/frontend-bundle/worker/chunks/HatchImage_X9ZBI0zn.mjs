@@ -25,6 +25,6 @@ var $$HatchImage = createComponent(($$result, $$props, $$slots) => {
 	const onerror = optimized !== src ? `this.onerror=null;this.removeAttribute('srcset');this.src=${JSON.stringify(src)}` : void 0;
 	const srcset = width && optimized !== optimized2x ? `${optimized} 1x, ${optimized2x} ${retina}x` : void 0;
 	return renderTemplate`${maybeRenderHead($$result)}<img${addAttribute(optimized, "src")}${addAttribute(srcset, "srcset")}${addAttribute(alt, "alt")}${addAttribute(width, "width")}${addAttribute(height, "height")}${addAttribute(loading, "loading")}${addAttribute(fetchpriority, "fetchpriority")}${addAttribute(decoding, "decoding")}${addAttribute(className, "class")}${addAttribute(style, "style")}${addAttribute(onerror, "onerror")}>`;
-}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.W0zVt5/astro/src/components/HatchImage.astro", void 0);
+}, "/private/var/folders/k3/_ljrcwl15lx5cd5ndyy5n6lh0000gn/T/hatch-bundle.Jucsvy/astro/src/components/HatchImage.astro", void 0);
 //#endregion
 export { $$HatchImage as t };

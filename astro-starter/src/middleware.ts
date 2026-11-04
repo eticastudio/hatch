@@ -309,6 +309,50 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
   }
 
+  // Page cache. A Worker answers every request itself, so without this each page
+  // view asks WordPress again. Public pages are kept for 60 seconds in the
+  // Cloudflare cache of this data centre. Anything with cookies, a query string,
+  // a sign-in or a store/account path is never cached.
+  const cache = pageCache();
+  const cacheable = !!cache && context.request.method === 'GET' && url.search === ''
+    && !context.request.headers.has('cookie') && !context.request.headers.has('authorization')
+    && !NO_CACHE_PATHS.test(url.pathname);
+  if (cacheable && cache) {
+    try {
+      const hit = await cache.match(url.origin + url.pathname);
+      if (hit) {
+        const at = Number(hit.headers.get('X-Hatch-Cached-At') || 0);
+        if (at && Date.now() - at < PAGE_TTL_MS) {
+          const h = new Headers(hit.headers);
+          h.set('X-Hatch-Cache', 'HIT');
+          return new Response(hit.body, { status: hit.status, headers: h });
+        }
+      }
+    } catch { /* a cache failure must never break a page */ }
+  }
+
   const res = await next();
-  return attachSecurityHeaders(res);
+  const out = attachSecurityHeaders(res);
+  if (cacheable && cache && out.status === 200 && !out.headers.has('set-cookie')
+    && (out.headers.get('content-type') || '').includes('text/html')
+    && !/no-store|private/i.test(out.headers.get('cache-control') || '')
+    && out.headers.get('X-Hatch-Features') !== 'fallback') {
+    try {
+      const copy = new Response(out.clone().body, { status: 200, headers: new Headers(out.headers) });
+      copy.headers.set('X-Hatch-Cached-At', String(Date.now()));
+      copy.headers.set('Cache-Control', 'public, max-age=60');
+      await cache.put(url.origin + url.pathname, copy);
+    } catch { /* ignore */ }
+    out.headers.set('X-Hatch-Cache', 'MISS');
+  }
+  return out;
 });
+
+const PAGE_TTL_MS = 60_000;
+const NO_CACHE_PATHS = /^\/(api|cart|checkout|account|order|login|logout|register|search|wp-admin|wp-login)(\/|$)/i;
+function pageCache(): Cache | null {
+  try {
+    const c = (globalThis as any).caches;
+    return c && c.default ? (c.default as Cache) : null;
+  } catch { return null; }
+}
